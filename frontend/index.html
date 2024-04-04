@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Peptide Editor</title>
+    <script type="text/javascript" src="https://unpkg.com/ngl@latest/dist/ngl.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+
+</head>
+<body>
+    <div id="container">
+
+
+        <form id="container-sequence" class="w-1/2">
+            <label for="sequence" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your molecule in BILN</label>
+            <textarea id="sequence" rows="2" class="block p-2.5 mb-4 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="P-E-P-T-I-D-E">P-E-P</textarea>
+            <button class="inline-flex items-center px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+                Load
+            </button>
+        </form>
+        
+                  
+        <form id="container-secondary-structure" class="w-1/2">
+            <div class="block mb-2">
+                <label for="sequence" class="text-sm font-medium text-gray-900 dark:text-white">Enter a secondary structure OR 
+                    <button class="inline-flex items-center ml-2 px-3 py-1.5 text-xs font-medium text-center text-white bg-gray-700 rounded-lg hover:bg-gray-800">Predict</button>
+                </label>
+            </div>
+            <textarea id="sequence" rows="2" class="block p-2.5 mb-4 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="-HHHHH-"></textarea>
+            <button id="generate-ss" class="inline-flex items-center px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+                Generate
+            </button>
+        </form>
+
+
+        <div id="viewport" style="width:500px; height:500px;"></div>
+    </div>
+
+    <script src="/static/js/main.js" type="module"></script>
+
+</body>
+
+</html>
+

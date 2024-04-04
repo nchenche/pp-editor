@@ -1,0 +1,13 @@
+#container {
+    margin: 2em;
+}
+
+form {
+    margin-bottom: 2em;
+}
+
+#viewport {
+    border: solid;
+    border-color: rgba(128, 128, 128, 0.75);
+    border-radius: 8px;
+}

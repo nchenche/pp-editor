@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualisation Moléculaire Synchronisée</title>
+    <script type="text/javascript" src="https://unpkg.com/ngl@latest/dist/ngl.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+<body>
+    <div id="viewport" style="width:500px; height:500px;"></div>
+
+    <script>
+        // Initialisation de la connexion WebSocket
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var stage = new NGL.Stage("viewport");
+        var isUpdatingFromSocket = false;
+
+
+        stage.loadFile("https://files.rcsb.org/download/4HHB.pdb").then(function(o) {
+            o.addRepresentation("cartoon");
+            o.autoView();
+        });
+
+
+       // Fonction pour obtenir l'orientation de la caméra
+        function getCameraOrientation(stage) {
+            var m = stage.viewerControls.getOrientation();
+        
+            return m.toArray()
+        }
+
+
+        // Fonction pour définir l'état de la caméra
+        function setCameraOrientation(stage, matrix_orientation) {
+            isUpdatingFromSocket = true; // Définir le drapeau avant la mise à jour
+            var m = new NGL.Matrix4().fromArray(matrix_orientation);
+            stage.viewerControls.orient(m);
+            isUpdatingFromSocket = false; // Réinitialiser le drapeau après la mise à jour
+        }
+
+        // Fonction pour obtenir l'état actuel de la caméra
+        function getCameraState(stage) {
+            var camera = stage.viewer.camera;
+            return {
+                position: camera.position.toArray(),
+                quaternion: camera.quaternion.toArray(),
+                zoom: camera.zoom
+            };
+        }
+
+        // Fonction pour définir l'état de la caméra
+        function setCameraState(stage, cameraState) {
+            var camera = stage.viewer.camera;
+            camera.position.fromArray(cameraState.position);
+            camera.quaternion.fromArray(cameraState.quaternion);
+            camera.zoom = cameraState.zoom;
+            camera.updateProjectionMatrix();
+            stage.viewer.requestRender();
+        }
+
+
+        // Envoyer l'état lorsqu'un utilisateur interagit avec la visualisation
+        stage.viewerControls.signals.changed.add(function() {
+
+            if (!isUpdatingFromSocket) { // Vérifier si la mise à jour vient de l'utilisateur
+                var matrix_orientation = getCameraOrientation(stage);
+                socket.emit('view_state', matrix_orientation);
+            }
+            
+        });
+
+        // Recevoir et appliquer les mises à jour de l'état de la visualisation
+        socket.on('view_state', function(matrix_orientation) {
+            // Mise à jour de l'état de la caméra
+            setCameraOrientation(stage, matrix_orientation);
+        });
+
+        
+        
+    </script>
+</body>
+</html>
