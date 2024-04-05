@@ -19,6 +19,7 @@ var NGLRepresentation = {
         },
         {
             name: "ball+stick",
+            // name: "hyperball",    
             params: {}
         },
     ]
@@ -31,8 +32,10 @@ function loadStructureFromString(pdbData, params) {
     // Create a Blob from the PDB data string
     var stringBlob = new Blob([pdbData], {type: 'text/plain'});
 
-    // Clear stage and load PDB from Blob
+    // Clear stage
     if (stage.compList.length) { stage.removeAllComponents() }
+
+    // Load PDB from Blob
     stage.loadFile(stringBlob, {ext: "pdb", defaultRepresentation: false}).then(function(component) {
         params.forEach(representation => {
             console.log(representation);
@@ -74,11 +77,16 @@ async function fetchStructureData(sequence) {
 
 
 async function loadDataAndDisplay(sequence) {
+    const spinner = document.getElementById("spinner");
+    spinner.classList.remove("hidden");
+
     // Wait for the data to be fetched
     let pdbData = await fetchStructureData(sequence);
 
     if (pdbData) {
         loadStructureFromString(pdbData, NGLRepresentation.default);
+        spinner.classList.add("hidden");
+
     } else {
         console.error("Failed to load PDB data");
     }
@@ -115,12 +123,17 @@ async function fetchSecondaryStructure(sequence) {
 
 
 async function predictSecondaryStructure(sequence) {
+    const spinner = document.getElementById("spinner-ss");
+    spinner.classList.remove("hidden");
+
     // Wait for the data to be fetched
     let secondaryStructure = await fetchSecondaryStructure(sequence);
 
     if (secondaryStructure) {
         let textArea = document.querySelector("#container-secondary-structure textarea");
         textArea.value = secondaryStructure;
+        spinner.classList.add("hidden");
+
     } else {
         console.error("Failed to predict secondary structure...");
     }
@@ -158,35 +171,21 @@ async function fetchPDBSecondaryStructure(sequence, seqStruct) {
 
 
 async function generateSecondaryStructure(sequence, secStruct) {
+    const spinner = document.getElementById("spinner");
+    spinner.classList.remove("hidden");
+    
     // Wait for the data to be fetched
     let pdbSecStruct = await fetchPDBSecondaryStructure(sequence, secStruct);
 
     if (pdbSecStruct) {
         loadStructureFromString(pdbSecStruct, NGLRepresentation.ss);
+        spinner.classList.add("hidden");
+    
     } else {
         console.error("Failed to load PDB scondary structure...");
     }
     
 }
-
-
-
-
-
-
-
-// let btnUpload = document.getElementById("pdb-file");
-// btnUpload.addEventListener("change", function(e) {
-//     let file = this.files[0];
-
-//     stage.loadFile(file).then(function(o) {
-//         o.addRepresentation("ball+stick");
-//         o.autoView();
-//     });
-
-// })
-
-
 
 
 
