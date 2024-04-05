@@ -189,7 +189,7 @@ async function generateSecondaryStructure(sequence, secStruct) {
 
 
 
-let btnLoadSequence = document.querySelector("#container-sequence button");
+const btnLoadSequence = document.querySelector("#container-sequence button");
 btnLoadSequence.addEventListener("click", (e) => {
         e.preventDefault()
 
@@ -200,7 +200,7 @@ btnLoadSequence.addEventListener("click", (e) => {
     })
 
 
-let BtnPredictSS = document.querySelector("#container-secondary-structure label button");
+    const BtnPredictSS = document.querySelector("#container-secondary-structure label button");
 BtnPredictSS.addEventListener("click", (e) => {
         e.preventDefault()
 
@@ -208,7 +208,7 @@ BtnPredictSS.addEventListener("click", (e) => {
         predictSecondaryStructure(sequenceInput.value);
     })
 
-let BtnGenerateSS = document.querySelector("#container-secondary-structure #generate-ss");
+const BtnGenerateSS = document.querySelector("#container-secondary-structure #generate-ss");
 BtnGenerateSS.addEventListener("click", (e) => {
         e.preventDefault()
 
@@ -220,5 +220,15 @@ BtnGenerateSS.addEventListener("click", (e) => {
 
 
 
+const tabs = document.getElementById('tab-headers');
+
+tabs.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        if (e.target.tagName != "A") { return }
+
+        console.log(e);
+    })
+    
 
 

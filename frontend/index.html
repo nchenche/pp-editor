@@ -7,14 +7,31 @@
     <title>Peptide Editor</title>
     <script type="text/javascript" src="https://unpkg.com/ngl@latest/dist/ngl.js"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <link rel="stylesheet" href="/static/dist/css/styles.css">
     
 
 </head>
 <body>
     <div id="container">
 
+        <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
+            <ul id="tab-headers" class="flex flex-wrap -mb-px">
+                <li class="me-2">
+                    <a class="cursor-pointer inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="biln">BILN</a>
+                </li>
+                <li class="me-2">
+                    <a class="cursor-pointer inline-block p-4 text-blue-600 border-b-2 border-blue-600 active rounded-t-lg dark:text-blue-500 dark:border-blue-500" data-target="helm">HELM</a>
+                </li>
+                <li class="me-2">
+                    <a class="cursor-pointer inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:pointer hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="fasta">FASTA</a>
+                </li>
+            </ul>
+        </div>
+
+        <div id="biln" class="tab-content hidden">biln</div>
+        <div id="helm" class="tab-content">helm</div>
+        <div id="fasta" class="tab-content hidden">fasta</div>
 
         <form id="container-sequence" class="w-1/2">
             <label for="sequence" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your molecule in BILN</label>
