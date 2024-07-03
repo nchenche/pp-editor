@@ -14,13 +14,35 @@ from app.lib import utils
 
 
 def format_to(sequence: str, format_dest: str):
+    result, error = None, None
 
     if format_dest == "biln":
-        return Converter(helm=sequence).get_biln()
+        try:
+            result = Converter(helm=sequence).get_biln()
+        except Exception as error:
+            print("Error in converting helm to biln...")
+            print("Error description: {}".format(error))
     elif format_dest == "helm":
-        return Converter(biln=sequence).get_helm()
-    else:
-        return None
+        try:
+            result = Converter(biln=sequence).get_helm()
+        except Exception as error:
+            print("Error in converting biln to helm...")
+            print("Error description: {}".format(error))
+    elif format_dest == "smiles":
+        try:
+            seq = Sequence(sequence)            
+            seq = correct_pdb_atoms(seq)  # Correct atom names in the sequence object
+
+            # Generate the RDKit object
+            mol = Molecule(seq)
+            romol = mol.get_molecule(fmt='ROMol')
+
+            result = Chem.MolToSmiles(romol)
+        except Exception as error:
+            print("Error in converting biln to SMILES...")
+            print("Error description: {}".format(error))
+
+    return result, error
 
 
 def get_pdb(biln_sequence: str):
@@ -86,12 +108,15 @@ def generate_secondary_structure(sequence, sec_struct: str):
 
 
 # Start the Sequence object
-biln = "ac-D-T-H-F-E-I-A-am"
+biln = "ac-C(1,3)-A-A-A-C(1,3)"
 biln = "N-Iva-F-D-I-meT-N-A-L-W-Y-Aib-K"
 
+biln = "C(1,3)-A-A-A-C(1,3)"
+helm = "PEPTIDE1{C.A.A.A.C}$PEPTIDE1,PEPTIDE1,1:R3-5:R3$$$V2.0"
+fasta = "CAAAC"
 
 # Converter
-helm = Converter(biln=biln)
+helm = Converter(biln=biln)  
 helm.get_helm()
 
 seq = Sequence(biln)
@@ -110,7 +135,7 @@ romol = mol.get_molecule(fmt='ROMol')
 # print("The SMILES of the peptide is: {}".format(Chem.MolToSmiles(romol)))
 # Draw.MolToFile(romol, 'peptide.png', size=(1200, 1200))
 
-# Chem.MolToSmiles(romol)
+Chem.MolToSmiles(romol)
 # Chem.MolToHELM(romol)
 # Chem.MolToJSON(romol)
 # Chem.MolToSmarts(romol)

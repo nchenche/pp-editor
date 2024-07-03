@@ -13,15 +13,118 @@
 
 </head>
 <body>
+
+    <div class="my-5">
+        <!--Tabs navigation-->
+<ul
+class="mb-5 flex list-none flex-row flex-wrap border-b-0 ps-0"
+role="tablist"
+data-twe-nav-ref>
+<li role="presentation">
+  <a
+    href="#tabs-home"
+    class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
+    data-twe-toggle="pill"
+    data-twe-target="#tabs-home"
+    data-twe-nav-active
+    role="tab"
+    aria-controls="tabs-home"
+    aria-selected="true"
+    >Home</a
+  >
+</li>
+<li role="presentation">
+  <a
+    href="#tabs-profile"
+    class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
+    data-twe-toggle="pill"
+    data-twe-target="#tabs-profile"
+    role="tab"
+    aria-controls="tabs-profile"
+    aria-selected="false"
+    >Profile</a
+  >
+</li>
+<li role="presentation">
+  <a
+    href="#tabs-messages"
+    class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
+    data-twe-toggle="pill"
+    data-twe-target="#tabs-messages"
+    role="tab"
+    aria-controls="tabs-messages"
+    aria-selected="false"
+    >Messages</a
+  >
+</li>
+<li role="presentation">
+  <a
+    href="#tabs-contact"
+    class="disabled pointer-events-none my-2 block border-x-0 border-b-2 border-t-0 border-transparent bg-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-400 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent dark:text-neutral-600"
+    data-twe-toggle="pill"
+    data-twe-target="#tabs-contact"
+    role="tab"
+    aria-controls="tabs-contact"
+    aria-selected="false"
+    >Contact</a
+  >
+</li>
+</ul>
+
+<!--Tabs content-->
+<div class="mb-6">
+<div
+  class="hidden opacity-100 transition-opacity duration-150 ease-linear data-[twe-tab-active]:block"
+  id="tabs-home"
+  role="tabpanel"
+  aria-labelledby="tabs-home-tab"
+  data-twe-tab-active>
+  Tab 1 content
+</div>
+<div
+  class="hidden opacity-0 transition-opacity duration-150 ease-linear data-[twe-tab-active]:block"
+  id="tabs-profile"
+  role="tabpanel"
+  aria-labelledby="tabs-profile-tab">
+  Tab 2 content
+</div>
+<div
+  class="hidden opacity-0 transition-opacity duration-150 ease-linear data-[twe-tab-active]:block"
+  id="tabs-messages"
+  role="tabpanel"
+  aria-labelledby="tabs-profile-tab">
+  Tab 3 content
+</div>
+<div
+  class="hidden opacity-0 transition-opacity duration-150 ease-linear data-[twe-tab-active]:block"
+  id="tabs-contact"
+  role="tabpanel"
+  aria-labelledby="tabs-contact-tab">
+  Tab 4 content
+</div>
+</div>
+    </div>
+
+    <!-- Button trigger modal -->
+<button
+type="button"
+class="inline-block rounded bg-primary px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal text-white shadow-primary-3 transition duration-150 ease-in-out hover:bg-primary-accent-300 hover:shadow-primary-2 focus:bg-primary-accent-300 focus:shadow-primary-2 focus:outline-none focus:ring-0 active:bg-primary-600 active:shadow-primary-2 dark:shadow-black/30 dark:hover:shadow-dark-strong dark:focus:shadow-dark-strong dark:active:shadow-dark-strong"
+data-twe-toggle="modal"
+data-twe-target="#exampleModal"
+data-twe-ripple-init
+data-twe-ripple-color="light">
+Launch demo modal
+</button>
+
     <div id="container">
 
-        <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
+        <!-- <div class="text-sm font-medium text-center text-gray-500 border-b border-gray-200 dark:text-gray-400 dark:border-gray-700">
             <ul id="tab-headers" class="flex flex-wrap -mb-px">
                 <li class="me-2">
                     <a class="cursor-pointer inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="biln">BILN</a>
                 </li>
                 <li class="me-2">
-                    <a class="cursor-pointer inline-block p-4 text-blue-600 border-b-2 border-blue-600 active rounded-t-lg dark:text-blue-500 dark:border-blue-500" data-target="helm">HELM</a>
+                    <a class="cursor-pointer inline-block p-4 border-b-2 tab-active" data-target="helm">HELM</a>
                 </li>
                 <li class="me-2">
                     <a class="cursor-pointer inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:pointer hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="fasta">FASTA</a>
@@ -31,7 +134,7 @@
 
         <div id="biln" class="tab-content hidden">biln</div>
         <div id="helm" class="tab-content">helm</div>
-        <div id="fasta" class="tab-content hidden">fasta</div>
+        <div id="fasta" class="tab-content hidden">fasta</div> -->
 
         <form id="container-sequence" class="w-1/2">
             <label for="sequence" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your molecule in BILN</label>
@@ -69,6 +172,11 @@
         </div>
     </div>
 
+
+
+
+
+    <script type="text/javascript" src="/static/dist/js/tw-elements.umd.min.js"></script>
     <script src="/static/js/main.js" type="module"></script>
 
 </body>

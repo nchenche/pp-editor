@@ -1,3 +1,12 @@
+// Initialization for ES Users
+import {
+    Tab,
+    initTWE,
+  } from "tw-elements";
+  
+//   twe.initTWE(twe.Tab, twe.Modal, twe.Ripple);
+
+
 var stage = new NGL.Stage("viewport");
 window.stage = stage;
 stage.setParameters({backgroundColor: "white"});
@@ -60,7 +69,7 @@ async function fetchStructureData(sequence) {
 
         if (!response.ok) {
             throw new Error('Network response was not ok');
-        }
+        }BBBBB
 
         const result = await response.json();
         if (result.error) {
@@ -220,15 +229,15 @@ BtnGenerateSS.addEventListener("click", (e) => {
 
 
 
-const tabs = document.getElementById('tab-headers');
+// const tabs = document.getElementById('tab-headers');
 
-tabs.addEventListener("click", (e) => {
-        e.preventDefault();
+// tabs.addEventListener("click", (e) => {
+//         e.preventDefault();
 
-        if (e.target.tagName != "A") { return }
+//         if (e.target.tagName != "A") { return }
 
-        console.log(e);
-    })
+//         console.log(e);
+//     })
     
 
 

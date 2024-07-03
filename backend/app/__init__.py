@@ -16,7 +16,11 @@ def create_app(config_name):
 
     @app.route('/', methods=(['GET']))
     def status():
-        return jsonify("ppeditor API is running...")
+        response = {
+            "status": True,
+            "message": "ppeditor API is running..."
+        }
+        return jsonify(response)
     
     @app.route('/download/<path:filename>')
     def download(filename):

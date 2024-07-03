@@ -10,16 +10,20 @@ bp = Blueprint('api', __name__, url_prefix='/api')
 def convert_helm_to_biln():
     # Assuming the sequence is sent in the JSON body of the request
     data = request.get_json()
-    sequence = data.get('sequence')
+    sequence = data.get('sequence', None)
     
     if sequence is None:
         return jsonify({"error": "No sequence provided"}), 400
 
     # Your conversion logic here
-    result = pypept.format_to(sequence=sequence, format_dest="biln")
+    conversion, error = pypept.format_to(sequence=sequence, format_dest="biln")
+
+    result = {
+        'data': conversion,
+        'error': error
+    }
 
     return jsonify(result)
-
 
 
 @bp.route('/convert/biln/to/helm', methods=['POST'])
@@ -32,7 +36,32 @@ def convert_biln_to_helm():
         return jsonify({"error": "No sequence provided"}), 400
 
     # Your conversion logic here
-    result = pypept.format_to(sequence=sequence, format_dest="helm")
+    conversion, error = pypept.format_to(sequence=sequence, format_dest="helm")
+
+    result = {
+        'data': conversion,
+        'error': error
+    }
+
+    return jsonify(result)
+
+
+@bp.route('/convert/biln/to/smiles', methods=['POST'])
+def convert_biln_to_smiles():
+    # Assuming the sequence is sent in the JSON body of the request
+    data = request.get_json()
+    sequence = data.get('sequence', None)
+    
+    if sequence is None:
+        return jsonify({"error": "No sequence provided"}), 400
+
+    # convert to smiles
+    conversion, error = pypept.format_to(sequence=sequence, format_dest="smiles")
+
+    result = {
+        'data': conversion,
+        'error': error
+    }
 
     return jsonify(result)
 
