@@ -110,13 +110,20 @@ def predict_secondary_structure():
 def generate_secondary_structure():
     # Assuming the sequence is sent in the JSON body of the request
     data = request.get_json()
-    sequence = data.get('sequence')
-    seq_structure = data.get("ss_value")
+    print(data)
+    sequence = data.get('sequence', None)
+    seq_structure = data.get("ss_value", None)
     
-    if sequence is None:
+    if not sequence:
         return jsonify({"error": "No sequence provided"}), 400
-    if seq_structure is None:
-        return jsonify({"error": "No secondary structure (ss_value) provided"}), 400
+    if not seq_structure:
+        print("No secondary structure (ss_value) provided...")
+        # predict secondary structure
+        try:
+            seq_structure, error = pypept.predict_secondary_structure(sequence=sequence)
+        except:
+            print("Error in predicting the secondary structure...")
+            return jsonify({data: "", error: "Error in predicting the secondary structure..."}), 400
 
     # predict secondary structure
     pdb_string, error = pypept.generate_secondary_structure(sequence=sequence, sec_struct=seq_structure)

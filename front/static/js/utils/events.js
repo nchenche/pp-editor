@@ -24,25 +24,25 @@ btnLoadSequence.addEventListener("click", (e) => {
 
 const tabsTextAreas = document.querySelectorAll("#container-tabs-sequence textarea");
 tabsTextAreas.forEach( (textArea) => {
-    textArea.addEventListener("change", (e) => {
+    textArea.addEventListener("change", async (e) => {
         const format = e.target.id;
-        const sequence = e.target.value;
+        const sequence = e.target.value.trim();
 
         if (format === "biln") {
-            setHelmFromBiln(sequence);
-            convertBilnToSmiles(sequence).
-                then(response => {console.log(response)})
-                ;
-            // console.log(smiles)
+            await setHelmFromBiln(sequence);
         } else {
-            setBilnFromHelm(sequence);
+            await setBilnFromHelm(sequence);
         }
 
-        var mol = RDKit.get_mol('C[C@@H]1NC(=O)[C@H](C)NC(=O)[C@@H](N)CSSC[C@@H](C(=O)O)NC(=O)[C@H](C)NC1=O');
+
+        let biln = document.getElementById("biln")
+        let smiles = await convertBilnToSmiles(biln.value.trim());
+        console.log(smiles);
+        var mol = RDKit.get_mol(smiles);
         var svg = mol.get_svg();
 
         var canvas = document.getElementById("rdkit-drawing");
-        canvas.insertAdjacentHTML('beforeend', svg);
+        canvas.innerHTML = svg;
     })
 })
 

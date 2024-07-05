@@ -146,6 +146,9 @@ async function fetchPDBSecondaryStructure(sequence, seqStruct) {
     const apiUrl = "http://localhost:5000/api/generate_secondary_structure";
     const postData = { sequence: sequence, ss_value: seqStruct };
 
+    console.log(postData);
+
+
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -183,6 +186,7 @@ async function generateSecondaryStructure(sequence, secStruct) {
         spinner.classList.add("hidden");
 
     } else {
+        spinner.classList.add("hidden");
         console.error("Failed to load PDB scondary structure...");
     }
 
@@ -324,6 +328,9 @@ BtnGenerateSS.addEventListener("click", (e) => {
     let sequence = document.querySelector("#container-sequence textarea");
     let secStruct = document.querySelector("#container-secondary-structure textarea");
 
+    console.log(sequence.value);
+    console.log(secStruct.value);
+    
     generateSecondaryStructure(sequence.value, secStruct.value);
 })
 
