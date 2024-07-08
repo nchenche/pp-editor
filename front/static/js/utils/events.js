@@ -24,7 +24,7 @@ btnLoadSequence.addEventListener("click", (e) => {
 
 const tabsTextAreas = document.querySelectorAll("#container-tabs-sequence textarea");
 tabsTextAreas.forEach( (textArea) => {
-    textArea.addEventListener("change", async (e) => {
+    textArea.addEventListener("input", async (e) => {
         const format = e.target.id;
         const sequence = e.target.value.trim();
 

@@ -313,24 +313,24 @@ export async function setBilnFromHelm(sequence) {
 
 
 
-const BtnPredictSS = document.querySelector("#container-secondary-structure label button");
-BtnPredictSS.addEventListener("click", (e) => {
-    e.preventDefault()
+// const BtnPredictSS = document.querySelector("#container-secondary-structure label button");
+// BtnPredictSS.addEventListener("click", (e) => {
+//     e.preventDefault()
 
-    let sequenceInput = document.querySelector("#container-sequence textarea");
-    predictSecondaryStructure(sequenceInput.value);
-})
+//     let sequenceInput = document.querySelector("#container-sequence textarea");
+//     predictSecondaryStructure(sequenceInput.value);
+// })
 
-const BtnGenerateSS = document.querySelector("#container-secondary-structure #generate-ss");
+const BtnGenerateSS = document.getElementById("generate-3d-structure");
 BtnGenerateSS.addEventListener("click", (e) => {
     e.preventDefault()
 
     let sequence = document.querySelector("#container-sequence textarea");
-    let secStruct = document.querySelector("#container-secondary-structure textarea");
+    // let secStruct = document.querySelector("#container-secondary-structure textarea");
 
     console.log(sequence.value);
-    console.log(secStruct.value);
+    // console.log(secStruct.value);
     
-    generateSecondaryStructure(sequence.value, secStruct.value);
+    generateSecondaryStructure(sequence.value, '');
 })
 

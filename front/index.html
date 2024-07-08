@@ -36,73 +36,100 @@
 
 
 <body>
-  <div class="container mx-auto border-2 border-blue-500 p-1 space-y-4">
+  <div class="container mt-4 mx-auto border- border-slate-400 rounded-md p-1 space-y-4 w-9/12">
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid">
 
-      <div id="container-sequence" class="border-2 border-orange-500">
+      <div id="container-sequence" class="border- border-orange-500">
+
+
         <!--Tabs navigation-->
-        <ul class="mb-5 flex list-none flex-row flex-wrap border-b-0 ps-0" role="tablist" data-twe-nav-ref>
-          <li role="presentation">
-            <a href="#tabs-home"
-              class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
-              data-twe-toggle="pill" data-twe-target="#tabs-biln" data-twe-nav-active role="tab" aria-controls="tabs-biln"
-              aria-selected="true">BILN</a>
-          </li>
-          <li role="presentation">
-            <a href="#tabs-profile"
-              class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
-              data-twe-toggle="pill" data-twe-target="#tabs-helm" role="tab" aria-controls="tabs-helm"
-              aria-selected="false">HELM</a>
-          </li>
-        </ul>
+        <div class="w-1/2 mx-auto m-1">
+          
+          <ul class="mb-5 flex list-none flex-row flex-wrap border-b-0 ps-0" role="tablist" data-twe-nav-ref>
+            <li role="presentation">
+              <a href="#tabs-home"
+                class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
+                data-twe-toggle="pill" data-twe-target="#tabs-biln" data-twe-nav-active role="tab" aria-controls="tabs-biln"
+                aria-selected="true">BILN</a>
+            </li>
+            <li role="presentation">
+              <a href="#tabs-profile"
+                class="my-2 block border-x-0 border-b-2 border-t-0 border-transparent px-7 pb-3.5 pt-4 text-xs font-medium uppercase leading-tight text-neutral-500 hover:isolate hover:border-transparent hover:bg-neutral-100 focus:isolate focus:border-transparent data-[twe-nav-active]:border-primary data-[twe-nav-active]:text-primary dark:text-white/50 dark:hover:bg-neutral-700/60 dark:data-[twe-nav-active]:text-primary"
+                data-twe-toggle="pill" data-twe-target="#tabs-helm" role="tab" aria-controls="tabs-helm"
+                aria-selected="false">HELM</a>
+            </li>
+          </ul>
+
+        </div>
 
         <!--Tabs content-->
-        <div id="container-tabs-sequence" class="mb-6">
-          <div class="hidden opacity-100 data-[twe-tab-active]:block" id="tabs-biln" role="tabpanel"
-            aria-labelledby="tabs-home-tab" data-twe-tab-active>
+        <div id="container-tabs-sequence" class="mb-6 w-1/2 mx-auto">
 
-            <form id="form-biln" class="w-1/2">
-              <label for="biln" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your
-                molecule in BILN</label>
+          <div class="hidden opacity-100 data-[twe-tab-active]:block" id="tabs-biln" role="tabpanel" aria-labelledby="tabs-home-tab" data-twe-tab-active>
+            <form id="form-biln" class="p-1">
+              <label for="biln" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your molecule in BILN</label>
               <textarea id="biln" rows="2"
                 class="block p-2.5 mb-4 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="P-E-P-T-I-D-E">P-E-P-T-I-D-E</textarea>
             </form>
-
-
           </div>
-          <div class="hidden opacity-0 ease-linear data-[twe-tab-active]:block" id="tabs-helm" role="tabpanel"
-            aria-labelledby="tabs-profile-tab">
 
-            <form id="form-helm" class="w-1/2">
+          <div class="hidden opacity-0 ease-linear data-[twe-tab-active]:block" id="tabs-helm" role="tabpanel" aria-labelledby="tabs-profile-tab">
+            <form id="form-helm" class="p-1">
               <label for="helm" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Describe your
                 molecule in HELM</label>
               <textarea id="helm" rows="2"
                 class="block p-2.5 mb-4 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="PEPTIDE1{P.E.P.T.I.D.E}$$$$V2.0">PEPTIDE1{P.E.P.T.I.D.E}$$$$V2.0</textarea>
             </form>
-
           </div>
-
-
-          <button id="btn-sequence"
-            class="inline-flex items-center px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
-            Load
-          </button>
 
         </div>
 
       </div>
 
-      <div id="rdkit-drawing" class="w-72 h-72 border-2 border-orange-500 flex justify-center items-center">
+    </div>
 
+    <div id="container-structure" class="flex justify-center p-1 space-x-4 border- border-pink-500 w-2/3 mx-auto">
+
+      <div id="rdkit-drawing" class="w-96 h-96 border-2 border-gray-400 rounded-lg flex justify-center items-center"></div>
+
+      <div id="viewport-container" class="">
+  
+        <div id="viewport" class="border-2 border-gray-400 rounded-lg p-2 w-96 h-96">
+          <div id="spinner" role="status"
+            class="relative flex justify-center items-center h-full bg-white opacity-50 hidden">
+            <svg aria-hidden="true" class="z-10 w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+              viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                fill="currentColor" />
+              <path
+                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                fill="currentFill" />
+            </svg>
+          </div>
+        </div>
+    
+        <div id="viewport-message" class="text-sm text-red-600 px-2"></div>
+
+        <button id="generate-3d-structure" class="inline-flex items-center mt-2 px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+          Generate 3D Conformer
+       </button> 
+
+
+       <button id="btn-sequence"
+       class="inline-flex items-center px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
+        Show 2D structure
+     </button>
+  
       </div>
 
     </div>
 
 
-    <form id="container-secondary-structure" class="w-1/2 border-2 border-orange-500">
+    <!-- <form id="container-secondary-structure" class="w-1/2 border-2 border-orange-500">
       <div class="block mb-2">
           <label for="sequence" class="text-sm font-medium text-gray-900 dark:text-white">Enter a secondary structure OR 
               <button class="inline-flex items-center ml-2 px-3 py-1.5 text-xs font-medium text-center text-white bg-gray-700 rounded-lg hover:bg-gray-800">Predict     
@@ -120,34 +147,7 @@
       <button id="generate-ss" class="inline-flex items-center px-4 py-2 text-xs font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800">
           Generate
       </button>
-    </form>
-
-
-    <div id="viewport-container" class="border-2 border-red-500 p-2">
-
-      <div id="viewport" class="border-2 border-red-500 p-2 w-96 h-96">
-        <div id="spinner" role="status"
-          class="relative flex justify-center items-center h-full bg-white opacity-50 hidden">
-          <svg aria-hidden="true" class="z-10 w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
-            viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-              fill="currentColor" />
-            <path
-              d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-              fill="currentFill" />
-          </svg>
-        </div>
-      </div>
-  
-      <div id="viewport-message" class="text-sm text-red-600 px-2">
-
-      </div>
-  
-
-    </div>
-
-
+    </form> -->
 
   </div>
 
