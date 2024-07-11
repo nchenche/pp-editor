@@ -1,5 +1,5 @@
 from pyPept.sequence import Sequence
-from pyPept.sequence import correct_pdb_atoms
+from pyPept.sequence import correct_pdb_atoms, get_monomer_info
 from pyPept.molecule import Molecule
 from pyPept.converter import Converter
 from pyPept.conformer import Conformer
@@ -108,7 +108,7 @@ def generate_secondary_structure(sequence, sec_struct: str):
 
 
 # Start the Sequence object
-biln = "ac-C(1,3)-A-A-A-C(1,3)"
+biln = "Ac-C(1,3)-A-A-A-C(1,3)"
 biln = "N-Iva-F-D-I-meT-N-A-L-W-Y-Aib-K"
 
 biln = "C(1,3)-A-A-A-C(1,3)"
@@ -116,7 +116,7 @@ helm = "PEPTIDE1{C.A.A.A.C}$PEPTIDE1,PEPTIDE1,1:R3-5:R3$$$V2.0"
 fasta = "CAAAC"
 
 # Converter
-helm = Converter(biln=biln)  
+helm = Converter(biln=biln)
 helm.get_helm()
 
 seq = Sequence(biln)
