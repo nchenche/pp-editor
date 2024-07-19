@@ -1,0 +1,323 @@
+symbol,m_name,m_abbr,m_type,m_subtype,m_Rgroups,m_RgroupIdx,m_attachmentPointIdx,natAnalog,pdbName,ID,m_romol
+A,Alanine,A,aa,natural,"['H', 'OH', None, None]","[5, 6, None, None]","[2, 3, None, None]",A,ALA,,<rdkit.Chem.rdchem.Mol object at 0x7957f15517e0>
+C,Cysteine,C,aa,natural,"['H', 'OH', 'H', None]","[6, 8, 7, None]","[0, 4, 3, None]",C,CYS,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551930>
+D,Aspartic acid,D,aa,natural,"['H', 'OH', 'OH', None]","[7, 9, 8, None]","[0, 5, 3, None]",D,ASP,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551d20>
+E,Glutamic acid,E,aa,natural,"['H', 'OH', 'OH', None]","[8, 10, 9, None]","[0, 6, 4, None]",E,GLU,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551d90>
+F,Phenylalanine,F,aa,natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",F,PHE,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551e00>
+G,Glycine,G,aa,natural,"['H', 'OH', None, None]","[4, 5, None, None]","[0, 2, None, None]",G,GLY,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551e70>
+H,Histidine,H,aa,natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",H,HIS,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551ee0>
+I,Isoleucine,I,aa,natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,ILE,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552570>
+K,Lysine,K,aa,natural,"['H', 'OH', 'H', None]","[9, 11, 10, None]","[0, 7, 6, None]",K,LYS,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551a80>
+L,Leucine,L,aa,natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",L,LEU,,<rdkit.Chem.rdchem.Mol object at 0x7957f1550cf0>
+M,Methionine,M,aa,natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",M,MET,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551c40>
+N,Asparagine,N,aa,natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",N,ASN,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551f50>
+P,Proline,P,aa,natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",P,PRO,,<rdkit.Chem.rdchem.Mol object at 0x7957f1551cb0>
+Q,Glutamine,Q,aa,natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",Q,GLN,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552030>
+R,Arginine,R,aa,natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",R,ARG,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552500>
+S,Serine,S,aa,natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",S,SER,,<rdkit.Chem.rdchem.Mol object at 0x7957f15520a0>
+T,Threonine,T,aa,natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",T,THR,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552110>
+V,Valine,V,aa,natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",V,VAL,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552180>
+W,Tryptophan,W,aa,natural,"['H', 'OH', None, None]","[14, 15, None, None]","[0, 12, None, None]",W,TRP,,<rdkit.Chem.rdchem.Mol object at 0x7957f15521f0>
+Y,Tyrosine,Y,aa,natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",Y,TYR,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552260>
+dA,D-Alanine,dA,aa,non-natural,"['H', 'OH', None, None]","[5, 6, None, None]","[2, 3, None, None]",A,DA0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15525e0>
+dC,D-Cysteine,dC,aa,non-natural,"['H', 'OH', 'H', None]","[6, 8, 7, None]","[0, 4, 3, None]",C,DC6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15522d0>
+dD,D-Aspartic acid,dD,aa,non-natural,"['H', 'OH', 'OH', None]","[7, 9, 8, None]","[0, 5, 3, None]",D,DD0,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552340>
+dE,D-Glutamic acid,dE,aa,non-natural,"['H', 'OH', 'OH', None]","[8, 10, 9, None]","[0, 6, 4, None]",E,DEK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15523b0>
+dF,D-Phenylalanine,dF,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",F,DBL,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552420>
+dH,D-Histidine,dH,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",H,DHW,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552490>
+dI,D-Isoleucine,dI,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,DIJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552c70>
+dK,D-Lysine,dK,aa,non-natural,"['H', 'OH', 'H', None]","[9, 11, 10, None]","[0, 7, 6, None]",K,DKB,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552ce0>
+dL,D-Leucine,dL,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",L,DLO,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552880>
+dM,D-Methionine,dM,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",M,DB2,,<rdkit.Chem.rdchem.Mol object at 0x7957f15528f0>
+dN,D-Asparagine,dN,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",N,DNI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552960>
+dP,D-Proline,dP,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",P,DPI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15529d0>
+dQ,D-Glutamine,dQ,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",Q,DQC,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552a40>
+dR,D-Arginine,dR,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",R,DC9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15530d0>
+dS,D-Serine,dS,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",S,DSW,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552730>
+dT,D-Threonine,dT,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",T,DE8,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552650>
+dV,D-Valine,dV,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",V,DVB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15527a0>
+dW,D-Tryptophan,dW,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[0, 12, None, None]",W,DWI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552ab0>
+dY,D-Tyrosine,dY,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",Y,DYE,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552810>
+ac,N-Terminal acetic acid,ac,cap,cap,"[None, 'OH', None, None]","[None, 3, None, None]","[None, 1, None, None]",X,ACE,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553060>
+am,C-Terminal amine,am,cap,cap,"['H', None, None, None]","[1, None, None, None]","[0, None, None, None]",X,NH2,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552b20>
+_Me,C-Terminal methyl,_Me,cap,cap,"['H', None, None, None]","[1, None, None, None]","[0, None, None, None]",X,MEH,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552b90>
+meA,N-Methyl-Alanine,meA,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[2, 4, None, None]",A,MBI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552c00>
+meD,N-Methyl-Aspartic acid,meD,aa,non-natural,"['H', 'OH', 'OH', None]","[8, 10, 9, None]","[1, 6, 4, None]",D,MBJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552d50>
+meS,N-Methyl-Serine,meS,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[1, 5, None, None]",S,MBU,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552dc0>
+meT,N-Methyl-Threonine,meT,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",T,MCC,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553140>
+meV,N-Methyl-Valine,meV,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",V,MC6,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552e30>
+meY,N-Methyl-Tyrosine,meY,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[1, 11, None, None]",Y,MC7,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552ea0>
+meE,N-Methyl-Glutamic acid,meE,aa,non-natural,"['H', 'OH', 'OH', None]","[9, 11, 10, None]","[1, 7, 5, None]",E,MDI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552f10>
+meG,Sarcosine (N-Methyl-Glycine),meG,aa,non-natural,"['H', 'OH', None, None]","[5, 6, None, None]","[1, 3, None, None]",G,MDM,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552f80>
+meI,N-Methyl-Isoleucine,meI,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[5, 7, None, None]",I,MDT,,<rdkit.Chem.rdchem.Mol object at 0x7957f1552ff0>
+meK,N-Methyl-Lysine,meK,aa,non-natural,"['H', 'OH', 'H', None]","[10, 12, 11, None]","[1, 8, 7, None]",K,MFF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15526c0>
+meM,N-Methyl-Methionine,meM,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[5, 7, None, None]",M,MFI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553760>
+meN,N-Methyl-Asparagine,meN,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[1, 7, None, None]",N,MFL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15537d0>
+meQ,N-Methyl-Glutamine,meQ,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[1, 8, None, None]",Q,MFS,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553220>
+meC,N-Methyl-Cysteine,meC,aa,non-natural,"['H', 'OH', 'H', None]","[7, 9, 8, None]","[1, 5, 4, None]",C,MF0,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553290>
+meR,N-Methyl-Arginine,meR,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[1, 10, None, None]",R,MF6,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553300>
+meW,N-Methyl-Tryptophan,meW,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[1, 13, None, None]",W,MF9,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553370>
+meF,N-Methyl-Phenylalanine,meF,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[1, 10, None, None]",F,MGU,,<rdkit.Chem.rdchem.Mol object at 0x7957f15533e0>
+meH,N-Methyl-Histidine,meH,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[1, 9, None, None]",H,MG3,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553450>
+meL,N-Methyl-Leucine,meL,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[5, 7, None, None]",L,MG4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15534c0>
+Nle,Norleucine,Nle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",L,NLF,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553530>
+Nva,Norvaline,Nva,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",V,NVF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15535a0>
+Orn,L-ornithine,Orn,aa,non-natural,"['H', 'OH', 'H', None]","[8, 10, 9, None]","[0, 6, 5, None]",K,ORF,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553610>
+Iva,Isovaline,Iva,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",V,6ZS,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553680>
+aIle,L-allo-Isoleucine,aIle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,AID,,<rdkit.Chem.rdchem.Mol object at 0x7957f15536f0>
+gGlu,Gamma glutamic acid,gGlu,aa,non-natural,"['H', 'OH', 'OH', None]","[8, 9, 10, None]","[0, 4, 6, None]",E,GGI,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553840>
+Hcy,Homocysteine,Hcy,aa,non-natural,"['H', 'OH', 'H', None]","[7, 9, 8, None]","[0, 5, 4, None]",C,HCB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15538b0>
+Hse,Homoserine,Hse,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",S,HSB,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553920>
+Hyp,4-Hydroxyproline,Hyp,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",P,HYJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553990>
+D_gGlu,D-Gamma glutamic acid,D_gGlu,aa,non-natural,"['H', 'OH', 'OH', None]","[8, 9, 10, None]","[0, 4, 6, None]",E,DGE,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553a00>
+D_Nle,D-Norleucine,D_Nle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",L,DNU,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553a70>
+D_hPhe,D-Homophenylalanine,D_hPhe,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[0, 10, None, None]",F,DHX,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553ae0>
+D_Hyp,D-4-Hydroxyproline,D_Hyp,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",P,DH0,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553b50>
+D_Nva,D-Norvaline,D_Nva,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",V,DGK,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553bc0>
+D_Orn,D-Ornithine,D_Orn,aa,non-natural,"['H', 'OH', 'H', None]","[8, 10, 9, None]","[0, 6, 5, None]",K,DOU,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553c30>
+Pyr,Pyroglutamic acid,Pyr,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[0, 6, None, None]",E,PYK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15531b0>
+D_Pyr,D-Pyroglutamic acid,D_Pyr,aa,non-natural,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",E,DG5,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553ca0>
+Phe_3Cl,3-Chloro-L-phenylalanine,Phe_3Cl,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[8, 9, None, None]",F,PAA,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553d10>
+Phe_4Cl,4-Chloro-L-phenylalanine,Phe_4Cl,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PBJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553d80>
+Phe_4NH2,p-Aminophenylalanine,Phe_4NH2,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PD0,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553df0>
+Phg,2-Phenylglycine,Phg,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 2, None, None]",G,PEN,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553e60>
+Ser_tBu,O-tert-Butyl-L-serine,Ser_tBu,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[7, 8, None, None]",S,SED,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553ed0>
+Tyr_Bn,O-Benzyl-L-tyrosine,Tyr_Bn,aa,non-natural,"['H', 'OH', None, None]","[19, 20, None, None]","[0, 17, None, None]",Y,TYH,,<rdkit.Chem.rdchem.Mol object at 0x7957f1553f40>
+Tza,3-Thiazolylalanine,Tza,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",A,TZI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4040>
+1Nal,3-(1-naphthyl)-alanine,1Nal,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[0, 13, None, None]",A,1NC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a40b0>
+Cha,3-Cyclohexylalanine,Cha,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",A,CHE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4120>
+Lys_Boc,N-epsilon-tert-Boc-L-lysine,Lys_Boc,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[13, 14, None, None]",K,LYI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4190>
+aThr,L-allo-Threonine,aThr,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",T,ATB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4200>
+D_2Nal,D-3-naphthylalanine,D_2Nal,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[0, 13, None, None]",A,D2I,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4270>
+D_2Thi,D-3-thienylalanine,D_2Thi,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",A,DJA,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a42e0>
+D_aHyp,D-allo-4-hydroxyproline,D_aHyp,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",P,DJG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4350>
+D_aIle,D-allo-Isoleucine,D_aIle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,DJI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a43c0>
+D_Phg,D-2-phenylglycine,D_Phg,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 2, None, None]",G,DJ5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4430>
+D_Ser_tBu,O-tert-Butyl-D-serine,D_Ser_tBu,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[7, 8, None, None]",S,DJ7,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a44a0>
+Cya,3-Sulfoalanine,Cya,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",A,CY2,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4510>
+Lys_Me3,Epsilon-N-trimethyllysine,Lys_Me3,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",K,LYY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4580>
+Pen,Penicillamine (3-mercaptovaline),Pen,aa,non-natural,"['H', 'OH', 'H', None]","[9, 10, 8, None]","[5, 6, 3, None]",V,PES,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a45f0>
+Phe_4Me,p-Methylphenylalanine,Phe_4Me,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PGB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4660>
+Ser_Bn,O-Benzyl-L-serine,Ser_Bn,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[0, 11, None, None]",S,SEQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a46d0>
+Tyr_tBu,O-tert-Butyl-L-tyrosine,Tyr_tBu,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[11, 12, None, None]",Y,TYK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4740>
+2Nal,3-Naphthylalanine,2Nal,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[0, 13, None, None]",A,2NN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a47b0>
+Thi,3-thienylalanine,Thi,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",A,TAI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4820>
+aHyp,L-allo-4-hydroxyproline,aHyp,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",P,AHJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4890>
+Ala_tBu,3-Methylvaline,Ala_tBu,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",A,AAJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4900>
+hPhe,Homophenylalanine,hPhe,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[0, 10, None, None]",F,HP9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4970>
+D_1Nal,D-3-(1-naphthyl)-alanine,D_1Nal,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[0, 13, None, None]",A,D1E,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a49e0>
+D_aThr,D-allo-Threonine,D_aThr,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",T,DKC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4a50>
+D_Cha,D-2-Amino-3-cyclohexyl-propionic acid,D_Cha,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",A,DLQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4ac0>
+D_Pen,D-penicillamine (3-mercaptovaline),D_Pen,aa,non-natural,"['H', 'OH', 'H', None]","[9, 10, 8, None]","[5, 6, 3, None]",V,DLV,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4b30>
+D_Phe_4Cl,4-Chloro-D-phenylalanine,D_Phe_4Cl,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,DO0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4ba0>
+D_Ser_Bn,O-Benzyl-D-serine,D_Ser_Bn,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[0, 11, None, None]",S,DO7,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4c10>
+Wil,"Alpha-amino-2,4-dioxopyrimidinepropanoic acid",Wil,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[0, 11, None, None]",X,WIL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4c80>
+MsO,Mesylate,MsO,cap,cap,"[None, 'OH', None, None]","[None, 4, None, None]","[None, 1, None, None]",X,MSV,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4cf0>
+Oic_3aS_7aS,Perhydroindolic acid,Oic_3aS_7aS,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,OIB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4d60>
+Pip,Pipecolic acid,Pip,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[0, 6, None, None]",X,PIJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4dd0>
+3Pal,3-(2-pyridyl)-alanine,3Pal,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,3PN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4e40>
+4Pal,3-(4-Pyridyl)-alanine,4Pal,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,4PM,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4eb0>
+Abu,2-Aminobutanoic acid,Abu,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",X,ABC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4f20>
+Apm,2-Aminopimelic acid,Apm,aa,non-natural,"['H', 'OH', 'OH', None]","[10, 12, 11, None]","[0, 8, 6, None]",X,AAW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a4f90>
+Chg,Alpha-cyclohexylglycine,Chg,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",X,CHY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5000>
+Dab,"2,4-diaminobutanoic acid",Dab,aa,non-natural,"['H', 'OH', 'H', None]","[7, 9, 8, None]","[0, 5, 4, None]",X,DQE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5070>
+Dap,"2,3-diaminopropanoic acid",Dap,aa,non-natural,"['H', 'OH', 'H', None]","[6, 8, 7, None]","[0, 4, 3, None]",X,DQI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a50e0>
+D_3Pal,D-3-(2-pyridyl)-alanine,D_3Pal,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,D3I,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5150>
+D_aMeAbu,D-Isovaline,D_aMeAbu,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",X,DQ4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a51c0>
+D_Chg,D-Alpha-cyclohexylglycine,D_Chg,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[0, 8, None, None]",X,DUF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5230>
+D_Cit,D-Citrullin,D_Cit,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",X,DUI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a52a0>
+D_Dab,"D-2,4-diaminobutanoic acid",D_Dab,aa,non-natural,"['H', 'OH', 'H', None]","[7, 9, 8, None]","[0, 5, 4, None]",X,DUJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5310>
+D_Pip,D-Pipecolic acid,D_Pip,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[0, 6, None, None]",X,DUM,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5380>
+D_Tic,"D-1,2,3,4-tetrahydro-3-isoquinolinecarboxylic acid",D_Tic,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[0, 10, None, None]",X,DVF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a53f0>
+Aca,2-Aminocapric acid,Aca,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,AC3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5460>
+Tic,"1,2,3,4-tetrahydro-3-isoquinolinecarboxylic acid",Tic,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[0, 10, None, None]",X,TIE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5540>
+Aad,2-Aminoadipic acid,Aad,aa,non-natural,"['H', 'OH', 'OH', None]","[9, 11, 10, None]","[0, 7, 5, None]",X,AD0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a55b0>
+Cit,Citrullin,Cit,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",X,CIF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5690>
+Aze,2-Carboxyazetidine,Aze,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[0, 4, None, None]",X,AEB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5700>
+Ac5c,1-Amino-1-carboxycyclopentane,Ac5c,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[0, 6, None, None]",X,AEC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5770>
+Aib,Alpha-aminoisobutyric acid (2-aminoalanine),Aib,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",X,AIB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a57e0>
+D_2Pal,D-3-(2-Pyridyl)-alanine,D_2Pal,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,DVI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5850>
+D_Abu,D-2-aminobutanoic acid,D_Abu,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",X,DVO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a58c0>
+D_Dap,"D-2,3-diaminopropanoic acid",D_Dap,aa,non-natural,"['H', 'OH', 'H', None]","[6, 8, 7, None]","[0, 4, 3, None]",X,DVS,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5930>
+Asu,2-Aminosuberic acid,Asu,aa,non-natural,"['H', 'OH', 'OH', None]","[11, 13, 12, None]","[0, 9, 7, None]",X,AS5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a59a0>
+Cbz,Carboxybenzyl,Cbz,cap,cap,"[None, 'OH', None, None]","[None, 10, None, None]","[None, 0, None, None]",X,CBS,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5a10>
+_Et,C-Terminal ethyl,_Et,cap,cap,"['H', None, None, None]","[2, None, None, None]","[1, None, None, None]",X,ETJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5a80>
+NHEt,Ethanamine,NHEt,cap,cap,"['H', None, None, None]","[3, None, None, None]","[2, None, None, None]",X,NHA,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5af0>
+OEt,Ethanol,OEt,cap,cap,"['H', None, None, None]","[3, None, None, None]","[2, None, None, None]",X,OEI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5b60>
+_OMe,C-Terminal methanol,_OMe,cap,cap,"['H', None, None, None]","[2, None, None, None]","[1, None, None, None]",X,OML,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5bd0>
+OtBu,O-tert-Butyl,OtBu,cap,cap,"['H', None, None, None]","[5, None, None, None]","[4, None, None, None]",X,OTI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5c40>
+Tos,Tosyl,Tos,cap,cap,"[None, 'OH', None, None]","[None, 10, None, None]","[None, 7, None, None]",X,TOO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5cb0>
+D_Thz,"(4S)-1,3-thiazolidine-4-carboxylic acid",D_Thz,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",X,DVT,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5d20>
+fmoc,Fluorenylmethoxycarbonyl,fmoc,cap,cap,"[None, 'OH', None, None]","[None, 17, None, None]","[None, 0, None, None]",X,FM3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5d90>
+Mpa,(S)-2-Mercaptopropanoic acid,Mpa,cap,cap,"[None, 'OH', None, None]","[None, 6, 5, None]","[None, 3, 2, None]",X,MPF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5e00>
+Bua,Butanoic acid,Bua,cap,cap,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 3, None, None]",X,BUS,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5e70>
+Glc,Glycolic acid,Glc,cap,cap,"[None, 'OH', None, None]","[None, 4, None, None]","[None, 2, None, None]",X,GAY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5ee0>
+deamino_Cys,Deamino-Cysteine,deamino_Cys,cap,cap,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 3, None, None]",C,DVU,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5f50>
+deamino_Dab,4-aminobutanoic acid,deamino_Dab,cap,cap,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",X,DVV,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a5fc0>
+deamino_Gly_CN,2-cyanoacetic acid,deamino_Gly_CN,cap,cap,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 0, None, None]",G,DVY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6030>
+deamino_Gly_cPent,2-cyclopentylacetic acid,deamino_Gly_cPent,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",G,DWL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a60a0>
+deamino_Gly_OH,2-hydroxyacetic acid,deamino_Gly_OH,cap,cap,"['H', None, None, None]","[5, None, None, None]","[4, None, None, None]",G,DWO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6110>
+deamino_Gly_thien2yl,2-(thiophen-2-yl)acetic acid,deamino_Gly_thien2yl,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",G,DWR,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6180>
+D_Trp_For,(2R)-2-amino-3-(1-formyl-1H-indol-3-yl)propanoic acid,D_Trp_For,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[0, 14, None, None]",W,DWU,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a61f0>
+deamino_Ncy,2-sulfanylacetic acid,deamino_Ncy,cap,cap,"[None, 'OH', None, None]","[None, 4, None, None]","[None, 2, None, None]",X,DW6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6260>
+deamino_Phe,Deamino-Phenylalanine,deamino_Phe,cap,cap,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 3, None, None]",F,DXI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6340>
+deamino_Phg_35diMe,"2-(3,5-dimethylphenyl)acetic acid",deamino_Phg_35diMe,cap,cap,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 8, None, None]",F,DYI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a63b0>
+deamino_Leu,Deamino-Leucine,deamino_Leu,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",L,DYO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6420>
+D_OAla,(2R)-2-hydroxypropanoic acid,D_OAla,cap,cap,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 3, None, None]",A,DYQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6490>
+L_OAla,(2S)-2-hydroxypropanoic acid,L_OAla,cap,cap,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 3, None, None]",A,LOO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6500>
+L_OVal,(2S)-2-hydroxy-3-methylbutanoic acid,L_OVal,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",V,LO0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6570>
+NHBn_,N-Terminal 1-phenylmethanamine,NHBn_,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",X,NHZ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a65e0>
+Bz,Benzaldehyde,Bz,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",X,BZL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6650>
+Et_,N-Terminal ethyl,Et_,cap,cap,"[None, 'OH', None, None]","[None, 2, None, None]","[None, 1, None, None]",X,ETL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a66c0>
+Me_,N-Terminal methyl,Me_,cap,cap,"[None, 'OH', None, None]","[None, 1, None, None]","[None, 0, None, None]",X,MG6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6730>
+D_Tyr_Et,(2R)-2-amino-3-(4-ethoxyphenyl)propanoic acid,D_Tyr_Et,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[9, 10, None, None]",Y,DY0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a67a0>
+Lys_Ac,(2S)-2-amino-6-acetamidohexanoic acid,Lys_Ac,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",K,LY6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6810>
+OMe_,N-Terminal methanol,OMe_,cap,cap,"[None, 'OH', None, None]","[None, 2, None, None]","[None, 1, None, None]",X,OMQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6880>
+Asp_OMe,(2S)-2-amino-4-methoxy-4-oxobutanoic acid,Asp_OMe,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",D,AGZ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a68f0>
+NMe23Abz,3-(dimethylamino)benzoic acid,NMe23Abz,aa,non-natural,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 9, None, None]",X,NMV,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6960>
+Phe_ab_dehydro,2-amino-3-phenylprop-2-enoic acid,Phe_ab_dehydro,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",F,PJF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a69d0>
+Sta_3xi4xi,4-amino-3-hydroxy-6-methylheptanoic acid,Sta_3xi4xi,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[5, 9, None, None]",X,ST0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6a40>
+Tyr_ab_dehydroMe,2-amino-3-(4-methoxyphenyl)prop-2-enoic acid,Tyr_ab_dehydroMe,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[8, 9, None, None]",Y,TY6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6ab0>
+App,gamma-amino-beta-hydroxybenzenepentanoic acid,App,aa,non-natural,"['H', 'OH', None, None]","[15, 14, None, None]","[13, 3, None, None]",X,AHV,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6b20>
+Cap,"(2R,3S)-3-amino-5-cyclohexyl-2-hydroxypentanoic acid",Cap,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[11, 12, None, None]",X,CCF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6b90>
+Cys_SEt,(2R)-2-amino-3-(ethyldisulfanyl)propanoic acid,Cys_SEt,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",C,CY5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6c00>
+Dsu,"2,7-Diaminosuberic acid",Dsu,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[7, 8, None, None]",X,DZQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6ce0>
+pnC,PNA Cytosine,pnC,aa,non-natural,"['H', 'OH', None, None]","[18, 19, None, None]","[11, 13, None, None]",X,PN9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6d50>
+pnG,PNA Guanine,pnG,aa,non-natural,"['H', 'OH', None, None]","[21, 22, None, None]","[11, 13, None, None]",X,PJI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6dc0>
+Pqa,"2-[1-oxo-7-(piperazin-1-yl)-1,2-dihydroisoquinolin-2-yl]acetic acid",Pqa,aa,non-natural,"['H', 'OH', None, None]","[20, 21, None, None]","[0, 14, None, None]",X,PQF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6e30>
+Pro_4Me3OH,(2S)-3-hydroxy-4-methylpyrrolidine-2-carboxylic acid,Pro_4Me3OH,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[3, 7, None, None]",P,PRG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6ea0>
+D_Ala_ol,(2R)-2-aminopropan-1-ol,D_Ala_ol,aa,non-natural,"[None, 'OH', None, None]","[None, 5, None, None]","[None, 4, None, None]",A,D0D,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6f10>
+D_Phg_ol,2-amino-2-methylpropan-1-ol,D_Phg_ol,aa,non-natural,"['H', None, None, None]","[10, None, None, None]","[0, None, None, None]",G,D0I,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a6ff0>
+D_Thr_ol,"(2R,3R)-2-aminobutane-1,3-diol",D_Thr_ol,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",T,D06,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7060>
+Gly_ol,aminomethanol,Gly_ol,aa,non-natural,"['H', None, None, None]","[3, None, None, None]","[2, None, None, None]",G,GA1,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a70d0>
+Ala_ol,(2S)-2-aminopropan-1-ol,Ala_ol,aa,non-natural,"['H', None, None, None]","[5, None, None, None]","[4, None, None, None]",A,AH5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7140>
+Lys_ol,"(2S)-2,6-diaminohexan-1-ol",Lys_ol,aa,non-natural,"['H', None, None, None]","[9, None, None, None]","[8, None, None, None]",K,LAW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a71b0>
+Phg_ol,(2S)-2-amino-2-phenylethan-1-ol,Phg_ol,aa,non-natural,"['H', None, None, None]","[10, None, None, None]","[3, None, None, None]",G,PJN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7220>
+Pro_ol,[(2S)-pyrrolidin-2-yl]methanol,Pro_ol,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",P,PJO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7290>
+Val_ol,(2S)-2-amino-3-methylbutan-1-ol,Val_ol,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",V,VAG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7300>
+Ala_al,(2S)-2-aminopropanal,Ala_al,aa,non-natural,"['H', None, None, None]","[5, None, None, None]","[2, None, None, None]",A,AIE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7370>
+Arg_al,N''-[(4S)-4-amino-5-oxopentyl]guanidine,Arg_al,aa,non-natural,"['H', None, None, None]","[11, None, None, None]","[8, None, None, None]",R,ARY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a73e0>
+Asp_al,(3S)-3-amino-4-oxobutanoic acid,Asp_al,aa,non-natural,"['H', None, None, None]","[8, None, None, None]","[5, None, None, None]",N,AII,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7450>
+Lys_al,"(2S)-2,6-diaminohexanal",Lys_al,aa,non-natural,"['H', None, None, None]","[9, None, None, None]","[6, None, None, None]",K,LA0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a74c0>
+Pro_al,(2S)-pyrrolidine-2-carbaldehyde,Pro_al,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[0, None, None, None]",P,PJR,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7530>
+_NHBn,C-Terminal 1-phenylmethanamine,_NHBn,cap,cap,"['H', None, None, None]","[8, None, None, None]","[0, None, None, None]",X,NH0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a75a0>
+NHMe,Methanamine,NHMe,cap,cap,"['H', None, None, None]","[2, None, None, None]","[1, None, None, None]",X,NB0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7610>
+Met_O2,(2S)-2-amino-4-methanesulfonylbutanoic acid,Met_O2,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[7, 8, None, None]",M,MHJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7680>
+Phe_2Me,(2S)-2-amino-3-(2-methylphenyl)propanoic acid,Phe_2Me,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",F,PJU,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a76f0>
+Phe_34diCl,"(2S)-2-amino-3-(3,4-dichlorophenyl)propanoic acid",Phe_34diCl,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[7, 8, None, None]",F,PJX,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7760>
+Phe_4Br,(2S)-2-amino-3-(4-bromophenyl)propanoic acid,Phe_4Br,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PJ0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a77d0>
+Phe_4I,(2S)-2-amino-3-(4-iodophenyl)propanoic acid,Phe_4I,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PJ3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a78b0>
+Phe_4Sdihydroorotamido,"(2S)-2-amino-3-{4-[(4S)-2,6-dioxo-1,3-diazinane-4-amido]phenyl}propanoic acid",Phe_4Sdihydroorotamido,aa,non-natural,"['H', 'OH', None, None]","[22, 23, None, None]","[0, 20, None, None]",F,PJ6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7920>
+Pyl,Pyrrolysine,Pyl,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[14, 15, None, None]",X,PJ9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7990>
+Ser_PO3H2,(2S)-2-amino-3-(phosphonooxy)propanoic acid,Ser_PO3H2,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[7, 8, None, None]",S,SEW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7a00>
+Thr_PO3H2,"(2S,3R)-2-amino-3-(phosphonooxy)butanoic acid",Thr_PO3H2,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",T,TBW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7a70>
+Thz,"(4R)-1,3-thiazolidine-4-carboxylic acid",Thz,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",X,TB3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7ae0>
+Trp_Me,(2S)-2-amino-3-(1-methyl-1H-indol-3-yl)propanoic acid,Trp_Me,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[6, 7, None, None]",W,TB4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7b50>
+Tyr_26diMe,"(2S)-2-amino-3-(4-hydroxy-2,6-dimethylphenyl)propanoic acid",Tyr_26diMe,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[11, 12, None, None]",Y,TY7,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7bc0>
+Tyr_3I,(2S)-2-amino-3-(4-hydroxy-3-iodophenyl)propanoic acid,Tyr_3I,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[7, 8, None, None]",Y,TCS,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7ca0>
+Tyr_3NO2,(2S)-2-amino-3-(4-hydroxy-3-nitrophenyl)propanoic acid,Tyr_3NO2,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[12, 13, None, None]",Y,TDQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7d80>
+Tyr_Ph4OH,(2S)-2-amino-3-[4-(4-hydroxyphenoxy)phenyl]propanoic acid,Tyr_Ph4OH,aa,non-natural,"['H', 'OH', None, None]","[19, 20, None, None]","[12, 13, None, None]",Y,TD0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7e60>
+Tyr_SO3H,(2S)-2-amino-3-[4-(sulfooxy)phenyl]propanoic acid,Tyr_SO3H,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[11, 12, None, None]",Y,TEW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15a7f40>
+Val_3OH,(2S)-2-amino-3-hydroxy-3-methylbutanoic acid,Val_3OH,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",V,VAM,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c00b0>
+xiIle,(2S)-2-amino-3-methylpentanoic acid,xiIle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,XII,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0190>
+NMe2Abz,2-(methylamino)benzoic acid,NMe2Abz,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[1, 8, None, None]",X,NM0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0200>
+NMebAla,3-(methylamino)propanoic acid,NMebAla,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[1, 4, None, None]",X,NM5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0270>
+aMePhe,(2S)-2-amino-2-methyl-3-phenylpropanoic acid,aMePhe,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",F,AMK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c02e0>
+aMePro,(2S)-2-methylpyrrolidine-2-carboxylic acid,aMePro,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",P,AIP,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0350>
+aMeTyr_3OH,"(2S)-2-amino-3-(3,4-dihydroxyphenyl)-2-methylpropanoic acid",aMeTyr_3OH,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[11, 12, None, None]",Y,AIY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c03c0>
+Bmt,"(2S,3R,4R)-2-amino-3-hydroxy-4-methyloct-6-enoic acid",Bmt,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,BMY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0430>
+Bmt_E,"(2S,3R,4R,6E)-2-amino-3-hydroxy-4-methyloct-6-enoic acid",Bmt_E,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,BAD,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0510>
+Cys_Bn,(2R)-2-amino-3-(benzylsulfanyl)propanoic acid,Cys_Bn,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[0, 11, None, None]",C,CCG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c05f0>
+Gla,Carboxyglutamic acid,Gla,aa,non-natural,"['H', 'OH', 'H', None]","[11, 13, 12, None]","[6, 9, 7, None]",E,GBB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c06d0>
+hHis,(2S)-2-amino-4-(1H-imidazol-4-yl)butanoic acid,hHis,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",H,HHU,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0740>
+His_1Me,(2S)-2-amino-3-(1-methyl-1H-imidazol-4-yl)propanoic acid,His_1Me,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[7, 8, None, None]",H,HIH,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c07b0>
+Gly_allyl,(2S)-2-aminopent-4-enoic acid,Gly_allyl,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",G,GBY,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0820>
+Gly_cPr,(2S)-2-amino-2-cyclopropylacetic acid,Gly_cPr,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[0, 5, None, None]",G,GCI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0900>
+Hsl,(3S)-3-aminooxolan-2-one,Hsl,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[0, None, None, None]",X,HSN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0970>
+Asp_Ph2NH2,(2S)-2-amino-4-(2-aminophenyl)-4-oxobutanoic acid,Asp_Ph2NH2,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[11, 12, None, None]",D,AI0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c09e0>
+Azi,(2S)-aziridine-2-carboxylic acid,Azi,aa,non-natural,"['H', 'OH', None, None]","[5, 6, None, None]","[0, 3, None, None]",X,AI4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0a50>
+2Abz,2-Aminobenzoic acid,2Abz,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[0, 7, None, None]",X,2CI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0b30>
+3Abz,3-Aminobenzoic acid,3Abz,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[0, 7, None, None]",X,3B7,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0ba0>
+4Abz,4-Aminobenzoic acid,4Abz,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[0, 7, None, None]",X,4AI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0c10>
+Ac3c,1-aminocyclopropane-1-carboxylic acid,Ac3c,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[0, 4, None, None]",X,AI6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0c80>
+Ac6c,1-aminocyclohexane-1-carboxylic acid,Ac6c,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[0, 7, None, None]",X,AJC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0cf0>
+bAla,3-aminopropanoic acid,bAla,aa,non-natural,"['H', 'OH', None, None]","[5, 6, None, None]","[0, 3, None, None]",A,BBD,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0d60>
+D_Bmt,"(2R,3S,4S)-2-amino-3-hydroxy-4-methyloct-6-enoic acid",D_Bmt,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,D1O,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0dd0>
+D_Bmt_E,"(2R,3S,4S,6E)-2-amino-3-hydroxy-4-methyloct-6-enoic acid",D_Bmt_E,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,D4C,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0e40>
+D_hArg,(2R)-2-amino-6-[(diaminomethylidene)amino]hexanoic acid,D_hArg,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",R,D4E,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c0f20>
+D_Phe_4F,(2R)-2-amino-3-(4-fluorophenyl)propanoic acid,D_Phe_4F,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,D5A,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1000>
+D_Trp_2Me,(2R)-2-amino-3-(2-methyl-1H-indol-3-yl)propanoic acid,D_Trp_2Me,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[12, 13, None, None]",W,D5D,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c10e0>
+D_Tyr_3OH,"(2R)-2-amino-3-(3,4-dihydroxyphenyl)propanoic acid",D_Tyr_3OH,aa,non-natural,"['H', None, None, None]","[14, None, None, None]","[13, None, None, None]",Y,D5J,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1150>
+D_Tyr_Me,(2R)-2-amino-3-(4-methoxyphenyl)propanoic acid,D_Tyr_Me,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[8, 9, None, None]",Y,D5K,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1230>
+D_xiIle,(2R)-2-amino-3-methylpentanoic acid,D_xiIle,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[5, 6, None, None]",I,D5L,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1310>
+Lys_iPr,(2S)-2-amino-6-[(propan-2-yl)amino]hexanoic acid,Lys_iPr,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",K,LA5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1380>
+_Bn,C-Terminal toluene,_Bn,cap,cap,"['H', None, None, None]","[7, None, None, None]","[0, None, None, None]",X,BN0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c13f0>
+_OBn,C-Terminal phenylmethanol,_OBn,cap,cap,"['H', None, None, None]","[8, None, None, None]","[0, None, None, None]",X,OBJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c14d0>
+Ph,Phenyl,Ph,cap,cap,"['H', None, None, None]","[6, None, None, None]","[0, None, None, None]",X,PKH,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1540>
+Boc,Tert-butyloxycarbonyl,Boc,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",X,BOK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c15b0>
+Mba,Mercaptobutanoic acid,Mba,cap,cap,"[None, 'OH', None, None]","[None, 7, 6, None]","[None, 4, 3, None]",X,MHP,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1620>
+Hva,2-Hydroxypentanoic acid,Hva,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",X,HVC,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1690>
+deamino_Chg,2-cyclohexylacetic acid,deamino_Chg,cap,cap,"[None, 'OH', None, None]","[None, 9, None, None]","[None, 0, None, None]",X,D5P,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1700>
+deamino_Dip,"3,3-diphenylpropanoic acid",deamino_Dip,cap,cap,"[None, 'OH', None, None]","[None, 16, None, None]","[None, 0, None, None]",X,D5R,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1770>
+deamino_Gly_tBu,"3,3-dimethylbutanoic acid",deamino_Gly_tBu,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",G,D5S,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c17e0>
+deamino_hPhe,4-phenylbutanoic acid,deamino_hPhe,cap,cap,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 0, None, None]",F,D6B,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1850>
+deamino_nTyr_Me,2-(4-methoxyphenyl)acetic acid,deamino_nTyr_Me,cap,cap,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 7, None, None]",Y,D6H,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c18c0>
+deamino_Phg_4Cl,2-(4-chlorophenyl)acetic acid,deamino_Phg_4Cl,cap,cap,"[None, 'OH', None, None]","[None, 10, None, None]","[None, 6, None, None]",G,D6L,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1930>
+D_OVal,(2R)-2-hydroxy-3-methylbutanoic acid,D_OVal,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 5, None, None]",V,D7O,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c19a0>
+OLeu,(2S)-2-hydroxy-4-methylpentanoic acid,OLeu,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 6, None, None]",L,OLG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1a10>
+Bn_,N-Terminal toluene,Bn_,cap,cap,"[None, 'OH', None, None]","[None, 7, None, None]","[None, 0, None, None]",X,BN8,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1a80>
+OBn_,N-Terminal phenylmethanol,OBn_,cap,cap,"[None, 'OH', None, None]","[None, 8, None, None]","[None, 0, None, None]",X,OBK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1af0>
+deamino_Lys,Deamino-Lysine,deamino_Lys,cap,cap,"[None, 'OH', None, None]","[None, 9, None, None]","[None, 5, None, None]",K,D8O,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1b60>
+NMe24Abz,4-(dimethylamino)benzoic acid,NMe24Abz,aa,non-natural,"[None, 'OH', None, None]","[None, 11, None, None]","[None, 9, None, None]",X,NB3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1bd0>
+Phe_ab_dehydro_3NO2,2-amino-3-(3-nitrophenyl)prop-2-enoic acid,Phe_ab_dehydro_3NO2,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[10, 11, None, None]",F,PKI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1c40>
+Sta_3S4S,"(3S,4S)-4-amino-3-hydroxy-6-methylheptanoic acid",Sta_3S4S,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[5, 9, None, None]",X,SA4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1cb0>
+Bux,(3S)-4-amino-3-hydroxybutanoic acid,Bux,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[3, 5, None, None]",X,BUZ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1d20>
+Dpm,Diaminopimelic acid,Dpm,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",X,D8R,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1e00>
+pnA,PNA Adenine,pnA,aa,non-natural,"['H', 'OH', None, None]","[20, 21, None, None]","[13, 15, None, None]",X,PKK,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1e70>
+pnT,PNA Thymine,pnT,aa,non-natural,"['H', 'OH', None, None]","[19, 20, None, None]","[10, 12, None, None]",X,PKN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1ee0>
+seC,SelenoCysteine,seC,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",C,SEX,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1f50>
+Aib_ol,2-amino-2-methylpropan-1-ol,Aib_ol,aa,non-natural,"['H', None, None, None]","[6, None, None, None]","[5, None, None, None]",X,AJF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c1fc0>
+D_Pro_ol,[(2R)-pyrrolidin-2-yl]methanol,D_Pro_ol,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",P,D85,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2030>
+Leu_ol,(2S)-2-amino-4-methylpentan-1-ol,Leu_ol,aa,non-natural,"['H', None, None, None]","[8, None, None, None]","[7, None, None, None]",L,LE0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c20a0>
+Phe_ol,(2S)-2-amino-3-phenylpropan-1-ol,Phe_ol,aa,non-natural,"['H', None, None, None]","[11, None, None, None]","[10, None, None, None]",F,PKO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2110>
+Thr_ol,"(2S,3S)-2-aminobutane-1,3-diol",Thr_ol,aa,non-natural,"['H', None, None, None]","[7, None, None, None]","[6, None, None, None]",T,TE0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2180>
+Gly_al,2-aminoacetaldehyde,Gly_al,aa,non-natural,"['H', None, None, None]","[4, None, None, None]","[0, None, None, None]",G,GCJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c21f0>
+Leu_al,(2S)-2-amino-4-methylpentanal,Leu_al,aa,non-natural,"['H', None, None, None]","[8, None, None, None]","[5, None, None, None]",L,LE5,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2260>
+Phe_al,(2S)-2-amino-3-phenylpropanal,Phe_al,aa,non-natural,"['H', None, None, None]","[11, None, None, None]","[0, None, None, None]",F,PKQ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c22d0>
+"L_hArg(Et,Et)",(2S)-2-amino-6-{[bis(ethylamino)methylidene]amino}hexanoic acid,"L_hArg(Et,Et)",aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[10, 11, None, None]",R,LHI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2340>
+Met_O,(2S)-2-amino-4-methanesulfinylbutanoic acid,Met_O,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",M,MHX,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c23b0>
+nTyr,(2S)-2-amino-2-(4-hydroxyphenyl)acetic acid,nTyr,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",Y,NT0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2490>
+Oic_3aR_7aS,"(2S,3aR,7aS)-octahydro-1H-indole-2-carboxylic acid",Oic_3aR_7aS,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,OIE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2500>
+Oic_3axi_7axi,(2S)-octahydro-1H-indole-2-carboxylic acid,Oic_3axi_7axi,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[0, 9, None, None]",X,OIF,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2570>
+Phe_2F,(2S)-2-amino-3-(2-fluorophenyl)propanoic acid,Phe_2F,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",F,PKW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2650>
+Phe_3F,(2S)-2-amino-3-(3-fluorophenyl)propanoic acid,Phe_3F,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[8, 9, None, None]",F,PKX,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c26c0>
+Phe_4F,(2S)-2-amino-3-(4-fluorophenyl)propanoic acid,Phe_4F,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[7, 8, None, None]",F,PLN,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2730>
+Phe_4NO2,(2S)-2-amino-3-(4-nitrophenyl)propanoic acid,Phe_4NO2,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[11, 12, None, None]",F,POE,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c27a0>
+Phe_bbdiMe,(2S)-2-amino-3-methyl-3-phenylbutanoic acid,Phe_bbdiMe,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[4, 5, None, None]",F,PPA,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2810>
+Trp_5OH,(2S)-2-amino-3-(5-hydroxy-1H-indol-3-yl)propanoic acid,Trp_5OH,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[10, 11, None, None]",W,TE3,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2880>
+Trp_Ome,(2S)-2-amino-3-(1-methoxy-1H-indol-3-yl)propanoic acid,Trp_Ome,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[7, 8, None, None]",W,TE9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c28f0>
+Tyr_35diI,"(2S)-2-amino-3-(4-hydroxy-3,5-diiodophenyl)propanoic acid",Tyr_35diI,aa,non-natural,"['H', 'OH', None, None]","[14, 15, None, None]","[8, 9, None, None]",Y,TFW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c29d0>
+Tyr_3OH,"(2S)-2-amino-3-(3,4-dihydroxyphenyl)propanoic acid",Tyr_3OH,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[7, 8, None, None]",Y,TF9,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2ab0>
+Tyr_Me,(2S)-2-amino-3-(4-methoxyphenyl)propanoic acid,Tyr_Me,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[8, 9, None, None]",Y,TGI,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2b90>
+Tyr_PO3H2,(2S)-2-amino-3-[4-(phosphonooxy)phenyl]propanoic acid,Tyr_PO3H2,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[11, 12, None, None]",Y,TGO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2c70>
+xiHyp,(2S)-4-hydroxypyrrolidine-2-carboxylic acid,xiHyp,aa,non-natural,"['H', 'OH', None, None]","[8, 9, None, None]","[4, 6, None, None]",P,XIB,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2ce0>
+xiThr,(2S)-2-amino-3-hydroxybutanoic acid,xiThr,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",T,XIT,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2dc0>
+NMe4Abz,4-(methylamino)benzoic acid,NMe4Abz,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[1, 8, None, None]",X,NB6,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2e30>
+aMeTyr,(2S)-2-amino-3-(4-hydroxyphenyl)-2-methylpropanoic acid,aMeTyr,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[10, 11, None, None]",Y,AJO,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2ea0>
+Aoda,(2S)-2-amino-8-oxodecanoic acid,Aoda,aa,non-natural,"['H', 'OH', None, None]","[13, 14, None, None]","[10, 11, None, None]",X,AO0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2f10>
+Bpa,(2S)-2-amino-3-(4-benzoylphenyl)propanoic acid,Bpa,aa,non-natural,"['H', 'OH', None, None]","[19, 20, None, None]","[0, 17, None, None]",X,BBG,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c2ff0>
+Cys_Me,(2R)-2-amino-3-(methylsulfanyl)propanoic acid,Cys_Me,aa,non-natural,"['H', 'OH', None, None]","[7, 8, None, None]","[4, 5, None, None]",C,CCJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3060>
+Dip,"(2S)-2-amino-3,3-diphenylpropanoic acid",Dip,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[0, 15, None, None]",X,D9E,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c30d0>
+hArg,(2S)-2-amino-6-[(diaminomethyl)amino]hexanoic acid,hArg,aa,non-natural,"['H', 'OH', None, None]","[12, 13, None, None]","[9, 10, None, None]",R,HA4,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3140>
+His_1Bn,(2S)-2-amino-3-(1-benzyl-1H-imidazol-4-yl)propanoic acid,His_1Bn,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[0, 15, None, None]",H,HIJ,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c31b0>
+His_3Me,(2S)-2-amino-3-(1-methyl-1H-imidazol-5-yl)propanoic acid,His_3Me,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",H,HIL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3290>
+Hyl_5xi,"(2S)-2,6-diamino-5-hydroxyhexanoic acid",Hyl_5xi,aa,non-natural,"['H', 'OH', None, None]","[10, 11, None, None]","[7, 8, None, None]",K,HYL,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3370>
+Bip,"(2S)-2-amino-3-{[1,1'-biphenyl]-4-yl}propanoic acid",Bip,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[0, 15, None, None]",X,BI0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3450>
+Abu_23dehydro,2-aminobut-2-enoic acid,Abu_23dehydro,aa,non-natural,"['H', 'OH', None, None]","[6, 7, None, None]","[3, 4, None, None]",X,AJS,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c34c0>
+D_Dip,"(2R)-2-amino-3,3-diphenylpropanoic acid",D_Dip,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[0, 15, None, None]",X,D9I,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c35a0>
+Dha,2-aminoprop-2-enoic acid,Dha,aa,non-natural,"['H', 'OH', None, None]","[5, 6, None, None]","[2, 3, None, None]",A,D9J,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3610>
+D_hArg_Et2,(2R)-2-amino-6-{[bis(ethylamino)methylidene]amino}hexanoic acid,D_hArg_Et2,aa,non-natural,"['H', 'OH', None, None]","[16, 17, None, None]","[10, 11, None, None]",R,D9R,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3680>
+D_Met_S_O,(2R)-2-amino-4-[(S)-methanesulfinyl]butanoic acid,D_Met_S_O,aa,non-natural,"['H', 'OH', None, None]","[9, 10, None, None]","[6, 7, None, None]",M,D9X,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c36f0>
+D_His_1Bn,(2R)-2-amino-3-(1-benzyl-1H-imidazol-4-yl)propanoic acid,D_His_1Bn,aa,non-natural,"['H', 'OH', None, None]","[17, 18, None, None]","[0, 15, None, None]",H,AJT,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c37d0>
+D_nTyr,(2R)-2-amino-2-(4-hydroxyphenyl)acetic acid,D_nTyr,aa,non-natural,"['H', 'OH', None, None]","[11, 12, None, None]","[8, 9, None, None]",Y,AJW,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c38b0>
+D_Phe_4ureido,(2R)-2-amino-3-[4-(carbamoylamino)phenyl]propanoic acid,D_Phe_4ureido,aa,non-natural,"['H', 'OH', None, None]","[15, 16, None, None]","[10, 11, None, None]",F,AJ0,,<rdkit.Chem.rdchem.Mol object at 0x7957f15c3990>
