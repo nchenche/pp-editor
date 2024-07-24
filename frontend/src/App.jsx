@@ -7,6 +7,8 @@ import Footer from './components/layout/Footer';
 import './App.css'
 
 import FilterableMonomerLibrary from './components/core/Monomers';
+import PeptideEditor from './components/core/Peptide';
+
 import VisNetwork from './components/graph/Test2';
 
 
@@ -23,7 +25,8 @@ function App() {
             <Route path="/about" element={<About />} />
           </Routes> */}
           {/* <FilterableMonomerLibrary /> */}
-          <VisNetwork />
+          <PeptideEditor />
+          {/* <VisNetwork /> */}
         </main>
         <Footer />
       </div>

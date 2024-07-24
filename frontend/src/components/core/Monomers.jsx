@@ -108,7 +108,7 @@ export function Monomer({name, subtype='natural'}) {
     
     return (
         <div 
-        className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[subtype]} font-medium text-xs select-none cursor-pointer`}
+        className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[subtype]} font-medium text-[0.5rem] select-none cursor-pointer`}
         data-name={name} >
             {name}
         </div>
