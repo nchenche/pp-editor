@@ -140,10 +140,9 @@ function SequenceContainer({ sequence, onReorder }) {
     }, [onReorder]);
 
     return (
-        <div ref={containerRef} style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            {sequence.map((monomer, index) => (
-
-                <MonomerItem monomer={monomer} key={`${monomer.symbol}-${index}`} />
+        <div ref={containerRef} className='flex justify-center gap-x-1 mt-4'>
+            {sequence.map((monomer, monomerIndex) => (
+            <MonomerItem monomer={monomer} key={`${monomer.symbol}-${monomerIndex}`} />
             ))}
         </div>
     );
@@ -152,30 +151,67 @@ function SequenceContainer({ sequence, onReorder }) {
 
 function PeptideEditor() {
     console.log("%c RENDERING EDITOR", "background-color: lightgreen; padding: 1em;");
-
     const [inputText, setInputText] = useState('');
-
-    const sequence = useMemo(() => {
-        const tokens = inputText.split('-');
+  
+    const sequences = useMemo(() => {
+      return inputText.split('.').map(sequenceString => {
+        const tokens = sequenceString.split('-');
         return tokens.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
+      });
     }, [inputText]);
+  
 
-    const handleReorder = (newOrder) => {
-        setInputText(newOrder.join('-'));
-    };
+    function handleReorder(newOrder, sequenceIndex) {
+        const newSequences = [...sequences];
 
+        // retrieve monomers as object to build the new sequence
+        const reorderedSeq = newOrder.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
+
+        newSequences[sequenceIndex] = reorderedSeq;
+        setInputText(newSequences.map(seq => seq.map(m => m.symbol).join('-')).join('.'));
+    }
+  
     return (
-            <div className='container mx-auto min-w-[600px] w-6/12 border border-slate-500 rounded-md p-2 mt-4'>
-                <SequenceInput value={inputText} onChange={setInputText} />
+        <div className='container mx-auto min-w-[600px] w-6/12 border border-slate-500 rounded-md p-2 mt-4'>
+            <SequenceInput value={inputText} onChange={setInputText} />
+            <div className="divider"></div>
 
-                <div className="divider"></div>
-
-                <div className='flex justify-center mx-auto min-w-[600px] w-9/12 min-h-[250px] border border-slate-400 rounded-md p-2 mt-4 gap-1'>
-                    <SequenceContainer sequence={sequence} onReorder={handleReorder} />
-                </div>                
+            <div className='flex flex-col gap-y-6 justify-center mx-auto min-w-[600px] w-9/12 min-h-[250px] border border-slate-400 rounded-md'>
+                {sequences.map((sequence, index) => (
+                    <SequenceContainer key={index} sequence={sequence} onReorder={(newOrder) => handleReorder(newOrder, index)} index={index} />
+                ))}
             </div>
+      </div>
     );
-}
+  }
+
+
+// function PeptideEditor() {
+//     console.log("%c RENDERING EDITOR", "background-color: lightgreen; padding: 1em;");
+
+//     const [inputText, setInputText] = useState('');
+
+//     const sequence = useMemo(() => {
+//         const tokens = inputText.split('-');
+//         return tokens.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
+//     }, [inputText]);
+
+//     const handleReorder = (newOrder) => {
+//         setInputText(newOrder.join('-'));
+//     };
+
+//     return (
+//             <div className='container mx-auto min-w-[600px] w-6/12 border border-slate-500 rounded-md p-2 mt-4'>
+//                 <SequenceInput value={inputText} onChange={setInputText} />
+
+//                 <div className="divider"></div>
+
+//                 <div className='flex justify-center mx-auto min-w-[600px] w-9/12 min-h-[250px] border border-slate-400 rounded-md p-2 mt-4 gap-1'>
+//                     <SequenceContainer sequence={sequence} onReorder={handleReorder} />
+//                 </div>                
+//             </div>
+//     );
+// }
 
 
 
