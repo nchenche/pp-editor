@@ -1,4 +1,5 @@
-import { React, useState, useEffect, useRef } from 'react';
+/* eslint-disable react/prop-types */
+import { React, useState, useEffect, useRef,  } from 'react';
 import { Sortable } from 'sortablejs';
 
 import { MONOMERS } from '../../data/monomers'
@@ -99,7 +100,24 @@ function SearchBar({ filters }) {
 }
 
 
-export function Monomer({name, subtype='natural'}) {
+// export function Monomer({name, subtype='natural', index}) {
+//     const colorClassMap = {
+//         'natural': 'bg-yellow-300/50',
+//         'non-natural': 'bg-gray-400/50',
+//         'cap': 'bg-red-400/50'
+//     }    
+    
+//     return (
+//         <div 
+//         className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[subtype]} font-medium text-[0.5rem] select-none cursor-pointer`}
+//         data-name={name} data-index={index}>
+//             {name}
+//         </div>
+//     );
+// }
+
+
+export function Monomer({ monomer, index}) {
     const colorClassMap = {
         'natural': 'bg-yellow-300/50',
         'non-natural': 'bg-gray-400/50',
@@ -108,9 +126,9 @@ export function Monomer({name, subtype='natural'}) {
     
     return (
         <div 
-        className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[subtype]} font-medium text-[0.5rem] select-none cursor-pointer`}
-        data-name={name} >
-            {name}
+        className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[monomer.m_subtype]} font-medium text-[0.5rem] select-none cursor-pointer`}
+        data-name={monomer.m_name} data-index={index} data-symbol={monomer.symbol} >
+            {monomer.symbol}
         </div>
     );
 }

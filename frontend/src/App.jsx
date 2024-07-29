@@ -9,7 +9,7 @@ import './App.css'
 import FilterableMonomerLibrary from './components/core/Monomers';
 import PeptideEditor from './components/core/Peptide';
 
-import VisNetwork from './components/graph/Test2';
+// import VisNetwork from './components/graph/Test2';
 
 
 
