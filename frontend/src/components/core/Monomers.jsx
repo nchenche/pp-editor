@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { React, useState, useEffect, useRef,  } from 'react';
+import { useState, useEffect, useRef,  } from 'react';
 import { Sortable } from 'sortablejs';
 
 import { MONOMERS } from '../../data/monomers'
