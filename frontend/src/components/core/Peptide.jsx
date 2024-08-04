@@ -40,25 +40,6 @@ function SequenceInput({ value, onChange }) {
 }
 
 
-// const MonomerItem = React.memo(({ monomer }) => {
-//     console.log("%c RENDERING MONOMER", "background-color: lightgreen; padding: 1em;");
-
-//     const colorClassMap = {
-//         'natural': 'bg-yellow-300/50',
-//         'non-natural': 'bg-gray-400/50',
-//         'cap': 'bg-red-400/50'
-//     }    
-
-//     return (
-//         <div 
-//             className={`monomer-item border-2 border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg ${colorClassMap[monomer.m_subtype]} font-medium text-[0.5rem] select-none cursor-move`}
-//             data-name={monomer.m_name} data-symbol={monomer.symbol} >
-//             {monomer.symbol}
-//         </div>
-//     );
-// });
-
-
 const MonomerItem = React.memo(({
     monomer,
     isSelected,
@@ -98,21 +79,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
     const [connections, setConnections] = useState([]);
     const containerRef = useRef(null);
     const linesRef = useRef({});
-    window.lines = linesRef;
 
-    const getCurrentSeqOrderFromDOM = (event) => {
-        // Get the current order of monomers
-        const currentOrder = Array.from(containerRef.current.children).map(child => child.dataset.symbol);
-
-        // Get the dragged item
-        // const draggedItem = event.item.dataset.symbol;
-
-        // // Create a new array with the updated order
-        // const newOrder = currentOrder.filter(item => item !== draggedItem);
-        // newOrder.splice(event.newIndex, 0, draggedItem);
-
-        return currentOrder
-    }
 
     useEffect(() => {
         if (containerRef.current) {
@@ -120,7 +87,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
                 animation: 150,
                 onChange: (evt) => {
 
-                    const newOrder = getCurrentSeqOrderFromDOM(evt);
+                    const newOrder = Array.from(containerRef.current.children).map(child => child.dataset.symbol);
                     console.log("Current Sequence:", newOrder.join('-'));
 
                     //   Update line positions during drag
