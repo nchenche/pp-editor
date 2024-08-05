@@ -53,8 +53,6 @@ const MonomerItem = React.memo(({
         'cap': 'bg-red-400/50'
     };
 
-    console.log(monomer.symbol,index);
-
     const handleClick = (e) => {
         e.stopPropagation(); // Prevent click from bubbling up
         onSelect(index);
@@ -87,9 +85,6 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
                 animation: 150,
                 onChange: (evt) => {
 
-                    const newOrder = Array.from(containerRef.current.children).map(child => child.dataset.symbol);
-                    console.log("Current Sequence:", newOrder.join('-'));
-
                     //   Update line positions during drag
                     if (linesRef.current) {
                         Object.values(linesRef.current).forEach(line => line.position());
@@ -116,7 +111,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
     }, [onReorder, containerIndex, sequence]);
 
     useEffect(() => {
-        //   Initial creation of lines
+        // Initial creation of lines
         connections.forEach(([start, end]) => {
             const connectionId = `${start}-${end}`;
             const startElement = containerRef.current.children[start];
@@ -136,7 +131,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
             }
         });
 
-        //   Cleanup function
+        // Cleanup function
         return () => {
             Object.values(linesRef.current).forEach(line => line.remove());
             linesRef.current = {};
@@ -145,7 +140,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
 
 
 
-    const handleSelect = useCallback((index) => {
+    const handleSelect = (index) => {
         setSelectedMonomer(prev => {
             if (prev === null) {
                 // First click, select the monomer
@@ -170,12 +165,12 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
                 return null; // Deselect after creating connection
             }
         });
-    }, []);
+    };
 
 
-    const handleContainerClick = useCallback(() => {
+    const handleContainerClick = () => {
         setSelectedMonomer(null);
-    }, []);
+    };
 
     return (
         <div
@@ -202,6 +197,7 @@ function PeptideEditor() {
     const [inputText, setInputText] = useState('M-A-V-I-N-E-L');
 
     const sequences = useMemo(() => {
+        console.log("input changed");
         return inputText.split('.').map(sequenceString => {
             const tokens = sequenceString.split('-');
             return tokens.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
