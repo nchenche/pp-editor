@@ -96,8 +96,11 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
                     // Update connections based on the final new order
                     setConnections(prevConnections => {
                         return prevConnections.map(([start, end]) => {
+                        console.log("start-end", `${start}-${end}`);
                         const newStart = newOrder.indexOf(sequence[start].symbol);
                         const newEnd = newOrder.indexOf(sequence[end].symbol);
+                        console.log("newStart-newEnd", `${newStart}-${newEnd}`);
+
                         return [newStart, newEnd];
                         });
                     });
@@ -110,6 +113,7 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
         }
     }, [onReorder, containerIndex, sequence]);
 
+    
     useEffect(() => {
         // Initial creation of lines
         connections.forEach(([start, end]) => {
@@ -137,7 +141,6 @@ const SequenceContainer = React.memo(({ sequence, onReorder, index: containerInd
             linesRef.current = {};
         };
     }, [connections, sequence]);
-
 
 
     const handleSelect = (index) => {
@@ -231,3 +234,50 @@ function PeptideEditor() {
 
 
 export default PeptideEditor;
+
+
+
+/* 
+function PeptideEditor() {
+    console.log("%c RENDERING EDITOR", "background-color: lightgreen; padding: 1em;");
+    const [inputText, setInputText] = useState('M-A-V-I-N-E-L');
+
+    const sequences = useMemo(() => {
+        console.log("input changed");
+        return inputText.split('.').map(sequenceString => {
+            const tokens = sequenceString.split('-');
+            return tokens.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
+        });
+    }, [inputText]);
+
+
+    function handleReorder(newOrder, sequenceIndex) {
+        const newSequences = [...sequences];
+
+        // retrieve monomers as object to build the new sequence
+        const reorderedSeq = newOrder.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
+
+        newSequences[sequenceIndex] = reorderedSeq;
+        setInputText(newSequences.map(seq => seq.map(m => m.symbol).join('-')).join('.'));
+    }
+
+    return (
+        <div className='container mx-auto min-w-[600px] w-6/12 border border-slate-500 rounded-md p-2 mt-4'>
+            <SequenceInput value={inputText} onChange={setInputText} />
+            <div className="divider"></div>
+
+            <div className='flex flex-col gap-y-6 justify-center mx-auto min-w-[600px] w-9/12 min-h-[250px] border border-slate-400 rounded-md'>
+                {sequences.map((sequence, index) => (
+                    <SequenceContainer key={index} sequence={sequence} onReorder={(newOrder) => handleReorder(newOrder, index)} index={index} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+
+    const [inputText, setInputText] = useState('M-A-V-I-N-E-L');
+ This is used to set an input text from which a sequence of monomers is built and display. There is a sequenceContainer in which  Monomer components are set accoding to the input text.
+
+for now, each monomer is associated with an index. Moreover, each monomer 
+*/
