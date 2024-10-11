@@ -105,51 +105,51 @@ def generate_secondary_structure(sequence, sec_struct: str):
 
 
 
+if __name__ == "__main__":
+
+    # Start the Sequence object
+    biln = "Ac-C(1,3)-A-A-A-C(1,3)"
+    biln = "N-Iva-F-D-I-meT-N-A-L-W-Y-Aib-K"
+
+    biln = "C(1,3)-A-A-A-C(1,3)"
+    helm = "PEPTIDE1{C.A.A.A.C}$PEPTIDE1,PEPTIDE1,1:R3-5:R3$$$V2.0"
+    fasta = "CAAAC"
+
+    # Converter
+    helm = Converter(biln=biln)
+    helm.get_helm()
+
+    seq = Sequence(biln)
+    # Correct atom names in the sequence object
+    seq = correct_pdb_atoms(seq)
+
+    # # Loop wit the included monomers
+    mm_list = seq.s_monomers
+    for i, monomer in enumerate(mm_list):
+        mon = monomer['m_romol']
 
 
-# Start the Sequence object
-biln = "Ac-C(1,3)-A-A-A-C(1,3)"
-biln = "N-Iva-F-D-I-meT-N-A-L-W-Y-Aib-K"
+    # Generate the RDKit object
+    mol = Molecule(seq)
+    romol = mol.get_molecule(fmt='ROMol')
+    # print("The SMILES of the peptide is: {}".format(Chem.MolToSmiles(romol)))
+    # Draw.MolToFile(romol, 'peptide.png', size=(1200, 1200))
 
-biln = "C(1,3)-A-A-A-C(1,3)"
-helm = "PEPTIDE1{C.A.A.A.C}$PEPTIDE1,PEPTIDE1,1:R3-5:R3$$$V2.0"
-fasta = "CAAAC"
-
-# Converter
-helm = Converter(biln=biln)
-helm.get_helm()
-
-seq = Sequence(biln)
-# Correct atom names in the sequence object
-seq = correct_pdb_atoms(seq)
-
-# # Loop wit the included monomers
-mm_list = seq.s_monomers
-for i, monomer in enumerate(mm_list):
-    mon = monomer['m_romol']
-
-
-# Generate the RDKit object
-mol = Molecule(seq)
-romol = mol.get_molecule(fmt='ROMol')
-# print("The SMILES of the peptide is: {}".format(Chem.MolToSmiles(romol)))
-# Draw.MolToFile(romol, 'peptide.png', size=(1200, 1200))
-
-Chem.MolToSmiles(romol)
-# Chem.MolToHELM(romol)
-# Chem.MolToJSON(romol)
-# Chem.MolToSmarts(romol)
-# pdb_string = Chem.MolToPDBBlock(romol)
-# with open("test.pdb","w") as pdb_out:
-#     pdb_out.write(pdb_string)
+    Chem.MolToSmiles(romol)
+    # Chem.MolToHELM(romol)
+    # Chem.MolToJSON(romol)
+    # Chem.MolToSmarts(romol)
+    # pdb_string = Chem.MolToPDBBlock(romol)
+    # with open("test.pdb","w") as pdb_out:
+    #     pdb_out.write(pdb_string)
 
 
 
-# # Create the peptide conformer with corrected atom names and secondary structure
-# # Obtain peptide main chain to predict the secondary structure
-# fasta = Conformer.get_peptide(biln)
-# secstruct = SecStructPredictor.predict_active_ss(fasta)
-# # Generate the conformer
-# romol = Conformer.generate_conformer(romol, secstruct, generate_pdb=False)
+    # # Create the peptide conformer with corrected atom names and secondary structure
+    # # Obtain peptide main chain to predict the secondary structure
+    # fasta = Conformer.get_peptide(biln)
+    # secstruct = SecStructPredictor.predict_active_ss(fasta)
+    # # Generate the conformer
+    # romol = Conformer.generate_conformer(romol, secstruct, generate_pdb=False)
 
 

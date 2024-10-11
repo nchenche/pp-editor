@@ -7,6 +7,7 @@ VERSION = "0.0.0"
 requires = [
     "flask==3.0.2",
     "flask-cors==4.0.0",
+    "pymongo==4.10.1",
     "pyPept @ git+https://github.com/Boehringer-Ingelheim/pyPept.git"
 ]
 
