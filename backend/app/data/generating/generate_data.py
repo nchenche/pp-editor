@@ -1,7 +1,7 @@
 from importlib.resources import files
 from pathlib import Path
 
-from app.data.utils import get_full_smiles, get_descriptors, get_isotope_index, draw_from_smiles, set_rgroup_labels
+from app.data.generating.utils import get_full_smiles, get_descriptors, get_isotope_index, draw_from_smiles, set_rgroup_labels
 from pyPept.sequence import get_monomer_info, SequenceConstants
 from rdkit import Chem
 

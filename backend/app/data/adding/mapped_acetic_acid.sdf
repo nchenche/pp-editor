@@ -1,0 +1,45 @@
+
+     RDKit          2D
+
+  4  3  0  0  0  0  0  0  0  0999 V2000
+    5.1917   -4.8792    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    5.1750   -4.1750    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    5.8125   -5.2375    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    4.5917   -5.2667    0.0000 R#  0  0  0  0  0  0  0  0  0  0  0  0
+  2  1  2  0
+  4  1  1  0
+  3  1  1  0
+M  RGP  1   4   2
+V    4 *
+M  END
+>  <m_name>  (1) 
+Acetic acid
+
+>  <symbol>  (1) 
+AcOH
+
+>  <m_abbr>  (1) 
+AcOH
+
+>  <m_type>  (1) 
+cap
+
+>  <m_subtype>  (1) 
+cap
+
+>  <m_Rgroups>  (1) 
+None,OH,None,None
+
+>  <m_RgroupIdx>  (1) 
+None,3,None,None
+
+>  <m_attachmentPointIdx>  (1) 
+None,0,None,None
+
+>  <natAnalog>  (1) 
+
+
+>  <pdbName>  (1) 
+ACO
+
+$$$$

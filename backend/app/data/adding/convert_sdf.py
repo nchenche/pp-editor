@@ -39,12 +39,6 @@ def get_molecule_by_id(id: str, query: str=""):
     return mol
 
 
-# Define the ChEMBL molecule ID
-chembl_id = "CHEMBL297569"  # 'CHEMBL1906423'
-
-mol = get_molecule_by_id(id=chembl_id, query='?format=mol')
-
-
 def get_carboxyl_acid_group(mol: Chem.Mol):
     """_summary_
 
@@ -86,6 +80,10 @@ def get_amine_group(mol: Chem.Mol):
     return matches
 
 
+# Define the ChEMBL molecule ID
+chembl_id = "CHEMBL539"  # "CHEMBL297569"  # 'CHEMBL1906423'
+mol = get_molecule_by_id(id=chembl_id, query='?format=mol')
+
 carboxyl_carbon_idx, carbonyl_oxygen_idx, hydroxyl_oxygen_idx = get_carboxyl_acid_group(mol=mol)[0]
 nitrogen_idx, connected_carbon_idx = get_amine_group(mol=mol)[0]
 
@@ -118,29 +116,31 @@ Chem.SanitizeMol(mol_modified)
 
 
 # Add properties
-mol_modified.SetProp('monomerType', 'Backbone')
-mol_modified.SetProp('symbol', 'A')
+mol_modified.SetProp('monomerType', 'Cap')  # 'Backbone'
+mol_modified.SetProp('symbol', 'AcOH')
 mol_modified.SetProp('author', 'RPBS')
-mol_modified.SetProp('name', 'Alanine')
-mol_modified.SetProp('naturalAnalog', 'A')
+mol_modified.SetProp('name', 'Acetic acid')
+mol_modified.SetProp('naturalAnalog', '')
 mol_modified.SetProp('polymerType', 'PEPTIDE')
 mol_modified.SetProp('createDate', datetime.datetime.now().strftime('%c'))
 
 mol_modified.SetProp('label', 'R2')
 mol_modified.SetProp('capGroupName', 'OH')
-mol_modified.SetProp('label (#1)', 'R1')
-mol_modified.SetProp('capGroupName (#1)', 'H')
-mol_modified.SetProp('label (#2)', '')
-mol_modified.SetProp('capGroupName (#2)', '')
+# mol_modified.SetProp('label (#1)', 'R1')
+# mol_modified.SetProp('capGroupName (#1)', 'H')
+# mol_modified.SetProp('label (#2)', '')
+# mol_modified.SetProp('capGroupName (#2)', '')
 
 
 # Write the modified molecule to an SDF file
-out_path = Path('/home/nche/projects/pp-editor/backend/app/data/adding')
-out_sdf = out_path / 'output.sdf'
+out_path = Path('/home/nchenche/projects/pp-editor/backend/app/data/adding')
+out_sdf = out_path / 'acetic_acid.sdf'
 
 
 # Prepare the M  RGP line
-rgp_line = f"M  RGP  2   {hydroxyl_oxygen_idx + 1}   2   {dummy_idx_R1 + 1}   1"
+# rgp_line = f"M  RGP  2   {hydroxyl_oxygen_idx + 1}   2   {dummy_idx_R1 + 1}   1"
+rgp_line = f"M  RGP  1   {hydroxyl_oxygen_idx + 1}   2   1"
+
 
 # Generate the MOL block
 mol_block = Chem.MolToMolBlock(mol_modified)
