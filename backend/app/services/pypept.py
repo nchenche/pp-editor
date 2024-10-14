@@ -108,7 +108,7 @@ def generate_secondary_structure(sequence, sec_struct: str):
 if __name__ == "__main__":
 
     # Start the Sequence object
-    biln = "Ac-C(1,3)-A-A-A-C(1,3)"
+    biln = "ac-C(1,3)-A-A-A-C(1,3)"
     biln = "N-Iva-F-D-I-meT-N-A-L-W-Y-Aib-K"
 
     biln = "C(1,3)-A-A-A-C(1,3)"
@@ -142,7 +142,6 @@ if __name__ == "__main__":
     # pdb_string = Chem.MolToPDBBlock(romol)
     # with open("test.pdb","w") as pdb_out:
     #     pdb_out.write(pdb_string)
-
 
 
     # # Create the peptide conformer with corrected atom names and secondary structure

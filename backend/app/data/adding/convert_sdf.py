@@ -214,3 +214,6 @@ mol.SetProp('capGroupName (#2)', '')
 writer = Chem.SDWriter('output.sdf')
 writer.write(mol)
 writer.close()
+
+
+Chem.fragme
