@@ -12,6 +12,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-form-wizard-component": "^0.2.7",
     "react-router-dom": "^6.24.1",
     "sortablejs": "^1.15.2",
     "vis-data": "^7.1.9",

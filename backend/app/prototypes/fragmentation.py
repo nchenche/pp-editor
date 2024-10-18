@@ -16,6 +16,7 @@ print('SMILES #{}: {}'.format(i, SMILES_Input[i]))
 
 Molecule = Chem.AddHs(Chem.MolFromSmiles(SMILES_Input[i]))
 print(Chem.MolToSmiles(Molecule))
+
 for bond in Molecule.GetBonds():
     SwapBond = [str(bond.GetBeginAtom().GetSymbol()), str(bond.GetEndAtom().GetSymbol())]
     SwapBond.sort()
@@ -40,3 +41,4 @@ outpath = ROOT_PATH / "tmp"
 
 image.save(outpath / 'lysine_fragments.png')
 Draw.MolToFile(Molecule, outpath / 'lysine.svg')
+

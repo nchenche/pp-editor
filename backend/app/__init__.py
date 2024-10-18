@@ -11,8 +11,10 @@ def create_app(config_name):
 
     app.config.from_object(config_by_name[config_name])
 
-    from app.api import ppeditor
+    from app.api import ppeditor, molecules
     app.register_blueprint(ppeditor.bp)
+    app.register_blueprint(molecules.bp)
+
 
     @app.route('/', methods=(['GET']))
     def status():

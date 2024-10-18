@@ -1,0 +1,32 @@
+
+
+/* Keyframes for the moving dashed animation */
+@keyframes dash-animation {
+    0% {
+        stroke-dashoffset: 0;
+    }
+
+    100% {
+        stroke-dashoffset: -20;
+        /* Speed of the dash movement */
+    }
+}
+
+/* Highlight the bond with a dashed stroke */
+.highlight {
+    /* stroke: #ff0000 !important;  */
+    /* stroke-width: 2.5px !important; Adjusted width */
+    stroke-dasharray: 5, 5;
+    /* Define the dash pattern: 5px line, 5px space */
+    animation: dash-animation 2s linear infinite;
+    /* Apply animation to make the dashes move */
+}
+
+
+
+/* Increase the clickable area of the bonds */
+.hover-target:hover {
+    stroke: transparent !important;
+    stroke-width: 15px !important;
+    cursor: pointer;
+}
