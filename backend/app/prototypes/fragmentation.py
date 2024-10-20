@@ -34,11 +34,16 @@ for bond in Molecule.GetBonds():
 for r in Temp:
     print(r)
 
-image = Draw.MolsToGridImage(fragments)
+image = Draw.MolsToGridImage(fragments, useSVG=True)
+image = Draw.MolsToGridImage(Chem.GetMolFrags(fragments[0], asMols=True), useSVG=True)
 
 from app.prototypes import ROOT_PATH
 outpath = ROOT_PATH / "tmp"
 
-image.save(outpath / 'lysine_fragments.png')
-Draw.MolToFile(Molecule, outpath / 'lysine.svg')
+if not isinstance(image, str):
+    image.save(outpath / 'lysine_fragments.png')
+else:
+    with open(outpath / 'lysine_fragments.svg', "w+") as out_svg:
+        out_svg.write(image)
 
+Draw.MolToFile(Molecule, outpath / 'lysine.svg')
