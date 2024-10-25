@@ -29,7 +29,7 @@ const CustomField = ({ descr, name, onChange, value='' }) => {
 }
 
 
-const InputContainer = ({smiles, setSmiles}) => {
+const InputContainer = ({smiles, handleChangeSmiles}) => {
   const [inputChemblValue, setInputChemblValue] = useState("");
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
@@ -57,7 +57,7 @@ const InputContainer = ({smiles, setSmiles}) => {
             <CustomField 
             descr="Enter a SMILES" 
             name="input_smiles" 
-            onChange={(e) => setSmiles(e.target.value)}
+            onChange={(e) => handleChangeSmiles(e.target.value)}
             value={smiles}></CustomField>
           </TabPanel>
 

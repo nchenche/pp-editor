@@ -1,32 +1,39 @@
-
-
-/* Keyframes for the moving dashed animation */
-@keyframes dash-animation {
-    0% {
-        stroke-dashoffset: 0;
-    }
-
-    100% {
-        stroke-dashoffset: -20;
-        /* Speed of the dash movement */
-    }
-}
-
-/* Highlight the bond with a dashed stroke */
-.highlight {
-    /* stroke: #ff0000 !important;  */
-    /* stroke-width: 2.5px !important; Adjusted width */
-    stroke-dasharray: 5, 5;
-    /* Define the dash pattern: 5px line, 5px space */
-    animation: dash-animation 2s linear infinite;
-    /* Apply animation to make the dashes move */
+svg {
+    width: 100%;
+    height: 100%;
 }
 
 
-
-/* Increase the clickable area of the bonds */
-.hover-target:hover {
-    stroke: transparent !important;
-    stroke-width: 15px !important;
+.selectable {
     cursor: pointer;
 }
+
+svg g[class^='molecule-'] {
+    /* opacity: 0.1; */
+}
+
+svg g[class^='molecule-'].selectable rect:hover {
+    stroke: black !important;
+    stroke-opacity: 0.5;
+}
+
+.bond-highlight-path {
+    stroke: rgba(0, 0, 0, 0.781);
+    stroke-width: 10px;
+    stroke-linecap: round;
+    stroke-opacity: 0;
+    pointer-events: stroke;
+    transition: stroke-opacity 0.2s;
+}
+
+
+.group-bond:hover .bond-highlight-path.selectable {
+    stroke-opacity: 0.35;
+}
+
+.group-bond.selected .bond-highlight-path {
+    stroke-opacity: 0.5;
+    stroke: rgb(255, 0, 0);
+    /* animation: dash-animation 2s linear infinite; */
+}
+
