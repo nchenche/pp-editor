@@ -17,6 +17,10 @@ svg g[class^='molecule-'].selectable rect:hover {
     stroke-opacity: 0.5;
 }
 
+.group-bond {
+    pointer-events: none;
+}
+
 .bond-highlight-path {
     stroke: rgba(0, 0, 0, 0.781);
     stroke-width: 10px;
