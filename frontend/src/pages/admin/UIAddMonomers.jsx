@@ -143,7 +143,7 @@ const UIAddMonomers = ({ children }) => {
 
     // Call the async function
     fragmentMolecule();
-  }, [selectedBonds, smiles]); // Dependency array includes selectedBonds and smiles
+  }, [selectedBonds]); // Dependency array includes selectedBonds and smiles
 
 
 

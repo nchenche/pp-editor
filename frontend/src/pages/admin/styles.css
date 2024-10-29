@@ -14,6 +14,7 @@ svg g[class^='molecule-'] {
 
 svg g[class^='molecule-'].selectable rect:hover {
     stroke: black !important;
+    stroke-width: 2px;
     stroke-opacity: 0.5;
 }
 
