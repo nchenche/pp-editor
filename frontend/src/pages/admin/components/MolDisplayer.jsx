@@ -1,13 +1,16 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
 import { useFetchData } from '../../../hooks/Fetchers'
 
 
-export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onBondClick = null, selectable_bonds = false, selectable_molecules = false }) => {
+export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onBondClick = null, selectableBonds = false, selectableMolecules = false, selectedFragment = -1 }) => {
     const baseURL = "http://0.0.0.0:5000/api/rdkit/generate-svg";
     const params = new URLSearchParams();
     const payload = JSON.stringify({ smiles });
-    const is_selectable_bonds = selectable_bonds;
-    const is_selectable_molecules = selectable_molecules;
+    const isSelectableBonds = selectableBonds;
+    const isSelectableMolecules = selectableMolecules;
 
     // Update queryParams
     for (const [key, value] of Object.entries(queryParams)) {
@@ -53,7 +56,7 @@ export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onB
 
 
     useEffect(() => {  // make bonds visually selectable
-        if (!svgContainer.current || !is_selectable_bonds) return;
+        if (!svgContainer.current || !isSelectableBonds) return;
         addClassName('.bond-highlight-path', 'selectable');
 
         return () => {
@@ -63,14 +66,14 @@ export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onB
     })
 
     useEffect(() => {   // make molecules visually selectable
-        if (!svgContainer.current || !is_selectable_molecules) return;
-        addClassName('g[class^=molecule-]', 'selectable');
+        if (!svgContainer.current || !isSelectableMolecules) return;
+        addClassName('g.group-molecule', 'selectable');
 
         return () => {
             if (!svgContainer.current) return
-            removeClassName('g[class^=molecule-]', 'selectable');
+            removeClassName('g.group-molecule', 'selectable');
         };
-    })    
+    })
 
     useEffect(() => {
         // Select the SVG container
@@ -92,6 +95,18 @@ export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onB
                     group.classList.remove('selected');
                 });
             }
+        };
+    });
+
+    useEffect(() => {
+        // Select the SVG container
+        if (selectedFragment === -1 || !svgContainer.current) return;
+        console.log("frag index:", selectedFragment);
+        addClassName(`.molecule-${selectedFragment}`, 'selected');
+
+        return () => {
+            if (!svgContainer.current) return
+            removeClassName(`g.molecule-${selectedFragment}`, 'selected');
         };
     });
 

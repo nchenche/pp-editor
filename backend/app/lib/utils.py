@@ -278,7 +278,7 @@ def format_svg(svg_content: str, size: Tuple|List=(300, 300), grid: Tuple|List=(
         # Add other paths (atoms and any non-bond paths)
         molecule_content.extend(other_paths)
         # Wrap molecule content in a <g> element
-        molecule_group = f'<g class="molecule-{mol_index}">\n' + '\n'.join(molecule_content) + '\n</g>'
+        molecule_group = f'<g class="group-molecule molecule-{mol_index}">\n' + '\n'.join(molecule_content) + '\n</g>'
         processed_molecules.append(molecule_group)
 
     # Now, reconstruct the SVG content

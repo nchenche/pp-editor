@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
 
@@ -40,8 +42,11 @@ const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
 
     const groupBond = event.target.parentNode;
     const classes = groupBond.classList;
+
+    // Toggle 'selected' class
     classes.toggle('selected');
 
+    // Get selected bond indices
     const bondClassName = Array.from(classes).find(ele => ele.includes('group-bond-'));
     if (!bondClassName) return;
     const bondIndex = bondClassName.split("group-bond-")[1];
@@ -50,12 +55,12 @@ const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
   };
 
   return (
-    <MolDisplayer smiles={smiles} queryParams={queryParams} onBondClick={onBondClick} selectedBonds={selectedBonds} selectable_bonds={true} />
+    <MolDisplayer smiles={smiles} queryParams={queryParams} onBondClick={onBondClick} selectedBonds={selectedBonds} selectableBonds={true} />
   )
 }
 
 
-const TabStep3 = ({ fragments }) => {
+const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
   const queryParams = {
     h_explicit_only: false,
     add_bond_indices: false,
@@ -63,10 +68,28 @@ const TabStep3 = ({ fragments }) => {
     mols_per_row: 2
   }
 
+  const onBondClick = (event) => {
+    const target = event.target.parentNode;
+    if (!target.classList.contains("group-molecule")) return;
+
+    const classes = target.classList;
+
+    // Remove 'selected' class to every 'group-molecule" class and add it to target only
+    document.querySelectorAll('.group-molecule').forEach( ele => ele.classList.remove('selected'));
+    classes.add('selected');
+
+    // Get fragment index
+    const moleculeClassName = Array.from(classes).find(ele => ele.includes('molecule-'));
+    if (!moleculeClassName) return;
+    const fragmentIndex = moleculeClassName.split("molecule-")[1];
+
+    handleSelectedFragment(parseInt(fragmentIndex));
+  };
+
   if (!fragments.length) return;
 
   return (
-    <MolDisplayer smiles={fragments} queryParams={queryParams} selectable_molecules={true}/>
+    <MolDisplayer smiles={fragments} queryParams={queryParams} onBondClick={onBondClick} selectableMolecules={true} selectedFragment={selectedFragmentIndex}/>
   )
 }
 
@@ -77,6 +100,8 @@ const UIAddMonomers = ({ children }) => {
   const [smiles, setSmiles] = useState('CCO'); // To store the input SMILES string
   const [selectedBonds, setSelectedBonds] = useState([]); // To store the input SMILES string
   const [fragments, setFragments] = useState([]); // To store the fragments after API response
+  const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(-1); // To store the fragments after API response
+
 
 
   const handleChangeSmiles = (value) => {
@@ -84,6 +109,11 @@ const UIAddMonomers = ({ children }) => {
     setSelectedBonds([]);
     setFragments([]);
   }
+
+  const handleSelectedFragment = (fragmentIndex) => {
+    setSelectedFragmentIndex(fragmentIndex);
+  }
+
 
   const handleSelectedBonds = (bondIndex) => {
     if (selectedBonds.includes(bondIndex)) {
@@ -182,7 +212,8 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Select a fragment" icon="ti-check">
-          <TabStep3 fragments={fragments} />
+          <TabStep3 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} handleSelectedFragment={handleSelectedFragment} />
+          <p>Selected fragment: {selectedFragmentIndex} - {fragments[selectedFragmentIndex]}</p>
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">

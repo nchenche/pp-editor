@@ -8,12 +8,18 @@ svg {
     cursor: pointer;
 }
 
-svg g[class^='molecule-'] {
+svg g.group-molecule {
     /* opacity: 0.1; */
 }
 
-svg g[class^='molecule-'].selectable rect:hover {
+svg g.group-molecule.selectable:hover rect {
     stroke: black !important;
+    stroke-width: 2px;
+    stroke-opacity: 0.5;
+}
+
+svg g.group-molecule.selected rect {
+    stroke: green !important;
     stroke-width: 2px;
     stroke-opacity: 0.5;
 }
