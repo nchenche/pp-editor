@@ -190,7 +190,7 @@ for idx, rlabel in leaving_groups:
 # This is necessary for the 'M  RGP' line in the MOL block
 rgp_list = []
 for idx, rlabel in leaving_groups:
-    rgp_list.append(f"{idx + 1}   {rlabel}")  # Atom indices in MOL files are 1-based
+    rgp_list.append(f"{idx + 1}   {rlabel}")  # Atom indices in MOL files are one-based
 mol.SetProp("M  RGP", f"{len(leaving_groups)}   " + "   ".join(rgp_list))
 
 # Add additional molecular properties
@@ -216,4 +216,8 @@ writer.write(mol)
 writer.close()
 
 
-Chem.fragme
+smiles = "*C([H])([H])O[H]"
+mol = Chem.MolFromSmiles(smiles)
+
+mol_block = Chem.MolToMolBlock(mol)
+print(mol_block)
