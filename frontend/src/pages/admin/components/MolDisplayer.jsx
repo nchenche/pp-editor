@@ -5,7 +5,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useFetchData } from '../../../hooks/Fetchers'
 
 
-export const MolDisplayer = ({ smiles, selectedBonds = [], queryParams = {}, onBondClick = null, selectableBonds = false, selectableMolecules = false, selectedFragment = -1 }) => {
+export const MolDisplayer = ({
+    smiles,
+    selectedBonds = [],
+    queryParams = {},
+    onBondClick = null,
+    selectableBonds = false,
+    selectableMolecules = false,
+    selectedFragment = -1,
+}) => {
     const baseURL = "http://0.0.0.0:5000/api/rdkit/generate-svg";
     const params = new URLSearchParams();
     const payload = JSON.stringify({ smiles });

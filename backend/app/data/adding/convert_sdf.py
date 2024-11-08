@@ -11,6 +11,9 @@ import requests
 CHEMBL_URL = 'https://www.ebi.ac.uk/chembl/api/data/molecule/{}{}'
 
 
+PUBCHEM_URL = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(=O)O/property/IUPACName/JSON"
+
+
 
 def get_molecule_by_id(id: str, query: str=""):
     """_summary_
@@ -216,8 +219,45 @@ writer.write(mol)
 writer.close()
 
 
-smiles = "*C([H])([H])O[H]"
-mol = Chem.MolFromSmiles(smiles)
 
-mol_block = Chem.MolToMolBlock(mol)
-print(mol_block)
+########################################
+
+
+# Original SMILES containing a dummy atom labeled [9*]
+smiles = "[9*]N([H])OC([H])([H])C([H])([H])[H]"
+
+# Convert SMILES to an RDKit molecule object
+mol = Chem.MolFromSmiles(smiles)
+if mol is None:
+    raise ValueError("Invalid SMILES string.")
+
+# Identify the dummy atoms (atomic number 0 represents dummy atoms in RDKit)
+dummy_atom_indices = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetAtomicNum() == 0]
+
+if len(dummy_atom_indices) > 4:
+    raise ValueError(f"Unexpected number of dummy atoms created: {len(dummy_atom_indices)}. No more than 4 are expected.")
+
+# Assign R group labels to each dummy atom
+for i, idx in enumerate(dummy_atom_indices, start=1):
+    atom = mol.GetAtomWithIdx(idx)
+    r_group_label = f'R{i}'  # e.g., R1, R2, etc.
+    # Set isotope to distinguish the atom in SMILES
+    atom.SetIsotope(i)
+    atom.SetAtomicNum(0)  # Set to dummy atom
+    atom.SetProp('atomLabel', r_group_label)  # Assign the R-group label to the dummy atom
+
+# Generate a new SMILES representation with R groups labeled
+modified_smiles = Chem.MolToSmiles(mol)
+
+# Replace the RDKit's dummy atom [*] representation with the correct R group label
+for i in range(1, len(dummy_atom_indices) + 1):
+    modified_smiles = modified_smiles.replace(f'[{i}*]', f'[R{i}]')
+
+print(f"Original SMILES: {smiles}")
+print(f"Modified SMILES: {modified_smiles}")
+
+print(f"Mol block: {Chem.MolToMolBlock(mol)}")
+
+
+
+

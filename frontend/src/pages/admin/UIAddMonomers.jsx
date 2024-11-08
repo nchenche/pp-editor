@@ -75,7 +75,7 @@ const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) 
     const classes = target.classList;
 
     // Remove 'selected' class to every 'group-molecule" class and add it to target only
-    document.querySelectorAll('.group-molecule').forEach( ele => ele.classList.remove('selected'));
+    document.querySelectorAll('.group-molecule').forEach(ele => ele.classList.remove('selected'));
     classes.add('selected');
 
     // Get fragment index
@@ -89,7 +89,20 @@ const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) 
   if (!fragments.length) return;
 
   return (
-    <MolDisplayer smiles={fragments} queryParams={queryParams} onBondClick={onBondClick} selectableMolecules={true} selectedFragment={selectedFragmentIndex}/>
+    <MolDisplayer smiles={fragments} queryParams={queryParams} onBondClick={onBondClick} selectableMolecules={true} selectedFragment={selectedFragmentIndex} />
+  )
+}
+
+
+const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
+  const queryParams = {
+    is_annotate_dummy_atoms: true,
+  }
+
+  return (
+    <>
+      <MolDisplayer smiles={fragments[selectedFragmentIndex]} queryParams={queryParams} />
+    </>
   )
 }
 
@@ -217,10 +230,10 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+          <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
         </FormWizard.TabContent>
 
       </FormWizard>
-      {/* add style */}
       <style>{`
         @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
       `}</style>
