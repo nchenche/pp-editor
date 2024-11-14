@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 
 
 import FormWizard from "react-form-wizard-component";
@@ -13,99 +13,10 @@ import './styles.css'
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { Description, Field, Input, Label } from '@headlessui/react'
 import { Button } from '@headlessui/react'
-
 import { forwardRef } from 'react'
 import clsx from 'clsx'
 
-import InputContainer from './components/InputContainer';
-import { MolDisplayer } from './components/MolDisplayer';
-
-
-const TabStep1 = ({ smiles, handleChangeSmiles }) => {
-  return (
-    <>
-      <InputContainer smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
-      <MolDisplayer smiles={smiles} />
-    </>
-  )
-}
-
-const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
-  const queryParams = {
-    h_explicit_only: false,
-    add_bond_indices: true,
-    format_svg: true
-  }
-
-  const onBondClick = (event) => {
-    if (!event.target.classList.contains('bond-highlight-path')) return;
-
-    const groupBond = event.target.parentNode;
-    const classes = groupBond.classList;
-
-    // Toggle 'selected' class
-    classes.toggle('selected');
-
-    // Get selected bond indices
-    const bondClassName = Array.from(classes).find(ele => ele.includes('group-bond-'));
-    if (!bondClassName) return;
-    const bondIndex = bondClassName.split("group-bond-")[1];
-
-    handleSelectedBonds(bondIndex);
-  };
-
-  return (
-    <MolDisplayer smiles={smiles} queryParams={queryParams} onBondClick={onBondClick} selectedBonds={selectedBonds} selectableBonds={true} />
-  )
-}
-
-
-const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
-  const queryParams = {
-    h_explicit_only: false,
-    add_bond_indices: false,
-    format_svg: true,
-    mols_per_row: 2
-  }
-
-  const onBondClick = (event) => {
-    const target = event.target.parentNode;
-    if (!target.classList.contains("group-molecule")) return;
-
-    const classes = target.classList;
-
-    // Remove 'selected' class to every 'group-molecule" class and add it to target only
-    document.querySelectorAll('.group-molecule').forEach(ele => ele.classList.remove('selected'));
-    classes.add('selected');
-
-    // Get fragment index
-    const moleculeClassName = Array.from(classes).find(ele => ele.includes('molecule-'));
-    if (!moleculeClassName) return;
-    const fragmentIndex = moleculeClassName.split("molecule-")[1];
-
-    handleSelectedFragment(parseInt(fragmentIndex));
-  };
-
-  if (!fragments.length) return;
-
-  return (
-    <MolDisplayer smiles={fragments} queryParams={queryParams} onBondClick={onBondClick} selectableMolecules={true} selectedFragment={selectedFragmentIndex} />
-  )
-}
-
-
-const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
-  const queryParams = {
-    is_annotate_dummy_atoms: true,
-  }
-
-  return (
-    <>
-      <MolDisplayer smiles={fragments[selectedFragmentIndex]} queryParams={queryParams} />
-    </>
-  )
-}
-
+import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
 
 
@@ -114,8 +25,6 @@ const UIAddMonomers = ({ children }) => {
   const [selectedBonds, setSelectedBonds] = useState([]); // To store the input SMILES string
   const [fragments, setFragments] = useState([]); // To store the fragments after API response
   const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(-1); // To store the fragments after API response
-
-
 
   const handleChangeSmiles = (value) => {
     setSmiles(value);
@@ -230,15 +139,7 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">
-          <div className='grid grid-cols-2'>
-            <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
-
-            <div className='p-2 m-2'>
-              <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2'>Molecule setting</h3>
-              
-            </div>
-          </div>
-
+          <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
         </FormWizard.TabContent>
 
       </FormWizard>
