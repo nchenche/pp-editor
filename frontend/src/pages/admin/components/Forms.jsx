@@ -9,10 +9,12 @@ import {
     TextField,
     Select,
 } from '@mui/material';
+import createPalette from "@mui/material/styles/createPalette";
 
 
 
 export const NewMonomerSettingForm = () => {
+    const sxOptions = { margin: 0.85, minWidth: 235}
     const { control, handleSubmit, formState: { errors }, } = useForm({
         defaultValues: {
             name: "",
@@ -32,7 +34,7 @@ export const NewMonomerSettingForm = () => {
         <form onSubmit={handleSubmit(onSubmit)}>
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small">
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
                     <Controller
                         name="name"
                         control={control}
@@ -48,7 +50,7 @@ export const NewMonomerSettingForm = () => {
             </section>
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small">
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
                     <Controller
                         name="symbol"
                         control={control}
@@ -64,7 +66,7 @@ export const NewMonomerSettingForm = () => {
             </section>
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small">
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
                     <Controller
                         name="naturalAnalog"
                         control={control}
@@ -81,7 +83,7 @@ export const NewMonomerSettingForm = () => {
 
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small">
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
                     <InputLabel id="select-type" error={!!errors.selectType}>Select Type</InputLabel>
                     <Controller
                         name="selectType"
@@ -111,7 +113,7 @@ export const NewMonomerSettingForm = () => {
             </section>
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small">
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
                     <InputLabel id="select-subtype" error={!!errors.selectSubType}>Select Subtype</InputLabel>
                     <Controller
                         name="selectSubType"
@@ -141,7 +143,7 @@ export const NewMonomerSettingForm = () => {
             </section>
 
             <section>
-                <FormControl sx={{ m: 1, minWidth: 235 }} variant="outlined" margin="normal" size="small" error={!!errors.name}>
+                <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small" error={!!errors.name}>
                     <Controller
                         name="pdbName"
                         control={control}
