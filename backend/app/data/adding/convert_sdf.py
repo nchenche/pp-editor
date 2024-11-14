@@ -223,8 +223,8 @@ writer.close()
 ########################################
 
 
-# Original SMILES containing a dummy atom labeled [9*]
-smiles = "[9*]N([H])OC([H])([H])C([H])([H])[H]"
+# Original SMILES containing with dummy atoms
+smiles = "*C([H])([H])O[3*]"
 
 # Convert SMILES to an RDKit molecule object
 mol = Chem.MolFromSmiles(smiles)

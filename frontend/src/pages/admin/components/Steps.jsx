@@ -82,11 +82,11 @@ export const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
     }
 
     return (
-        <div className='grid grid-cols-2'>
+        <div className='grid grid-cols-2 border'>
 
             <MolDisplayer smiles={fragments[selectedFragmentIndex]} queryParams={queryParams} />
-            <div className='p-2 m-2'>
-                <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2'>Molecule setting</h3>
+            <div className='p-2 m-2 border'>
+                <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
                 <NewMonomerSettingForm />
             </div>
         </div>

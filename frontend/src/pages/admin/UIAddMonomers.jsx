@@ -142,6 +142,9 @@ const UIAddMonomers = ({ children }) => {
           <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
         </FormWizard.TabContent>
 
+        <FormWizard.TabContent title="Validate" icon="ti-check">
+        </FormWizard.TabContent>
+
       </FormWizard>
       <style>{`
         @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
