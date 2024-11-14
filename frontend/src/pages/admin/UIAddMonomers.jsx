@@ -206,10 +206,10 @@ const UIAddMonomers = ({ children }) => {
 
         <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
           <div className='grid grid-cols-2'>
+
             <div className='p-4 m-2'>
               <h2 className='text-xl font-medium border-b-4 border-cyan-800/35 pb-4'>Selected bonds</h2>
               <ul className='mt-8'>
-                {/* Conditional rendering to display "None" if selectedBonds is empty */}
                 {selectedBonds.length === 0 ? (
                   <li>None</li>
                 ) : (
@@ -219,9 +219,9 @@ const UIAddMonomers = ({ children }) => {
                 )}
               </ul>
             </div>
+
             <TabStep2 smiles={smiles} handleSelectedBonds={handleSelectedBonds} selectedBonds={selectedBonds} />
           </div>
-
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Select a fragment" icon="ti-check">
@@ -230,7 +230,15 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">
-          <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
+          <div className='grid grid-cols-2'>
+            <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
+
+            <div className='p-2 m-2'>
+              <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2'>Molecule setting</h3>
+              
+            </div>
+          </div>
+
         </FormWizard.TabContent>
 
       </FormWizard>
