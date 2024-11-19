@@ -1,6 +1,6 @@
 import InputContainer from './InputContainer';
 import { MolDisplayer } from './MolDisplayer';
-import { NewMonomerSettingForm } from './Forms';
+import { NewMonomerSettingForm } from './AddNewMoleculeForm';
 
 
 export const TabStep1 = ({ smiles, handleChangeSmiles }) => {
@@ -78,8 +78,10 @@ export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragm
 
 export const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
     const queryParams = {
-        is_annotate_dummy_atoms: true,
+        is_annotate_dummy_atoms: false,
     }
+
+    if (!fragments[selectedFragmentIndex]) return;
 
     return (
         <div className='grid grid-cols-2 border'>
@@ -87,7 +89,7 @@ export const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
             <MolDisplayer smiles={fragments[selectedFragmentIndex]} queryParams={queryParams} />
             <div className='p-2 m-2 border'>
                 <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
-                <NewMonomerSettingForm />
+                <NewMonomerSettingForm smiles={fragments[selectedFragmentIndex]} />
             </div>
         </div>
     )

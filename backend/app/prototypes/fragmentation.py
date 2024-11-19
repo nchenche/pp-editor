@@ -11,7 +11,7 @@ SMILES_Input = ['NC(=O)O']
 def RemoveDummyIsotopes(m):
     for atom in m.GetAtoms():
         if atom.GetAtomicNum() == 0:
-            atom.SetIsotope(0)
+            atom.SetIsotope(3)
     return m
 
 print('SMILES #{}: {}'.format(i, SMILES_Input[i]))
