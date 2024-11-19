@@ -25,7 +25,9 @@ def generate_svg():
     """
     is_explicit_only = request.args.get("h_explicit_only", 'true').lower() == 'true'
     is_bond_indices = request.args.get('add_bond_indices', 'false').lower() == 'true'
+    is_atom_indices = request.args.get('add_atom_indices', 'false').lower() == 'true'
     is_annotate_dummy_atoms = request.args.get('is_annotate_dummy_atoms', 'false').lower() == 'true'
+    is_add_h = request.args.get("is_add_h", 'true').lower() == 'true'
     metadata = {}
     
     # Access JSON data if available
@@ -46,7 +48,8 @@ def generate_svg():
     except:
         return jsonify({'error': 'Invalid SMILES string'}), 400
 
-    mols = [Chem.AddHs(x, explicitOnly=is_explicit_only) for x in mols]
+    if is_add_h:
+        mols = [Chem.AddHs(x, explicitOnly=is_explicit_only) for x in mols]
 
     if is_annotate_dummy_atoms:
         modified_mols = [annotate_dummy_atoms(x) for x in smiles]
@@ -65,6 +68,7 @@ def generate_svg():
 
     # Handle additional query parameters for drawing options
     drawer_options.addBondIndices = is_bond_indices
+    drawer_options.addAtomIndices = is_atom_indices
     drawer_options.minFontSize = int(request.args.get('min_font_size', 8))
     drawer_options.maxFontSize = int(request.args.get('max_font_size', 16))
 

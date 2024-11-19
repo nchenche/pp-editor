@@ -44,7 +44,7 @@ export const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
 
 export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
     const queryParams = {
-        h_explicit_only: false,
+        h_explicit_only: true,
         add_bond_indices: false,
         format_svg: true,
         mols_per_row: 2
@@ -78,7 +78,7 @@ export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragm
 
 export const TabStep4 = ({ fragments, selectedFragmentIndex }) => {
     const queryParams = {
-        is_annotate_dummy_atoms: false,
+        // is_annotate_dummy_atoms: false,
     }
 
     if (!fragments[selectedFragmentIndex]) return;
