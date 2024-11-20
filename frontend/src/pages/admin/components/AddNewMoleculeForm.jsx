@@ -1,28 +1,8 @@
-import { useState, Fragment } from 'react';
+import { Fragment, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
 
 import { useForm, Controller } from "react-hook-form"
 
-import {
-    Box,
-    Button,
-    FormHelperText,
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Select,
-    Tab,
-    Tabs,
-    TextField,
-    Typography,
-} from '@mui/material';
-
 import Grid from '@mui/material/Grid2';
-
-import {
-    TabContext,
-    TabList,
-    TabPanel
-} from '@mui/lab';
 
 import {
     MolNameForm,
@@ -36,7 +16,6 @@ import {
 } from './MoleculeSettingForms/Forms'
 
 import createPalette from "@mui/material/styles/createPalette";
-
 
 const extractSmilesIndices = (str) => {
     const regex = /\[(\d+)\*\]|\*/g;
@@ -61,53 +40,7 @@ const createRGroupObject = (baseName, groupIndices) => {
 };
 
 
-const GroupTabs = ({ groupIndices, sxOptions, control, errors }) => {
-    const [value, setValue] = useState(groupIndices[0].toString());
-
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-    };
-
-    return (
-        <Box sx={{ width: '100%', typography: 'body1' }}>
-            <TabContext value={value}>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs
-                        centered
-                        value={value}
-                        onChange={handleChange}
-                        scrollButtons="auto"
-                        aria-label="Scrollable Tabs"
-                    >
-                        {groupIndices.map((index) => (
-                            <Tab
-                                label={`Group ${index}`}
-                                value={index.toString()}
-                                key={index}
-                            />
-                        ))}
-                    </Tabs>
-                </Box>
-                {groupIndices.map((index) => (
-                    <TabPanel value={index.toString()} key={index}>
-                        <Typography>Content for Group {index}</Typography>
-
-                        <GroupLabelForm
-                            sxOptions={sxOptions}
-                            control={control}
-                            error={errors[`rgroup${index}`]}
-                            index={index}
-                        />
-
-                    </TabPanel>
-                ))}
-            </TabContext>
-        </Box>
-    );
-};
-
-
-export const NewMonomerSettingForm = ({ smiles }) => {
+export const NewMonomerSettingForm = forwardRef(({ smiles, initialData, onChange }, ref) => {
     const sxOptions = { margin: 0.85, width: 180 }
     const groupIndices = extractSmilesIndices(smiles);
     const defaultValues = {
@@ -121,15 +54,61 @@ export const NewMonomerSettingForm = ({ smiles }) => {
     const groupLabelValues = createRGroupObject("groupLabel", groupIndices);
     const groupLeavingValues = createRGroupObject("groupLeaving", groupIndices);
 
-    const { control, handleSubmit, formState: { errors }, } = useForm({
+    const methods = useForm({
         defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },
-        mode: 'onBlur',  // or 'onChange', 'onSubmit', etc.
+        mode: 'onBlur',
     });
 
-    const onSubmit = (data) => console.log(data);
+    const { control, formState: { errors }, } = methods;
+
+    // Reset form values on component mount
+    useEffect(() => {
+        methods.reset({ ...methods.defaultValues, ...initialData });
+    }, []);
+
+    // Watch form values and notify parent on changes
+    useEffect(() => {
+        const subscription = methods.watch((value) => {
+            if (onChange) {
+                onChange(value);
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Expose methods to the parent via ref
+    useImperativeHandle(ref, () => ({
+        getFormData: async () => {
+            return methods.getValues();
+        },
+        isValid: async () => {
+            await methods.trigger(); // Ensure validation is up-to-date
+            return methods.formState.isValid;
+        },
+        submitForm: async () => {
+            return await methods.handleSubmit(
+                async (data) => {
+                    // Handle successful submission
+                    console.log(data);
+                    // Return data to caller
+                    return data;
+                },
+                async (errors) => {
+                    // Handle submission errors
+                    console.log(errors);
+                    // Optionally throw an error or return null
+                    throw errors;
+                }
+            )();
+        },
+        validateForm: async () => {
+            const valid = await methods.trigger();
+            return valid;
+        },
+    }));
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <>
 
             <Grid container rowSpacing={0.5} columnSpacing={{ xs: 0.5, sm: 1, md: 2 }}>
 
@@ -200,10 +179,7 @@ export const NewMonomerSettingForm = ({ smiles }) => {
                 ))}
 
             </Grid>
-            <div>
-                <Button variant="contained" type="submit">Submit</Button>
 
-            </div>
-        </form>
+        </>
     )
-}
+});

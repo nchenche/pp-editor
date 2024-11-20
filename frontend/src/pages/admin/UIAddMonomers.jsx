@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useEffect, useState, Fragment } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 
+import { log } from '../../utils/dev'
 
 import FormWizard from "react-form-wizard-component";
 import "react-form-wizard-component/dist/style.css";
@@ -10,11 +11,18 @@ import "react-form-wizard-component/dist/style.css";
 import './styles.css'
 
 
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
-import { Description, Field, Input, Label } from '@headlessui/react'
-import { Button } from '@headlessui/react'
-import { forwardRef } from 'react'
-import clsx from 'clsx'
+// import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
+// import { Description, Field, Input, Label } from '@headlessui/react'
+// import { Button } from '@headlessui/react'
+// import { forwardRef } from 'react'
+// import clsx from 'clsx'
+
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+} from '@mui/material';
 
 import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
@@ -25,17 +33,114 @@ const UIAddMonomers = ({ children }) => {
   const [selectedBonds, setSelectedBonds] = useState([]); // To store the input SMILES string
   const [fragments, setFragments] = useState([]); // To store the fragments after API response
   const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(-1); // To store the fragments after API response
+  const formRef = useRef();
+  const wizardRef = useRef();
+  const [currentIndex, setCurrentIndex] = useState(0); // To store the input SMILES string
+  const [formData, setFormData] = useState({}); // State to hold form data
 
+
+  const checkTab = async () => {
+    switch (currentIndex) {
+      case 0:
+        if (!smiles) return false;
+        return true;
+      case 1:
+        if (selectedBonds.length === 0) return false;
+        return true;
+      case 2:
+        if (selectedBonds.length === -1) return false;
+        return true;
+      case 3:
+        if (formRef.current) {
+          const isValid = await formRef.current.isValid();
+          const data = await formRef.current.getFormData();
+
+          console.log(isValid);
+          console.log(data);
+
+          if (!isValid) return false;
+          return true;
+        }
+        return false;
+      case 4:
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = async () => {
+    const isTabValid = await checkTab();
+    if (wizardRef.current) {
+      if (!isTabValid) {
+        return
+      };
+      wizardRef.current.nextTab();
+    }
+  };
+
+  const handlePrev = () => {
+    if (wizardRef.current) {
+      wizardRef.current.prevTab();
+    }
+  };
+
+  const backButtonTemplate = () => {
+    return (
+      <Button variant="contained" onClick={handlePrev}>
+        Back
+      </Button>
+    );
+  };
+
+  const nextButtonTemplate = () => {
+    return (
+      <Button variant="contained" onClick={handleNext}>
+        Next
+      </Button>
+    );
+  };
+
+  const handleComplete = () => {
+    console.log("Form completed!");
+  };
+
+  const tabChanged = async ({ prevIndex, nextIndex }) => {
+    setCurrentIndex(() => prevIndex);
+  };
+
+
+
+
+  // Reset 'selectedBonds' when 'smiles' changes
+  useEffect(() => {
+    setSelectedBonds([]);
+  }, [smiles]);
+
+  // Reset 'formData' when 'fragments' change
+  useEffect(() => {
+    setFormData({});
+  }, [fragments]);
+
+  // Reset 'formData' when 'selectedFragmentIndex' change
+  useEffect(() => {
+    setFormData({});
+  }, [selectedFragmentIndex]);
+
+  // Reset 'selectedFragmentIndex' when 'fragments' change
+  useEffect(() => {
+    if (fragments.length > 0) {
+      setSelectedFragmentIndex(0);
+    } else {
+      setSelectedFragmentIndex(-1);
+    }
+  }, [fragments]);
+
+
+  // Handle changes to 'smiles'
   const handleChangeSmiles = (value) => {
     setSmiles(value);
-    setSelectedBonds([]);
-    setFragments([]);
-  }
-
-  const handleSelectedFragment = (fragmentIndex) => {
-    setSelectedFragmentIndex(fragmentIndex);
-  }
-
+  };
 
   const handleSelectedBonds = (bondIndex) => {
     if (selectedBonds.includes(bondIndex)) {
@@ -45,70 +150,75 @@ const UIAddMonomers = ({ children }) => {
     }
   }
 
-  const handleComplete = () => {
-    console.log("Form completed!");
-    // Handle form completion logic here
-  };
+  const handleSelectedFragment = (fragmentIndex) => {
+    setSelectedFragmentIndex(fragmentIndex);
+  }
 
-  const tabChanged = async ({ prevIndex, nextIndex }) => {
-    if (nextIndex === 3) {
-      // console.log("Fragmenting molecule...");
-    }
-  };
+  // Use useCallback to memoize setFormData
+  const handleFormDataCallback = useCallback((data) => {
+    setFormData(data);
+  }, []);
 
-  // Fragment the molecule when selected bonds change
+  // Reset 'fragments' when 'selectedBonds' changes and trigger fragment generation
   useEffect(() => {
     if (!selectedBonds.length) {
       setFragments([]);
       return;
     }
 
-    const payload = { smiles: smiles, bonds: selectedBonds };
+    const controller = new AbortController();
+    const signal = controller.signal;
 
-    // Define an async function to make the API call
+    const payload = { smiles: smiles, bonds: selectedBonds };
+    console.log(payload);
+
     const fragmentMolecule = async () => {
-      console.log("Fragmenting molecule...");
       try {
-        // Make POST request to the API
         const response = await fetch('http://0.0.0.0:5000/api/rdkit/fragment-molecule', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
+          signal: signal,
         });
 
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
 
-        // Get JSON data from response
         const result = await response.json();
-
-        // Set fragments state with data from API response
         setFragments(result.data);
-        console.log("Fragments received: ", result.data);
+
       } catch (error) {
-        console.error('Error while fragmenting the molecule:', error);
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+        } else {
+          console.error('Error while fragmenting the molecule:', error);
+        }
       }
     };
 
-    // Call the async function
     fragmentMolecule();
-  }, [selectedBonds]); // Dependency array includes selectedBonds and smiles
 
+    // Cleanup function
+    return () => { controller.abort(); };
+
+  }, [selectedBonds]);
 
 
   return (
     <div className='m-2 w-8/12 mx-auto'>
       <FormWizard
+        ref={wizardRef}
         color="rgb(30, 41, 59)"
         stepSize='xs'
         shape="circle"
         onComplete={handleComplete}
         onTabChange={tabChanged}
+        backButtonTemplate={backButtonTemplate}
+        nextButtonTemplate={nextButtonTemplate}
       >
-
         <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
           <TabStep1 smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
         </FormWizard.TabContent>
@@ -139,7 +249,13 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">
-          <TabStep4 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} />
+          <TabStep4
+            ref={formRef}
+            fragments={fragments}
+            selectedFragmentIndex={selectedFragmentIndex}
+            initialData={formData}
+            onFormDataChange={handleFormDataCallback}
+          />
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Validate" icon="ti-check">
@@ -154,5 +270,6 @@ const UIAddMonomers = ({ children }) => {
     </div>
   );
 }
+
 
 export default UIAddMonomers;

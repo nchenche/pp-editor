@@ -109,7 +109,6 @@ export const MolDisplayer = ({
     useEffect(() => {
         // Select the SVG container
         if (selectedFragment === -1 || !svgContainer.current) return;
-        console.log("frag index:", selectedFragment);
         addClassName(`.molecule-${selectedFragment}`, 'selected');
 
         return () => {

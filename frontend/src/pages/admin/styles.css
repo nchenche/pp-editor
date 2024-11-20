@@ -48,3 +48,19 @@ svg g.group-molecule.selected rect {
     /* animation: dash-animation 2s linear infinite; */
 }
 
+.wizard-card-footer {
+    /* border: 1px solid black; */
+    display: flex;
+    justify-content: space-around;
+    margin-top: 50px;
+}
+
+.wizard-navigation {
+    min-height: 50dvh;
+}
+
+.react-form-wizard .clearfix:after {
+    content: none;
+    clear: both;
+    display: table;
+}
