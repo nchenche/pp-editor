@@ -1,4 +1,5 @@
 import { Fragment, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import { log } from '../../../utils/dev'
 
 import { useForm, Controller } from "react-hook-form"
 
@@ -41,8 +42,10 @@ const createRGroupObject = (baseName, groupIndices) => {
 
 
 export const NewMonomerSettingForm = forwardRef(({ smiles, initialData, onChange }, ref) => {
+
     const sxOptions = { margin: 0.85, width: 180 }
     const groupIndices = extractSmilesIndices(smiles);
+
     const defaultValues = {
         name: "",
         symbol: "",
@@ -58,6 +61,7 @@ export const NewMonomerSettingForm = forwardRef(({ smiles, initialData, onChange
         defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },
         mode: 'onBlur',
     });
+
 
     const { control, formState: { errors }, } = methods;
 
