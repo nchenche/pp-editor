@@ -132,7 +132,7 @@ export const MolTypeForm = ({ sxOptions, control, error }) => {
                             label="Select Type"
                             error={!!error}
                         >
-                            <MenuItem value="aminoAcid">Amino acid</MenuItem>
+                            <MenuItem value="aa">Amino acid</MenuItem>
                             <MenuItem value="cap">Cap</MenuItem>
                         </Select>
                     </>
@@ -180,7 +180,7 @@ export const MolSubTypeForm = ({ sxOptions, control, error }) => {
 export const GroupLabelForm = ({ sxOptions, control, error, index }) => {
     const labelId = `select-rgroup-${index}`;
     const label = `Group ${index} label`;
-    const name = `groupLabel${index}`;
+    const name = `groupLabel_${index}`;
 
     return (
         <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
@@ -200,10 +200,10 @@ export const GroupLabelForm = ({ sxOptions, control, error, index }) => {
                             label={label}
                             error={!!error}
                         >
-                            <MenuItem value="r1">R1</MenuItem>
-                            <MenuItem value="r2">R2</MenuItem>
-                            <MenuItem value="r3">R3</MenuItem>
-                            <MenuItem value="r4">R4</MenuItem>
+                            <MenuItem value="1">R1</MenuItem>
+                            <MenuItem value="2">R2</MenuItem>
+                            <MenuItem value="3">R3</MenuItem>
+                            <MenuItem value="4">R4</MenuItem>
                         </Select>
                     </>
                 )}
@@ -217,7 +217,7 @@ export const GroupLabelForm = ({ sxOptions, control, error, index }) => {
 
 
 export const GroupLeavingForm = ({ sxOptions, control, error, index }) => {
-    const name = `groupLeaving${index}`;
+    const name = `groupLeaving_${index}`;
     const label = `Leaving group for ${index}`
 
 

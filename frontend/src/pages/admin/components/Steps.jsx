@@ -112,15 +112,15 @@ export const TabStep4 = forwardRef(({ fragmentSmiles, initialData, onFormDataCha
     const groupIndices = extractSmilesIndices(fragmentSmiles);
 
     const defaultValues = {
-        name: "",
-        symbol: "",
-        selectType: "",
-        selectSubType: "",
-        naturalAnalog: "",
-        pdb: "",
+        name: "Alanine",
+        symbol: "A",
+        selectType: "aminoAcid",
+        selectSubType: "natural",
+        naturalAnalog: "A",
+        pdb: "ALA",
     };
-    const groupLabelValues = createRGroupObject("groupLabel", groupIndices);
-    const groupLeavingValues = createRGroupObject("groupLeaving", groupIndices);
+    const groupLabelValues = createRGroupObject("groupLabel_", groupIndices);
+    const groupLeavingValues = createRGroupObject("groupLeaving_", groupIndices);
 
     const methods = useForm({
         defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },

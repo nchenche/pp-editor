@@ -80,7 +80,7 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
                             <GroupLabelForm
                                 sxOptions={sxOptions}
                                 control={control}
-                                error={errors[`groupLabel${index}`]}
+                                error={errors[`groupLabel_${index}`]}
                                 index={index}
                             />
                         </Grid>
@@ -88,7 +88,7 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
                             <GroupLeavingForm
                                 sxOptions={sxOptions}
                                 control={control}
-                                error={errors[`groupLeaving${index}`]}
+                                error={errors[`groupLeaving_${index}`]}
                                 index={index}
                             />
                         </Grid>

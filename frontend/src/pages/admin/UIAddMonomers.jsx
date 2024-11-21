@@ -33,10 +33,15 @@ const UIAddMonomers = ({ children }) => {
   const [selectedBonds, setSelectedBonds] = useState([]); // To store the input SMILES string
   const [fragments, setFragments] = useState([]); // To store the fragments after API response
   const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(-1); // To store the fragments after API response
-  const formRef = useRef();
+
   const wizardRef = useRef();
   const [currentIndex, setCurrentIndex] = useState(0); // To store the input SMILES string
+
+  const formRef = useRef();
   const [formData, setFormData] = useState({}); // State to hold form data
+  const [isFormValid, setIsFormValid] = useState(false); // State to valid status of the form
+  const [molBlock, setMolBlock] = useState(''); // To store mol block string
+
 
   const checkTab = async () => {
     switch (currentIndex) {
@@ -53,8 +58,12 @@ const UIAddMonomers = ({ children }) => {
         if (formRef.current) {
           const isValid = await formRef.current.isValid();
           const data = await formRef.current.getFormData();
+          console.log('isValid', isValid);
 
           if (!isValid) return false;
+
+          handleFormSubmit();
+
           return true;
         }
         return false;
@@ -103,11 +112,9 @@ const UIAddMonomers = ({ children }) => {
 
   const tabChanged = async ({ prevIndex, nextIndex }) => {
     if (wizardRef.current) {
-      setTimeout( () => {  setCurrentIndex(() => prevIndex) }, 0);
+      setTimeout(() => { setCurrentIndex(() => prevIndex) }, 0);
     }
   };
-
-
 
 
   // Reset 'selectedBonds' when 'smiles' changes
@@ -123,6 +130,7 @@ const UIAddMonomers = ({ children }) => {
   // Reset 'formData' when 'selectedFragmentIndex' change
   useEffect(() => {
     setFormData({});
+    setIsFormValid(false);
   }, [selectedFragmentIndex]);
 
   // Reset 'selectedFragmentIndex' when 'fragments' change
@@ -133,7 +141,6 @@ const UIAddMonomers = ({ children }) => {
       setSelectedFragmentIndex(-1);
     }
   }, [fragments]);
-
 
   // Handle changes to 'smiles'
   const handleChangeSmiles = (value) => {
@@ -161,6 +168,7 @@ const UIAddMonomers = ({ children }) => {
   useEffect(() => {
     if (!selectedBonds.length) {
       setFragments([]);
+      setIsFormValid(false);
       return;
     }
 
@@ -168,7 +176,6 @@ const UIAddMonomers = ({ children }) => {
     const signal = controller.signal;
 
     const payload = { smiles: smiles, bonds: selectedBonds };
-    console.log(payload);
 
     const fragmentMolecule = async () => {
       try {
@@ -203,6 +210,50 @@ const UIAddMonomers = ({ children }) => {
     return () => { controller.abort(); };
 
   }, [selectedBonds]);
+
+  const handleFormSubmit = (() => {
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const payload = {form: formData, smiles: fragments[selectedFragmentIndex]};
+    console.log('payload', payload);
+
+    const generateMolBlock = async () => {
+      try {
+        const response = await fetch('http://0.0.0.0:5000/api/rdkit/generate-molblock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const result = await response.json();
+        setMolBlock(result.data);
+        console.log(molBlock)
+
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+        } else {
+          console.error('Error while generating molblock string:', error);
+        }
+      }
+    };
+
+    generateMolBlock();
+
+    // Cleanup function
+    // return () => { controller.abort(); };
+
+  });
+
 
 
   return (

@@ -7,6 +7,7 @@ from rdkit.Chem import Draw, rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 
 from app.lib.utils import format_svg
+from app.services.molecules import annotate_dummy_atoms, get_molblock
 
 bp = Blueprint('rdkit', __name__, url_prefix='/api/rdkit')
 
@@ -126,125 +127,41 @@ def fragment_molecule():
     return jsonify(response), 200
 
 
-import json
-def annotate_dummy_atoms(smiles: str):  
-    if not smiles:
-        raise ValueError("Invalid SMILES string.")
-
-    # Convert SMILES to an RDKit molecule object
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError("Error converting SMILES to Chem.Mol object.")
-
-    # Identify the dummy atoms (atomic number 0 represents dummy atoms in RDKit)
-    dummy_atom_indices = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetAtomicNum() == 0]
-
-    if len(dummy_atom_indices) > 4:
-        raise ValueError(f"Unexpected number of dummy atoms created: {len(dummy_atom_indices)}. No more than 4 are expected.")
-
-    # Assign R group labels to each dummy atom
-    r_groups_dict = {}
-    for i, atom_idx in enumerate(dummy_atom_indices, start=1):
-        atom = mol.GetAtomWithIdx(atom_idx)
-        r_group_label = f'R{i}'  # e.g., R1, R2, etc.
-
-        # Modify the atom's properties to reflect the R-group label
-        atom.SetAtomicNum(0)  # Atomic number 0 is used to indicate dummy atoms
-        atom.SetIsotope(i)  # Use isotope to give a unique number (e.g., R1, R2)
-        atom.SetProp('atomLabel', r_group_label)
-
-        r_groups_dict[r_group_label] = {
-            "label": r_group_label,
-            "group_idx": atom_idx,
-            "attachment_idx": atom.GetNeighbors()[0].GetIdx()
-        }        
-        atom.SetProp('_displayLabel', r_group_label)  # This will be used when generating SVGs
-
-    result = {'modified_mol': mol, 'r_groups': r_groups_dict}
-
-    sdf = generate_sdf_string(mol=mol)
-    print(sdf)
-    
-    # print(Chem.MolToMolBlock(mol))
-    print(json.dumps(r_groups_dict, indent=2))
-    
-    return result
 
 
-def generate_sdf_string(mol: Chem.Mol):
-    mol = set_props(mol=mol)
-    # Generate the MOL block representation
-    mol_block = Chem.MolToMolBlock(mol)
 
-    # Retrieve all properties set on the molecule
-    properties = mol.GetPropNames()
-
-    # Append the properties to the MOL block in SDF format
-    sdf_str = mol_block + "\n"
-    for prop in properties:
-        prop_value = mol.GetProp(prop)
-        sdf_str += f">  <{prop}>\n{prop_value}\n\n"
-    
-    # Add the SDF end delimiter
-    sdf_str += "$$$$\n"
-    
-    return sdf_str
-
-
-def set_props(mol: Chem.Mol):
-    print("Setting props...")
-    Chem.SanitizeMol(mol)
-
-    # Add the SDF tags
-    mol.SetProp('m_name', "test")
-    mol.SetProp('symbol', "Xt")
-    mol.SetProp('m_abbr', "Xt")
-    mol.SetProp('m_type', "cap")
-    mol.SetProp('m_subtype', "cap")
-    # mol.SetProp('m_Rgroups', ','.join(map(str, r_groups)))
-    # mol.SetProp('m_RgroupIdx', ','.join(map(str, r_group_idx)))
-    # mol.SetProp('m_attachmentPointIdx', ','.join(map(str, attachment_idx)))
-    mol.SetProp('natAnalog', "X")
-    mol.SetProp('pdbName', "XXX")
-
-    return mol
+@bp.route('/generate-molblock', methods=['POST'])
+def generate_molblock():
+    """
+{
+  "data": {
+    "name": "Alanine",
+    "symbol": "A",
+    "naturalAnalog": "A",
+    "pdb": "ALA",
+    "selectType": "aminoAcid",
+    "selectSubType": "natural",
+    "groupLabel_2": "r1",
+    "groupLeaving_2": "OH"
+  }
+}
 
 """
+    import json
+    
+
+    # Access JSON data if available
+    data = request.json or {}
+
+    smiles =  data.get('smiles')
+    form_data = data.get('form')
+
+    molblock = get_molblock(smiles=smiles, data=form_data)
+
+    response = {'data': data}
+    print(json.dumps(response, indent=2))
+    print(molblock)
 
 
-        # Extract the indices
-        r_group_idx = [None, None, None, None]
-        attachment_idx = [None, None, None, None]
+    return jsonify(response), 200
 
-        if p_type == "PEPTIDE":
-            for atom_val in mol.GetAtoms():
-                if atom_val.GetSymbol().startswith('R'):
-                    label = int(atom_val.GetSymbol()[1])
-                    root_atom = atom_val.GetNeighbors()[0]
-                    r_group_idx[label - 1] = atom_val.GetIdx()
-                    attachment_idx[label - 1] = root_atom.GetIdx()
-
-            # Generate a PDB code for the monomer
-            pdb_code = generate_pdb_code(symbol, self.list_pdbs)
-            self.list_pdbs.append(pdb_code)
-
-            # Add the SDF tags
-            mol.SetProp('m_name', name)
-            mol.SetProp('symbol', symbol)
-            mol.SetProp('m_abbr', symbol)
-            mol.SetProp('m_type', cat_type)
-            mol.SetProp('m_subtype', cat_sub)
-            mol.SetProp('m_Rgroups', ','.join(map(str, r_groups)))
-            mol.SetProp('m_RgroupIdx', ','.join(map(str, r_group_idx)))
-            mol.SetProp('m_attachmentPointIdx', ','.join(map(str, attachment_idx)))
-            mol.SetProp('natAnalog', natural_a)
-            mol.SetProp('pdbName', pdb_code)
-
-rgp_list = []
-for idx, rlabel in leaving_groups:
-    rgp_list.append(f"{idx + 1}   {rlabel}")  # Atom indices in MOL files are one-based
-mol.SetProp("M  RGP", f"{len(leaving_groups)}   " + "   ".join(rgp_list))
-
-
-
-"""
