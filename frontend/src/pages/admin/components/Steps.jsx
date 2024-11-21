@@ -1,5 +1,6 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
+import { useForm, Controller } from "react-hook-form"
 
 import InputContainer from './InputContainer';
 import { MolDisplayer } from './MolDisplayer';
@@ -79,50 +80,109 @@ export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragm
 }
 
 
-export const TabStep4 = forwardRef(({ fragments, selectedFragmentIndex, initialData, onFormDataChange }, ref) => {
+
+const extractSmilesIndices = (str) => {
+    const regex = /\[(\d+)\*\]|\*/g;
+    const indices = [];
+    let match;
+    while ((match = regex.exec(str)) !== null) {
+        if (match[1]) {
+            indices.push(parseInt(match[1], 10));
+        } else {
+            indices.push('*');
+        }
+    }
+    return indices;
+};
+
+const createRGroupObject = (baseName, groupIndices) => {
+    return groupIndices.reduce((accumulator, currentValue) => {
+        accumulator[baseName + currentValue] = '';
+        return accumulator;
+    }, {});
+};
+
+export const TabStep4 = forwardRef(({ fragmentSmiles, initialData, onFormDataChange }, ref) => {
+    if (!fragmentSmiles) return;
+
     const queryParams = {
         // is_annotate_dummy_atoms: false,
     }
 
-    if (!fragments[selectedFragmentIndex]) return;
+    const groupIndices = extractSmilesIndices(fragmentSmiles);
 
-    const formRef = useRef();
+    const defaultValues = {
+        name: "",
+        symbol: "",
+        selectType: "",
+        selectSubType: "",
+        naturalAnalog: "",
+        pdb: "",
+    };
+    const groupLabelValues = createRGroupObject("groupLabel", groupIndices);
+    const groupLeavingValues = createRGroupObject("groupLeaving", groupIndices);
 
+    const methods = useForm({
+        defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },
+        mode: 'onBlur',
+    });
+
+
+    // Reset form values on component mount
+    useEffect(() => {
+        methods.reset({ ...methods.defaultValues, ...initialData });
+    }, []);
+
+    // Watch form values and notify parent on changes
+    useEffect(() => {
+        const subscription = methods.watch((value) => {
+            if (onFormDataChange) {
+                onFormDataChange(value);
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Expose methods to the parent via ref
     useImperativeHandle(ref, () => ({
         getFormData: async () => {
-            if (formRef.current) {
-                return await formRef.current.getFormData();
-            }
+            return methods.getValues();
         },
         isValid: async () => {
-            if (formRef.current) {
-                return await formRef.current.isValid();
-            }
-            return false;
+            await methods.trigger(); // Ensure validation is up-to-date
+            return methods.formState.isValid;
         },
         submitForm: async () => {
-            if (formRef.current) {
-                return await formRef.current.submitForm();
-            }
+            return await methods.handleSubmit(
+                async (data) => {
+                    // Handle successful submission
+                    console.log(data);
+                    // Return data to caller
+                    return data;
+                },
+                async (errors) => {
+                    // Handle submission errors
+                    console.log(errors);
+                    // Optionally throw an error or return null
+                    throw errors;
+                }
+            )();
         },
         validateForm: async () => {
-            if (formRef.current) {
-                return await formRef.current.validateForm();
-            }
+            const valid = await methods.trigger();
+            return valid;
         },
     }));
 
     return (
         <div className='grid grid-cols-2 border'>
 
-            <MolDisplayer smiles={fragments[selectedFragmentIndex]} queryParams={queryParams} />
+            <MolDisplayer smiles={fragmentSmiles} queryParams={queryParams} />
             <div className='p-2 m-2 border'>
                 <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
                 <NewMonomerSettingForm
-                    ref={formRef}
-                    smiles={fragments[selectedFragmentIndex]}
-                    initialData={initialData}
-                    onChange={onFormDataChange}
+                    formMethods={methods}
+                    groupIndices={groupIndices}
                 />
             </div>
         </div>

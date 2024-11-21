@@ -18,98 +18,11 @@ import {
 
 import createPalette from "@mui/material/styles/createPalette";
 
-const extractSmilesIndices = (str) => {
-    const regex = /\[(\d+)\*\]|\*/g;
-    const indices = [];
-    let match;
-    while ((match = regex.exec(str)) !== null) {
-        if (match[1]) {
-            indices.push(parseInt(match[1], 10));
-        } else {
-            indices.push('*');
-        }
-    }
-    return indices;
-};
 
+export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
 
-const createRGroupObject = (baseName, groupIndices) => {
-    return groupIndices.reduce((accumulator, currentValue) => {
-        accumulator[baseName + currentValue] = '';
-        return accumulator;
-    }, {});
-};
-
-
-export const NewMonomerSettingForm = forwardRef(({ smiles, initialData, onChange }, ref) => {
-
-    const sxOptions = { margin: 0.85, width: 180 }
-    const groupIndices = extractSmilesIndices(smiles);
-
-    const defaultValues = {
-        name: "",
-        symbol: "",
-        selectType: "",
-        selectSubType: "",
-        naturalAnalog: "",
-        pdb: "",
-    };
-    const groupLabelValues = createRGroupObject("groupLabel", groupIndices);
-    const groupLeavingValues = createRGroupObject("groupLeaving", groupIndices);
-
-    const methods = useForm({
-        defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },
-        mode: 'onBlur',
-    });
-
-
-    const { control, formState: { errors }, } = methods;
-
-    // Reset form values on component mount
-    useEffect(() => {
-        methods.reset({ ...methods.defaultValues, ...initialData });
-    }, []);
-
-    // Watch form values and notify parent on changes
-    useEffect(() => {
-        const subscription = methods.watch((value) => {
-            if (onChange) {
-                onChange(value);
-            }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
-
-    // Expose methods to the parent via ref
-    useImperativeHandle(ref, () => ({
-        getFormData: async () => {
-            return methods.getValues();
-        },
-        isValid: async () => {
-            await methods.trigger(); // Ensure validation is up-to-date
-            return methods.formState.isValid;
-        },
-        submitForm: async () => {
-            return await methods.handleSubmit(
-                async (data) => {
-                    // Handle successful submission
-                    console.log(data);
-                    // Return data to caller
-                    return data;
-                },
-                async (errors) => {
-                    // Handle submission errors
-                    console.log(errors);
-                    // Optionally throw an error or return null
-                    throw errors;
-                }
-            )();
-        },
-        validateForm: async () => {
-            const valid = await methods.trigger();
-            return valid;
-        },
-    }));
+    const sxOptions = { margin: 0.85, width: 180 };
+    const { control, formState: { errors }, } = formMethods;
 
     return (
         <>
@@ -186,4 +99,4 @@ export const NewMonomerSettingForm = forwardRef(({ smiles, initialData, onChange
 
         </>
     )
-});
+};

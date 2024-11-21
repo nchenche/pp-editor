@@ -38,7 +38,6 @@ const UIAddMonomers = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(0); // To store the input SMILES string
   const [formData, setFormData] = useState({}); // State to hold form data
 
-
   const checkTab = async () => {
     switch (currentIndex) {
       case 0:
@@ -54,9 +53,6 @@ const UIAddMonomers = ({ children }) => {
         if (formRef.current) {
           const isValid = await formRef.current.isValid();
           const data = await formRef.current.getFormData();
-
-          console.log(isValid);
-          console.log(data);
 
           if (!isValid) return false;
           return true;
@@ -253,8 +249,7 @@ const UIAddMonomers = ({ children }) => {
         <FormWizard.TabContent title="Fill the fields" icon="ti-check">
           <TabStep4
             ref={formRef}
-            fragments={fragments}
-            selectedFragmentIndex={selectedFragmentIndex}
+            fragmentSmiles={fragments[selectedFragmentIndex]}
             initialData={formData}
             onFormDataChange={handleFormDataCallback}
           />
