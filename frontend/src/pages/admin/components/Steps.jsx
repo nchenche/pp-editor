@@ -114,7 +114,7 @@ export const TabStep4 = forwardRef(({ fragmentSmiles, initialData, onFormDataCha
     const defaultValues = {
         name: "Alanine",
         symbol: "A",
-        selectType: "aminoAcid",
+        selectType: "aa",
         selectSubType: "natural",
         naturalAnalog: "A",
         pdb: "ALA",

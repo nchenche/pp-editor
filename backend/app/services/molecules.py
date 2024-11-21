@@ -199,7 +199,7 @@ def set_molblock(
     # Add additional molecular properties
     mol.SetProp('m_name', data.get('name', ''))
     mol.SetProp('symbol', data.get('symbol', ''))
-    mol.SetProp('m_abbr', data.get('name', ''))
+    mol.SetProp('m_abbr', data.get('symbol', ''))
     mol.SetProp('m_type', data.get('selectType', ''))
     mol.SetProp('m_subtype', data.get('selectSubType', ''))
     mol.SetProp('m_Rgroups', ','.join(map(str, leaving_idx)))

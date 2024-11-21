@@ -132,23 +132,7 @@ def fragment_molecule():
 
 @bp.route('/generate-molblock', methods=['POST'])
 def generate_molblock():
-    """
-{
-  "data": {
-    "name": "Alanine",
-    "symbol": "A",
-    "naturalAnalog": "A",
-    "pdb": "ALA",
-    "selectType": "aminoAcid",
-    "selectSubType": "natural",
-    "groupLabel_2": "r1",
-    "groupLeaving_2": "OH"
-  }
-}
-
-"""
-    import json
-    
+    import json    
 
     # Access JSON data if available
     data = request.json or {}
@@ -158,10 +142,8 @@ def generate_molblock():
 
     molblock = get_molblock(smiles=smiles, data=form_data)
 
-    response = {'data': data}
+    response = {'data': molblock}
     print(json.dumps(response, indent=2))
-    print(molblock)
-
 
     return jsonify(response), 200
 

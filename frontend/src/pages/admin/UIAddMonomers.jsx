@@ -39,7 +39,6 @@ const UIAddMonomers = ({ children }) => {
 
   const formRef = useRef();
   const [formData, setFormData] = useState({}); // State to hold form data
-  const [isFormValid, setIsFormValid] = useState(false); // State to valid status of the form
   const [molBlock, setMolBlock] = useState(''); // To store mol block string
 
 
@@ -130,7 +129,6 @@ const UIAddMonomers = ({ children }) => {
   // Reset 'formData' when 'selectedFragmentIndex' change
   useEffect(() => {
     setFormData({});
-    setIsFormValid(false);
   }, [selectedFragmentIndex]);
 
   // Reset 'selectedFragmentIndex' when 'fragments' change
@@ -168,7 +166,6 @@ const UIAddMonomers = ({ children }) => {
   useEffect(() => {
     if (!selectedBonds.length) {
       setFragments([]);
-      setIsFormValid(false);
       return;
     }
 
@@ -213,10 +210,7 @@ const UIAddMonomers = ({ children }) => {
 
   const handleFormSubmit = (() => {
 
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    const payload = {form: formData, smiles: fragments[selectedFragmentIndex]};
+    const payload = { form: formData, smiles: fragments[selectedFragmentIndex] };
     console.log('payload', payload);
 
     const generateMolBlock = async () => {
@@ -227,7 +221,6 @@ const UIAddMonomers = ({ children }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
-          signal: signal,
         });
 
         if (!response.ok) {
@@ -235,8 +228,7 @@ const UIAddMonomers = ({ children }) => {
         }
 
         const result = await response.json();
-        setMolBlock(result.data);
-        console.log(molBlock)
+        setMolBlock(() => result.data);
 
       } catch (error) {
         if (error.name === 'AbortError') {
@@ -248,10 +240,6 @@ const UIAddMonomers = ({ children }) => {
     };
 
     generateMolBlock();
-
-    // Cleanup function
-    // return () => { controller.abort(); };
-
   });
 
 
@@ -307,6 +295,9 @@ const UIAddMonomers = ({ children }) => {
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Validate" icon="ti-check">
+          <pre className="bg-slate-900 text-slate-400 text-left p-4 text-xs rounded-lg font-medium overflow-x-auto">
+            <code>{molBlock}</code>
+          </pre>
         </FormWizard.TabContent>
 
       </FormWizard>
