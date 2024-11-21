@@ -106,9 +106,9 @@ const UIAddMonomers = ({ children }) => {
   };
 
   const tabChanged = async ({ prevIndex, nextIndex }) => {
-    setTimeout( () => {
-      setCurrentIndex(() => prevIndex);
-    }, 0)
+    if (wizardRef.current) {
+      setTimeout( () => {  setCurrentIndex(() => prevIndex) }, 0);
+    }
   };
 
 
