@@ -44,7 +44,7 @@ export const useFragments = (smiles, selectedBonds) => {
       };
     }, [selectedBonds]);
   
-    return [fragments, setFragments];
+    return [fragments];
   };
 
 

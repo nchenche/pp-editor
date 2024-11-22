@@ -1,4 +1,4 @@
-import { Fragment, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import { Fragment, memo, forwardRef, useImperativeHandle, useMemo, useEffect, useState } from 'react';
 import { log } from '../../../utils/dev'
 
 import { useForm, Controller } from "react-hook-form"

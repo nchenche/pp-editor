@@ -1,22 +1,28 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, memo } from 'react';
 
 import { useForm, Controller } from "react-hook-form"
 
 import InputContainer from './InputContainer';
-import { MolDisplayer } from './MolDisplayer';
+import { MolDisplayer, MoleculeDisplayContainer } from './MolDisplayer';
+
 import { NewMonomerSettingForm } from './AddNewMoleculeForm';
+import { log } from '../../../utils/dev'
 
 
-export const TabStep1 = ({ smiles, handleChangeSmiles }) => {
+export const TabStep1 = memo(({ smiles, handleChangeSmiles }) => {
+    log('rendering TabStep1');
+
     return (
-        <>
+        <div className='grid grid-cols-2'>
             <InputContainer smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
-            <MolDisplayer smiles={smiles} />
-        </>
-    )
-}
+            <MoleculeDisplayContainer smiles={smiles} />
+        </div>
+    );
+});
 
-export const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
+export const TabStep2 = memo(({ smiles, handleSelectedBonds, selectedBonds, fragments }) => {
+    log('rendering TabStep2', { background: 'orange' });
+
     const queryParams = {
         h_explicit_only: false,
         add_bond_indices: true,
@@ -41,12 +47,30 @@ export const TabStep2 = ({ smiles, handleSelectedBonds, selectedBonds }) => {
     };
 
     return (
-        <MolDisplayer smiles={smiles} queryParams={queryParams} onBondClick={onBondClick} selectedBonds={selectedBonds} selectableBonds={true} />
+        <div className='grid grid-cols-2'>
+            <MoleculeDisplayContainer
+                smiles={smiles}
+                queryParams={queryParams}
+                onBondClick={onBondClick}
+                selectedBonds={selectedBonds}
+                selectableBonds={true}
+            />
+            {/* {fragments?.length > 0 && ( */}
+                <MoleculeDisplayContainer
+                    smiles={fragments}
+                    queryParams={{ mols_per_row: 2 }}
+                    selectedBonds={selectedBonds}
+                />
+            {/* )} */}
+
+        </div>
     )
-}
+});
 
 
-export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
+export const TabStep3 = memo(({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
+    log('rendering TabStep3', { background: 'green' });
+
     const queryParams = {
         h_explicit_only: true,
         add_bond_indices: false,
@@ -75,9 +99,15 @@ export const TabStep3 = ({ fragments, selectedFragmentIndex, handleSelectedFragm
     if (!fragments.length) return;
 
     return (
-        <MolDisplayer smiles={fragments} queryParams={queryParams} onBondClick={onBondClick} selectableMolecules={true} selectedFragment={selectedFragmentIndex} />
+        <MoleculeDisplayContainer
+            smiles={fragments}
+            queryParams={queryParams}
+            onBondClick={onBondClick}
+            selectableMolecules={true}
+            selectedFragment={selectedFragmentIndex}
+        />
     )
-}
+});
 
 
 
@@ -102,89 +132,74 @@ const createRGroupObject = (baseName, groupIndices) => {
     }, {});
 };
 
-export const TabStep4 = forwardRef(({ fragmentSmiles, initialData, onFormDataChange }, ref) => {
-    if (!fragmentSmiles) return;
+export const TabStep4 = memo(
+    forwardRef(({ fragmentSmiles, initialData, onFormDataChange }, ref) => {
+        log('rendering TabStep4');
 
-    const queryParams = {
-        // is_annotate_dummy_atoms: false,
-    }
+        if (!fragmentSmiles) return null;
 
-    const groupIndices = extractSmilesIndices(fragmentSmiles);
+        const groupIndices = useMemo(() => extractSmilesIndices(fragmentSmiles), [fragmentSmiles]);
+        const groupLabelValues = useMemo(() => createRGroupObject("groupLabel_", groupIndices || []), [groupIndices]);
+        const groupLeavingValues = useMemo(() => createRGroupObject("groupLeaving_", groupIndices || []), [groupIndices]);
+        // const groupIndices = extractSmilesIndices(fragmentSmiles);
+        // const groupLabelValues = createRGroupObject("groupLabel_", groupIndices);
+        // const groupLeavingValues = createRGroupObject("groupLeaving_", groupIndices);
 
-    const defaultValues = {
-        name: "Alanine",
-        symbol: "A",
-        selectType: "aa",
-        selectSubType: "natural",
-        naturalAnalog: "A",
-        pdb: "ALA",
-    };
-    const groupLabelValues = createRGroupObject("groupLabel_", groupIndices);
-    const groupLeavingValues = createRGroupObject("groupLeaving_", groupIndices);
+        const defaultValues = useMemo(
+            () => ({
+                name: "Alanine",
+                symbol: "A",
+                selectType: "aa",
+                selectSubType: "natural",
+                naturalAnalog: "A",
+                pdb: "ALA",
+                ...groupLabelValues,
+                ...groupLeavingValues,
+            }),
+            [groupLabelValues, groupLeavingValues] // Include dependencies here
+        );
 
-    const methods = useForm({
-        defaultValues: { ...defaultValues, ...groupLabelValues, ...groupLeavingValues },
-        mode: 'onBlur',
-    });
+        // Initialize useForm outside render cycles
+        const methods = useForm({
+            defaultValues, // Use memoized defaultValues
+            mode: 'onBlur',
+        })
 
-
-    // Reset form values on component mount
-    useEffect(() => {
-        methods.reset({ ...methods.defaultValues, ...initialData });
-    }, []);
-
-    // Watch form values and notify parent on changes
-    useEffect(() => {
-        const subscription = methods.watch((value) => {
-            if (onFormDataChange) {
-                onFormDataChange(value);
+        // Reset form values only when `initialData` changes
+        useEffect(() => {
+            if (initialData) {
+                methods.reset({ ...defaultValues, ...initialData });
             }
-        });
-        return () => subscription.unsubscribe();
-    }, []);
+        }, []); // Only runs when `initialData` changes
 
-    // Expose methods to the parent via ref
-    useImperativeHandle(ref, () => ({
-        getFormData: async () => {
-            return methods.getValues();
-        },
-        isValid: async () => {
-            await methods.trigger(); // Ensure validation is up-to-date
-            return methods.formState.isValid;
-        },
-        submitForm: async () => {
-            return await methods.handleSubmit(
-                async (data) => {
-                    // Handle successful submission
-                    console.log(data);
-                    // Return data to caller
-                    return data;
-                },
-                async (errors) => {
-                    // Handle submission errors
-                    console.log(errors);
-                    // Optionally throw an error or return null
-                    throw errors;
+        // Watch form values and notify parent
+        useEffect(() => {
+            const subscription = methods.watch((value) => {
+                if (onFormDataChange) {
+                    onFormDataChange(value);
                 }
-            )();
-        },
-        validateForm: async () => {
-            const valid = await methods.trigger();
-            return valid;
-        },
-    }));
+            });
+            return () => subscription.unsubscribe();
+        }, []);
 
-    return (
-        <div className='grid grid-cols-2 border'>
+        // Expose methods to parent
+        useImperativeHandle(ref, () => ({
+            getFormData: () => methods.getValues(),
+            isValid: async () => {
+                await methods.trigger();
+                return methods.formState.isValid;
+            },
+            validateForm: () => methods.trigger(),
+        }), []);
 
-            <MolDisplayer smiles={fragmentSmiles} queryParams={queryParams} />
-            <div className='p-2 m-2 border'>
-                <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
-                <NewMonomerSettingForm
-                    formMethods={methods}
-                    groupIndices={groupIndices}
-                />
+        return (
+            <div className='grid grid-cols-2 border'>
+                <MoleculeDisplayContainer smiles={fragmentSmiles} />
+                <div className='p-2 m-2 border'>
+                    <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
+                    <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} />
+                </div>
             </div>
-        </div>
-    )
-});
+        );
+    })
+);

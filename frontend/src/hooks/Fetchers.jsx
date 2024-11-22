@@ -1,5 +1,63 @@
 import { useState, useEffect } from 'react';
 
+import { log } from '../utils/dev'
+
+
+export const useFetchMolecule = (smiles, queryParams) => {
+    const [data, setData] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+
+    useEffect(() => {
+        if (!smiles) return;
+
+        const baseURL = "http://0.0.0.0:5000/api/rdkit/generate-svg";
+        const params = new URLSearchParams();
+
+        // Append query parameters
+        Object.entries(queryParams).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach(val => params.append(key, val));
+            } else if (value !== undefined && value !== null) {
+                params.append(key, value);
+            }
+        });
+
+        const url = `${baseURL}?${params.toString()}`;
+        const payload = JSON.stringify({ smiles });
+
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: payload
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                setData(() => result);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [smiles]);
+
+    return { data, isLoading, error };
+};
+
 
 export const useFetchData = ( url, payload ) => {
 

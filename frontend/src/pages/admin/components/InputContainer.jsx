@@ -44,7 +44,7 @@ const InputContainer = ({smiles, handleChangeSmiles}) => {
   }
 
   return (
-    <div className='border-2 p-2 sm:w-full md:w-5/12 mx-auto flex flex-col'>
+    <div className='border-2 p-2 sm:w-full md:w-10/12 mx-auto flex flex-col'>
       <TabGroup className="border" selectedIndex={selectedTabIndex} onChange={(index) => setSelectedTabIndex(index)}>
 
         <TabList className="flex justify-center space-x-6">

@@ -3,6 +3,190 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
 import { useFetchData } from '../../../hooks/Fetchers'
+import { useFetchMolecule } from '../../../hooks/Fetchers'
+
+
+
+// MolDisplayer.js
+import PropTypes from 'prop-types';
+
+
+
+export const MoleculeDisplay = ({
+    data,
+    isLoading,
+    error,
+    selectedBonds = [],
+    onBondClick = null,
+    selectableBonds = false,
+    selectableMolecules = false,
+    selectedFragment = -1,
+}) => {
+
+    const svgContainer = useRef(null);
+
+    // Utility functions to add/remove class names
+    const addClassName = (targetSelector, newClassName) => {
+        if (!svgContainer.current) return;
+        const targets = svgContainer.current.querySelectorAll(targetSelector);
+        targets.forEach((element) => {
+            element.classList.add(newClassName);
+        });
+    };
+
+    const removeClassName = (targetSelector, className) => {
+        if (!svgContainer.current) return;
+        const targets = svgContainer.current.querySelectorAll(targetSelector);
+        targets.forEach((element) => {
+            element.classList.remove(className);
+        });
+    };
+
+    // Handle bond click events
+    useEffect(() => {
+        if (svgContainer.current && onBondClick) {
+            svgContainer.current.addEventListener('click', onBondClick, true);
+        }
+
+        return () => {
+            if (svgContainer.current && onBondClick) {
+                svgContainer.current.removeEventListener('click', onBondClick, true);
+            }
+        };
+    }, [onBondClick, data]);
+
+    // Make bonds selectable
+    useEffect(() => {
+        if (!svgContainer.current || !selectableBonds) return;
+        addClassName('.bond-highlight-path', 'selectable');
+
+        return () => {
+            removeClassName('.bond-highlight-path', 'selectable');
+        };
+    }, [selectableBonds, data]);
+
+    // Make molecules selectable
+    useEffect(() => {
+        if (!svgContainer.current || !selectableMolecules) return;
+        addClassName('g.group-molecule', 'selectable');
+
+        return () => {
+            removeClassName('g.group-molecule', 'selectable');
+        };
+    }, [selectableMolecules, data]);
+
+    // Highlight selected bonds
+    useEffect(() => {
+        if (!selectedBonds.length || !svgContainer.current) return;
+
+        selectedBonds.forEach((idx) => {
+            const bondGroup = svgContainer.current.querySelector(`g.group-bond-${idx}`);
+            if (bondGroup) {
+                bondGroup.classList.add('selected');
+            }
+        });
+
+        return () => {
+            if (!selectedBonds.length || !svgContainer.current) return;
+
+            const allBondGroups = svgContainer.current.querySelectorAll('g.group-bond');
+            allBondGroups.forEach((group) => {
+                group.classList.remove('selected');
+            });
+        };
+    }, [selectedBonds, data]);
+
+    // Highlight selected fragment
+    useEffect(() => {
+        if (selectedFragment === -1 || !svgContainer.current) return;
+        addClassName(`.molecule-${selectedFragment}`, 'selected');
+
+        return () => {
+            removeClassName(`.molecule-${selectedFragment}`, 'selected');
+        };
+    }, [selectedFragment, data]);
+
+    // if (isLoading) {
+    //     return <p>Loading...</p>;
+    // }
+
+    if (error && selectedBonds.length == 0) {
+        return (
+            <div>
+                <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+                </div>
+                <p className="text-red-500 text-xs mt-2">No bonds selected</p>
+            </div>
+
+        )
+    } else if (error) {
+        return (
+            <div>
+            <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+            </div>
+            <p className="text-red-500 text-xs mt-2">{error}</p>
+        </div>  
+        )
+    }
+
+    return (
+        <div>
+            <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+
+                {data?.data && (
+                    <div
+                        ref={svgContainer}
+                        className="w-full h-full overflow-hidden"
+                        dangerouslySetInnerHTML={{ __html: data.data }} // Inject SVG into the DOM
+                    />
+                )}
+            </div>
+        </div>
+    );
+};
+
+MoleculeDisplay.propTypes = {
+    data: PropTypes.object,
+    isLoading: PropTypes.bool,
+    error: PropTypes.string,
+    selectedBonds: PropTypes.array,
+    onBondClick: PropTypes.func,
+    selectableBonds: PropTypes.bool,
+    selectableMolecules: PropTypes.bool,
+    selectedFragment: PropTypes.number,
+};
+
+
+
+
+export const MoleculeDisplayContainer = ({
+    smiles,
+    selectedBonds = [],
+    queryParams = {},
+    onBondClick = null,
+    selectableBonds = false,
+    selectableMolecules = false,
+    selectedFragment = -1,
+}) => {
+    const { data, isLoading, error } = useFetchMolecule(smiles, queryParams);
+
+    if (!smiles) return null;
+
+    return (
+        <MoleculeDisplay
+            data={data}
+            isLoading={isLoading}
+            error={error}
+            selectedBonds={selectedBonds}
+            onBondClick={onBondClick}
+            selectableBonds={selectableBonds}
+            selectableMolecules={selectableMolecules}
+            selectedFragment={selectedFragment}
+        />
+    );
+};
+
+
 
 
 export const MolDisplayer = ({

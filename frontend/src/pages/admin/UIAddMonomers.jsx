@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { log } from '../../utils/dev'
 
@@ -22,9 +22,12 @@ import {
 import { useFragments, useFormSubmission } from './hooks/CustomHooks'
 import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
+// import TabStep1 from './components/Steps';
 
 
-const UIAddMonomers = ({ children }) => {
+const UIAddMonomers = memo(({ children }) => {
+  log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
+
   // State Hooks
   const [smiles, setSmiles] = useState('CCO');
   const [selectedBonds, setSelectedBonds] = useState([]);
@@ -37,7 +40,7 @@ const UIAddMonomers = ({ children }) => {
   const formRef = useRef();
 
   // Custom Hooks for managing fragments and form submission
-  const [fragments, setFragments] = useFragments(smiles, selectedBonds);
+  const [fragments] = useFragments(smiles, selectedBonds);
   const [handleFormSubmit, molBlock] = useFormSubmission(formData, fragments, selectedFragmentIndex);
 
 
@@ -133,23 +136,23 @@ const UIAddMonomers = ({ children }) => {
 
 
   // Handle changes to 'smiles'
-  const handleChangeSmiles = (value) => {
-    setSmiles(value);
-  };
+  const handleChangeSmiles = useCallback((newSmiles) => {
+    setSmiles(newSmiles);
+  }, []);
 
   // Handle selection of bonds
-  const handleSelectedBonds = (bondIndex) => {
+  const handleSelectedBonds = useCallback((bondIndex) => {
     setSelectedBonds((prevSelectedBonds) =>
       prevSelectedBonds.includes(bondIndex)
         ? prevSelectedBonds.filter((idx) => idx !== bondIndex)
         : [...prevSelectedBonds, bondIndex]
     );
-  };
+  }, []);
 
   // Handle selection of fragment
-  const handleSelectedFragment = (fragmentIndex) => {
+  const handleSelectedFragment = useCallback((fragmentIndex) => {
     setSelectedFragmentIndex(fragmentIndex);
-  }
+  }, []);
 
   // Use useCallback to memoize setFormData
   const handleFormDataCallback = useCallback((data) => {
@@ -170,27 +173,19 @@ const UIAddMonomers = ({ children }) => {
         nextButtonTemplate={nextButtonTemplate}
       >
         <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
-          <TabStep1 smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
+          <TabStep1
+            smiles={smiles}
+            handleChangeSmiles={handleChangeSmiles}
+          />
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
-          <div className='grid grid-cols-2'>
-
-            <div className='p-4 m-2'>
-              <h2 className='text-xl font-medium border-b-4 border-cyan-800/35 pb-4'>Selected bonds</h2>
-              <ul className='mt-8'>
-                {selectedBonds.length === 0 ? (
-                  <li>None</li>
-                ) : (
-                  selectedBonds.map((bondIndex, idx) => (
-                    <li key={idx}>{bondIndex}</li>
-                  ))
-                )}
-              </ul>
-            </div>
-
-            <TabStep2 smiles={smiles} handleSelectedBonds={handleSelectedBonds} selectedBonds={selectedBonds} />
-          </div>
+          <TabStep2
+            smiles={smiles}
+            handleSelectedBonds={handleSelectedBonds}
+            selectedBonds={selectedBonds}
+            fragments={fragments}
+          />
         </FormWizard.TabContent>
 
         <FormWizard.TabContent title="Select a fragment" icon="ti-check">
@@ -221,7 +216,6 @@ const UIAddMonomers = ({ children }) => {
 
     </div>
   );
-}
-
+});
 
 export default UIAddMonomers;
