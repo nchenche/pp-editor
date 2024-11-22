@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { log } from '../../utils/dev'
 
@@ -25,7 +25,7 @@ import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 // import TabStep1 from './components/Steps';
 
 
-const UIAddMonomers = memo(({ children }) => {
+const UIAddMonomers = memo(() => {
   log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
 
   // State Hooks
@@ -53,7 +53,7 @@ const UIAddMonomers = memo(({ children }) => {
         if (selectedBonds.length === 0) return false;
         return true;
       case 2:
-        if (selectedBonds.length === -1) return false;
+        if (selectedFragmentIndex === -1) return false;
         return true;
       case 3:
         if (formRef.current) {
@@ -70,6 +70,17 @@ const UIAddMonomers = memo(({ children }) => {
         return true;
     }
   };
+  useEffect(() => {
+    console.log("smiles changed", smiles);
+  }, [smiles]);
+  
+  useEffect(() => {
+    console.log("fragments changed", fragments);
+  }, [fragments]);
+  
+  useEffect(() => {
+    console.log("selectedBonds changed", selectedBonds);
+  }, [selectedBonds]);
 
   // Function to handle navigating to the next tab
   const handleNext = async () => {

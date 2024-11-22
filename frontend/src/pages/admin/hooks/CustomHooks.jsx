@@ -1,51 +1,53 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef, memo } from 'react';
 
 
 // Custom Hooks
 export const useFragments = (smiles, selectedBonds) => {
-    const [fragments, setFragments] = useState([]);
-    useEffect(() => {
-      if (!selectedBonds.length) {
-        setFragments([]);
-        return;
-      }
-  
-      const controller = new AbortController();
-      const signal = controller.signal;
-  
-      const fragmentMolecule = async () => {
-        try {
-          const response = await fetch('http://0.0.0.0:5000/api/rdkit/fragment-molecule', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ smiles, bonds: selectedBonds }),
-            signal,
-          });
-  
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-  
-          const result = await response.json();
-          setFragments(result.data);
-        } catch (error) {
-          if (error.name !== 'AbortError') {
-            console.error('Error while fragmenting the molecule:', error);
-          }
+  const [fragments, setFragments] = useState([]);
+  const prevFragmentsRef = useRef([]);
+
+  useEffect(() => {
+    if (!selectedBonds.length) {
+      setFragments([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const fragmentMolecule = async () => {
+      try {
+        const response = await fetch('http://0.0.0.0:5000/api/rdkit/fragment-molecule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ smiles, bonds: selectedBonds }),
+          signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      };
-  
-      fragmentMolecule();
-  
-      return () => {
-        controller.abort();
-      };
-    }, [selectedBonds]);
-  
-    return [fragments];
-  };
+
+        const result = await response.json();
+        setFragments(() => result.data);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error while fragmenting the molecule:', error);
+        }
+      }
+    };
+
+    fragmentMolecule();
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedBonds]);
+
+  return [fragments];
+};
 
 
 /* 
@@ -54,35 +56,35 @@ function will be memoized — which means it will only be recreated if any of th
 (formData, fragments, selectedFragmentIndex) change.
 */
 export const useFormSubmission = (formData, fragments, selectedFragmentIndex) => {
-    const [molBlock, setMolBlock] = useState('');
-  
-    const handleFormSubmit = useCallback(() => {
-      const payload = { form: formData, smiles: fragments[selectedFragmentIndex] };
-      console.log('payload', payload);
-  
-      const generateMolBlock = async () => {
-        try {
-          const response = await fetch('http://0.0.0.0:5000/api/rdkit/generate-molblock', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-          });
-  
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-  
-          const result = await response.json();
-          setMolBlock(result.data);
-        } catch (error) {
-          console.error('Error while generating molblock string:', error);
+  const [molBlock, setMolBlock] = useState('');
+
+  const handleFormSubmit = useCallback(() => {
+    const payload = { form: formData, smiles: fragments[selectedFragmentIndex] };
+    console.log('payload', payload);
+
+    const generateMolBlock = async () => {
+      try {
+        const response = await fetch('http://0.0.0.0:5000/api/rdkit/generate-molblock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      };
-  
-      generateMolBlock();
-    }, [formData, fragments, selectedFragmentIndex]);
-  
-    return [handleFormSubmit, molBlock];
-  };
+
+        const result = await response.json();
+        setMolBlock(result.data);
+      } catch (error) {
+        console.error('Error while generating molblock string:', error);
+      }
+    };
+
+    generateMolBlock();
+  }, [formData, fragments, selectedFragmentIndex]);
+
+  return [handleFormSubmit, molBlock];
+};
