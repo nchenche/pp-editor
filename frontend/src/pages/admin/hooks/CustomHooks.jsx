@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState, useRef, memo } from 'react';
 // Custom Hooks
 export const useFragments = (smiles, selectedBonds) => {
   const [fragments, setFragments] = useState([]);
-  const prevFragmentsRef = useRef([]);
 
   useEffect(() => {
     if (!selectedBonds.length) {

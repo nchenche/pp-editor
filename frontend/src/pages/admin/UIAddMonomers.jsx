@@ -23,7 +23,21 @@ import { useFragments, useFormSubmission } from './hooks/CustomHooks'
 import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
 // import TabStep1 from './components/Steps';
+const getCurrentTime = () => {
+  const now = new Date();
 
+  const day = now.getDate();
+  const month = now.toLocaleString('default', { month: 'short' }); // Short month name
+  const year = now.getFullYear();
+
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const milliseconds = String(now.getMilliseconds()).padStart(2, '0');
+
+
+  return `${hours}:${minutes}:${seconds}${milliseconds}`;
+};
 
 const UIAddMonomers = memo(() => {
   log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
@@ -70,16 +84,18 @@ const UIAddMonomers = memo(() => {
         return true;
     }
   };
+
+  
   useEffect(() => {
-    console.log("smiles changed", smiles);
+    console.log("smiles changed", getCurrentTime(), smiles);
   }, [smiles]);
   
   useEffect(() => {
-    console.log("fragments changed", fragments);
+    console.log("fragments changed", getCurrentTime(), fragments);
   }, [fragments]);
   
   useEffect(() => {
-    console.log("selectedBonds changed", selectedBonds);
+    console.log("selectedBonds changed", getCurrentTime(), selectedBonds);
   }, [selectedBonds]);
 
   // Function to handle navigating to the next tab
@@ -135,7 +151,7 @@ const UIAddMonomers = memo(() => {
 
   useEffect(() => {
     setFormData({});
-  }, [fragments, selectedFragmentIndex]);
+  }, [selectedFragmentIndex]);
 
   useEffect(() => {
     if (fragments.length > 0) {

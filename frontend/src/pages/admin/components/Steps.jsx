@@ -155,6 +155,7 @@ export const TabStep4 = memo(
                 pdb: "ALA",
                 ...groupLabelValues,
                 ...groupLeavingValues,
+                ...initialData
             }),
             [groupLabelValues, groupLeavingValues] // Include dependencies here
         );

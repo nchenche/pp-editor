@@ -14,7 +14,6 @@ import './App.css'
 import FilterableMonomerLibrary from './components/core/Monomers';
 import PeptideEditor from './components/core/Peptide';
 
-
 // import VisNetwork from './components/graph/Test2';
 
 
@@ -43,7 +42,7 @@ const dataLinks = [
 function App() {
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="flex flex-col min-h-screen">
         <Header>
           <NavBar dataLinks={dataLinks}/>
