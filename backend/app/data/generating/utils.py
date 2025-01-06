@@ -215,23 +215,6 @@ def get_descriptors(mol: Chem.Mol) -> Dict:
     Returns:
         Dict: Dictionary with rdkit descriptors as keys and their values
     """
-
-    # # Calculate various descriptors
-    # descriptor_values['Molecular Weight'] = Descriptors.MolWt(mol)
-    # descriptor_values['Exact Molecular Weight'] = Descriptors.ExactMolWt(mol)
-    # descriptor_values['LogP'] = Descriptors.MolLogP(mol)
-    # descriptor_values['Number of H-bond Donors'] = Descriptors.NumHDonors(mol)
-    # descriptor_values['Number of H-bond Acceptors'] = Descriptors.NumHAcceptors(mol)
-    # descriptor_values['Topological Polar Surface Area'] = Descriptors.TPSA(mol)
-    # descriptor_values['Number of Rotatable Bonds'] = Descriptors.NumRotatableBonds(mol)
-    # descriptor_values['Number of Aromatic Rings'] = Descriptors.NumAromaticRings(mol)
-    # descriptor_values['Number of Aliphatic Rings'] = Descriptors.NumAliphaticRings(mol)
-    # descriptor_values['Formal Charge'] = Descriptors.MolMR(mol)
-
-    # vals = Descriptors.CalcMolDescriptors(mol)
-    # for desc_name, value in vals.items():
-    #     print(f"{desc_name}: {value}")
-
     # Create a dictionary to hold descriptor values
     descriptor_values = {}
 

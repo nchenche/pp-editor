@@ -141,9 +141,6 @@ export const TabStep4 = memo(
         const groupIndices = useMemo(() => extractSmilesIndices(fragmentSmiles), [fragmentSmiles]);
         const groupLabelValues = useMemo(() => createRGroupObject("groupLabel_", groupIndices || []), [groupIndices]);
         const groupLeavingValues = useMemo(() => createRGroupObject("groupLeaving_", groupIndices || []), [groupIndices]);
-        // const groupIndices = extractSmilesIndices(fragmentSmiles);
-        // const groupLabelValues = createRGroupObject("groupLabel_", groupIndices);
-        // const groupLeavingValues = createRGroupObject("groupLeaving_", groupIndices);
 
         const defaultValues = useMemo(
             () => ({

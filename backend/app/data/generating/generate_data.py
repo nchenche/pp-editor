@@ -21,7 +21,6 @@ def draw_2d_molecule(mol: Chem.Mol, outpath: str|Path, basename: str):
     # Set R group label(s)
     if sum(indices) != -4:
         rgroups = [f"R<sub>{i+1}</sub>" if x != -1 else None for i,x in enumerate(indices) ]
-        # rgroups = ['H', 'OH', 'H', None]
         mol = set_rgroup_labels(mol=mol, indices=indices, labels=rgroups)
 
     draw_from_smiles(mol=mol, outdir=outpath, out_basename=basename, is_alpha_background=True)
@@ -73,20 +72,20 @@ if __name__ == "__main__":
 
 
 
-    writer = Chem.rdmolfiles.SDWriter(str(root_path / "test.sdf"))
-    mol = df['m_romol']["A"]
-    writer.write(mol)
+    # writer = Chem.rdmolfiles.SDWriter(str(root_path / "test.sdf"))
+    # mol = df['m_romol']["A"]
+    # writer.write(mol)
 
 
-    from io import StringIO
+    # from io import StringIO
 
-    m = Chem.MolFromSmiles('C1CCC1')
-    sio = StringIO()
+    # m = Chem.MolFromSmiles('C1CCC1')
+    # sio = StringIO()
 
-    with Chem.SDWriter(sio) as w:
-        w.write(mol)
+    # with Chem.SDWriter(sio) as w:
+    #     w.write(mol)
 
-    print(sio.getvalue())
+    # print(sio.getvalue())
 
     # Get df where index 2 list value of m_rgroups is not None
     # is_r3_groups = df['m_Rgroups'].apply(lambda x: x[2] is not None)
