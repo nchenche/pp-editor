@@ -12,7 +12,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
     useEffect(() => {
         if (!smiles) return;
 
-        const baseURL = "http://0.0.0.0:5000/api/rdkit/generate-svg";
+        const baseURL = "http://0.0.0.0:5000/api/molecules/svg-rendering";
         const params = new URLSearchParams();
 
         // Append query parameters
@@ -105,3 +105,43 @@ export const useFetchData = ( url, payload ) => {
 
     return { data, isLoading, error };
 };
+
+
+export const useGetData = (url) => {
+    const [data, setData] = useState(null); // null so we can store objects
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+  
+    useEffect(() => {
+      if (!url) return;
+  
+      const controller = new AbortController();
+  
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch(url, { signal: controller.signal });
+          if (!response.ok) {
+            throw new Error(`Error fetching data: ${response.status}`);
+          }
+          const json = await response.json();
+          // Set the entire response object (which includes data, meta, status)
+          setData(json);
+          setError(null);
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            setError(err.message);
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      };
+  
+      fetchData();
+  
+      // Abort fetch on unmount
+      return () => controller.abort();
+    }, [url]);
+  
+    return { data, isLoading, error };
+  };

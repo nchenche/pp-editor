@@ -6,6 +6,8 @@ import NavBar from './components/layout/Navbar';
 
 import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
+import MonomerLibrary from './pages/admin/MonomerLibrary';
+
 
 // import About from './pages/About';
 
@@ -52,7 +54,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/peptide" element={<PeptideEditor />} />
             <Route path="/admin-monomers" element={<UIAddMonomers />} />
-
+            <Route path="/monomers" element={<MonomerLibrary />} />
             {/* <Route path="/monomers" element={<FilterableMonomerLibrary />} /> */}
 
           </Routes>

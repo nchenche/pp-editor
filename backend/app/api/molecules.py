@@ -9,7 +9,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 from app.lib.utils import format_svg
 from app.services.molecules import annotate_dummy_atoms, get_molblock
 
-bp = Blueprint('rdkit', __name__, url_prefix='/api/rdkit')
+bp = Blueprint('rdkit', __name__, url_prefix='/api/molecules')
 
 
 @bp.route('/generate-svg', methods=['POST'])
@@ -125,9 +125,6 @@ def fragment_molecule():
     response = {'data': [Chem.MolToSmiles(x) for x in splitted_fragments]}
 
     return jsonify(response), 200
-
-
-
 
 
 @bp.route('/generate-molblock', methods=['POST'])

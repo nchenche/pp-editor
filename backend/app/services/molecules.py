@@ -74,7 +74,6 @@ def get_molblock(smiles: str, data: Dict):
     ## indices refer to the imput smiles which is hydrogenated; mol in not hydrogenated, so a group atom mapping is required 
     atom_idx_mapping = map_group_indices(mol=mol)
 
-
     # Generate group 'matrices'
     r_group_idx, attachment_idx, leaving_group_idx = generate_group_matrices(
         mol=mol,
@@ -141,6 +140,7 @@ def reorder_atoms(mol: Chem.Mol) -> Chem.Mol:
     mol = Chem.RenumberAtoms(mol, newOrder=order)
 
     return mol
+
 
 def map_group_indices(mol: Chem.Mol) -> Dict:
     """Map indices of leaving groups (isotope) from smiles with hydrogen to 
