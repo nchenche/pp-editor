@@ -4,151 +4,27 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGetData } from '../../hooks/Fetchers'
+import { Toggle } from '../../components/ui/Switch'
+import { RangeSlider } from '../../components/ui/Slider';
 
-import { log } from '../../utils/dev'
+
+import { log, initializeRangeFilter } from '../../utils/dev'
 import './styles.css'
 
 
-const RangeSlider = ({ initialMin, initialMax, min, max, step, onChange }) => {
-    const [minValue, setMinValue] = useState(initialMin);
-    const [maxValue, setMaxValue] = useState(initialMax);
-
-    useEffect(() => {
-        setMinValue(initialMin);
-        setMaxValue(initialMax);
-    }, [initialMin, initialMax]);
-
-    const handleMinChange = (e) => {
-        const value = Math.min(Number(e.target.value), maxValue);
-        setMinValue(value);
-        onChange({ min: value, max: maxValue });
-    };
-
-    const handleMaxChange = (e) => {
-        const value = Math.max(Number(e.target.value), minValue);
-        setMaxValue(value);
-        onChange({ min: minValue, max: value });
-    };
-
-    const minPos = ((minValue - min) / (max - min)) * 100;
-    const maxPos = ((maxValue - min) / (max - min)) * 100;
-
-    return (
-        <div className="relative my-8">
-            {/* Custom style for range inputs */}
-            <style>
-                {`
-            input[type="range"] {
-              -webkit-appearance: none;
-              appearance: none;
-              height: 4px;
-              width: 100%;
-              position: absolute;
-              background-color: transparent;
-              pointer-events: none;
-            }
-  
-            input[type="range"]::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              height: 20px;
-              width: 20px;
-              background-color: #fff;
-              border: 2px solid #3b82f6;
-              border-radius: 50%;
-              cursor: pointer;
-              pointer-events: auto;
-            }
-  
-            input[type="range"]::-moz-range-thumb {
-              height: 20px;
-              width: 20px;
-              background-color: #fff;
-              border: 2px solid #3b82f6;
-              border-radius: 50%;
-              cursor: pointer;
-              pointer-events: auto;
-            }
-          `}
-            </style>
-
-            {/* Track line */}
-            <div className="h-1 bg-gray-200 rounded-full" />
-
-            {/* Colored range between thumbs */}
-            <div
-                className="absolute h-1 bg-blue-500 rounded-full top-0"
-                style={{ left: `${minPos}%`, right: `${100 - maxPos}%` }}
-            />
-
-            {/* Minimum input */}
-            <input
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={minValue}
-                onChange={handleMinChange}
-                className="absolute top-0"
-            />
-
-            {/* Maximum input */}
-            <input
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={maxValue}
-                onChange={handleMaxChange}
-                className="absolute top-0"
-            />
-
-            {/* Display values */}
-            <div className="flex justify-between mt-4 text-sm text-gray-600">
-                <span>${minValue}</span>
-                <span>${maxValue}</span>
-            </div>
-        </div>
-    );
-};
 
 
-const Toggle = ({ label, checked, onChange }) => {
-    return (
-        <label className="inline-flex items-center cursor-pointer">
-            <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={checked}
-                onChange={onChange}
-            />
-            <div
-                className="
-                relative w-10 h-4 bg-gray-400 rounded-full 
-                dark:bg-gray-700
-                peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full
-                after:content-[''] after:absolute after:top-[2px] after:left-[2px] peer-checked:after:left-[14px]
-                after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all
-                peer-checked:bg-blue-500
-            "
-            />
-
-            <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
-                {label}
-            </span>
-        </label>
-    );
-};
 
 
 const MonomerItem = ({ image, name, symbol }) => {
     return (
-        <div className="group relative w-48 h-56 p-2 rounded-lg overflow-hidden shadow-lg hover:scale-105 transform transition-all">
+        <div className="group relative w-44 h-48 p-2 rounded-lg overflow-hidden shadow-lg hover:scale-105 transform transition-all">
             <img
                 src={`data:image/png;base64,${image}`}
                 alt={name}
                 className="w-[80%] object-cover rounded-lg mx-auto border p-2"  // h-/4
             />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-end p-4 ">
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-end p-2">
                 <div className="text-slate-600 text-center mx-auto">
                     <h3 className="text-md font-bold">{symbol}</h3>
                     <p className="text-sm">{name}</p>
@@ -159,10 +35,22 @@ const MonomerItem = ({ image, name, symbol }) => {
 };
 
 
-const FilterMonomerPanel = ({ search, isCapsOnly, isNaturalsOnly, isNonNaturalsOnly, isBranchingGroup, handleFilterChange }) => {
-    const [range, setRange] = useState({ min: 25, max: 75 });
-
-
+const FilterMonomerPanel = ({
+    search,
+    handleFilterChange,
+    isCapsOnly,
+    isNaturalsOnly,
+    isNonNaturalsOnly,
+    isBranchingGroup,
+    rangeMolWeight,
+    limitRangeMolWeight,
+    rangeHBA,
+    limitRangeHBA,
+    rangeHBD,
+    limitRangeHBD,
+    rangeMolLogP,
+    limitRangeMolLogP,
+}) => {
     return (
         <>
             {/* Search field */}
@@ -205,12 +93,47 @@ const FilterMonomerPanel = ({ search, isCapsOnly, isNaturalsOnly, isNonNaturalsO
                     />
 
                     <RangeSlider
-                        initialMin={25}
-                        initialMax={75}
-                        min={0}
-                        max={100}
+                        label="Molecular weight (g/mol)"
+                        initialMin={rangeMolWeight.min}
+                        initialMax={rangeMolWeight.max}
+                        min={limitRangeMolWeight.min}
+                        max={limitRangeMolWeight.max}
                         step={1}
-                        onChange={(value) => setRange(value)}
+                        onChange={(values) => handleFilterChange('rangeMolWt', values)}
+                        classNames={{ parent: 'mt-6' }}
+                    />
+
+                    <RangeSlider
+                        label="Number of H-bond acceptors"
+                        initialMin={rangeHBA.min}
+                        initialMax={rangeHBA.max}
+                        min={limitRangeHBA.min}
+                        max={limitRangeHBA.max}
+                        step={1}
+                        onChange={(values) => handleFilterChange('rangeNumHAcceptors', values)}
+                        classNames={{ parent: 'mt-1' }}
+                    />
+
+                    <RangeSlider
+                        label="Number of H-bond donors"
+                        initialMin={rangeHBD.min}
+                        initialMax={rangeHBD.max}
+                        min={limitRangeHBD.min}
+                        max={limitRangeHBD.max}
+                        step={1}
+                        onChange={(values) => handleFilterChange('rangeNumHDonors', values)}
+                        classNames={{ parent: 'mt-1' }}
+                    />
+
+                    <RangeSlider
+                        label="Molecular logP"
+                        initialMin={rangeMolLogP.min}
+                        initialMax={rangeMolLogP.max}
+                        min={limitRangeMolLogP.min}
+                        max={limitRangeMolLogP.max}
+                        step={1}
+                        onChange={(values) => handleFilterChange('rangeMolLogP', values)}
+                        classNames={{ parent: 'mt-1' }}
                     />
 
                 </div>
@@ -239,13 +162,22 @@ export const MonomerLibraryContainer = () => {
     const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
     const dataRef = useRef(null);
 
+    const limitRangeMolWeight = useMemo(() => ({}), []);
+    const limitRangeHBA = useMemo(() => ({}), []);
+    const limitRangeHBD = useMemo(() => ({}), []);
+    const limitRangeMolLogP = useMemo(() => ({}), []);
+
 
     const [filters, setFilters] = useState({
         search: '',
         isCapsOnly: false,
         isNaturalsOnly: false,
         isNonNaturalsOnly: false,
-        isBranchingGroup: false
+        isBranchingGroup: false,
+        rangeMolWt: { min: -1, max: -1 },
+        rangeNumHAcceptors: { min: -1, max: -1 },
+        rangeNumHDonors: { min: -1, max: -1 },
+        rangeMolLogP: { min: -1, max: -1 },
     });
 
     const [filteredMonomers, setFilteredMonomers] = useState([]);
@@ -253,8 +185,15 @@ export const MonomerLibraryContainer = () => {
     useEffect(() => {
         if (!isLoading && !error && data) {
             dataRef.current = data.data || data;
+
+            // Initialize range filters
+            initializeRangeFilter(data, 'MolWt', setFilters, limitRangeMolWeight);
+            initializeRangeFilter(data, 'NumHAcceptors', setFilters, limitRangeHBA);
+            initializeRangeFilter(data, 'NumHDonors', setFilters, limitRangeHBD);
+            initializeRangeFilter(data, 'MolLogP', setFilters, limitRangeMolLogP);
+
             console.log('data', data.min_max_values);
-            setFilteredMonomers(dataRef.current); // Initialize filteredMonomers with fetched data
+            setFilteredMonomers(dataRef.current);  // Initialize filteredMonomers with fetched data
         }
     }, [data, isLoading, error]);
 
@@ -291,6 +230,34 @@ export const MonomerLibraryContainer = () => {
                 });
             }
 
+            if (filters.rangeMolWt.min !== -1 && filters.rangeMolWt.max !== -1) {
+                filtered = filtered.filter((monomer) => (
+                    monomer.properties.MolWt >= filters.rangeMolWt.min &&
+                    monomer.properties.MolWt <= filters.rangeMolWt.max
+                ));
+            }
+
+            if (filters.rangeNumHAcceptors.min !== -1 && filters.rangeNumHAcceptors.max !== -1) {
+                filtered = filtered.filter((monomer) => (
+                    monomer.properties.NumHAcceptors >= filters.rangeNumHAcceptors.min &&
+                    monomer.properties.NumHAcceptors <= filters.rangeNumHAcceptors.max
+                ));
+            }
+
+            if (filters.rangeNumHDonors.min !== -1 && filters.rangeNumHDonors.max !== -1) {
+                filtered = filtered.filter((monomer) => (
+                    monomer.properties.NumHDonors >= filters.rangeNumHDonors.min &&
+                    monomer.properties.NumHDonors <= filters.rangeNumHDonors.max
+                ));
+            }
+
+            if (filters.rangeMolLogP.min !== -1 && filters.rangeMolLogP.max !== -1) {
+                filtered = filtered.filter((monomer) => (
+                    monomer.properties.MolLogP >= filters.rangeMolLogP.min &&
+                    monomer.properties.MolLogP <= filters.rangeMolLogP.max
+                ));
+            }
+
             setFilteredMonomers(filtered);
         }
     }, [filters]);
@@ -305,7 +272,6 @@ export const MonomerLibraryContainer = () => {
     if (error) return <p>Error: {error}</p>;
     if (!data) return null;
 
-
     return (
         <div className="flex m-4 gap-x-2">
             {/* Left filter sidebar (static placeholders) */}
@@ -317,6 +283,14 @@ export const MonomerLibraryContainer = () => {
                     isNaturalsOnly={filters.isNaturalsOnly}
                     isNonNaturalsOnly={filters.isNonNaturalsOnly}
                     isBranchingGroup={filters.isBranchingGroup}
+                    rangeMolWeight={filters.rangeMolWt}
+                    limitRangeMolWeight={limitRangeMolWeight}
+                    rangeHBA={filters.rangeNumHAcceptors}
+                    limitRangeHBA={limitRangeHBA}
+                    rangeHBD={filters.rangeNumHDonors}
+                    limitRangeHBD={limitRangeHBD}
+                    rangeMolLogP={filters.rangeMolLogP}
+                    limitRangeMolLogP={limitRangeMolLogP}
                 />
             </aside>
 
