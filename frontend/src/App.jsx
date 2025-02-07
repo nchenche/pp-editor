@@ -7,7 +7,7 @@ import NavBar from './components/layout/Navbar';
 import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
-
+import DesignPeptideContainer from './pages/DesignPeptide';
 
 // import About from './pages/About';
 
@@ -52,7 +52,7 @@ function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/peptide" element={<PeptideEditor />} />
+            <Route path="/peptide" element={<DesignPeptideContainer />} />
             <Route path="/admin-monomers" element={<UIAddMonomers />} />
             <Route path="/monomers" element={<MonomerLibraryContainer />} />
             {/* <Route path="/monomers" element={<FilterableMonomerLibrary />} /> */}

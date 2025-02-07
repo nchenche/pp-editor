@@ -12,10 +12,6 @@ import { log, initializeRangeFilter } from '../../utils/dev'
 import './styles.css'
 
 
-
-
-
-
 const MonomerItem = ({ image, name, symbol }) => {
     return (
         <div className="group relative w-44 h-48 p-2 rounded-lg overflow-hidden shadow-lg hover:scale-105 transform transition-all">
