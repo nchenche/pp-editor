@@ -8,9 +8,9 @@ svg {
     cursor: pointer;
 }
 
-svg g.group-molecule {
-    /* opacity: 0.1; */
-}
+/* svg g.group-molecule {
+    opacity: 0.1;
+} */
 
 svg g.group-molecule.selectable:hover rect {
     stroke: black !important;
@@ -64,3 +64,72 @@ svg g.group-molecule.selected rect {
     clear: both;
     display: table;
 }
+
+/* N-terminal indicator (for elements with is-n-ter) */
+.nter-circle {
+    /* replicates .is-n-ter::before */
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151; /* Tailwind gray-800 */
+    border-radius: 50%;
+  }
+  
+  .nter-line {
+    /* replicates .is-n-ter::after */
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    width: 6px;
+    height: 1.5px;
+    background-color: #374151;
+  }
+  
+  /* C-terminal indicator (for elements with is-c-ter) */
+  .cter-circle {
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151;
+    border-radius: 50%;
+  }
+  
+  .cter-line {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    width: 6px;
+    height: 1.7px;
+    background-color: #374151;
+  }
+  
+  /* R3 indicator (for elements with has-r3) */
+  .r3-circle {
+    position: absolute;
+    top: -35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151;
+    border-radius: 50%;
+  }
+  
+  .r3-line {
+    position: absolute;
+    top: calc(-35% + 3px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1.3px;
+    height: 6px;
+    background-color: #374151;
+  }
+  
