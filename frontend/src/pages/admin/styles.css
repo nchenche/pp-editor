@@ -75,11 +75,12 @@ svg g.group-molecule.selected rect {
     transform: translateY(-50%);
     width: 6px;
     height: 6px;
-    background-color: #374151; /* Tailwind gray-800 */
+    background-color: #374151;
+    /* Tailwind gray-800 */
     border-radius: 50%;
-  }
-  
-  .nter-line {
+}
+
+.nter-line {
     /* replicates .is-n-ter::after */
     content: "";
     position: absolute;
@@ -88,10 +89,10 @@ svg g.group-molecule.selected rect {
     width: 6px;
     height: 1.5px;
     background-color: #374151;
-  }
-  
-  /* C-terminal indicator (for elements with is-c-ter) */
-  .cter-circle {
+}
+
+/* C-terminal indicator (for elements with is-c-ter) */
+.cter-circle {
     position: absolute;
     right: -12px;
     top: 50%;
@@ -100,19 +101,19 @@ svg g.group-molecule.selected rect {
     height: 6px;
     background-color: #374151;
     border-radius: 50%;
-  }
-  
-  .cter-line {
+}
+
+.cter-line {
     position: absolute;
     right: -6px;
     top: 50%;
     width: 6px;
     height: 1.7px;
     background-color: #374151;
-  }
-  
-  /* R3 indicator (for elements with has-r3) */
-  .r3-circle {
+}
+
+/* R3 indicator (for elements with has-r3) */
+.r3-circle {
     position: absolute;
     top: -35%;
     left: 50%;
@@ -121,9 +122,9 @@ svg g.group-molecule.selected rect {
     height: 6px;
     background-color: #374151;
     border-radius: 50%;
-  }
-  
-  .r3-line {
+}
+
+.r3-line {
     position: absolute;
     top: calc(-35% + 3px);
     left: 50%;
@@ -131,5 +132,34 @@ svg g.group-molecule.selected rect {
     width: 1.3px;
     height: 6px;
     background-color: #374151;
+}
+
+.r3-circle.branch-highlight {
+    position: absolute;
+    top: -35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 11px;
+    height: 11px;
+    background-color: green;
+    border-radius: 50%;
+}
+
+.selected-monomer {
+    position: relative;
+    /* (Optionally, remove or change the static border if desired) */
+    /* border: 2px dashed #FF5733; */
+    animation: shadowPulse 1.5s linear infinite;
   }
   
+  @keyframes shadowPulse {
+    0% {
+      box-shadow: 0 0 0 0px rgba(255,87,51,0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 3px rgba(255,87,51,0.3);
+    }
+    100% {
+      box-shadow: 0 0 0 0px rgba(255,87,51,0.7);
+    }
+  }

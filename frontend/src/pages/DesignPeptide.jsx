@@ -2,7 +2,9 @@ import { useEffect, useState, useRef } from 'react';
 import { log } from '../utils/dev';
 
 import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch'; import TextField from '@mui/material/TextField';
 
 import panzoom from 'panzoom';
 
@@ -157,8 +159,18 @@ const SvgDepictionContainer = ({ svgData, svgContainer, handleMonomerHover, hove
 };
 
 
-const MonomerItem = ({ monomer, hoveredMonomer, handleMonomerHover, extrema }) => {
+const MonomerItem = ({
+    monomer,
+    hoveredMonomer,
+    handleMonomerHover,
+    extrema,
+    selectedMonomer,
+    setSelectedMonomer,
+    handleMonomerLinking
+}) => {
     const isHovered = monomer['res-idx'] === hoveredMonomer;
+    const isSelected = selectedMonomer ? selectedMonomer['res-idx'] === monomer['res-idx'] : false;
+    const [hoveredBranch, setHoveredBranch] = useState(null);
 
     // Determine whether branching groups are present:
     const hasR3 = monomer.m_RgroupIdx && monomer.m_RgroupIdx[2] != null;
@@ -169,12 +181,21 @@ const MonomerItem = ({ monomer, hoveredMonomer, handleMonomerHover, extrema }) =
     let containerClasses =
         "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg font-medium text-[0.8rem] select-none cursor-pointer";
     if (isHovered) containerClasses += " outline outline-2";
+    if (isSelected) containerClasses += " selected-monomer bg-yellow-200/50 ";
     if (extrema.isNter) containerClasses += " is-n-ter";
     if (extrema.isCter) containerClasses += " is-c-ter";
     if (hasR3) containerClasses += " has-r3";
     if (hasR4) containerClasses += " has-r4";
 
-    console.log(containerClasses);
+    const handleR3Click = (e) => {
+        if (!selectedMonomer) {
+            setSelectedMonomer(monomer);
+        } else {
+            handleMonomerLinking(selectedMonomer, monomer);
+            setSelectedMonomer(null);
+        }
+    };
+
     return (
         <div
             className={containerClasses}
@@ -182,6 +203,7 @@ const MonomerItem = ({ monomer, hoveredMonomer, handleMonomerHover, extrema }) =
             onMouseLeave={() => handleMonomerHover('')}
         >
             {monomer.m_abbr}
+
             {/* N-terminal indicator: two spans for circle and line */}
             {extrema && extrema.isNter && (
                 <>
@@ -196,19 +218,40 @@ const MonomerItem = ({ monomer, hoveredMonomer, handleMonomerHover, extrema }) =
                     <span className="absolute cter-line" />
                 </>
             )}
-            {/* R3 indicator: two spans for circle and line */}
+            {/* R3 indicator with its own hover logic */}
             {hasR3 && (
-                <>
-                    <span className="absolute r3-circle" />
-                    <span className="absolute r3-line" />
-                </>
+                <div
+                    className=""
+                    onMouseEnter={(e) => {
+                        setHoveredBranch('r3');
+                    }}
+                    onMouseLeave={(e) => {
+                        setHoveredBranch(null);
+                    }}
+                    onClick={handleR3Click}
+                >
+                    <span
+                        className={`absolute r3-circle ${hoveredBranch === 'r3' ? 'branch-highlight' : ''}`}
+                    />
+                    <span
+                        className={`absolute r3-line ${hoveredBranch === 'r3' ? 'branch-highlight' : ''}`}
+                    />
+                </div>
             )}
-            {/* (Optionally, add R4 indicator spans here if needed) */}
+            {/* R4 indicator with its own hover logic */}
         </div>
     );
 }
 
-const MonomerList = ({ monomers, monomerListRef, handleMonomerHover, hoveredMonomer }) => {
+const MonomerList = ({
+    monomers,
+    monomerListRef,
+    handleMonomerHover,
+    hoveredMonomer,
+    selectedMonomer,
+    setSelectedMonomer,
+    handleMonomerLinking
+}) => {
     return (
         <div
             ref={monomerListRef}
@@ -219,11 +262,14 @@ const MonomerList = ({ monomers, monomerListRef, handleMonomerHover, hoveredMono
                 const isCter = index === monomers.length - 1 ? true : false;
                 return (
                     <MonomerItem
-                        key={monomer['res-id']}
+                        key={monomer['res-idx']}
                         monomer={monomer}
                         hoveredMonomer={hoveredMonomer}
                         handleMonomerHover={handleMonomerHover}
                         extrema={{ isNter, isCter }}
+                        selectedMonomer={selectedMonomer}
+                        setSelectedMonomer={setSelectedMonomer}
+                        handleMonomerLinking={handleMonomerLinking}
                     />
                 )
             })}
@@ -241,12 +287,15 @@ const DesignPeptideContainer = ({ children }) => {
     const [monomers, setMonomers] = useState([]);
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
     const [sequences, setSequences] = useState([]);
+    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
+    const [selectedMonomer, setSelectedMonomer] = useState(null);
+
     const svgContainer = useRef(null);
     const monomerListRef = useRef(null);
 
     log('RENDERING DesignPeptideContainer');
     const URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
-    const query = `?sequence=${bilnValue}&mode=rdkit`;
+    let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
 
     // Ensure to treat as a single sequence if the input doesn't include dots
     const getSequences = (input) => {
@@ -255,6 +304,7 @@ const DesignPeptideContainer = ({ children }) => {
     };
 
     const fetchData = async () => {
+        // console.log(query);
         try {
             const response = await fetch(URL + query);
             if (!response.ok) {
@@ -274,6 +324,23 @@ const DesignPeptideContainer = ({ children }) => {
         setHoveredMonomer(monomerIdx);
     }
 
+    const handleMonomerLinking = (monomer1, monomer2) => {
+        // For now, assume the new connection should use these values:
+        const connectionCounter = 1; // In a real scenario, you’d update/increment this
+        const fixedR3 = 3; // Fixed R3 number for this example
+
+        const res_idx1 = monomer1['res-idx'];
+        const res_idx2 = monomer2['res-idx'];
+        console.log('bilnValue', bilnValue);
+        console.log('Linking monomers', res_idx1, res_idx2);
+        
+        const bilnParts = bilnValue.split(/([.-])/);
+        for (let i=0 ; i < bilnParts.length; i+=2) {
+            console.log(bilnParts[i]);
+        }
+
+    };
+
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
@@ -283,53 +350,64 @@ const DesignPeptideContainer = ({ children }) => {
         }
         fetchData();
     }, [query, bilnValue]);
+    
 
     let globalResidueIndex = 0;
-
     return (
-        <div className="border border-red-500 p-2 m-4 w-3/5 mx-auto">
-            <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
+        <>
+            <div className="border border-red-500 p-2 m-4 w-3/5 mx-auto">
+                <div className='flex'>
+                    <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
+                    <FormGroup>
+                        <FormControlLabel
+                            control={<Switch
+                                size="small"
+                                checked={isShowingAtomIndices}
+                                onChange={(e) => setIsShowingAtomIndices(e.target.checked)}
+                            />}
+                            label="Show bond indices"
+                        />
+                    </FormGroup>
+                </div>
 
-            {/* Render one monomer list per sequence */}
-            {sequences.map((seq, seqIdx) => {
-                // For each sequence, split it into monomers by hyphen
-                // and assign a global residue index.
-                const filteredMonomers = seq
-                    .split('-')
-                    .map((monomer) => {
-                        const currentIndex = globalResidueIndex;
-                        globalResidueIndex++;
-                        // Look up the monomer in the monomers array by its 'res-idx' property.
-                        // For example, if monomer is "A" and currentIndex is 0, we look for "A-0".
-                        return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
-                    })
-                    .filter(Boolean); // Remove any undefined results
+                {/* Render one monomer list per sequence */}
+                {sequences.map((seq, seqIdx) => {
+                    // For each sequence, split it into monomers by hyphen
+                    // and assign a global residue index.
+                    const filteredMonomers = seq
+                        .split('-')
+                        .map((monomer) => {
+                            const currentIndex = globalResidueIndex;
+                            globalResidueIndex++;
+                            // Look up the monomer in the monomers array by its 'res-idx' property.
+                            // For example, if monomer is "A" and currentIndex is 0, we look for "A-0".
+                            return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
+                        })
+                        .filter(Boolean); // Remove any undefined results
 
-                return (
-                    <MonomerList
-                        key={seqIdx}
-                        monomers={filteredMonomers}
-                        monomerListRef={monomerListRef}
-                        handleMonomerHover={handleMonomerHover}
-                        hoveredMonomer={hoveredMonomer}
-                    />
-                );
-            })}
+                    return (
+                        <MonomerList
+                            key={seqIdx}
+                            monomers={filteredMonomers}
+                            monomerListRef={monomerListRef}
+                            handleMonomerHover={handleMonomerHover}
+                            hoveredMonomer={hoveredMonomer}
+                            selectedMonomer={selectedMonomer}
+                            setSelectedMonomer={setSelectedMonomer}
+                            handleMonomerLinking={handleMonomerLinking}
+                        />
+                    );
+                })}
 
-            {/* <MonomerList
-                monomers={monomers}
-                monomerListRef={monomerListRef}
-                handleMonomerHover={handleMonomerHover}
-                hoveredMonomer={hoveredMonomer}
-            /> */}
+                <SvgDepictionContainer
+                    svgData={svgDepiction}
+                    svgContainer={svgContainer}
+                    handleMonomerHover={handleMonomerHover}
+                    hoveredMonomer={hoveredMonomer}
+                />
+            </div>
 
-            <SvgDepictionContainer
-                svgData={svgDepiction}
-                svgContainer={svgContainer}
-                handleMonomerHover={handleMonomerHover}
-                hoveredMonomer={hoveredMonomer}
-            />
-        </div>
+        </>
     );
 }
 
