@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { log } from '../utils/dev';
+import { log } from '../../utils/dev';
+
+import SvgDepictionContainer from './components/SVGMolDepiction';
 
 import Box from '@mui/material/Box';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch'; import TextField from '@mui/material/TextField';
 
-import panzoom from 'panzoom';
 
 
 const InputBiln = ({ value, onChangeValue }) => {
@@ -22,141 +23,6 @@ const InputBiln = ({ value, onChangeValue }) => {
         </div>
     );
 }
-
-
-const SvgDepictionContainer = ({ svgData, svgContainer, handleMonomerHover, hoveredMonomer }) => {
-    const padding = 10;
-
-    const onMouseEnterGroup = (event) => {
-        const group = event.currentTarget;
-        let residueIndex = group.className.baseVal?.split('residue-')[1];
-        handleMonomerHover(residueIndex);
-    }
-
-    const onMouseLeaveGroup = () => {
-        handleMonomerHover('');
-    }
-
-    useEffect(() => {
-        if (!svgData || !svgContainer) return;
-
-        svgContainer.current.querySelectorAll('svg g').forEach(group => {
-
-            // Compute the bounding box of the group
-            const bbox = group.getBBox();
-
-            // Adjust the bounding box values by adding a padding
-            const paddedX = bbox.x - padding;
-            const paddedY = bbox.y - padding;
-            const paddedWidth = bbox.width + padding * 2;
-            const paddedHeight = bbox.height + padding * 2;
-
-            // Create a new rect covering that bounding box
-            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            rect.setAttribute("x", paddedX);
-            rect.setAttribute("y", paddedY);
-            rect.setAttribute("width", paddedWidth);
-            rect.setAttribute("height", paddedHeight);
-            rect.setAttribute("fill", "transparent");
-            rect.setAttribute("pointer-events", "all");
-
-            // Add a class for styling.
-            rect.classList.add("hover-rect");
-
-            // Insert the rect as the first child so it lies behind the other elements
-            group.insertBefore(rect, group.firstChild);
-
-            // Optionally, add a hover effect on the group via CSS or JS
-            group.addEventListener("mouseenter", onMouseEnterGroup);
-            group.addEventListener("mouseleave", onMouseLeaveGroup);
-        });
-
-        return () => {
-            svgContainer.current.querySelectorAll('svg g').forEach(group => {
-                group.removeEventListener("mouseenter", onMouseEnterGroup);
-                group.removeEventListener("mouseleave", onMouseLeaveGroup);
-            });
-        }
-    }, [svgData]);
-
-
-    // Second effect: highlight the group corresponding to hoveredMonomer
-    useEffect(() => {
-        if (!svgData || !svgContainer.current) return;
-
-        const svgElement = svgContainer.current.querySelector('svg');
-
-        // Remove highlight from all groups
-        svgContainer.current.querySelectorAll('svg g').forEach(group => {
-            group.classList.remove('highlighted');
-        });
-
-        // If there is a hoveredMonomer, add the highlight to its corresponding group.
-        if (hoveredMonomer) {
-            const targetGroup = svgContainer.current.querySelector(`svg g.residue-${hoveredMonomer}`);
-            if (targetGroup) {
-                targetGroup.classList.add('highlighted');
-            }
-            // Required for svg opacity handling from monomer item hovering
-            svgElement.classList.add('monomer-hover');
-        } else {
-            svgElement.classList.remove('monomer-hover');
-        }
-    }, [hoveredMonomer]);
-
-    // Add panzoom functionality
-    useEffect(() => {
-        if (!svgContainer.current || !svgData) return;
-
-        // Query for the inner SVG element.
-        const svgElement = svgContainer.current.querySelector('svg');
-        if (!svgElement) return;
-
-        // Add a double-click event listener to reset the pan/zoom.
-        const dblClickHandler = (event) => {
-            event.preventDefault(); // Prevent default behavior (if any)
-            // Move to (0, 0)
-            panZoomInstance.moveTo(0, 0);
-            // Set the zoom level to 1. The parameters (0, 0) are used here to indicate the focal point for the zoom.
-            panZoomInstance.zoomAbs(0, 0, 0.5);
-        };
-
-        // Attach panzoom to the SVG element.
-        const panZoomInstance = panzoom(svgElement, {
-            // maxZoom: 2,
-            minZoom: 0.1,
-            bounds: true,
-            boundsPadding: 0.1, // Use 0 to restrict movement strictly to the container
-            zoomSpeed: 0.1,
-            // onDoubleClick: dblClickHandler
-        });
-
-
-
-        svgElement.addEventListener('dblclick', dblClickHandler);
-
-        // Cleanup on unmount:
-        return () => {
-            svgElement.removeEventListener('dblclick', dblClickHandler);
-            panZoomInstance.dispose();
-        };
-    }, [svgData]);
-
-    return (
-        <div
-            ref={svgContainer}
-            className="border border-slate-400 m-4 w-[400px] h-[400px] mx-auto rounded-md overflow-hidden bg-white"
-        >
-            {svgData ? (
-                <div dangerouslySetInnerHTML={{ __html: svgData }}></div>
-            ) : (
-                <div className="text-xl flex items-center justify-center h-full">
-                    No data
-                </div>
-            )}
-        </div>
-    );
-};
 
 
 const MonomerItem = ({
@@ -196,11 +62,18 @@ const MonomerItem = ({
         }
     };
 
+    const handleClick = (e) => {
+        // console.log(monomer.m_abbr, monomer.m_attachmentPointIdx);
+        console.log(monomer.m_abbr, monomer.m_attachmentPointIdx.map((idx) => idx !== null ? idx + monomer.offset : null));
+        console.log(monomer);
+    };
+
     return (
         <div
             className={containerClasses}
             onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
             onMouseLeave={() => handleMonomerHover('')}
+            onClick={handleClick}
         >
             {monomer.m_abbr}
 
@@ -282,6 +155,7 @@ const parseBilnSequence = (sequence) => {
 };
 
 const DesignPeptideContainer = ({ children }) => {
+    const [fetchError, setFetchError] = useState(null);
     const [bilnValue, setBilnValue] = useState('A-C');
     const [svgDepiction, setSvgDepiction] = useState('');
     const [monomers, setMonomers] = useState([]);
@@ -308,15 +182,20 @@ const DesignPeptideContainer = ({ children }) => {
         try {
             const response = await fetch(URL + query);
             if (!response.ok) {
-                console.error('Failed to fetch data');
+                const res = await response.json();
+                console.error(res.message);
+                setFetchError(res.message);
                 return;
             }
             const data = await response.json();
             setSvgDepiction(data.data.svg);
             setMonomers(data.data.monomers);
             setSequences(getSequences(bilnValue));
+
+            setFetchError(null);
         } catch (error) {
             console.error(error);
+            setFetchError(error);
         }
     }
 
@@ -324,22 +203,44 @@ const DesignPeptideContainer = ({ children }) => {
         setHoveredMonomer(monomerIdx);
     }
 
-    const handleMonomerLinking = (monomer1, monomer2) => {
-        // For now, assume the new connection should use these values:
-        const connectionCounter = 1; // In a real scenario, you’d update/increment this
-        const fixedR3 = 3; // Fixed R3 number for this example
+    // const handleMonomerLinking = (monomer1, monomer2) => {
+    //     // For now, assume the new connection should use these values:
+    //     const connectionCounter = 1; // In a real scenario, you’d update/increment this
+    //     const fixedR3 = 3; // Fixed R3 number for this example
 
-        const res_idx1 = monomer1['res-idx'];
-        const res_idx2 = monomer2['res-idx'];
-        console.log('bilnValue', bilnValue);
-        console.log('Linking monomers', res_idx1, res_idx2);
-        
-        const bilnParts = bilnValue.split(/([.-])/);
-        for (let i=0 ; i < bilnParts.length; i+=2) {
-            console.log(bilnParts[i]);
+    //     const res_idx1 = monomer1['res-idx'];
+    //     const res_idx2 = monomer2['res-idx'];
+    //     console.log('bilnValue', bilnValue);
+    //     console.log('Linking monomers', res_idx1, res_idx2);
+
+    //     const bilnParts = bilnValue.split(/([.-])/);
+    //     for (let i = 0; i < bilnParts.length; i += 2) {
+    //         console.log(bilnParts[i]);
+    //     }
+    // };
+
+    const handleMonomerLinking = (residue_index, rGroupIndex) => {
+        // Use an explicit check so that a value of 0 is not treated as "no selection"
+        if (selectedMonomer === null) {
+            // First click: select the monomer
+            setSelectedMonomer(residue_index);
+            console.log("Monomer selected:", residue_index);
+        } else {
+            // Second click: perform the linking process
+            console.log("Linking monomers:", selectedMonomer, residue_index);
+            console.log("bilnValue:", bilnValue);
+
+            // Example processing of bilnValue (splitting on - or .)
+            const bilnParts = bilnValue.split(/([.-])/);
+            for (let i = 0; i < bilnParts.length; i += 2) {
+                console.log("Processed part:", bilnParts[i]);
+            }
+
+            // Reset the selected monomer after linking
+            setSelectedMonomer(null);
         }
-
     };
+
 
     useEffect(() => {
         if (!bilnValue) {
@@ -350,7 +251,7 @@ const DesignPeptideContainer = ({ children }) => {
         }
         fetchData();
     }, [query, bilnValue]);
-    
+
 
     let globalResidueIndex = 0;
     return (
@@ -358,16 +259,6 @@ const DesignPeptideContainer = ({ children }) => {
             <div className="border border-red-500 p-2 m-4 w-3/5 mx-auto">
                 <div className='flex'>
                     <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
-                    <FormGroup>
-                        <FormControlLabel
-                            control={<Switch
-                                size="small"
-                                checked={isShowingAtomIndices}
-                                onChange={(e) => setIsShowingAtomIndices(e.target.checked)}
-                            />}
-                            label="Show bond indices"
-                        />
-                    </FormGroup>
                 </div>
 
                 {/* Render one monomer list per sequence */}
@@ -380,7 +271,6 @@ const DesignPeptideContainer = ({ children }) => {
                             const currentIndex = globalResidueIndex;
                             globalResidueIndex++;
                             // Look up the monomer in the monomers array by its 'res-idx' property.
-                            // For example, if monomer is "A" and currentIndex is 0, we look for "A-0".
                             return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
                         })
                         .filter(Boolean); // Remove any undefined results
@@ -399,11 +289,16 @@ const DesignPeptideContainer = ({ children }) => {
                     );
                 })}
 
+
                 <SvgDepictionContainer
                     svgData={svgDepiction}
                     svgContainer={svgContainer}
                     handleMonomerHover={handleMonomerHover}
                     hoveredMonomer={hoveredMonomer}
+                    isShowingAtomIndices={isShowingAtomIndices}
+                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices(e.target.checked)}
+                    handleMonomerLinking={handleMonomerLinking}
+                    error={fetchError}
                 />
             </div>
 
@@ -412,17 +307,3 @@ const DesignPeptideContainer = ({ children }) => {
 }
 
 export default DesignPeptideContainer;
-
-// {sequences.map((seq, seqIdx) => (
-//     <div key={seqIdx}>
-//         {seq.split('-').map((monomer) => {
-//             const currentIndex = globalResidueIndex;
-//             globalResidueIndex++;
-//             return (
-//                 <span key={currentIndex}>
-//                     {monomer}{currentIndex}{" "}
-//                 </span>
-//             );
-//         })}
-//     </div>
-// ))}
