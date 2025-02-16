@@ -11,10 +11,14 @@ const SvgDepictionContainer = ({
     hoveredMonomer,
     isShowingAtomIndices,
     handleShowingAtomIndices,
+    // monomersToLink,
+    // setMonomersToLink,
     handleMonomerLinking,
     error
 }) => {
     const [isShowRGroups, setIsShowRGroups] = useState(true);
+    const [monomersToLink, setMonomersToLink] = useState([]);
+
 
     const handleShowRGroups = (event) => {
         setIsShowRGroups(event.target.checked);
@@ -39,17 +43,72 @@ const SvgDepictionContainer = ({
         handleMonomerHover('');
     };
 
+    const addClassName = (element, className) => {
+        if (!element) return;
+        element.classList.add(className);
+    };
+
+    const removeClassName = (element, className) => {
+        if (!element) return;
+        element.classList.remove(className);
+    };
+
     const onRGroupClick = (event) => {
+        if (!svgData || !svgContainer?.current) return;
         const group = event.currentTarget;
         const indices = group.className.baseVal.split('indices_')[1];
         const residueIndex = indices.split('_')[0];
         const rGroupIndex = indices.split('_')[1];
 
-        // console.log(`Residue clicked: ${residueIndex}`);
-        // console.log(`R-group clicked: ${rGroupIndex}`);
-
-        handleMonomerLinking(residueIndex, rGroupIndex);
+        // Use the functional updater to ensure the latest state is used
+        setMonomersToLink((prev) => {
+            return [
+                ...prev,
+                { 
+                    residue: residueIndex,
+                    rgroup: rGroupIndex,
+                    indices: indices
+                }]
+        }
+        );
     };
+
+    // Effect to watch for changes to monomersToLink
+    useEffect(() => {
+        if (!svgData || !svgContainer?.current) return;
+
+        if (monomersToLink.length === 0) {
+            return;
+        }
+
+        const svgRect = svgContainer.current.querySelector('svg rect');
+
+        // Get the group corresponding to the selected monomer
+        const resGroup_idx = monomersToLink[0].indices;
+        const group = svgContainer.current.querySelector(`.indices_${resGroup_idx}`);
+        
+
+        // When one monomer is selected, log it.
+        if (monomersToLink.length === 1) {
+            console.log("Selected monomer:", monomersToLink[0]);
+            if (!group) return;
+            addClassName(group, 'selected');
+            addClassName(svgRect, 'linking-mode');
+        }
+        // When two monomers are selected, perform linking.
+        else if (monomersToLink.length === 2) {
+
+            // Place your linking logic here.
+            handleMonomerLinking(monomersToLink[0], monomersToLink[1]);
+
+            // After processing, reset the selection:
+            setMonomersToLink(() => []);
+            removeClassName(group, 'selected');
+            removeClassName(svgRect, 'linking-mode');
+
+
+        }
+    }, [monomersToLink]);
 
     const createRect = (group, attr, pad) => {
         // Default padding value
@@ -119,9 +178,9 @@ const SvgDepictionContainer = ({
                 //         group.removeEventListener("mouseenter", onMouseEnterGroup);
                 //         group.removeEventListener("mouseleave", onMouseLeaveGroup);
                 //     });
-                    svgContainer.current.querySelectorAll('svg g').forEach(group => {
-                        group.removeEventListener("click", onRGroupClick);
-                    });
+                svgContainer.current.querySelectorAll('svg g').forEach(group => {
+                    group.removeEventListener("click", onRGroupClick);
+                });
             }
         };
     }, [svgData, svgContainer]);

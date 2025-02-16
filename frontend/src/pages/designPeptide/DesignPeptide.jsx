@@ -156,13 +156,16 @@ const parseBilnSequence = (sequence) => {
 
 const DesignPeptideContainer = ({ children }) => {
     const [fetchError, setFetchError] = useState(null);
-    const [bilnValue, setBilnValue] = useState('A-C');
+    const [bilnValue, setBilnValue] = useState('A-C-K-G-F-C');
     const [svgDepiction, setSvgDepiction] = useState('');
     const [monomers, setMonomers] = useState([]);
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
     const [sequences, setSequences] = useState([]);
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [selectedMonomer, setSelectedMonomer] = useState(null);
+    const [connectionCounter, setConnectionCounter] = useState(1);
+    // const [monomersToLink, setMonomersToLink] = useState([]);
+
 
     const svgContainer = useRef(null);
     const monomerListRef = useRef(null);
@@ -203,44 +206,33 @@ const DesignPeptideContainer = ({ children }) => {
         setHoveredMonomer(monomerIdx);
     }
 
-    // const handleMonomerLinking = (monomer1, monomer2) => {
-    //     // For now, assume the new connection should use these values:
-    //     const connectionCounter = 1; // In a real scenario, you’d update/increment this
-    //     const fixedR3 = 3; // Fixed R3 number for this example
+    const handleMonomerLinking = (monomer1, monomer2) => {
 
-    //     const res_idx1 = monomer1['res-idx'];
-    //     const res_idx2 = monomer2['res-idx'];
-    //     console.log('bilnValue', bilnValue);
-    //     console.log('Linking monomers', res_idx1, res_idx2);
+        const res_idx1 = parseInt(monomer1.residue.split('-')[1]);
+        const res_idx2 = parseInt(monomer2.residue.split('-')[1]);
+        const rgroup1 = parseInt(monomer1.rgroup) + 1;
+        const rgroup2 = parseInt(monomer2.rgroup) + 1;
+        console.log(
+            `Linking ${res_idx1}-${rgroup1} and ${res_idx2}-${rgroup2} with connection ${connectionCounter}`
+        );
 
-    //     const bilnParts = bilnValue.split(/([.-])/);
-    //     for (let i = 0; i < bilnParts.length; i += 2) {
-    //         console.log(bilnParts[i]);
-    //     }
-    // };
+        const bilnParts = bilnValue.split(/([.-])/);
+        bilnParts[res_idx1*2] += `(${connectionCounter},${rgroup1})`;
+        bilnParts[res_idx2*2] += `(${connectionCounter},${rgroup2})`;
+        // for (let i = 0; i < bilnParts.length; i += 2) {
+        //     console.log(bilnParts[i]);
+        //     if (i === parseInt(res_idx1)) {
+        //         bilnParts[i] += `(${connectionCounter},${rgroup1})`;
+        //     }
+        //     if (i === parseInt(res_idx2)) {
+        //         bilnParts[i] += `(${connectionCounter},${rgroup2})`;
+        //     }
+        // }
+        console.log(bilnParts.join(''));
+        setBilnValue(bilnParts.join(''));
+        setConnectionCounter( (prev) => prev + 1);
 
-    const handleMonomerLinking = (residue_index, rGroupIndex) => {
-        // Use an explicit check so that a value of 0 is not treated as "no selection"
-        if (selectedMonomer === null) {
-            // First click: select the monomer
-            setSelectedMonomer(residue_index);
-            console.log("Monomer selected:", residue_index);
-        } else {
-            // Second click: perform the linking process
-            console.log("Linking monomers:", selectedMonomer, residue_index);
-            console.log("bilnValue:", bilnValue);
-
-            // Example processing of bilnValue (splitting on - or .)
-            const bilnParts = bilnValue.split(/([.-])/);
-            for (let i = 0; i < bilnParts.length; i += 2) {
-                console.log("Processed part:", bilnParts[i]);
-            }
-
-            // Reset the selected monomer after linking
-            setSelectedMonomer(null);
-        }
     };
-
 
     useEffect(() => {
         if (!bilnValue) {
@@ -260,9 +252,9 @@ const DesignPeptideContainer = ({ children }) => {
                 <div className='flex'>
                     <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
                 </div>
-
+     
                 {/* Render one monomer list per sequence */}
-                {sequences.map((seq, seqIdx) => {
+                { /*sequences.map((seq, seqIdx) => {
                     // For each sequence, split it into monomers by hyphen
                     // and assign a global residue index.
                     const filteredMonomers = seq
@@ -284,10 +276,10 @@ const DesignPeptideContainer = ({ children }) => {
                             hoveredMonomer={hoveredMonomer}
                             selectedMonomer={selectedMonomer}
                             setSelectedMonomer={setSelectedMonomer}
-                            handleMonomerLinking={handleMonomerLinking}
+                            handleMonomerLinking={null}
                         />
                     );
-                })}
+                }) */}
 
 
                 <SvgDepictionContainer

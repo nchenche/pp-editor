@@ -167,5 +167,40 @@ svg g.r-group:hover rect.visible {
     cursor: pointer;
     stroke-width: 1.5px;
     fill: gray;
-    fill-opacity: 0.15;
+    fill-opacity: 0.25;
+}
+
+svg g.r-group.selected rect.visible,
+svg g.r-group.selected:hover rect.visible {
+    cursor: pointer;
+    stroke: slategray;
+    stroke-width: 1.5px;
+    fill: rgba(255, 255, 0, 0.562);
+    fill-opacity: 0.25;
+    /* Set up the dashed stroke */
+    stroke-dasharray: 5;
+    /* Apply the animation */
+    animation: dashFlow 5s linear infinite;
+}
+
+@keyframes dashFlow {
+    from {
+        stroke-dashoffset: 100;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+svg:has(rect:first-of-type.linking-mode) path {
+    opacity: 0.33;
+}
+
+svg:has(rect:first-of-type.linking-mode) g.r-group path {
+    opacity: 1;
+}
+
+svg:has(rect:first-of-type.linking-mode) g.r-group rect.visible {
+    stroke-width: 1.5px;
 }
