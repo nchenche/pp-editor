@@ -150,10 +150,6 @@ const MonomerList = ({
     );
 }
 
-const parseBilnSequence = (sequence) => {
-    return sequence.replace(/\([^)]*\)/g, '');
-};
-
 const DesignPeptideContainer = ({ children }) => {
     const [fetchError, setFetchError] = useState(null);
     const [bilnValue, setBilnValue] = useState('A-C-K-G-F-C');
@@ -177,7 +173,7 @@ const DesignPeptideContainer = ({ children }) => {
     // Ensure to treat as a single sequence if the input doesn't include dots
     const getSequences = (input) => {
         const seqArr = input.includes('.') ? input.split('.') : [input];
-        return seqArr.map(parseBilnSequence);
+        return seqArr.map((sequence) => (sequence.replace(/\([^)]*\)/g, '')));
     };
 
     const fetchData = async () => {
@@ -217,12 +213,12 @@ const DesignPeptideContainer = ({ children }) => {
         );
 
         const bilnParts = bilnValue.split(/([.-])/);
-        bilnParts[res_idx1*2] += `(${connectionCounter},${rgroup1})`;
-        bilnParts[res_idx2*2] += `(${connectionCounter},${rgroup2})`;
+        bilnParts[res_idx1 * 2] += `(${connectionCounter},${rgroup1})`;
+        bilnParts[res_idx2 * 2] += `(${connectionCounter},${rgroup2})`;
 
         console.log(bilnParts.join(''));
         setBilnValue(bilnParts.join(''));
-        setConnectionCounter( (prev) => prev + 1);
+        setConnectionCounter((prev) => prev + 1);
 
     };
 
@@ -244,7 +240,8 @@ const DesignPeptideContainer = ({ children }) => {
                 <div className='flex'>
                     <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
                 </div>
-     
+
+
                 {/* Render one monomer list per sequence */}
                 { /*sequences.map((seq, seqIdx) => {
                     // For each sequence, split it into monomers by hyphen
