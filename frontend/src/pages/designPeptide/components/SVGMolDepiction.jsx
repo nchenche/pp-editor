@@ -56,15 +56,20 @@ const SvgDepictionContainer = ({
     const onRGroupClick = (event) => {
         if (!svgData || !svgContainer?.current) return;
         const group = event.currentTarget;
-        const indices = group.className.baseVal.split('indices_')[1];
+        const indices = group.className.baseVal.split('indices_')[1].split(' ')[0];
         const residueIndex = indices.split('_')[0];
         const rGroupIndex = indices.split('_')[1];
 
+        const monomer = {
+            residue: residueIndex,
+            rgroup: rGroupIndex,
+            indices: indices
+        }
         // Use the functional updater to ensure the latest state is used
         setMonomersToLink((prev) => {
             return [
                 ...prev,
-                { 
+                {
                     residue: residueIndex,
                     rgroup: rGroupIndex,
                     indices: indices
@@ -86,7 +91,7 @@ const SvgDepictionContainer = ({
         // Get the group corresponding to the selected monomer
         const resGroup_idx = monomersToLink[0].indices;
         const group = svgContainer.current.querySelector(`.indices_${resGroup_idx}`);
-        
+
 
         // When one monomer is selected, log it.
         if (monomersToLink.length === 1) {
@@ -97,16 +102,17 @@ const SvgDepictionContainer = ({
         }
         // When two monomers are selected, perform linking.
         else if (monomersToLink.length === 2) {
+            // If the selected monomers are different, link them.
+            if (monomersToLink[0].indices !== monomersToLink[1].indices) {
+                handleMonomerLinking(monomersToLink[0], monomersToLink[1]);
+            } else {
+                console.log("Same monomer selected. Resetting selection.");
+            }
 
-            // Place your linking logic here.
-            handleMonomerLinking(monomersToLink[0], monomersToLink[1]);
-
-            // After processing, reset the selection:
+            // Reset the selection:
             setMonomersToLink(() => []);
             removeClassName(group, 'selected');
             removeClassName(svgRect, 'linking-mode');
-
-
         }
     }, [monomersToLink]);
 

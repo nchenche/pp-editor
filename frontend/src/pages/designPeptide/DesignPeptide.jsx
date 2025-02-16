@@ -219,15 +219,7 @@ const DesignPeptideContainer = ({ children }) => {
         const bilnParts = bilnValue.split(/([.-])/);
         bilnParts[res_idx1*2] += `(${connectionCounter},${rgroup1})`;
         bilnParts[res_idx2*2] += `(${connectionCounter},${rgroup2})`;
-        // for (let i = 0; i < bilnParts.length; i += 2) {
-        //     console.log(bilnParts[i]);
-        //     if (i === parseInt(res_idx1)) {
-        //         bilnParts[i] += `(${connectionCounter},${rgroup1})`;
-        //     }
-        //     if (i === parseInt(res_idx2)) {
-        //         bilnParts[i] += `(${connectionCounter},${rgroup2})`;
-        //     }
-        // }
+
         console.log(bilnParts.join(''));
         setBilnValue(bilnParts.join(''));
         setConnectionCounter( (prev) => prev + 1);
