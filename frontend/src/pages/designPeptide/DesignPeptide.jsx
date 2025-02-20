@@ -1,11 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { log } from '../../utils/dev';
 
-import SvgDepictionContainer from './components/SVGMolDepiction';
+
+import { SvgDepictionContainer } from './components/SVGMolDepiction';
+import { MonomerItem, MonomerList } from './components/Monomers';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Paper from '@mui/material/Paper';
 import Switch from '@mui/material/Switch'; import TextField from '@mui/material/TextField';
 
 
@@ -25,134 +29,64 @@ const InputBiln = ({ value, onChangeValue }) => {
 }
 
 
-const MonomerItem = ({
-    monomer,
-    hoveredMonomer,
-    handleMonomerHover,
-    extrema,
-    selectedMonomer,
-    setSelectedMonomer,
-    handleMonomerLinking
-}) => {
-    const isHovered = monomer['res-idx'] === hoveredMonomer;
-    const isSelected = selectedMonomer ? selectedMonomer['res-idx'] === monomer['res-idx'] : false;
-    const [hoveredBranch, setHoveredBranch] = useState(null);
+const ExtraBoundsItem = ({ label, onDelete }) => {
 
-    // Determine whether branching groups are present:
-    const hasR3 = monomer.m_RgroupIdx && monomer.m_RgroupIdx[2] != null;
-    const hasR4 = monomer.m_RgroupIdx && monomer.m_RgroupIdx[3] != null;
-
-
-    // Build container class names.
-    let containerClasses =
-        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-1 px-2 rounded-lg font-medium text-[0.8rem] select-none cursor-pointer";
-    if (isHovered) containerClasses += " outline outline-2";
-    if (isSelected) containerClasses += " selected-monomer bg-yellow-200/50 ";
-    if (extrema.isNter) containerClasses += " is-n-ter";
-    if (extrema.isCter) containerClasses += " is-c-ter";
-    if (hasR3) containerClasses += " has-r3";
-    if (hasR4) containerClasses += " has-r4";
-
-    const handleR3Click = (e) => {
-        if (!selectedMonomer) {
-            setSelectedMonomer(monomer);
-        } else {
-            handleMonomerLinking(selectedMonomer, monomer);
-            setSelectedMonomer(null);
-        }
-    };
-
-    const handleClick = (e) => {
-        // console.log(monomer.m_abbr, monomer.m_attachmentPointIdx);
-        console.log(monomer.m_abbr, monomer.m_attachmentPointIdx.map((idx) => idx !== null ? idx + monomer.offset : null));
-        console.log(monomer);
-    };
 
     return (
-        <div
-            className={containerClasses}
-            onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
-            onMouseLeave={() => handleMonomerHover('')}
-            onClick={handleClick}
-        >
-            {monomer.m_abbr}
-
-            {/* N-terminal indicator: two spans for circle and line */}
-            {extrema && extrema.isNter && (
-                <>
-                    <span className="absolute nter-circle" />
-                    <span className="absolute nter-line" />
-                </>
-            )}
-            {/* C-terminal indicator: two spans for circle and line */}
-            {extrema && extrema.isCter && (
-                <>
-                    <span className="absolute cter-circle" />
-                    <span className="absolute cter-line" />
-                </>
-            )}
-            {/* R3 indicator with its own hover logic */}
-            {hasR3 && (
-                <div
-                    className=""
-                    onMouseEnter={(e) => {
-                        setHoveredBranch('r3');
-                    }}
-                    onMouseLeave={(e) => {
-                        setHoveredBranch(null);
-                    }}
-                    onClick={handleR3Click}
-                >
-                    <span
-                        className={`absolute r3-circle ${hoveredBranch === 'r3' ? 'branch-highlight' : ''}`}
-                    />
-                    <span
-                        className={`absolute r3-line ${hoveredBranch === 'r3' ? 'branch-highlight' : ''}`}
-                    />
-                </div>
-            )}
-            {/* R4 indicator with its own hover logic */}
-        </div>
+        <Chip
+            sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                borderRadius: 2,
+                display: 'flex',
+                p: 1,
+                '& .MuiChip-deleteIcon': {
+                    ml: 1,
+                },
+            }}
+            label={label}
+            size="small"
+            onDelete={onDelete(label)}
+        />
     );
 }
 
-const MonomerList = ({
-    monomers,
-    monomerListRef,
-    handleMonomerHover,
-    hoveredMonomer,
-    selectedMonomer,
-    setSelectedMonomer,
-    handleMonomerLinking
-}) => {
+
+const ExtraBoundsContainer = () => {
+    const [chipData, setChipData] = useState([
+        { key: 0, label: 'Angular' },
+        { key: 1, label: 'jQuery' },
+        { key: 2, label: 'Polymer' },
+        { key: 3, label: 'React' },
+        { key: 4, label: 'Vue.js' },
+    ]);
+
+    const handleDelete = (label) => () => {
+        setChipData((chips) => chips.filter((chip) => chip.label !== label));
+    };
+
     return (
-        <div
-            ref={monomerListRef}
-            className='flex min-h-12 border p-4 gap-x-1 m-1'
-        >
-            {monomers.map((monomer, index) => {
-                const isNter = index === 0 ? true : false;
-                const isCter = index === monomers.length - 1 ? true : false;
+        <Paper className='flex p-2 min-h-12 gap-x-2 items-center'>
+            {chipData.map((data) => {
+                let icon;
+
                 return (
-                    <MonomerItem
-                        key={monomer['res-idx']}
-                        monomer={monomer}
-                        hoveredMonomer={hoveredMonomer}
-                        handleMonomerHover={handleMonomerHover}
-                        extrema={{ isNter, isCter }}
-                        selectedMonomer={selectedMonomer}
-                        setSelectedMonomer={setSelectedMonomer}
-                        handleMonomerLinking={handleMonomerLinking}
+                    <ExtraBoundsItem
+                        key={data.key}
+                        label={data.label}
+                        onDelete={handleDelete}
                     />
-                )
+                );
             })}
-        </div>
+
+        </Paper>
     );
 }
+
 
 const DesignPeptideContainer = ({ children }) => {
     const [fetchError, setFetchError] = useState(null);
-    const [bilnValue, setBilnValue] = useState('A-C-K-G-F-C');
+    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');
     const [svgDepiction, setSvgDepiction] = useState('');
     const [monomers, setMonomers] = useState([]);
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
@@ -175,6 +109,14 @@ const DesignPeptideContainer = ({ children }) => {
         const seqArr = input.includes('.') ? input.split('.') : [input];
         return seqArr.map((sequence) => (sequence.replace(/\([^)]*\)/g, '')));
     };
+
+    const removeGroup = (str, target) => {
+        // Build a regex that matches: an opening parenthesis,
+        // followed by any characters (non-greedily) until a comma,
+        // optional whitespace, the target value, and then a closing parenthesis.
+        const regex = new RegExp("\\([^)]*?,\\s*" + target + "\\)", "g");
+        return str.replace(regex, "");
+    }
 
     const fetchData = async () => {
         // console.log(query);
@@ -203,7 +145,6 @@ const DesignPeptideContainer = ({ children }) => {
     }
 
     const handleMonomerLinking = (monomer1, monomer2) => {
-
         const res_idx1 = parseInt(monomer1.residue.split('-')[1]);
         const res_idx2 = parseInt(monomer2.residue.split('-')[1]);
         const rgroup1 = parseInt(monomer1.rgroup) + 1;
@@ -219,7 +160,23 @@ const DesignPeptideContainer = ({ children }) => {
         console.log(bilnParts.join(''));
         setBilnValue(bilnParts.join(''));
         setConnectionCounter((prev) => prev + 1);
+    };
 
+    const handlebondBreaking = (residues, rgroups) => {
+        const res1Idx = residues[0];
+        const res2Idx = residues[1];
+        const res1RgroupIdx = rgroups[0];
+        const res2RgroupIdx = rgroups[1];
+    
+        console.log(`Breaking bond between ${res1Idx}-${res1RgroupIdx} and ${res2Idx}-${res2RgroupIdx}`);
+
+        const bilnParts = bilnValue.split(/([.-])/);
+        bilnParts[res1Idx * 2] = removeGroup(bilnParts[res1Idx * 2], res1RgroupIdx);
+        bilnParts[res2Idx * 2] = removeGroup(bilnParts[res2Idx * 2], res2RgroupIdx);
+
+        // console.log(bilnParts.join(''));
+        setBilnValue(bilnParts.join(''));
+        setConnectionCounter((prev) => prev + 1);
     };
 
     useEffect(() => {
@@ -241,9 +198,13 @@ const DesignPeptideContainer = ({ children }) => {
                     <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
                 </div>
 
+                <div>
+                    <ExtraBoundsContainer />
+                </div>
+
 
                 {/* Render one monomer list per sequence */}
-                { /*sequences.map((seq, seqIdx) => {
+                {sequences.map((seq, seqIdx) => {
                     // For each sequence, split it into monomers by hyphen
                     // and assign a global residue index.
                     const filteredMonomers = seq
@@ -268,7 +229,7 @@ const DesignPeptideContainer = ({ children }) => {
                             handleMonomerLinking={null}
                         />
                     );
-                }) */}
+                })}
 
 
                 <SvgDepictionContainer
@@ -279,6 +240,7 @@ const DesignPeptideContainer = ({ children }) => {
                     isShowingAtomIndices={isShowingAtomIndices}
                     handleShowingAtomIndices={(e) => setIsShowingAtomIndices(e.target.checked)}
                     handleMonomerLinking={handleMonomerLinking}
+                    handlebondBreaking={handlebondBreaking}
                     error={fetchError}
                 />
             </div>
