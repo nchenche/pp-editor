@@ -4,6 +4,10 @@ import { log } from '../../utils/dev';
 
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
 import { MonomerItem, MonomerList } from './components/Monomers';
+import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
+// import MolStarViewer from './components/MolstarTest';
+// import MolStarViewer from './components/MolBasicWrapper';
+
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -30,8 +34,6 @@ const InputBiln = ({ value, onChangeValue }) => {
 
 
 const ExtraBoundsItem = ({ label, onDelete }) => {
-
-
     return (
         <Chip
             sx={{
@@ -167,7 +169,7 @@ const DesignPeptideContainer = ({ children }) => {
         const res2Idx = residues[1];
         const res1RgroupIdx = rgroups[0];
         const res2RgroupIdx = rgroups[1];
-    
+
         console.log(`Breaking bond between ${res1Idx}-${res1RgroupIdx} and ${res2Idx}-${res2RgroupIdx}`);
 
         const bilnParts = bilnValue.split(/([.-])/);
@@ -243,6 +245,16 @@ const DesignPeptideContainer = ({ children }) => {
                     handlebondBreaking={handlebondBreaking}
                     error={fetchError}
                 />
+
+                <div>
+                    <MolStarViewer
+                        pdbId="1rcn"
+                        defaultRepresentation="cartoon"
+                        defaultColorScheme="chain-id"
+                        height="400px"
+                        width="50%"
+                    />
+                </div>
             </div>
 
         </>
