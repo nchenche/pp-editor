@@ -85,15 +85,15 @@ const UIAddMonomers = memo(() => {
     }
   };
 
-  
+
   useEffect(() => {
     console.log("smiles changed", getCurrentTime(), smiles);
   }, [smiles]);
-  
+
   useEffect(() => {
     console.log("fragments changed", getCurrentTime(), fragments);
   }, [fragments]);
-  
+
   useEffect(() => {
     console.log("selectedBonds changed", getCurrentTime(), selectedBonds);
   }, [selectedBonds]);
@@ -139,8 +139,35 @@ const UIAddMonomers = memo(() => {
   };
 
   // Handle FormWizard completed steps
-  const handleComplete = () => {
-    console.log("Form completed!");
+  const handleComplete = async () => {
+    if (!molBlock) {
+      console.error("Form not completed!");
+      return;
+    }
+
+    console.log("Form completed, sending molblock data to server...");
+    console.log('typeof', typeof(molBlock));
+
+    try {
+      const response = await fetch('http://0.0.0.0:5000/api/db/monomers/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: molBlock,
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const result = await response.json();
+      console.log(result);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error during addition of new monomer:', error);
+      }
+    }
   };
 
 
