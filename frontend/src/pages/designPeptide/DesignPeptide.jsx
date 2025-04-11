@@ -240,11 +240,21 @@ const DesignPeptideContainer = ({ children }) => {
                     handleMonomerHover={handleMonomerHover}
                     hoveredMonomer={hoveredMonomer}
                     isShowingAtomIndices={isShowingAtomIndices}
-                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices( (prevState) => !prevState )}
+                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices((prevState) => !prevState)}
                     handleMonomerLinking={handleMonomerLinking}
                     handlebondBreaking={handlebondBreaking}
                     error={fetchError}
                 />
+
+                <div className="mt-4 flex justify-center">
+                    <button
+                        // onClick={}
+                        className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded"
+                    >
+                        Generate 3D
+                    </button>
+                </div>
+
 
                 <div>
                     {/* <MolStarViewer
