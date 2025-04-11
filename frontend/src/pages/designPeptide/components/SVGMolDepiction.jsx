@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import '../../styles/SvgDepictionContainer.css';
 
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import panzoom from 'panzoom';
 
 
@@ -56,30 +57,45 @@ export const SvgDepictionContainer = ({
         return rect;
     };
 
-    const handleShowRGroups = (event) => {
-        setIsShowRGroups(event.target.checked);
-        if (event.target.checked) {
-            svgContainer.current.querySelectorAll('svg g .r-group rect').forEach(rect => {
-                rect.classList.add('visible');
-            });
-        } else {
-            svgContainer.current.querySelectorAll('svg g .r-group rect').forEach(rect => {
-                rect.classList.remove('visible');
-            })
-        };
+    const handleShowRGroups = () => {
+        setIsShowRGroups((prevState) => {
+            const newState = !prevState;
+            if (newState) {
+                svgContainer.current
+                    .querySelectorAll('svg g .r-group rect')
+                    .forEach((rect) => {
+                        rect.classList.add('visible');
+                    });
+            } else {
+                svgContainer.current
+                    .querySelectorAll('svg g .r-group rect')
+                    .forEach((rect) => {
+                        rect.classList.remove('visible');
+                    });
+            }
+            return newState;
+        });
     };
 
-    const handleShowBonds = (event) => {
-        setIShowBonds(event.target.checked);
-        if (event.target.checked) {
-            svgContainer.current.querySelectorAll('svg g.bond.type-other rect').forEach(bond => {
-                bond.classList.add('visible');
-            });
-        } else {
-            svgContainer.current.querySelectorAll('svg g.bond.type-other rect').forEach(bond => {
-                bond.classList.remove('visible');
-            });
-        };
+
+    const handleShowBonds = () => {
+        setIShowBonds((prevState) => {
+            const newState = !prevState;
+            if (newState) {
+                svgContainer.current
+                    .querySelectorAll('svg g.bond.type-other rect')
+                    .forEach((rect) => {
+                        rect.classList.add('visible');
+                    });
+            } else {
+                svgContainer.current
+                    .querySelectorAll('svg g.bond.type-other rect')
+                    .forEach((rect) => {
+                        rect.classList.remove('visible');
+                    });
+            }
+            return newState;
+        });
     };
 
     const onMouseEnterGroup = (event) => {
@@ -288,12 +304,13 @@ export const SvgDepictionContainer = ({
     }, [svgData, svgContainer]);
 
     return (
-        <div className="flex justify-center mt-3 mb-10">
-            {/* SVG Container */}
-            <div className="w-[400px] h-[400px]">
+        <div className="flex flex-col items-center mt-10 mb-10 border w-3/5 mx-auto">
+            {/* Relative container for stacking SVG and panel */}
+            <div className="relative w-[400px] h-[400px] m-10">
+                {/* SVG Container */}
                 <div
                     ref={svgContainer}
-                    className="border border-slate-400 w-[400px] h-[400px] rounded-md overflow-hidden bg-white"
+                    className="border border-slate-400 w-full h-full rounded-md overflow-hidden bg-white"
                 >
                     {svgData ? (
                         <div dangerouslySetInnerHTML={{ __html: svgData }} />
@@ -301,53 +318,92 @@ export const SvgDepictionContainer = ({
                         <div className="text-xl flex items-center justify-center h-full">
                             No data
                         </div>
-                    )
-
-                    }
+                    )}
                 </div>
-                <div className="text-red-500 text-sm text-center h-16">
-                    {error}
+
+                {/* Right Panel overlayed on top of the SVG */}
+                <div className="absolute -top-8 left-0 right-0 m-2 flex justify-evenly">
+                    <div className="flex items-center text-sm">
+                        {/* <input
+                            type="checkbox"
+                            id="show-rgroups"
+                            name="show-rgroups"
+                            className="mr-2"
+                            checked={isShowRGroups}
+                            onChange={handleShowRGroups}
+                        /> */}
+
+                        <button
+                            onClick={handleShowRGroups}
+                            className="mr-2 focus:outline-none"
+                            aria-label="Toggle atom indices"
+                        >
+                            {isShowRGroups ? (
+                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
+                            ) : (
+                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
+                            )}
+                        </button>
+
+                        <label htmlFor="show-rgroups">R-groups</label>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                        {/* <input
+                            type="checkbox"
+                            id="show-atom-indices"
+                            name="show-atom-indices"
+                            className="mr-2"
+                            checked={isShowingAtomIndices}
+                            onChange={handleShowingAtomIndices}
+                        /> */}
+
+
+                        <button
+                            onClick={handleShowingAtomIndices}
+                            className="mr-2 focus:outline-none"
+                            aria-label="Toggle atom indices"
+                        >
+                            {isShowingAtomIndices ? (
+                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
+                            ) : (
+                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
+                            )}
+                        </button>
+
+                        <label htmlFor="show-atom-indices">Atom indices</label>
+                    </div>
+
+                    <div className="flex items-center text-sm">
+                        {/* <input
+                            type="checkbox"
+                            id="show-bonds"
+                            name="show-bonds"
+                            className="mr-2"
+                            checked={isShowBonds}
+                            onChange={handleShowBonds}
+                        /> */}
+
+                        <button
+                            onClick={handleShowBonds}
+                            className="mr-2 focus:outline-none"
+                            aria-label="Toggle atom indices"
+                        >
+                            {isShowBonds ? (
+                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
+                            ) : (
+                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
+                            )}
+                        </button>
+
+                        <label htmlFor="show-bonds">Bonds</label>
+                    </div>
                 </div>
             </div>
 
-            {/* Right Panel */}
-            <div className="ml-4 flex flex-col gap-y-2">
-                <div className="flex items-center text-sm">
-                    <input
-                        type="checkbox"
-                        id="show-rgroups"
-                        name="show-rgoups"
-                        className="mr-2"
-                        checked={isShowRGroups}
-                        onChange={handleShowRGroups}
-                    />
-                    <label htmlFor="show-rgroups">Show free R-groups</label>
-                </div>
-
-                <div className="flex items-center text-sm">
-                    <input
-                        type="checkbox"
-                        id="show-atom-indices"
-                        name="show-atom-indices"
-                        className="mr-2"
-                        checked={isShowingAtomIndices}
-                        onChange={handleShowingAtomIndices}
-                    />
-                    <label htmlFor="show-atom-indices">Show atom indices</label>
-                </div>
-
-                <div className="flex items-center text-sm">
-                    <input
-                        type="checkbox"
-                        id="show-bonds"
-                        name="show-bonds"
-                        className="mr-2"
-                        checked={isShowBonds}
-                        onChange={handleShowBonds}
-                    />
-                    <label htmlFor="show-bonds">Show bonds</label>
-                </div>
-
+            {/* Error Message placed below the stacked content */}
+            <div className="text-red-500 text-sm text-center h-16">
+                {error}
             </div>
         </div>
     );

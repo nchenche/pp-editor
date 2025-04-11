@@ -201,7 +201,7 @@ const DesignPeptideContainer = ({ children }) => {
                 </div>
 
                 <div>
-                    <ExtraBoundsContainer />
+                    {/* <ExtraBoundsContainer /> */}
                 </div>
 
 
@@ -240,20 +240,20 @@ const DesignPeptideContainer = ({ children }) => {
                     handleMonomerHover={handleMonomerHover}
                     hoveredMonomer={hoveredMonomer}
                     isShowingAtomIndices={isShowingAtomIndices}
-                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices(e.target.checked)}
+                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices( (prevState) => !prevState )}
                     handleMonomerLinking={handleMonomerLinking}
                     handlebondBreaking={handlebondBreaking}
                     error={fetchError}
                 />
 
                 <div>
-                    <MolStarViewer
+                    {/* <MolStarViewer
                         pdbId="1rcn"
                         defaultRepresentation="cartoon"
                         defaultColorScheme="chain-id"
                         height="400px"
                         width="50%"
-                    />
+                    /> */}
                 </div>
             </div>
 
