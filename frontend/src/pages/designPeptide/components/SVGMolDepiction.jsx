@@ -304,9 +304,9 @@ export const SvgDepictionContainer = ({
     }, [svgData, svgContainer]);
 
     return (
-        <div className="flex flex-col items-center mt-10 mb-10 border w-3/5 mx-auto">
+        <div className="flex flex-col items-center mt-8 mb-2 border w-3/5 mx-auto">
             {/* Relative container for stacking SVG and panel */}
-            <div className="relative w-[400px] h-[400px] m-10">
+            <div className="relative w-[400px] h-[400px] mt-8 mx-10">
                 {/* SVG Container */}
                 <div
                     ref={svgContainer}
@@ -322,7 +322,7 @@ export const SvgDepictionContainer = ({
                 </div>
 
                 {/* Right Panel overlayed on top of the SVG */}
-                <div className="absolute -top-8 left-0 right-0 m-2 flex justify-evenly">
+                <div className="absolute -top-6 left-0 right-0 flex justify-evenly">
                     <div className="flex items-center text-sm">
                         {/* <input
                             type="checkbox"
@@ -402,7 +402,7 @@ export const SvgDepictionContainer = ({
             </div>
 
             {/* Error Message placed below the stacked content */}
-            <div className="text-red-500 text-sm text-center h-16">
+            <div className="text-red-500 text-sm text-center h-6">
                 {error}
             </div>
         </div>
