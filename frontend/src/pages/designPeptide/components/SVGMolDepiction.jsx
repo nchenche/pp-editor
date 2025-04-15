@@ -304,8 +304,8 @@ export const SvgDepictionContainer = ({
     }, [svgData, svgContainer]);
 
     return (
-        <div className="flex flex-col items-center mt-8 mb-2 border w-3/5 mx-auto">
-            {/* Relative container for stacking SVG and panel */}
+        // <div className="flex flex-col items-center mt-4 border mx-auto">
+        <div className="flex flex-col items-center">
             <div className="relative w-[400px] h-[400px] mt-8 mx-10">
                 {/* SVG Container */}
                 <div
@@ -321,90 +321,52 @@ export const SvgDepictionContainer = ({
                     )}
                 </div>
 
-                {/* Right Panel overlayed on top of the SVG */}
+                {/* Controls above the SVG */}
                 <div className="absolute -top-6 left-0 right-0 flex justify-evenly">
+                    {/* R-groups toggle */}
                     <div className="flex items-center text-sm">
-                        {/* <input
-                            type="checkbox"
-                            id="show-rgroups"
-                            name="show-rgroups"
-                            className="mr-2"
-                            checked={isShowRGroups}
-                            onChange={handleShowRGroups}
-                        /> */}
-
                         <button
                             onClick={handleShowRGroups}
                             className="mr-2 focus:outline-none"
                             aria-label="Toggle atom indices"
                         >
-                            {isShowRGroups ? (
-                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
-                            ) : (
-                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
-                            )}
+                            {isShowRGroups ? <FaEye className="text-lg text-slate-700 w-4 h-4" /> : <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />}
                         </button>
-
                         <label htmlFor="show-rgroups">R-groups</label>
                     </div>
 
+                    {/* Atom indices toggle */}
                     <div className="flex items-center text-sm">
-                        {/* <input
-                            type="checkbox"
-                            id="show-atom-indices"
-                            name="show-atom-indices"
-                            className="mr-2"
-                            checked={isShowingAtomIndices}
-                            onChange={handleShowingAtomIndices}
-                        /> */}
-
-
                         <button
                             onClick={handleShowingAtomIndices}
                             className="mr-2 focus:outline-none"
                             aria-label="Toggle atom indices"
                         >
-                            {isShowingAtomIndices ? (
-                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
-                            ) : (
-                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
-                            )}
+                            {isShowingAtomIndices ? <FaEye className="text-lg text-slate-700 w-4 h-4" /> : <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />}
                         </button>
-
                         <label htmlFor="show-atom-indices">Atom indices</label>
                     </div>
 
+                    {/* Bonds toggle */}
                     <div className="flex items-center text-sm">
-                        {/* <input
-                            type="checkbox"
-                            id="show-bonds"
-                            name="show-bonds"
-                            className="mr-2"
-                            checked={isShowBonds}
-                            onChange={handleShowBonds}
-                        /> */}
-
                         <button
                             onClick={handleShowBonds}
                             className="mr-2 focus:outline-none"
                             aria-label="Toggle atom indices"
                         >
-                            {isShowBonds ? (
-                                <FaEye className="text-lg text-slate-700 w-4 h-4" />
-                            ) : (
-                                <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />
-                            )}
+                            {isShowBonds ? <FaEye className="text-lg text-slate-700 w-4 h-4" /> : <FaEyeSlash className="text-lg text-slate-700 w-4 h-4" />}
                         </button>
-
                         <label htmlFor="show-bonds">Bonds</label>
                     </div>
                 </div>
+
             </div>
 
-            {/* Error Message placed below the stacked content */}
+            {/* Error text under SVG */}
             <div className="text-red-500 text-sm text-center h-6">
                 {error}
             </div>
+
         </div>
     );
 };

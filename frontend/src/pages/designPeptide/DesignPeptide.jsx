@@ -98,12 +98,18 @@ const DesignPeptideContainer = ({ children }) => {
     const [connectionCounter, setConnectionCounter] = useState(1);
     // const [monomersToLink, setMonomersToLink] = useState([]);
 
+    const [structureOutput, setStructureOutput] = useState(null);
+    const [generatedPdbUrl, setGeneratedPdbUrl] = useState(null);
+
+    // const [show3DViewer, setShow3DViewer] = useState(false);
+
 
     const svgContainer = useRef(null);
     const monomerListRef = useRef(null);
 
     log('RENDERING DesignPeptideContainer');
-    const URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
+    const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
+    const API_BASE_URL = 'http://0.0.0.0:5000';
     let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
 
     // Ensure to treat as a single sequence if the input doesn't include dots
@@ -123,7 +129,7 @@ const DesignPeptideContainer = ({ children }) => {
     const fetchData = async () => {
         // console.log(query);
         try {
-            const response = await fetch(URL + query);
+            const response = await fetch(DEPICT_2D_URL + query);
             if (!response.ok) {
                 const res = await response.json();
                 console.error(res.message);
@@ -141,6 +147,11 @@ const DesignPeptideContainer = ({ children }) => {
             setFetchError(error);
         }
     }
+
+    const getPdbBlobUrl = (pdb) => {
+        const blob = new Blob([pdb], { type: 'text/plain' });
+        return URL.createObjectURL(blob);
+    };
 
     const handleMonomerHover = (monomerIdx) => {
         setHoveredMonomer(monomerIdx);
@@ -181,6 +192,53 @@ const DesignPeptideContainer = ({ children }) => {
         setConnectionCounter((prev) => prev + 1);
     };
 
+    const handleGenerate3D = async () => {
+        // const sessionId = localStorage.getItem('session_id') || crypto.randomUUID();
+        // localStorage.setItem('session_id', sessionId);
+
+        const response = await fetch(`${API_BASE_URL}/api/core/molecules/generate_3d`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sequence: bilnValue,
+                // session_id: sessionId
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            console.error('3D Generation error:', err.message);
+            return;
+        }
+
+        const result = await response.json();
+        setStructureOutput(result.data); // save the full structure payload
+        const pdbUrl = `${API_BASE_URL}${result.data.pdb_download_url}`;
+        console.log('Generated data:', result.data);
+        setGeneratedPdbUrl(pdbUrl);
+    };
+
+    const handleDownloadArchive = () => {
+        if (!structureOutput?.zip_download_url) return;
+
+
+        const link = document.createElement('a');
+        link.href = `${API_BASE_URL}${structureOutput.zip_download_url}`;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
+
+    // const handleShow3D = () => {
+    //     setShow3DViewer(true);
+    //     setGeneratedPdbUrl( () => {
+    //         const newUrl = `${API_BASE_URL}${structureOutput.pdb_download_url}`;
+    //         console.log('Generated PDB URL:', newUrl);
+    //         return newUrl;
+    //     });
+    // };
+
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
@@ -195,7 +253,7 @@ const DesignPeptideContainer = ({ children }) => {
     let globalResidueIndex = 0;
     return (
         <>
-            <div className="border border-red-500 p-2 m-4 w-3/5 mx-auto">
+            <div className="border border-red-500 p-2 m-4 w-fit mx-auto">
                 <div className='flex'>
                     <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
                 </div>
@@ -234,37 +292,58 @@ const DesignPeptideContainer = ({ children }) => {
                 })}
 
 
-                <SvgDepictionContainer
-                    svgData={svgDepiction}
-                    svgContainer={svgContainer}
-                    handleMonomerHover={handleMonomerHover}
-                    hoveredMonomer={hoveredMonomer}
-                    isShowingAtomIndices={isShowingAtomIndices}
-                    handleShowingAtomIndices={(e) => setIsShowingAtomIndices((prevState) => !prevState)}
-                    handleMonomerLinking={handleMonomerLinking}
-                    handlebondBreaking={handlebondBreaking}
-                    error={fetchError}
-                />
+                <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
 
-                <div className="mt-4 flex justify-center">
-                    <button
-                        // onClick={}
-                        className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded"
-                    >
-                        Generate 3D
-                    </button>
+                    {/* === SVG Viewer Container === */}
+                    <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
+                        <SvgDepictionContainer
+                            svgData={svgDepiction}
+                            svgContainer={svgContainer}
+                            handleMonomerHover={handleMonomerHover}
+                            hoveredMonomer={hoveredMonomer}
+                            isShowingAtomIndices={isShowingAtomIndices}
+                            handleShowingAtomIndices={(e) => setIsShowingAtomIndices((prevState) => !prevState)}
+                            handleMonomerLinking={handleMonomerLinking}
+                            handlebondBreaking={handlebondBreaking}
+                            error={fetchError}
+                        />
+
+                        {/* Action buttons under the SVG */}
+                        <div className="flex justify-center flex-wrap gap-x-4">
+                            <button
+                                onClick={handleGenerate3D}
+                                className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm"
+                            >
+                                Generate 3D
+                            </button>
+
+                            <button
+                                onClick={handleDownloadArchive}
+                                disabled={!structureOutput}
+                                className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                            >
+                                Download Archive
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* === Mol* Viewer Container === */}
+                    <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
+                        {generatedPdbUrl ? (
+                            <MolStarViewer
+                                pdbURL={generatedPdbUrl}
+                                defaultRepresentation="ball-and-stick"
+                                defaultColorScheme="residue-name"
+                                height="400px"
+                                width="100%"
+                            />
+                        ) : (
+                            <div className="text-xl text-slate-500">No structure</div>
+                        )}
+                    </div>
+
                 </div>
 
-
-                <div>
-                    {/* <MolStarViewer
-                        pdbId="1rcn"
-                        defaultRepresentation="cartoon"
-                        defaultColorScheme="chain-id"
-                        height="400px"
-                        width="50%"
-                    /> */}
-                </div>
             </div>
 
         </>

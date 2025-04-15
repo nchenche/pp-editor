@@ -20,10 +20,11 @@ const MolStarViewer = ({
     pdbFile,
     blobFile,
     pdbId,
+    pdbURL,
     defaultRepresentation = 'cartoon',
     defaultColorScheme = 'chain-id',
     height = '400px',
-    width = '100%'
+    width = '400px'
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -92,6 +93,8 @@ const MolStarViewer = ({
                     await loadFromPdbFile(pdbFile);
                 } else if (blobFile) {
                     await loadFromBlob(blobFile);
+                } else if (pdbURL) {
+                    await loadFromURL(pdbURL);
                 }
                 setLoading(false);
             } catch (err) {
@@ -102,7 +105,7 @@ const MolStarViewer = ({
         };
 
         loadStructure();
-    }, [pluginInitialized, pdbId, pdbFile, blobFile]);
+    }, [pluginInitialized, pdbId, pdbFile, blobFile, pdbURL]);
 
 
     // Select residue by position
@@ -112,7 +115,7 @@ const MolStarViewer = ({
 
         const plugin = pluginRef.current;
         if (!seqId) {
-            plugin?.managers.interactivity.lociHighlights.highlightOnly({loci: EmptyLoci});
+            plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
             return;
         }
         const selectedResidue = parseInt(seqId);
@@ -129,7 +132,7 @@ const MolStarViewer = ({
             data
         );
         const loci = StructureSelection.toLociWithSourceUnits(sel);  // lociSelects
-        plugin?.managers.interactivity.lociHighlights.highlightOnly({loci,});
+        plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci, });
 
     }, [seqId, pluginInitialized]);
 
@@ -146,7 +149,7 @@ const MolStarViewer = ({
             if (!loci || loci.length === 0 || loci.kind === 'empty-loci') return;
             // console.log('Loci:', loci);
 
-            const label = lociLabel(loci, {htmlStyling: false, granularity: 'residue', hidePrefix: true, condensed: true});
+            const label = lociLabel(loci, { htmlStyling: false, granularity: 'residue', hidePrefix: true, condensed: true });
             console.log('lociLabel:', label);
         };
 
@@ -219,6 +222,18 @@ const MolStarViewer = ({
         }
     }, [processStructureData]);
 
+    const loadFromURL = useCallback(async (url) => {
+        if (!pluginRef.current) return;
+        try {
+            await pluginRef.current.clear();
+            const fileData = await pluginRef.current.builders.data.download({ url, isBinary: false });
+            await processStructureData(fileData, 'pdb');
+        } catch (err) {
+            setError(`Failed to load PDB from URL ${url}: ${err.message}`);
+            throw err;
+        }
+    }, [processStructureData]);
+
     const loadFromBlob = useCallback(async (blob) => {
         if (!pluginRef.current) return;
         try {
@@ -274,9 +289,9 @@ const MolStarViewer = ({
 
     return (
         <div className="molstar-viewer mx-auto text-center">
-            <h3 className="text-lg font-medium mb-2">Mol* Viewer</h3>
+            {/* <h3 className="text-lg font-medium mb-2">Mol* Viewer</h3> */}
 
-            <div>
+            {/* <div>
                 <input
                     type="text"
                     value={seqId}
@@ -284,7 +299,7 @@ const MolStarViewer = ({
                     placeholder="Residue ID to select"
                     className="w-64 p-2 border rounded text-sm mb-2"
                 />
-            </div>
+            </div> */}
 
             <div
                 ref={containerRef}
@@ -343,12 +358,12 @@ const MolStarViewer = ({
                 )}
             </div>
 
-            <div className="controls mt-2 flex gap-2">
+            {/* Controls placed *outside* the viewer box to avoid stretching */}
+            <div className="controls mt-2 flex gap-4 justify-center">
                 <RepresentationSelector
                     currentRepresentation={currentRepresentation}
                     onChange={handleRepresentationChange}
                 />
-
                 <ColorSchemeSelector
                     currentColorScheme={currentColorScheme}
                     onChange={handleColorSchemeChange}
