@@ -16,10 +16,9 @@ export const SvgDepictionContainer = ({
     handlebondBreaking,
     error
 }) => {
-    const [isShowRGroups, setIsShowRGroups] = useState(true);
-    const [isShowBonds, setIShowBonds] = useState(true);
+    const [isShowRGroups, setIsShowRGroups] = useState(false);
+    const [isShowBonds, setIShowBonds] = useState(false);
     const [monomersToLink, setMonomersToLink] = useState([]);
-
 
     const _addClassName = (element, className) => {
         if (!element) return;
@@ -231,8 +230,8 @@ export const SvgDepictionContainer = ({
             group.insertBefore(rect, group.firstChild);
 
             // Add hover event listeners
-            // group.addEventListener("mouseenter", onMouseEnterGroup);
-            // group.addEventListener("mouseleave", onMouseLeaveGroup);
+            group.addEventListener("mouseenter", onMouseEnterGroup);
+            group.addEventListener("mouseleave", onMouseLeaveGroup);
         });
 
         return () => {

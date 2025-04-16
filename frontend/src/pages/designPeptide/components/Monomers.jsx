@@ -3,7 +3,7 @@ import { log } from '../../../utils/dev';
 
 
 
-export const MonomerItem = ({
+export const _MonomerItem = ({
     monomer,
     hoveredMonomer,
     handleMonomerHover,
@@ -19,6 +19,8 @@ export const MonomerItem = ({
     // Determine whether branching groups are present:
     const hasR3 = monomer.m_RgroupIdx && monomer.m_RgroupIdx[2] != null;
     const hasR4 = monomer.m_RgroupIdx && monomer.m_RgroupIdx[3] != null;
+
+    console.log(monomer);
 
 
     // Build container class names.
@@ -94,6 +96,35 @@ export const MonomerItem = ({
     );
 }
 
+
+export const MonomerItem = ({
+    monomer,
+    hoveredMonomer,
+    handleMonomerHover,
+    extrema,
+    selectedMonomer,
+    setSelectedMonomer,
+    handleMonomerLinking
+}) => {
+    const isHovered = monomer['res-idx'] === hoveredMonomer;
+
+    // Build container class names.
+    let containerClasses =
+        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none cursor-pointer";
+    if (isHovered) containerClasses += " outline outline-2 outline-slate-500";
+
+    return (
+        <div
+            className={containerClasses}
+            onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
+            onMouseLeave={() => handleMonomerHover('')}
+        >
+            {monomer.pdbName}
+        </div>
+    );
+}
+
+
 export const MonomerList = ({
     monomers,
     monomerListRef,
@@ -106,7 +137,7 @@ export const MonomerList = ({
     return (
         <div
             ref={monomerListRef}
-            className='flex min-h-12 border p-4 gap-x-1 m-1'
+            className='flex min-h-12 border p-2 gap-x-1 m-1'
         >
             {monomers.map((monomer, index) => {
                 const isNter = index === 0 ? true : false;

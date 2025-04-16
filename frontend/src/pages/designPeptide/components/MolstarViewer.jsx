@@ -1,10 +1,12 @@
+import { debounceTime } from 'rxjs/operators';
+
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { createStructureRepresentationParams } from "molstar/lib/mol-plugin-state/helpers/structure-representation-params";
 import { StateSelection, StateTransform } from "molstar/lib/mol-state";
 import { Script } from 'molstar/lib/mol-script/script';
-import { StructureSelection } from 'molstar/lib/mol-model/structure';
+import { StructureElement, StructureSelection, Bond } from 'molstar/lib/mol-model/structure';
 import { PluginConfig } from 'molstar/lib/mol-plugin/config';
 
 import { Structure, StructureProperties, } from "molstar/lib/mol-model/structure";
@@ -21,6 +23,9 @@ const MolStarViewer = ({
     blobFile,
     pdbId,
     pdbURL,
+    pdbRawData,
+    hoveredMonomer,
+    handleMonomerHover,
     defaultRepresentation = 'cartoon',
     defaultColorScheme = 'chain-id',
     height = '400px',
@@ -42,8 +47,9 @@ const MolStarViewer = ({
     useEffect(() => {
         const initPlugin = async () => {
             if (!canvasRef.current || !containerRef.current) return;
-            try {
+            if (!pdbFile && !blobFile && !pdbId && !pdbURL && !pdbRawData) return;
 
+            try {
                 const MySpec = {
                     ...DefaultPluginSpec(),
                     config: [
@@ -95,6 +101,8 @@ const MolStarViewer = ({
                     await loadFromBlob(blobFile);
                 } else if (pdbURL) {
                     await loadFromURL(pdbURL);
+                } else if (pdbRawData) {
+                    await loadFromRawData(pdbRawData);
                 }
                 setLoading(false);
             } catch (err) {
@@ -105,7 +113,7 @@ const MolStarViewer = ({
         };
 
         loadStructure();
-    }, [pluginInitialized, pdbId, pdbFile, blobFile, pdbURL]);
+    }, [pluginInitialized, pdbId, pdbFile, blobFile, pdbURL, pdbRawData]);
 
 
     // Select residue by position
@@ -114,11 +122,12 @@ const MolStarViewer = ({
         if (!pluginRef.current) return;
 
         const plugin = pluginRef.current;
-        if (!seqId) {
+        if (!hoveredMonomer) {
             plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
             return;
         }
-        const selectedResidue = parseInt(seqId);
+
+        const selectedResidue = parseInt(hoveredMonomer.split('-')[1]) + 1;
         if (isNaN(selectedResidue)) return;
 
         const data = plugin?.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
@@ -134,40 +143,121 @@ const MolStarViewer = ({
         const loci = StructureSelection.toLociWithSourceUnits(sel);  // lociSelects
         plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci, });
 
-    }, [seqId, pluginInitialized]);
+    }, [hoveredMonomer, pluginInitialized]);
 
-    // Subscribe to residue selection events.
+    // 1. Keep a ref to the latest callback
+    const hoverHandlerRef = useRef(handleMonomerHover);
+
+    // 2. Always point to the latest version
+    // The hoverHandlerRef will always have the latest handleMonomerHover, with fresh monomers.
     useEffect(() => {
+        hoverHandlerRef.current = handleMonomerHover;
+    }, [handleMonomerHover]);
 
+    // 3. Subscribe ONCE with a stable handler
+    useEffect(() => {
         if (!pluginInitialized) return;
-        console.log('Plugin in useEffect:');
-
         const plugin = pluginRef.current;
+
         const handleClick = (event) => {
+            if (!event.current || !event.current.loci || event.current.loci.kind === 'empty-loci') {
+                hoverHandlerRef.current('');
+                return;
+            }
 
             const loci = event.current.loci;
-            if (!loci || loci.length === 0 || loci.kind === 'empty-loci') return;
-            // console.log('Loci:', loci);
 
-            const label = lociLabel(loci, { htmlStyling: false, granularity: 'residue', hidePrefix: true, condensed: true });
-            console.log('lociLabel:', label);
+            if (StructureElement.Loci.is(loci)) {
+                const loc = StructureElement.Loci.getFirstLocation(loci);
+                if (loc) {
+                    const residueId = StructureProperties.residue.label_seq_id(loc);
+                    hoverHandlerRef.current({
+                        origin: 'molstarViewer',
+                        resid: residueId,
+                    });
+                }
+            } else if (Bond.isLoci(loci)) {
+                const bondLoc = loci.bonds[0];
+                if (bondLoc) {
+                    const a = bondLoc.aUnit;
+                    const aIndex = bondLoc.aIndex;
+                    const residueId = a.getResidueIndex(aIndex) + 1;
+                    hoverHandlerRef.current({
+                        origin: 'molstarViewer',
+                        resid: residueId,
+                    });
+                }
+            }
         };
 
-        // Subscribe to the click event
         plugin.behaviors.interaction.hover.subscribe(handleClick);
 
-        // Cleanup function to unsubscribe when the component unmounts
         return () => {
-            plugin.behaviors.interaction.hover.unsubscribe(handleClick);
+            try {
+                plugin.behaviors.interaction.hover.unsubscribe(handleClick);
+            } catch (e) {
+                console.warn('Failed to unsubscribe hover handler:', e);
+            }
         };
-    }, [pluginRef.current]); // Dependencies array
+    }, [pluginInitialized, pluginRef]);
 
 
-    // Update representation when the representation or color scheme changes.
-    useEffect(() => {
-        if (!structure || !pluginRef.current) return;
-        updateRepresentation(currentRepresentation, currentColorScheme);
-    }, [currentRepresentation, currentColorScheme]);
+    // Subscribe to residue selection events.
+    // useEffect(() => {
+
+    //     if (!pluginInitialized) return;
+    //     const plugin = pluginRef.current;
+
+    //     const handleClick = (event) => {
+    //         if (!event.current || !event.current.loci || event.current.loci.kind === 'empty-loci') {
+    //             handleMonomerHover('');
+    //             return;
+    //         };
+
+    //         const loci = event.current.loci;
+
+    //         if (StructureElement.Loci.is(loci)) {
+    //             const loc = StructureElement.Loci.getFirstLocation(loci);
+
+    //             if (loc) {
+    //                 const residueId = StructureProperties.residue.label_seq_id(loc);
+    //                 const oData = {
+    //                     origin: 'molstarViewer',
+    //                     resid: residueId
+    //                 };
+    //                 handleMonomerHover(oData);
+    //             }
+    //         } else if (Bond.isLoci(loci)) {
+    //             const bondLoc = loci.bonds[0];
+    //             if (bondLoc) {
+    //                 // You can choose which side of the bond you want to extract
+    //                 const a = bondLoc.aUnit, b = bondLoc.bUnit;
+    //                 const aIndex = bondLoc.aIndex;
+    //                 const residueId = a.getResidueIndex(aIndex) + 1;
+
+    //                 const oData = {
+    //                     origin: 'molstarViewer',
+    //                     resid: residueId
+    //                 };
+    //                 handleMonomerHover(oData);
+    //             }
+    //         }
+    //     };
+
+    //     // Subscribe to the hover event | .pipe(debounceTime(100))
+    //     plugin.behaviors.interaction.hover.subscribe(handleClick);
+
+    //     // Cleanup function to unsubscribe when the component unmounts
+    //     return () => {
+    //         plugin.behaviors.interaction.hover.unsubscribe(handleClick);
+    //     };
+    // }, [pluginInitialized]);
+
+    // // Update representation when the representation or color scheme changes.
+    // useEffect(() => {
+    //     if (!structure || !pluginRef.current) return;
+    //     updateRepresentation(currentRepresentation, currentColorScheme);
+    // }, [currentRepresentation, currentColorScheme]);
 
 
     // Memoized helper to determine file format.
@@ -181,12 +271,13 @@ const MolStarViewer = ({
         return 'pdb';
     }, []);
 
+
     // Process structure data, parse trajectory and create an initial representation.
     const processStructureData = useCallback(async (fileData, format) => {
         const trajectorySO = await pluginRef.current.builders.structure.parseTrajectory(fileData, format);
         const modelSO = await pluginRef.current.builders.structure.createModel(trajectorySO);
         const structureSO = await pluginRef.current.builders.structure.createStructure(modelSO);
-        console.log('Structure:', structureSO);
+        // console.log('Structure:', structureSO);
         setStructure(structureSO);
 
         // Add the initial representation.
@@ -196,6 +287,20 @@ const MolStarViewer = ({
             { tag: 'current-representation' }
         );
     }, [currentRepresentation, currentColorScheme]);
+
+
+    const loadFromRawData = useCallback(async (data) => {
+        if (!pluginRef.current) return;
+        try {
+            await pluginRef.current.clear();
+            const fileData = await pluginRef.current.builders.data.rawData({ data: data });
+            await processStructureData(fileData, 'pdb');
+        } catch (err) {
+            setError(`Failed to load PDB from raw data: ${err.message}`);
+            throw err;
+        }
+    }, [processStructureData]);
+
 
     const loadFromPdbId = useCallback(async (id) => {
         if (!pluginRef.current) return;
@@ -315,9 +420,9 @@ const MolStarViewer = ({
                 <canvas
                     ref={canvasRef}
                     style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
+                        // position: 'absolute',
+                        // top: 0,
+                        // left: 0,
                         width: '100%',
                         height: '100%'
                     }}
@@ -359,7 +464,7 @@ const MolStarViewer = ({
             </div>
 
             {/* Controls placed *outside* the viewer box to avoid stretching */}
-            <div className="controls mt-2 flex gap-4 justify-center">
+            <div className="absolute controls mt-2 flex gap-4 justify-center -top-2 left-0">
                 <RepresentationSelector
                     currentRepresentation={currentRepresentation}
                     onChange={handleRepresentationChange}

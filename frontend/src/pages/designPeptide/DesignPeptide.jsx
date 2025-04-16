@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { log } from '../../utils/dev';
 
 
@@ -88,7 +88,9 @@ const ExtraBoundsContainer = () => {
 
 const DesignPeptideContainer = ({ children }) => {
     const [fetchError, setFetchError] = useState(null);
-    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');
+    const [generate3DError, setGenerate3DError] = useState(null);
+
+    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');  // A-C-K-A-C
     const [svgDepiction, setSvgDepiction] = useState('');
     const [monomers, setMonomers] = useState([]);
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
@@ -148,14 +150,70 @@ const DesignPeptideContainer = ({ children }) => {
         }
     }
 
-    const getPdbBlobUrl = (pdb) => {
-        const blob = new Blob([pdb], { type: 'text/plain' });
-        return URL.createObjectURL(blob);
+    const handleGenerate3D = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/core/molecules/generate_3d`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sequence: bilnValue,
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                console.error('3D Generation error:', err.message);
+                return;
+            }
+
+            const result = await response.json();
+            setStructureOutput(result.data); // save the full structure payload
+            const pdbUrl = `${API_BASE_URL}${result.data.pdb_download_url}`;
+            // console.log('Generated data:', result.data);
+            // setGeneratedPdbUrl(pdbUrl);
+        } catch (error) {
+            console.error('Error during 3D generation:', error);
+            setGenerate3DError(error);
+        }
     };
 
-    const handleMonomerHover = (monomerIdx) => {
-        setHoveredMonomer(monomerIdx);
+    const _handleMonomerHover = (data) => {
+        // if (!data) return;
+
+        if (data) {
+            console.log('Hovered data:', data);
+            console.log(monomers);
+        }
+
+        if (typeof (data) === 'object') {
+            const monomer = monomers.filter((ele) => ele['res-idx'].split('-')[1] == (data.resid - 1))[0];
+            setHoveredMonomer(monomer['res-idx']);
+
+        } else {
+            setHoveredMonomer(data);
+        }
     }
+
+    const handleMonomerHover = useCallback((data) => {
+        if (data) {
+            console.log("length of monomers array:", monomers.length);
+        }
+
+        if (typeof data === 'object') {
+            const monomer = monomers.find((ele) =>
+                ele['res-idx'].split('-')[1] == (data.resid - 1)
+            );
+
+            if (!monomer) {
+                console.warn('No matching monomer found for:', data);
+                return;
+            }
+
+            setHoveredMonomer(monomer['res-idx']);
+        } else {
+            setHoveredMonomer(data);
+        }
+    }, [monomers]);
 
     const handleMonomerLinking = (monomer1, monomer2) => {
         const res_idx1 = parseInt(monomer1.residue.split('-')[1]);
@@ -187,36 +245,10 @@ const DesignPeptideContainer = ({ children }) => {
         bilnParts[res1Idx * 2] = removeGroup(bilnParts[res1Idx * 2], res1RgroupIdx);
         bilnParts[res2Idx * 2] = removeGroup(bilnParts[res2Idx * 2], res2RgroupIdx);
 
-        // console.log(bilnParts.join(''));
         setBilnValue(bilnParts.join(''));
         setConnectionCounter((prev) => prev + 1);
     };
 
-    const handleGenerate3D = async () => {
-        // const sessionId = localStorage.getItem('session_id') || crypto.randomUUID();
-        // localStorage.setItem('session_id', sessionId);
-
-        const response = await fetch(`${API_BASE_URL}/api/core/molecules/generate_3d`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sequence: bilnValue,
-                // session_id: sessionId
-            })
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            console.error('3D Generation error:', err.message);
-            return;
-        }
-
-        const result = await response.json();
-        setStructureOutput(result.data); // save the full structure payload
-        const pdbUrl = `${API_BASE_URL}${result.data.pdb_download_url}`;
-        console.log('Generated data:', result.data);
-        setGeneratedPdbUrl(pdbUrl);
-    };
 
     const handleDownloadArchive = () => {
         if (!structureOutput?.zip_download_url) return;
@@ -230,15 +262,6 @@ const DesignPeptideContainer = ({ children }) => {
         link.remove();
     };
 
-    // const handleShow3D = () => {
-    //     setShow3DViewer(true);
-    //     setGeneratedPdbUrl( () => {
-    //         const newUrl = `${API_BASE_URL}${structureOutput.pdb_download_url}`;
-    //         console.log('Generated PDB URL:', newUrl);
-    //         return newUrl;
-    //     });
-    // };
-
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
@@ -246,10 +269,21 @@ const DesignPeptideContainer = ({ children }) => {
             setSequences([]);
             return;
         }
-        fetchData();
-    }, [query, bilnValue]);
+    
+        const loadAndGenerate = async () => {
+            await fetchData();         // Wait until monomers are actually updated
+            await handleGenerate3D();  // THEN trigger 3D generation
+        };
+    
+        loadAndGenerate();
+    }, [bilnValue]);
 
 
+    useEffect(() => {
+        console.log('Structure output updated:', structureOutput);
+        console.log('Monomers array length:' , monomers.length);
+    }, [structureOutput]);
+        
     let globalResidueIndex = 0;
     return (
         <>
@@ -329,17 +363,26 @@ const DesignPeptideContainer = ({ children }) => {
 
                     {/* === Mol* Viewer Container === */}
                     <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
-                        {generatedPdbUrl ? (
+                        {structureOutput?.pdb ? (
                             <MolStarViewer
-                                pdbURL={generatedPdbUrl}
+                                // pdbURL={generatedPdbUrl}
+                                pdbRawData={structureOutput?.pdb}
+                                hoveredMonomer={hoveredMonomer}
+                                handleMonomerHover={handleMonomerHover}
                                 defaultRepresentation="ball-and-stick"
                                 defaultColorScheme="residue-name"
                                 height="400px"
                                 width="100%"
+                                error={generate3DError}
                             />
                         ) : (
                             <div className="text-xl text-slate-500">No structure</div>
                         )}
+                    </div>
+
+                    {/* Error text under molstar viewer */}
+                    <div className="text-red-500 text-sm text-center h-6">
+                        {generate3DError}
                     </div>
 
                 </div>
