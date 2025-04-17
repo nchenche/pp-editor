@@ -202,64 +202,6 @@ const MolStarViewer = ({
     }, [pluginInitialized, pluginRef]);
 
 
-    // Subscribe to residue selection events.
-    // useEffect(() => {
-
-    //     if (!pluginInitialized) return;
-    //     const plugin = pluginRef.current;
-
-    //     const handleClick = (event) => {
-    //         if (!event.current || !event.current.loci || event.current.loci.kind === 'empty-loci') {
-    //             handleMonomerHover('');
-    //             return;
-    //         };
-
-    //         const loci = event.current.loci;
-
-    //         if (StructureElement.Loci.is(loci)) {
-    //             const loc = StructureElement.Loci.getFirstLocation(loci);
-
-    //             if (loc) {
-    //                 const residueId = StructureProperties.residue.label_seq_id(loc);
-    //                 const oData = {
-    //                     origin: 'molstarViewer',
-    //                     resid: residueId
-    //                 };
-    //                 handleMonomerHover(oData);
-    //             }
-    //         } else if (Bond.isLoci(loci)) {
-    //             const bondLoc = loci.bonds[0];
-    //             if (bondLoc) {
-    //                 // You can choose which side of the bond you want to extract
-    //                 const a = bondLoc.aUnit, b = bondLoc.bUnit;
-    //                 const aIndex = bondLoc.aIndex;
-    //                 const residueId = a.getResidueIndex(aIndex) + 1;
-
-    //                 const oData = {
-    //                     origin: 'molstarViewer',
-    //                     resid: residueId
-    //                 };
-    //                 handleMonomerHover(oData);
-    //             }
-    //         }
-    //     };
-
-    //     // Subscribe to the hover event | .pipe(debounceTime(100))
-    //     plugin.behaviors.interaction.hover.subscribe(handleClick);
-
-    //     // Cleanup function to unsubscribe when the component unmounts
-    //     return () => {
-    //         plugin.behaviors.interaction.hover.unsubscribe(handleClick);
-    //     };
-    // }, [pluginInitialized]);
-
-    // // Update representation when the representation or color scheme changes.
-    // useEffect(() => {
-    //     if (!structure || !pluginRef.current) return;
-    //     updateRepresentation(currentRepresentation, currentColorScheme);
-    // }, [currentRepresentation, currentColorScheme]);
-
-
     // Memoized helper to determine file format.
     const determineFileFormat = useCallback((filename, mimeType) => {
         if (filename.endsWith('.pdb')) return 'pdb';

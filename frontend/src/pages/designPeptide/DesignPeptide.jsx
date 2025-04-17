@@ -129,7 +129,6 @@ const DesignPeptideContainer = ({ children }) => {
     }
 
     const fetchData = async () => {
-        // console.log(query);
         try {
             const response = await fetch(DEPICT_2D_URL + query);
             if (!response.ok) {
@@ -276,7 +275,7 @@ const DesignPeptideContainer = ({ children }) => {
         };
     
         loadAndGenerate();
-    }, [bilnValue]);
+    }, [bilnValue, isShowingAtomIndices]);
 
 
     useEffect(() => {

@@ -190,9 +190,16 @@ export const TabStep4 = memo(
             validateForm: () => methods.trigger(),
         }), []);
 
+        const queryParams = {
+            h_explicit_only: true,
+            // add_atom_indices: true,
+            is_remove_h: true,
+            format_svg: true,
+        }
+
         return (
             <div className='grid grid-cols-2 border'>
-                <MoleculeDisplayContainer smiles={fragmentSmiles} />
+                <MoleculeDisplayContainer smiles={fragmentSmiles} queryParams={queryParams} />
                 <div className='p-2 m-2 border'>
                     <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
                     <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} />

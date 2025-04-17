@@ -165,7 +165,7 @@ export const MolSubTypeForm = ({ sxOptions, control, error }) => {
                             error={!!error}
                         >
                             <MenuItem value="natural">Natural</MenuItem>
-                            <MenuItem value="nonNatural">Non natural</MenuItem>
+                            <MenuItem value="non-natural">Non natural</MenuItem>
                         </Select>
                     </>
                 )}
