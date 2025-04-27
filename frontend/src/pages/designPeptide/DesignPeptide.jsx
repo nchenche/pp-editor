@@ -7,6 +7,7 @@ import { MonomerItem, MonomerList } from './components/Monomers';
 import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
 // import MolStarViewer from './components/MolstarTest';
 // import MolStarViewer from './components/MolBasicWrapper';
+import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
 
 import Box from '@mui/material/Box';
@@ -268,126 +269,116 @@ const DesignPeptideContainer = ({ children }) => {
             setSequences([]);
             return;
         }
-    
+
         const loadAndGenerate = async () => {
             await fetchData();         // Wait until monomers are actually updated
             await handleGenerate3D();  // THEN trigger 3D generation
         };
-    
+
         loadAndGenerate();
     }, [bilnValue, isShowingAtomIndices]);
 
 
     useEffect(() => {
         console.log('Structure output updated:', structureOutput);
-        console.log('Monomers array length:' , monomers.length);
+        console.log('Monomers array length:', monomers.length);
     }, [structureOutput]);
-        
+
     let globalResidueIndex = 0;
+
     return (
         <>
-            <div className="border border-red-500 p-2 m-4 w-fit mx-auto">
-                <div className='flex'>
-                    <InputBiln value={bilnValue} onChangeValue={(e) => { setBilnValue(e.target.value) }} />
+            <div className="flex flex-col md:flex-row-reverse m-4 md:gap-4 min-h-[80vh] overflow-hidden">
+
+                {/* === Right Panel: Monomer Library (Visible on md+) === */}
+                <div className="hidden md:block w-full md:w-1/3 min-h-[80vh] border p-4 rounded-md shadow-sm overflow-y-auto">
+                    <h2 className="text-lg font-semibold mb-2">Monomer Library</h2>
+
+                    <MonomerLibraryContainer />
                 </div>
 
-                <div>
-                    {/* <ExtraBoundsContainer /> */}
+                {/* === Search input for small screens === */}
+                <div className="block md:hidden mb-4 w-full">
+                    <input
+                        type="text"
+                        placeholder="Search monomers..."
+                        className="w-full px-3 py-2 border rounded-md shadow-sm"
+                    />
                 </div>
 
+                {/* === Main Content Area === */}
+                <div className="flex-1 overflow-hidden">
+                    <div className="border border-red-500 p-2 mx-auto w-fit">
+                        <div className='flex'>
+                            <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
+                        </div>
 
-                {/* Render one monomer list per sequence */}
-                {sequences.map((seq, seqIdx) => {
-                    // For each sequence, split it into monomers by hyphen
-                    // and assign a global residue index.
-                    const filteredMonomers = seq
-                        .split('-')
-                        .map((monomer) => {
-                            const currentIndex = globalResidueIndex;
-                            globalResidueIndex++;
-                            // Look up the monomer in the monomers array by its 'res-idx' property.
-                            return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
-                        })
-                        .filter(Boolean); // Remove any undefined results
+                        {sequences.map((seq, seqIdx) => {
+                            const filteredMonomers = seq
+                                .split('-')
+                                .map((monomer) => {
+                                    const currentIndex = globalResidueIndex++;
+                                    return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
+                                })
+                                .filter(Boolean);
 
-                    return (
-                        <MonomerList
-                            key={seqIdx}
-                            monomers={filteredMonomers}
-                            monomerListRef={monomerListRef}
-                            handleMonomerHover={handleMonomerHover}
-                            hoveredMonomer={hoveredMonomer}
-                            selectedMonomer={selectedMonomer}
-                            setSelectedMonomer={setSelectedMonomer}
-                            handleMonomerLinking={null}
-                        />
-                    );
-                })}
+                            return (
+                                <MonomerList
+                                    key={seqIdx}
+                                    monomers={filteredMonomers}
+                                    monomerListRef={monomerListRef}
+                                    handleMonomerHover={handleMonomerHover}
+                                    hoveredMonomer={hoveredMonomer}
+                                    selectedMonomer={selectedMonomer}
+                                    setSelectedMonomer={setSelectedMonomer}
+                                    handleMonomerLinking={null}
+                                />
+                            );
+                        })}
 
+                        <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
+                            <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
+                                <SvgDepictionContainer
+                                    svgData={svgDepiction}
+                                    svgContainer={svgContainer}
+                                    handleMonomerHover={handleMonomerHover}
+                                    hoveredMonomer={hoveredMonomer}
+                                    isShowingAtomIndices={isShowingAtomIndices}
+                                    handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
+                                    handleMonomerLinking={handleMonomerLinking}
+                                    handlebondBreaking={handlebondBreaking}
+                                    error={fetchError}
+                                />
+                                <div className="flex justify-center flex-wrap gap-x-4">
+                                    <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
+                                        Generate 3D
+                                    </button>
+                                    <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                                        Download Archive
+                                    </button>
+                                </div>
+                            </div>
 
-                <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
-
-                    {/* === SVG Viewer Container === */}
-                    <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
-                        <SvgDepictionContainer
-                            svgData={svgDepiction}
-                            svgContainer={svgContainer}
-                            handleMonomerHover={handleMonomerHover}
-                            hoveredMonomer={hoveredMonomer}
-                            isShowingAtomIndices={isShowingAtomIndices}
-                            handleShowingAtomIndices={(e) => setIsShowingAtomIndices((prevState) => !prevState)}
-                            handleMonomerLinking={handleMonomerLinking}
-                            handlebondBreaking={handlebondBreaking}
-                            error={fetchError}
-                        />
-
-                        {/* Action buttons under the SVG */}
-                        <div className="flex justify-center flex-wrap gap-x-4">
-                            <button
-                                onClick={handleGenerate3D}
-                                className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm"
-                            >
-                                Generate 3D
-                            </button>
-
-                            <button
-                                onClick={handleDownloadArchive}
-                                disabled={!structureOutput}
-                                className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                            >
-                                Download Archive
-                            </button>
+                            <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
+                                {structureOutput?.pdb ? (
+                                    <MolStarViewer
+                                        pdbRawData={structureOutput?.pdb}
+                                        hoveredMonomer={hoveredMonomer}
+                                        handleMonomerHover={handleMonomerHover}
+                                        defaultRepresentation="ball-and-stick"
+                                        defaultColorScheme="residue-name"
+                                        height="400px"
+                                        width="100%"
+                                        error={generate3DError}
+                                    />
+                                ) : (
+                                    <div className="text-xl text-slate-500">No structure</div>
+                                )}
+                            </div>
                         </div>
                     </div>
-
-                    {/* === Mol* Viewer Container === */}
-                    <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
-                        {structureOutput?.pdb ? (
-                            <MolStarViewer
-                                // pdbURL={generatedPdbUrl}
-                                pdbRawData={structureOutput?.pdb}
-                                hoveredMonomer={hoveredMonomer}
-                                handleMonomerHover={handleMonomerHover}
-                                defaultRepresentation="ball-and-stick"
-                                defaultColorScheme="residue-name"
-                                height="400px"
-                                width="100%"
-                                error={generate3DError}
-                            />
-                        ) : (
-                            <div className="text-xl text-slate-500">No structure</div>
-                        )}
-                    </div>
-
-                    {/* Error text under molstar viewer */}
-                    <div className="text-red-500 text-sm text-center h-6">
-                        {generate3DError}
-                    </div>
-
                 </div>
-
             </div>
-
         </>
     );
 }
