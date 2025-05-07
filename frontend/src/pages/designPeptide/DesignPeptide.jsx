@@ -34,6 +34,22 @@ const InputBiln = ({ value, onChangeValue }) => {
 }
 
 
+const InputSearch = ({ value, onChangeValue }) => {
+    return (
+        <div className='p-2 w-2/4 mx-auto'>
+            <TextField
+                id="outlined-required"
+                label="Search monomers"
+                fullWidth
+                value={value}
+                onChange={onChangeValue}
+            />
+        </div>
+    );
+}
+
+
+
 const ExtraBoundsItem = ({ label, onDelete }) => {
     return (
         <Chip
@@ -106,11 +122,13 @@ const DesignPeptideContainer = ({ children }) => {
 
     // const [show3DViewer, setShow3DViewer] = useState(false);
 
+    const [searchValue, setSearchValue] = useState('');
+
 
     const svgContainer = useRef(null);
     const monomerListRef = useRef(null);
 
-    log('RENDERING DesignPeptideContainer');
+    // log('RENDERING DesignPeptideContainer');
     const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
     const API_BASE_URL = 'http://0.0.0.0:5000';
     let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
@@ -192,6 +210,41 @@ const DesignPeptideContainer = ({ children }) => {
         } else {
             setHoveredMonomer(data);
         }
+    }
+
+    const handleDeleteMonomerItem = (monomer) => {
+        if (!monomer) return;
+
+        /* 1 . get the residue index of the monomer to be deleted */        
+        const resIdx = parseInt((monomer['res-idx']).split('-')[1], 10);  // 0‑based
+        const bilnParts = bilnValue.split(/([.-])/);  // keep separators
+        const tokenIndex = resIdx * 2;  // residue token pos
+        const residueToken = bilnParts[tokenIndex];  // residue token
+
+        /* 2 . collect all connection IDs present on that residue */
+        const linkIds = Array.from(residueToken.matchAll(/\((\d+),\d+\)/g)).map((m) => m[1]);
+
+        /* 3 . remove each (id,rg) from every other residue */
+        if (linkIds.length) {
+            bilnParts.forEach((tok, i) => {
+                if (i % 2 === 0 && i !== tokenIndex) {                 // other residues only
+                    linkIds.forEach((id) => {
+                        bilnParts[i] = bilnParts[i].replace(new RegExp(`\\(${id},\\d+\\)`, 'g'), '');
+                    });
+                }
+            });
+        }
+
+        /* 4 . delete the residue itself + one adjacent separator   */
+        if (tokenIndex < bilnParts.length - 1) {
+            bilnParts.splice(tokenIndex, 2);   // remove [res, "-" | "."]
+        } else {
+            bilnParts.splice(tokenIndex - 1, 2); // last residue: remove prev sep
+        }
+
+        /* 5 . write the new string – effects tied to bilnValue will refresh lists */
+        const newBiln = bilnParts.join('');
+        setBilnValue(newBiln);
     }
 
     const handleMonomerHover = useCallback((data) => {
@@ -288,13 +341,13 @@ const DesignPeptideContainer = ({ children }) => {
 
     return (
         <>
-            <div className="flex flex-col md:flex-row-reverse m-4 md:gap-4 min-h-[80vh] overflow-hidden">
+            <div className="flex flex-col md:flex-row-reverse m-4 max-h-[85vh]">
 
                 {/* === Right Panel: Monomer Library (Visible on md+) === */}
-                <div className="hidden md:block w-full md:w-1/3 min-h-[80vh] border p-4 rounded-md shadow-sm overflow-y-auto">
+                <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
                     <h2 className="text-lg font-semibold mb-2">Monomer Library</h2>
 
-                    <MonomerLibraryContainer />
+                    <MonomerLibraryContainer filterValue={searchValue} />
                 </div>
 
                 {/* === Search input for small screens === */}
@@ -309,7 +362,12 @@ const DesignPeptideContainer = ({ children }) => {
                 {/* === Main Content Area === */}
                 <div className="flex-1 overflow-hidden">
                     <div className="border border-red-500 p-2 mx-auto w-fit">
-                        <div className='flex'>
+
+                        <div className=''>
+                            <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
+                        </div>
+
+                        <div className=''>
                             <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
                         </div>
 
@@ -332,6 +390,7 @@ const DesignPeptideContainer = ({ children }) => {
                                     selectedMonomer={selectedMonomer}
                                     setSelectedMonomer={setSelectedMonomer}
                                     handleMonomerLinking={null}
+                                    onDelete={handleDeleteMonomerItem}
                                 />
                             );
                         })}

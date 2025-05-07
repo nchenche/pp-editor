@@ -101,12 +101,17 @@ export const MonomerItem = ({
     monomer,
     hoveredMonomer,
     handleMonomerHover,
+    onDelete,
     extrema,
     selectedMonomer,
     setSelectedMonomer,
     handleMonomerLinking
 }) => {
     const isHovered = monomer['res-idx'] === hoveredMonomer;
+
+    const handleOnDelete = () => {
+        onDelete(monomer);
+    }
 
     // Build container class names.
     let containerClasses =
@@ -120,6 +125,26 @@ export const MonomerItem = ({
             onMouseLeave={() => handleMonomerHover('')}
         >
             {monomer.pdbName}
+
+            {/* ✕ icon appears only on hover */}
+            {isHovered && (
+                <button
+                    className="absolute -top-[18px] -right-1 p-1 text-slate-500 hover:text-slate-900 hover:scale-110 "
+                    aria-label="Delete monomer"
+                    onClick={(e) => {
+                        e.stopPropagation();   // keep parent click/drag unaffected
+                        handleOnDelete();
+                    }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
+                        <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                    </svg>
+
+                </button>
+            )}
+
+
+
         </div>
     );
 }
@@ -132,7 +157,8 @@ export const MonomerList = ({
     hoveredMonomer,
     selectedMonomer,
     setSelectedMonomer,
-    handleMonomerLinking
+    handleMonomerLinking,
+    onDelete
 }) => {
     return (
         <div
@@ -152,6 +178,7 @@ export const MonomerList = ({
                         selectedMonomer={selectedMonomer}
                         setSelectedMonomer={setSelectedMonomer}
                         handleMonomerLinking={handleMonomerLinking}
+                        onDelete={onDelete}
                     />
                 )
             })}

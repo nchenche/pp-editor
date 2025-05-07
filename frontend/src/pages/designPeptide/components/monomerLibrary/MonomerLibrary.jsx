@@ -4,6 +4,7 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useGetData } from '../../../../hooks/Fetchers'
+import { setCanvasModule } from 'molstar/lib/mol-geo/geometry/text/font-atlas';
 
 // import { log, initializeRangeFilter } from '../../utils/dev'
 // import './styles.css'
@@ -71,7 +72,7 @@ const ListMonomerLibrary = ({ monomers }) => {
                 <MonomerItem
                     key={monomer._id}
                     image={monomer.image_url}
-                    name={monomer.m_name}
+                    name={monomer.symbol}
                     label={monomer.pdbName}
                     size="sm"
                 />
@@ -81,7 +82,7 @@ const ListMonomerLibrary = ({ monomers }) => {
 }
 
 
-export const MonomerLibraryContainer = () => {
+export const MonomerLibraryContainer = ({ filterValue }) => {
     const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
     const dataRef = useRef(null);
     const [filteredMonomers, setFilteredMonomers] = useState([]);
@@ -94,15 +95,32 @@ export const MonomerLibraryContainer = () => {
     }, [data, isLoading, error]);
 
 
+    useEffect(() => {
+        if (!dataRef.current) return;
+        let filteredData = dataRef.current;
+        const lowerFilterValue = filterValue.toLowerCase();
+
+        filteredData = filteredData.filter((monomer) => (
+            monomer.m_name.toLowerCase().includes(lowerFilterValue) ||
+            monomer.symbol.toLowerCase().includes(lowerFilterValue) ||
+            monomer.pdbName.toLowerCase().includes(lowerFilterValue) ||
+            monomer.m_subtype.toLowerCase().includes(lowerFilterValue) ||
+            monomer.natAnalog.toLowerCase().includes(lowerFilterValue)
+        ));
+
+        setFilteredMonomers(filteredData);
+    }, [filterValue]);
+
+
     if (error) return <p>Error: {error}</p>;
     if (!data) return null;
 
     return (
         <>
             {/* Main content area */}
-            <main className="flex-1 p-6 border-2">
+            <main className="flex-1 p-6 border-2 h-full overflow-y-auto">
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-full">
+                    <div className="flex justify-center items-center ">
                         <div className="loader">Loading...</div>
                     </div>
                 ) : (
