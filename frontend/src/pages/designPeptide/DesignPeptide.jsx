@@ -124,6 +124,8 @@ const DesignPeptideContainer = ({ children }) => {
 
     const [searchValue, setSearchValue] = useState('');
 
+    const [rowMonomerLists, setRowMonomerLists] = useState([]);
+
 
     const svgContainer = useRef(null);
     const monomerListRef = useRef(null);
@@ -215,7 +217,9 @@ const DesignPeptideContainer = ({ children }) => {
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
 
-        /* 1 . get the residue index of the monomer to be deleted */        
+        console.log('Deleting monomer:', monomer);
+
+        /* 1 . get the residue index of the monomer to be deleted */
         const resIdx = parseInt((monomer['res-idx']).split('-')[1], 10);  // 0‑based
         const bilnParts = bilnValue.split(/([.-])/);  // keep separators
         const tokenIndex = resIdx * 2;  // residue token pos
@@ -320,6 +324,8 @@ const DesignPeptideContainer = ({ children }) => {
             setSvgDepiction('');
             setMonomers([]);
             setSequences([]);
+            setRowMonomerLists([]);
+            setStructureOutput(null);
             return;
         }
 
@@ -333,11 +339,65 @@ const DesignPeptideContainer = ({ children }) => {
 
 
     useEffect(() => {
-        console.log('Structure output updated:', structureOutput);
-        console.log('Monomers array length:', monomers.length);
-    }, [structureOutput]);
+        if (!sequences.length || !monomers.length) return;
 
-    let globalResidueIndex = 0;
+        let offset = 0;  // offset for slicing monomers
+
+        const lists = sequences.map((seq) => {
+            const count = seq.split('-').length;  // how many residues in this row
+            const slice = monomers.slice(offset, offset + count);  // take that many monomers from the current offset
+            offset += count;  // advance for next row
+            return slice;
+        });
+
+        setRowMonomerLists(lists);
+    }, [monomers, sequences]);
+
+
+    function decomposeBiln(biln) {
+        // ["A","-","C(1,3)","-","K","-","A","-","C"]
+        const parts = biln.split(/([.-])/);
+        const tokens = parts.filter((_, i) => i % 2 === 0);
+        const seps = parts.filter((_, i) => i % 2 === 1);
+        return { tokens, seps };
+    }
+
+    /**
+     * rowLists: array of rows, each row is an array of monomer objects in new order
+     * prevBiln: the original BILN string, e.g. "A-C-K-A-C"
+     */
+    function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
+        const { tokens: origTokens } = decomposeBiln(prevBiln);
+
+        // for each row, map your reordered monomers back to the original tokens
+        const rowStrs = rowLists.map((row) => {
+            const newTokens = row.map((m) => {
+                // extract the original position index from "C-4"
+                const idx = parseInt(m['res-idx'].split('-')[1], 10);
+                // grab the exact token (with any (id,rg) suffix) from origTokens
+                return origTokens[idx];
+            });
+            // join residues with '-' within a row
+            return newTokens.join('-');
+        });
+
+        // if you have multiple rows, stitch them with '.'
+        return rowStrs.join('.');
+    }
+
+    const handleReorder = (seqIdx, newRow) => {
+        setRowMonomerLists((prev) => {
+            const next = [...prev];
+            next[seqIdx] = newRow;
+
+            // rebuild bilnValue from all rows
+            const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
+            setBilnValue(newBiln);
+
+            return next;
+        });
+    };
+
 
     return (
         <>
@@ -371,26 +431,16 @@ const DesignPeptideContainer = ({ children }) => {
                             <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
                         </div>
 
-                        {sequences.map((seq, seqIdx) => {
-                            const filteredMonomers = seq
-                                .split('-')
-                                .map((monomer) => {
-                                    const currentIndex = globalResidueIndex++;
-                                    return monomers.find((m) => m['res-idx'] === `${monomer}-${currentIndex}`);
-                                })
-                                .filter(Boolean);
-
+                        {rowMonomerLists.map((list, seqIdx) => {
                             return (
                                 <MonomerList
                                     key={seqIdx}
-                                    monomers={filteredMonomers}
+                                    monomers={list}
                                     monomerListRef={monomerListRef}
                                     handleMonomerHover={handleMonomerHover}
                                     hoveredMonomer={hoveredMonomer}
-                                    selectedMonomer={selectedMonomer}
-                                    setSelectedMonomer={setSelectedMonomer}
-                                    handleMonomerLinking={null}
                                     onDelete={handleDeleteMonomerItem}
+                                    onReorder={(newOrder) => handleReorder(seqIdx, newOrder)}
                                 />
                             );
                         })}

@@ -1,6 +1,21 @@
 import { useEffect, useState, useRef } from 'react';
 import { log } from '../../../utils/dev';
 
+import {
+    DndContext,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    closestCenter
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    useSortable,
+    arrayMove,
+    horizontalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 
 
 export const _MonomerItem = ({
@@ -102,10 +117,8 @@ export const MonomerItem = ({
     hoveredMonomer,
     handleMonomerHover,
     onDelete,
-    extrema,
-    selectedMonomer,
-    setSelectedMonomer,
-    handleMonomerLinking
+    dragListeners = {},
+    dragAttributes = {}
 }) => {
     const isHovered = monomer['res-idx'] === hoveredMonomer;
 
@@ -124,7 +137,14 @@ export const MonomerItem = ({
             onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
             onMouseLeave={() => handleMonomerHover('')}
         >
-            {monomer.pdbName}
+            {/* Draggable area */}
+            <div
+                className="cursor-grab text-center"
+                {...dragAttributes}
+                {...dragListeners}
+            >
+                {monomer.pdbName}
+            </div>
 
             {/* ✕ icon appears only on hover */}
             {isHovered && (
@@ -142,15 +162,13 @@ export const MonomerItem = ({
 
                 </button>
             )}
-
-
-
         </div>
     );
 }
 
 
-export const MonomerList = ({
+
+export const _MonomerList = ({
     monomers,
     monomerListRef,
     handleMonomerHover,
@@ -183,5 +201,86 @@ export const MonomerList = ({
                 )
             })}
         </div>
+    );
+}
+
+
+function SortableMonomerItem(props) {
+    const { monomer } = props;
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({
+        id: monomer['res-idx'],
+        disabled: false,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <MonomerItem {...props} dragListeners={listeners} dragAttributes={attributes} />
+        </div>
+    );
+}
+
+
+export const MonomerList = ({
+    monomers,
+    monomerListRef,
+    handleMonomerHover,
+    hoveredMonomer,
+    selectedMonomer,
+    setSelectedMonomer,
+    handleMonomerLinking,
+    onDelete,
+    onReorder
+}) => {
+
+    const sensors = useSensors(useSensor(PointerSensor));
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = monomers.findIndex((m) => m['res-idx'] === active.id);
+        const newIndex = monomers.findIndex((m) => m['res-idx'] === over.id);
+
+        const newOrder = arrayMove(monomers, oldIndex, newIndex);
+        console.log('Reordered monomers:', oldIndex, newIndex, newOrder.map((m) => m['res-idx']));
+        onReorder(newOrder);
+    };
+
+    return (
+        <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+        >
+            <SortableContext
+                items={monomers.map((m) => m['res-idx'])}
+                strategy={horizontalListSortingStrategy}
+            >
+                <div ref={monomerListRef} className="flex min-h-12 border p-2 gap-x-1 m-1">
+                    {monomers.map((monomer, idx) => (
+                        <SortableMonomerItem
+                            key={monomer['res-idx']}
+                            monomer={monomer}
+                            hoveredMonomer={hoveredMonomer}
+                            handleMonomerHover={handleMonomerHover}
+                            onDelete={onDelete}
+                        />
+                    ))}
+                </div>
+            </SortableContext>
+        </DndContext>
     );
 }
