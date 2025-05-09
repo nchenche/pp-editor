@@ -109,22 +109,27 @@ export const SvgDepictionContainer = ({
 
     const onRGroupClick = (event) => {
         if (!svgData || !svgContainer?.current) return;
-        const group = event.currentTarget;
-        const indices = group.className.baseVal.split('indices_')[1].split(' ')[0];
-        const residueIndex = indices.split('_')[0];
-        const rGroupIndex = indices.split('_')[1];
 
-        // Use the functional updater to ensure the latest state is used
-        setMonomersToLink((prev) => {
-            return [
-                ...prev,
-                {
-                    residue: residueIndex,
-                    rgroup: rGroupIndex,
-                    indices: indices
-                }]
-        }
-        );
+        // 1. grab the class string
+        const base = event.currentTarget.className.baseVal;
+
+        // 2. extract the indices_<whatever> token
+        const match = base.match(/(?:^|\s)indices_([^\s]+)/);
+        if (!match) return;
+        const indices = match[1];         // e.g. "D_Pen-0_2" or "C-1_2"
+
+        // 3. split on the *last* underscore
+        const sep = indices.lastIndexOf('_');
+        const residue = indices.slice(0, sep);    // "D_Pen-0"
+        const rgroup = indices.slice(sep + 1);   // "2"
+
+        console.log('parsed→', { residue, rgroup, indices });
+
+        // 4. update state
+        setMonomersToLink((prev) => [
+            ...prev,
+            { residue, rgroup, indices }
+        ]);
     };
 
     const onBondClick = (event) => {

@@ -118,9 +118,12 @@ export const MonomerItem = ({
     handleMonomerHover,
     onDelete,
     dragListeners = {},
-    dragAttributes = {}
+    dragAttributes = {},
+    isNterCap = false,
+    isCterCap = false
 }) => {
     const isHovered = monomer['res-idx'] === hoveredMonomer;
+    const isCapped = isNterCap || isCterCap;
 
     const handleOnDelete = () => {
         onDelete(monomer);
@@ -128,8 +131,11 @@ export const MonomerItem = ({
 
     // Build container class names.
     let containerClasses =
-        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none cursor-pointer";
+        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none";
     if (isHovered) containerClasses += " outline outline-2 outline-slate-500";
+
+    let dragAreaClasses = "relative text-center";
+    if (!isCapped) dragAreaClasses += " cursor-grab";
 
     return (
         <div
@@ -139,10 +145,20 @@ export const MonomerItem = ({
         >
             {/* Draggable area */}
             <div
-                className="cursor-grab text-center"
+                className={dragAreaClasses}
                 {...dragAttributes}
                 {...dragListeners}
             >
+                {isNterCap && (
+                    <span className="absolute right-0 bottom-0 translate-x-[2px] translate-y-[10px] bg-green-400 text-white text-[0.5rem] font-bold rounded-full px-1">
+                        CAP
+                    </span>
+                )}
+                {isCterCap && (
+                    <span className="absolute left-0 bottom-0 translate-x-[-2px] translate-y-[10px] bg-blue-400 text-white text-[0.5rem] font-bold rounded-full px-1">
+                        CAP
+                    </span>
+                )}
                 {monomer.pdbName}
             </div>
 
@@ -207,6 +223,10 @@ export const _MonomerList = ({
 
 function SortableMonomerItem(props) {
     const { monomer } = props;
+
+    const isNterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[1] !== null;
+    const isCterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[0] !== null;
+
     const {
         attributes,
         listeners,
@@ -216,7 +236,7 @@ function SortableMonomerItem(props) {
         isDragging
     } = useSortable({
         id: monomer['res-idx'],
-        disabled: false,
+        disabled: isNterCap || isCterCap,
     });
 
     const style = {
@@ -227,7 +247,13 @@ function SortableMonomerItem(props) {
 
     return (
         <div ref={setNodeRef} style={style}>
-            <MonomerItem {...props} dragListeners={listeners} dragAttributes={attributes} />
+            <MonomerItem
+                {...props}
+                dragListeners={ isNterCap || isCterCap ? {} : listeners}
+                dragAttributes={ isNterCap || isCterCap ? {} : attributes}
+                isNterCap={isNterCap}
+                isCterCap={isCterCap}
+            />
         </div>
     );
 }

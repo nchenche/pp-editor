@@ -33,30 +33,37 @@ const sizeStyles = {
 
 
 const MonomerItem = ({
-    image,
-    name,
-    label,
+    monomer,
     size = "md",        // "sm" | "md" | "lg"
     onClick = null,
+    handleOnDoubleClick
 }) => {
     const styles = sizeStyles[size];
+    
+
+    const addMonomerOnDoubleClick = useCallback((event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        handleOnDoubleClick(monomer);
+    }, [handleOnDoubleClick]);
 
     return (
         <div
             className={`group relative ${styles.container} rounded-lg overflow-hidden shadow-lg hover:scale-105 transform transition-all cursor-pointer`}
             onClick={onClick}
+            onDoubleClick={addMonomerOnDoubleClick}
         >
             <img
-                src={`data:image/png;base64,${image}`}
-                alt={name}
+                src={`data:image/png;base64,${monomer.image_url}`}
+                alt={monomer.symbol}
                 className={`${styles.image} object-contain rounded-lg mx-auto p-1`}
             />
 
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-end ">
                 <div className="text-slate-600 text-center mx-auto my-[0.2rem]">
-                    <h3 className={`${styles.symbolSize} text-[0.72rem] text-slate-700 font-bold`}>{label}</h3>
-                    {name && <p className={`${styles.nameSize} text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap max-w-[5rem]`}>
-                        {name}
+                    <h3 className={`${styles.symbolSize} text-[0.72rem] text-slate-700 font-bold`}>{monomer.pdbName}</h3>
+                    {monomer.symbol && <p className={`${styles.nameSize} text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap max-w-[5rem]`}>
+                        {monomer.symbol}
                     </p>}
                 </div>
             </div>
@@ -65,16 +72,15 @@ const MonomerItem = ({
 };
 
 
-const ListMonomerLibrary = ({ monomers }) => {
+const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
         <div className="flex flex-wrap justify-center gap-6">
             {monomers.map((monomer) => (
                 <MonomerItem
                     key={monomer._id}
-                    image={monomer.image_url}
-                    name={monomer.symbol}
-                    label={monomer.pdbName}
+                    monomer={monomer}
                     size="sm"
+                    handleOnDoubleClick={handleOnDoubleClick}
                 />
             ))}
         </div>
@@ -82,7 +88,7 @@ const ListMonomerLibrary = ({ monomers }) => {
 }
 
 
-export const MonomerLibraryContainer = ({ filterValue }) => {
+export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
     const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
     const dataRef = useRef(null);
     const [filteredMonomers, setFilteredMonomers] = useState([]);
@@ -124,7 +130,7 @@ export const MonomerLibraryContainer = ({ filterValue }) => {
                         <div className="loader">Loading...</div>
                     </div>
                 ) : (
-                    <ListMonomerLibrary monomers={filteredMonomers} />
+                    <ListMonomerLibrary monomers={filteredMonomers} handleOnDoubleClick={onMonomerItemDoubleClick} />
                 )}
             </main>
         </>
