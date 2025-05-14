@@ -10,6 +10,9 @@ import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
 import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
 
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+
+
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import FormGroup from '@mui/material/FormGroup';
@@ -81,6 +84,23 @@ const DesignPeptideContainer = ({ children }) => {
     const API_BASE_URL = 'http://0.0.0.0:5000';
     let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
 
+
+    /**
+    * Decomposes a BILN string into tokens and separators.
+    * @param {string} biln - The BILN string to decompose.
+    * @returns {Object} - An object containing tokens and separators.
+    * @example
+    * Input: "A-C(1,3)-K-A-C(1,3)"
+    * Output: { tokens: ["A", "C(1,3)", "K", "A", "C(1,3)"], seps: ["-", "-", "-", "-"] }
+    */
+    function decomposeBiln(biln) {
+        // ["A","-","C(1,3)","-","K","-","A","-","C"]
+        const parts = biln.split(/([.-])/);
+        const tokens = parts.filter((_, i) => i % 2 === 0);
+        const seps = parts.filter((_, i) => i % 2 === 1);
+        return { tokens, seps };
+    }
+
     // Ensure to treat as a single sequence if the input doesn't include dots
     const getSequences = (input) => {
         const seqArr = input.includes('.') ? input.split('.') : [input];
@@ -143,62 +163,48 @@ const DesignPeptideContainer = ({ children }) => {
         }
     };
 
-    const _handleMonomerHover = (data) => {
-        // if (!data) return;
-
-        if (data) {
-            console.log('Hovered data:', data);
-            console.log(monomers);
-        }
-
-        if (typeof (data) === 'object') {
-            const monomer = monomers.filter((ele) => ele['res-idx'].split('-')[1] == (data.resid - 1))[0];
-            setHoveredMonomer(monomer['res-idx']);
-
-        } else {
-            setHoveredMonomer(data);
-        }
-    }
 
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
 
-        /* 1 . get the residue index of the monomer to be deleted */
-        const resIdx = parseInt((monomer['res-idx']).split('-')[1], 10);  // 0‑based
-        const bilnParts = bilnValue.split(/([.-])/);  // keep separators
-        const tokenIndex = resIdx * 2;  // residue token pos
-        const residueToken = bilnParts[tokenIndex];  // residue token
+        const resIdx = parseInt(monomer['res-idx'].split('-')[1], 10); // 0-based
+        const { tokens, seps } = decomposeBiln(bilnValue);
 
-        /* 2 . collect all connection IDs present on that residue */
-        const linkIds = Array.from(residueToken.matchAll(/\((\d+),\d+\)/g)).map((m) => m[1]);
+        const targetToken = tokens[resIdx];
 
-        /* 3 . remove each (id,rg) from every other residue */
-        if (linkIds.length) {
-            bilnParts.forEach((tok, i) => {
-                if (i % 2 === 0 && i !== tokenIndex) {                 // other residues only
+        // 1. Extract connection IDs from the token to remove
+        const linkIds = Array.from(targetToken.matchAll(/\((\d+),\d+\)/g)).map((m) => m[1]);
+
+        // 2. Remove all matching links from other tokens
+        if (linkIds.length > 0) {
+            tokens.forEach((tok, i) => {
+                if (i !== resIdx) {
                     linkIds.forEach((id) => {
-                        bilnParts[i] = bilnParts[i].replace(new RegExp(`\\(${id},\\d+\\)`, 'g'), '');
+                        tokens[i] = tok.replace(new RegExp(`\\(${id},\\d+\\)`, 'g'), '');
                     });
                 }
             });
         }
 
-        /* 4 . delete the residue itself + one adjacent separator   */
-        if (tokenIndex < bilnParts.length - 1) {
-            bilnParts.splice(tokenIndex, 2);   // remove [res, "-" | "."]
-        } else {
-            bilnParts.splice(tokenIndex - 1, 2); // last residue: remove prev sep
+        // 3. Remove the token and its associated separator
+        tokens.splice(resIdx, 1);
+
+        // 4. Handle separator removal carefully
+        if (seps.length > 0) {
+            const isNextSepRowSplit = seps[resIdx] === '.';
+            const sepIdxToRemove = isNextSepRowSplit ? resIdx - 1 : resIdx;
+
+            if (sepIdxToRemove >= 0 && sepIdxToRemove < seps.length) {
+                seps.splice(sepIdxToRemove, 1);
+            }
         }
 
-        /* 5 . write the new string – effects tied to bilnValue will refresh lists */
-        const newBiln = bilnParts.join('');
+        // 5. Rebuild the BILN
+        const newBiln = tokens.map((t, i) => t + (seps[i] || '')).join('').replace(/[-.\s]+$/g, '');
         setBilnValue(newBiln);
-    }
+    };
 
     const handleMonomerHover = useCallback((data) => {
-        if (data) {
-            console.log("length of monomers array:", monomers.length);
-        }
 
         if (typeof data === 'object') {
             const monomer = monomers.find((ele) =>
@@ -299,17 +305,11 @@ const DesignPeptideContainer = ({ children }) => {
     }, [monomers, sequences]);
 
 
-    function decomposeBiln(biln) {
-        // ["A","-","C(1,3)","-","K","-","A","-","C"]
-        const parts = biln.split(/([.-])/);
-        const tokens = parts.filter((_, i) => i % 2 === 0);
-        const seps = parts.filter((_, i) => i % 2 === 1);
-        return { tokens, seps };
-    }
-
     /**
-     * rowLists: array of rows, each row is an array of monomer objects in new order
-     * prevBiln: the original BILN string, e.g. "A-C-K-A-C"
+     * Rebuild the BILN string from the reordered monomer lists.
+     * @param {Array} rowLists - Array of rows, each row is an array of monomer objects in new order.
+     * @param {string} prevBiln - The original BILN string, e.g. "A-C-K-A-C".
+     * @returns {string} - The new BILN string.
      */
     function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
         const { tokens: origTokens } = decomposeBiln(prevBiln);
@@ -326,24 +326,18 @@ const DesignPeptideContainer = ({ children }) => {
             return newTokens.join('-');
         });
 
-        // if you have multiple rows, stitch them with '.'
-        return rowStrs.join('.');
+        // Join rows and clean any trailing characters on the final biln
+        return rowStrs.join('.').replace(/[-.\s]+$/g, '');
     }
 
-    const handleReorder = (seqIdx, newRow) => {
-        setRowMonomerLists((prev) => {
-            const next = [...prev];
-            next[seqIdx] = newRow;
-
-            // rebuild bilnValue from all rows
-            const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-            setBilnValue(newBiln);
-
-            return next;
-        });
-    };
-
-
+    /**
+     * Add a monomer to the current BILN string.
+     * @param {Object} monomer - The monomer object to add.
+     * @param {number} activeSeqIdx - The index of the active sequence.
+     * @param {string} bilnValue - The current BILN string.
+     * @param {Array} monomers - The list of all monomers.
+     * @param {Function} setBilnValue - Function to update the BILN string.
+     */
     function addMonomerToBiln(monomer) {
         if (!monomer) return;
 
@@ -411,6 +405,49 @@ const DesignPeptideContainer = ({ children }) => {
         console.log("Updated BILN:", newBiln);
     }
 
+    const handleOnDragEnd = (result) => {
+        // console.log('Drag result:', result);
+        const { source, destination, draggableId } = result;
+
+        if (!destination) {
+            return; // dropped outside the list
+        }
+        if (source.droppableId === destination.droppableId) {
+            // Reorder within the same list
+            const reorderedList = Array.from(rowMonomerLists[source.droppableId]);
+            const [removed] = reorderedList.splice(source.index, 1);
+            reorderedList.splice(destination.index, 0, removed);
+
+            setRowMonomerLists((prev) => {
+                const next = [...prev];
+                next[source.droppableId] = reorderedList;
+
+                const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
+                setBilnValue(newBiln);
+                console.log("Updated BILN:", newBiln);
+                return next;
+            });
+        }
+        else {
+            // Move between lists
+            const sourceList = Array.from(rowMonomerLists[source.droppableId]);
+            const destList = Array.from(rowMonomerLists[destination.droppableId]);
+            const [removed] = sourceList.splice(source.index, 1);
+            destList.splice(destination.index, 0, removed);
+
+            setRowMonomerLists((prev) => {
+                const next = [...prev];
+                next[source.droppableId] = sourceList;
+                next[destination.droppableId] = destList;
+
+                const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
+                setBilnValue(newBiln);
+                console.log("Updated BILN:", newBiln);
+                return next;
+            });
+        }
+    }
+
 
     return (
         <>
@@ -444,22 +481,34 @@ const DesignPeptideContainer = ({ children }) => {
                             <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
                         </div>
 
-                        {rowMonomerLists.map((list, seqIdx) => (
-                            <div
-                                key={seqIdx}
-                                onMouseEnter={() => setActiveSeqIdx(seqIdx)}
-                                className={seqIdx === activeSeqIdx ? 'ring-1 ring-blue-300 rounded-md' : ''}
-                            >
-                                <MonomerList
-                                    monomers={list}
-                                    monomerListRef={monomerListRef}
-                                    handleMonomerHover={handleMonomerHover}
-                                    hoveredMonomer={hoveredMonomer}
-                                    onDelete={handleDeleteMonomerItem}
-                                    onReorder={(newOrder) => handleReorder(seqIdx, newOrder)}
-                                />
-                            </div>
-                        ))}
+                        <DragDropContext
+                            onDragEnd={handleOnDragEnd}
+                        >
+                            {rowMonomerLists.map((list, seqIdx) => (
+                                <div
+                                    key={seqIdx}
+                                    onMouseEnter={() => setActiveSeqIdx(seqIdx)}
+                                    className={seqIdx === activeSeqIdx ? 'ring-1 ring-blue-300 rounded-md' : ''}
+                                >
+                                    <Droppable droppableId={`${seqIdx}`} direction='horizontal'>
+                                        {(provided) => (
+                                            <MonomerList
+                                                {...provided.droppableProps}
+                                                ref={provided.innerRef}
+                                                monomers={list}
+                                                monomerListRef={monomerListRef}
+                                                handleMonomerHover={handleMonomerHover}
+                                                hoveredMonomer={hoveredMonomer}
+                                                onDelete={handleDeleteMonomerItem}
+                                            >
+                                                {provided.placeholder}
+                                            </MonomerList>
+                                        )}
+
+                                    </Droppable>
+                                </div>
+                            ))}
+                        </DragDropContext>
 
                         <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
                             <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
@@ -503,7 +552,7 @@ const DesignPeptideContainer = ({ children }) => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
         </>
     );
 }

@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
 
 
 export const _MonomerItem = ({
@@ -114,11 +116,10 @@ export const _MonomerItem = ({
 
 export const MonomerItem = ({
     monomer,
+    index,
     hoveredMonomer,
     handleMonomerHover,
     onDelete,
-    dragListeners = {},
-    dragAttributes = {},
     isNterCap = false,
     isCterCap = false
 }) => {
@@ -131,182 +132,104 @@ export const MonomerItem = ({
 
     // Build container class names.
     let containerClasses =
-        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none";
+        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none bg-yellow-100 cursor-pointer";
     if (isHovered) containerClasses += " outline outline-2 outline-slate-500";
 
     let dragAreaClasses = "relative text-center";
     if (!isCapped) dragAreaClasses += " cursor-grab";
 
     return (
-        <div
-            className={containerClasses}
-            onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
-            onMouseLeave={() => handleMonomerHover('')}
+        <Draggable
+            key={monomer['res-idx']}
+            draggableId={monomer['res-idx'].toString()}
+            index={index}
         >
-            {/* Draggable area */}
-            <div
-                className={dragAreaClasses}
-                {...dragAttributes}
-                {...dragListeners}
-            >
-                {isNterCap && (
-                    <span className="absolute right-0 bottom-0 translate-x-[2px] translate-y-[10px] bg-green-400 text-white text-[0.5rem] font-bold rounded-full px-1">
-                        CAP
-                    </span>
-                )}
-                {isCterCap && (
-                    <span className="absolute left-0 bottom-0 translate-x-[-2px] translate-y-[10px] bg-blue-400 text-white text-[0.5rem] font-bold rounded-full px-1">
-                        CAP
-                    </span>
-                )}
-                {monomer.pdbName}
-            </div>
+            {(provided) => (
 
-            {/* ✕ icon appears only on hover */}
-            {isHovered && (
-                <button
-                    className="absolute -top-[18px] -right-1 p-1 text-slate-500 hover:text-slate-900 hover:scale-110 "
-                    aria-label="Delete monomer"
-                    onClick={(e) => {
-                        e.stopPropagation();   // keep parent click/drag unaffected
-                        handleOnDelete();
-                    }}
+                <div
+                    className={containerClasses}
+                    onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
+                    onMouseLeave={() => handleMonomerHover('')}
+                    {...provided.draggableProps}
+                    ref={provided.innerRef}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
-                        <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                    </svg>
+                    {/* Draggable area */}
+                    <div
+                        className={dragAreaClasses}
+                        {...provided.dragHandleProps}
+                    >
+                        {isNterCap && (
+                            <span className="absolute right-0 bottom-0 translate-x-[2px] translate-y-[10px] bg-green-400 text-white text-[0.5rem] font-bold rounded-full px-1">
+                                CAP
+                            </span>
+                        )}
+                        {isCterCap && (
+                            <span className="absolute left-0 bottom-0 translate-x-[-2px] translate-y-[10px] bg-blue-400 text-white text-[0.5rem] font-bold rounded-full px-1">
+                                CAP
+                            </span>
+                        )}
+                        {monomer.pdbName}
+                    </div>
 
-                </button>
+                    {/* ✕ icon appears only on hover */}
+                    {isHovered && (
+                        <button
+                            className="absolute -top-[18px] -right-1 p-1 text-slate-500 hover:text-slate-900 hover:scale-110 "
+                            aria-label="Delete monomer"
+                            onClick={(e) => {
+                                e.stopPropagation();   // keep parent click/drag unaffected
+                                handleOnDelete();
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
+                                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                            </svg>
+
+                        </button>
+                    )}
+                </div>
+
             )}
-        </div>
+
+        </Draggable>
     );
 }
 
+import { forwardRef } from 'react';
 
 
-export const _MonomerList = ({
+export const MonomerList = forwardRef(function MonomerList({
     monomers,
     monomerListRef,
     handleMonomerHover,
     hoveredMonomer,
-    selectedMonomer,
-    setSelectedMonomer,
-    handleMonomerLinking,
-    onDelete
-}) => {
+    onDelete,
+    children,  // placeholder will be passed here
+}, ref) {
+
     return (
         <div
-            ref={monomerListRef}
+            ref={ref}
             className='flex min-h-12 border p-2 gap-x-1 m-1'
         >
             {monomers.map((monomer, index) => {
-                const isNter = index === 0 ? true : false;
-                const isCter = index === monomers.length - 1 ? true : false;
+                const isNterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[1] !== null;
+                const isCterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[0] !== null;
+
                 return (
                     <MonomerItem
                         key={monomer['res-idx']}
+                        index={index}
                         monomer={monomer}
                         hoveredMonomer={hoveredMonomer}
                         handleMonomerHover={handleMonomerHover}
-                        extrema={{ isNter, isCter }}
-                        selectedMonomer={selectedMonomer}
-                        setSelectedMonomer={setSelectedMonomer}
-                        handleMonomerLinking={handleMonomerLinking}
                         onDelete={onDelete}
+                        isNterCap={isNterCap}
+                        isCterCap={isCterCap}
                     />
                 )
             })}
+            {children}
         </div>
     );
-}
-
-
-function SortableMonomerItem(props) {
-    const { monomer } = props;
-
-    const isNterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[1] !== null;
-    const isCterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[0] !== null;
-
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({
-        id: monomer['res-idx'],
-        disabled: isNterCap || isCterCap,
-    });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1
-    };
-
-    return (
-        <div ref={setNodeRef} style={style}>
-            <MonomerItem
-                {...props}
-                dragListeners={ isNterCap || isCterCap ? {} : listeners}
-                dragAttributes={ isNterCap || isCterCap ? {} : attributes}
-                isNterCap={isNterCap}
-                isCterCap={isCterCap}
-            />
-        </div>
-    );
-}
-
-
-export const MonomerList = ({
-    monomers,
-    monomerListRef,
-    handleMonomerHover,
-    hoveredMonomer,
-    selectedMonomer,
-    setSelectedMonomer,
-    handleMonomerLinking,
-    onDelete,
-    onReorder
-}) => {
-
-    const sensors = useSensors(useSensor(PointerSensor));
-
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        const oldIndex = monomers.findIndex((m) => m['res-idx'] === active.id);
-        const newIndex = monomers.findIndex((m) => m['res-idx'] === over.id);
-
-        const newOrder = arrayMove(monomers, oldIndex, newIndex);
-        console.log('Reordered monomers:', oldIndex, newIndex, newOrder.map((m) => m['res-idx']));
-        onReorder(newOrder);
-    };
-
-    return (
-        <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-        >
-            <SortableContext
-                items={monomers.map((m) => m['res-idx'])}
-                strategy={horizontalListSortingStrategy}
-            >
-                <div ref={monomerListRef} className="flex min-h-12 border p-2 gap-x-1 m-1">
-                    {monomers.map((monomer, idx) => (
-                        <SortableMonomerItem
-                            key={monomer['res-idx']}
-                            monomer={monomer}
-                            hoveredMonomer={hoveredMonomer}
-                            handleMonomerHover={handleMonomerHover}
-                            onDelete={onDelete}
-                        />
-                    ))}
-                </div>
-            </SortableContext>
-        </DndContext>
-    );
-}
+});
