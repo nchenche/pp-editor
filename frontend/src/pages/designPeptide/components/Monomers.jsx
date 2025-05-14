@@ -126,71 +126,73 @@ export const MonomerItem = ({
     const isHovered = monomer['res-idx'] === hoveredMonomer;
     const isCapped = isNterCap || isCterCap;
 
-    const handleOnDelete = () => {
-        onDelete(monomer);
-    }
-
     // Build container class names.
     let containerClasses =
-        "relative text-md border border-slate-500 h-fit min-w-8 text-center w-fit py-[0.05rem] px-[0.4rem] rounded-md  text-[0.75rem] select-none bg-yellow-100 cursor-pointer";
-    if (isHovered) containerClasses += " outline outline-2 outline-slate-500";
+        "relative flex items-center justify-center border border-slate-600 h-5 w-8 rounded-md text-[0.67rem] select-none bg-lime-50 cursor-pointe shadow-sm";
+    if (isHovered) containerClasses += " outline outline-1 outline-slate-600";
+
+    let capClassName = "absolute flex items-center justify-center bottom-0 translate-y-[80%] bg-blue-400 text-white text-[0.5rem] font-medium rounded-full w-6";
+    capClassName += isNterCap ? " bg-green-400" : " bg-blue-400";
 
     let dragAreaClasses = "relative text-center";
     if (!isCapped) dragAreaClasses += " cursor-grab";
 
-    return (
-        <Draggable
-            key={monomer['res-idx']}
-            draggableId={monomer['res-idx'].toString()}
-            index={index}
+
+    const handleOnDelete = () => {
+        onDelete(monomer);
+    }
+
+    const MonomerContent = ({ provided = {} }) => (
+        <div
+            className={containerClasses}
+            onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
+            onMouseLeave={() => handleMonomerHover('')}
+            ref={provided.innerRef}
+            {...provided.draggableProps}
         >
-            {(provided) => (
+            <div className={dragAreaClasses} {...(isCapped ? {} : provided.dragHandleProps)}>
+                {monomer.pdbName}
+            </div>
+            {isCapped && <span className={capClassName}>CAP</span>}
 
-                <div
-                    className={containerClasses}
-                    onMouseEnter={() => handleMonomerHover(monomer['res-idx'])}
-                    onMouseLeave={() => handleMonomerHover('')}
-                    {...provided.draggableProps}
-                    ref={provided.innerRef}
+            {/* Pellet connection flag */}
+            <div className='flex items-center justify-around absolute bottom-0 translate-y-[50%] w-7 h-3 border border-stone-800/10 ap-x-[0.2em]'>
+                {[...Array(4).keys()].map((i) => {
+                    return (
+                        <span key={i} className={`rounded bg-sky-600 w-[0.47em] h-[0.47em]`}></span>
+                    );
+                }
+                )}
+            </div>
+
+
+            {/* Delete button */}
+            {isHovered && (
+                <button
+                    className="absolute top-0 translate-y-[-110%] right-0 translate-x-[25%] text-slate-500 hover:text-slate-900 hover:scale-110 borde border-slate-500"
+                    aria-label="Delete monomer"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleOnDelete();
+                    }}
                 >
-                    {/* Draggable area */}
-                    <div
-                        className={dragAreaClasses}
-                        {...provided.dragHandleProps}
-                    >
-                        {isNterCap && (
-                            <span className="absolute right-0 bottom-0 translate-x-[2px] translate-y-[10px] bg-green-400 text-white text-[0.5rem] font-bold rounded-full px-1">
-                                CAP
-                            </span>
-                        )}
-                        {isCterCap && (
-                            <span className="absolute left-0 bottom-0 translate-x-[-2px] translate-y-[10px] bg-blue-400 text-white text-[0.5rem] font-bold rounded-full px-1">
-                                CAP
-                            </span>
-                        )}
-                        {monomer.pdbName}
-                    </div>
-
-                    {/* ✕ icon appears only on hover */}
-                    {isHovered && (
-                        <button
-                            className="absolute -top-[18px] -right-1 p-1 text-slate-500 hover:text-slate-900 hover:scale-110 "
-                            aria-label="Delete monomer"
-                            onClick={(e) => {
-                                e.stopPropagation();   // keep parent click/drag unaffected
-                                handleOnDelete();
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
-                                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                            </svg>
-
-                        </button>
-                    )}
-                </div>
-
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
+                        <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                    </svg>
+                </button>
             )}
+        </div>
+    );
 
+    // Return non-draggable when capped
+    if (isCapped) {
+        return <MonomerContent />;
+    }
+
+    // Return draggable when not capped
+    return (
+        <Draggable key={monomer['res-idx']} draggableId={monomer['res-idx'].toString()} index={index}>
+            {(provided) => <MonomerContent provided={provided} />}
         </Draggable>
     );
 }

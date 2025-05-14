@@ -49,9 +49,10 @@ const MonomerItem = ({
 
     return (
         <div
-            className={`group relative ${styles.container} rounded-lg overflow-hidden shadow-lg hover:scale-105 transform transition-all cursor-pointer`}
+            className={`group relative ${styles.container} rounded-lg overflow-hidden shadow-md hover:scale-105 transform transition-all cursor-pointer user-select-none`}
             onClick={onClick}
             onDoubleClick={addMonomerOnDoubleClick}
+            onMouseDown={(e) => e.preventDefault()} // Prevent text selection
         >
             <img
                 src={`data:image/png;base64,${monomer.image_url}`}
@@ -59,10 +60,11 @@ const MonomerItem = ({
                 className={`${styles.image} object-contain rounded-lg mx-auto p-1`}
             />
 
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-end ">
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all flex items-end">
                 <div className="text-slate-600 text-center mx-auto my-[0.2rem]">
-                    <h3 className={`${styles.symbolSize} text-[0.72rem] text-slate-700 font-bold`}>{monomer.pdbName}</h3>
-                    {monomer.symbol && <p className={`${styles.nameSize} text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap max-w-[5rem]`}>
+                    <div className={`${styles.symbolSize} text-[0.67em] text-slate-700 font-bold user-select-none`}>{monomer.pdbName}</div>
+
+                    {monomer.symbol && <p className={`${styles.nameSize} text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap max-w-[5rem] text-[0.6em]`}>
                         {monomer.symbol}
                     </p>}
                 </div>
