@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { log } from '../../../utils/dev';
 
 import {
@@ -75,7 +75,6 @@ export const MonomerItem = ({
 
 
     function getStyle(draggableProps, snapshot) {
-        console.log('getStyle', draggableProps, snapshot);
         const style = draggableProps?.style;
 
         // If not drop-animating, or there is no transform, just return as is
@@ -96,7 +95,7 @@ export const MonomerItem = ({
 
 
     const MonomerContent = ({ provided = {}, snapshot = {} }) => {
-        const style = snapshot.isDragging ? getStyle(provided.draggableProps, snapshot) : {};
+        const style = provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {};
 
         return (
             <div
