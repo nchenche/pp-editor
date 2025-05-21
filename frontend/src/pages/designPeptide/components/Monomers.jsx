@@ -75,7 +75,8 @@ export const MonomerItem = ({
 
 
     function getStyle(draggableProps, snapshot) {
-        const style = draggableProps.style;
+        console.log('getStyle', draggableProps, snapshot);
+        const style = draggableProps?.style;
 
         // If not drop-animating, or there is no transform, just return as is
         if (!snapshot.isDropAnimating || !style || !style.transform) {
@@ -95,6 +96,7 @@ export const MonomerItem = ({
 
 
     const MonomerContent = ({ provided = {}, snapshot = {} }) => {
+        const style = snapshot.isDragging ? getStyle(provided.draggableProps, snapshot) : {};
 
         return (
             <div
@@ -103,7 +105,7 @@ export const MonomerItem = ({
                 onMouseLeave={() => handleMonomerHover('')}
                 ref={provided.innerRef}
                 {...provided.draggableProps}
-                style={getStyle(provided.draggableProps, snapshot)}
+                style={style}
             >
                 <div className={dragAreaClasses} {...(isCapped ? {} : provided.dragHandleProps)} >
                     {monomer.pdbName}

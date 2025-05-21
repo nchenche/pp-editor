@@ -130,6 +130,7 @@ const DesignPeptideContainer = ({ children }) => {
         return seqArr.map((sequence) => (sequence.replace(/\([^)]*\)/g, '')));
     };
 
+
     const removeGroup = (str, target) => {
         // Build a regex that matches: an opening parenthesis,
         // followed by any characters (non-greedily) until a comma,
@@ -137,6 +138,7 @@ const DesignPeptideContainer = ({ children }) => {
         const regex = new RegExp("\\([^)]*?,\\s*" + target + "\\)", "g");
         return str.replace(regex, "");
     }
+
 
     const fetchData = async () => {
         try {
@@ -158,6 +160,7 @@ const DesignPeptideContainer = ({ children }) => {
             setFetchError(error);
         }
     }
+
 
     const handleGenerate3D = async () => {
         try {
@@ -229,7 +232,6 @@ const DesignPeptideContainer = ({ children }) => {
 
 
     const handleMonomerHover = useCallback((data) => {
-
         if (typeof data === 'object') {
             const monomer = monomers.find((ele) =>
                 ele['res-idx'].split('-')[1] == (data.resid - 1)
@@ -267,6 +269,7 @@ const DesignPeptideContainer = ({ children }) => {
         setBilnValue(bilnParts.join(''));
         setConnectionCounter((prev) => prev + 1);
     };
+
 
     const handlebondBreaking = (residues, rgroups) => {
         const res_idx1 = parseInt(residues[0]);
@@ -306,6 +309,7 @@ const DesignPeptideContainer = ({ children }) => {
         setConnectionCounter((prev) => prev - 1);
     };
 
+
     const handleDownloadArchive = () => {
         if (!structureOutput?.zip_download_url) return;
 
@@ -317,6 +321,7 @@ const DesignPeptideContainer = ({ children }) => {
         link.remove();
     };
 
+    
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
