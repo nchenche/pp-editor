@@ -8,15 +8,13 @@ import { setCanvasModule } from 'molstar/lib/mol-geo/geometry/text/font-atlas';
 
 // import { log, initializeRangeFilter } from '../../utils/dev'
 // import './styles.css'
-
-
-import { Droppable, Draggable } from '@hello-pangea/dnd';
-
+import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const sizeStyles = {
     sm: {
         container: "w-24 h-28",
-        image: "w-20",
+        image: "w-16",
         symbolSize: "text-sm",
         nameSize: "text-xs",
     },
@@ -52,26 +50,48 @@ const MonomerItem = ({
 
     return (
         <div
-            className={`group relative ${styles.container} bg-slate-50 rounded-lg overflow-hidden shadow-md hover:scale-105 transform transition-all cursor-pointer user-select-none`}
+            className="rounded-lg shadow-md w-24 h-28 border border-slate-300 group overflow-hidden transition-al  hover:scal-105 bg-white hover:border-stone-600 hover:outline-4"
             onClick={onClick}
             onDoubleClick={addMonomerOnDoubleClick}
-            onMouseDown={(e) => e.preventDefault()} // Prevent text selection
+            onMouseDown={(e) => e.preventDefault()} // Prevents text selection while dragging
         >
-            <img
-                src={`data:image/png;base64,${monomer.image_url}`}
-                alt={monomer.symbol}
-                className={`${styles.image} object-contain rounded-lg mx-auto p-1`}
-            />
+            <div className='flex justify-between items-center px-1 h-5 justify bg-slate-800 shadow-sm'>
 
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-5 transition-all flex items-end">
-                <div className="text-slate-600 text-center mx-auto my-[0.2rem]">
-                    <div className={`${styles.symbolSize} text-[0.67em] text-slate-700 font-bold user-select-none`}>{monomer.pdbName}</div>
+                <button
+                    onClick={() => console.log("Add to sequence")}
+                    className="rounded text-green-600/90 hover:text-lime-300 transition duration-100"
+                    title="Add monomer"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-[0.9rem] w-[0.9rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
 
-                    {monomer.symbol && <p className={`${styles.nameSize} text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap max-w-[5rem] text-[0.6em]`}>
-                        {monomer.symbol}
-                    </p>}
-                </div>
+                <button
+                    onClick={() => console.log("More info")}
+                    className="rounded text-neutral-200/80 hover:text-white"
+                    title="View details"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" />
+                    </svg>
+                </button>
+
             </div>
+            <div className='flex flex-col items-center justify-center border-b border-slate-300 h-[55%] w-full mb-[0.1rem]'>
+                <img
+                    src={`data:image/png;base64,${monomer.image_url}`}
+                    alt={`Structure of ${monomer.symbol}`}
+                    className="object-cove mx-auto  w-[65%]"
+                />
+
+            </div>
+
+            <div className="flex flex-col text-center">
+                <span className="text-[0.65rem] font-bold text-slate-700 user-select-none">{monomer.pdbName}</span>
+                <span className="relative -top-[0.1rem] text-[0.55rem] text-gray-600 truncate user-select-none mx-2">{monomer.symbol}</span>
+            </div>
+
         </div>
     );
 };
@@ -79,38 +99,17 @@ const MonomerItem = ({
 
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
-            <Droppable droppableId="library" direction="horizontal" isDropDisabled={true}>
-                {(droppableProvided, snapshot) => (
-                    <div
-                        ref={droppableProvided.innerRef}
-                        {...droppableProvided.droppableProps}
-                        className={`flex flex-wrap justify-center gap-6 p-4`}
-                    >
-                        {monomers.map((monomer, index) => (
-                            <MonomerItem
-                                key={monomer._id}
-                                monomer={monomer}
-                                size="sm"
-                                handleOnDoubleClick={handleOnDoubleClick}
-                            />
-                        ))}
-                        {droppableProvided.placeholder}
-                    </div>
-                )}
-            </Droppable>
+        <div className="flex flex-wrap justify-center gap-3">
+            {monomers.map((monomer) => (
+                <MonomerItem
+                    key={monomer._id}
+                    monomer={monomer}
+                    size="sm"
+                    handleOnDoubleClick={handleOnDoubleClick}
+                />
+            ))}
+        </div>
     )
-
-            {/* <div className="flex flex-wrap justify-center gap-6">
-                {monomers.map((monomer) => (
-                    <MonomerItem
-                        key={monomer._id}
-                        monomer={monomer}
-                        size="sm"
-                        handleOnDoubleClick={handleOnDoubleClick}
-                    />
-                ))}
-            </div> */}
-    // )
 }
 
 
