@@ -48,50 +48,66 @@ const MonomerItem = ({
         handleOnDoubleClick(monomer);
     }, [handleOnDoubleClick]);
 
+    const handleOnMouseEnter = useCallback((event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        console.log("Mouse enter", event.currentTarget);
+    }, []);
+
     return (
-        <div
-            className="rounded-lg shadow-md w-24 h-28 border border-slate-300 group overflow-hidden transition-al  hover:scal-105 bg-white hover:border-stone-600 hover:outline-4"
-            onClick={onClick}
-            onDoubleClick={addMonomerOnDoubleClick}
-            onMouseDown={(e) => e.preventDefault()} // Prevents text selection while dragging
-        >
-            <div className='flex justify-between items-center px-1 h-5 justify bg-slate-800 shadow-sm'>
+        <div className="relative w-20 rounded-lg shadow-md border border-slate-300 transition-all hover:scale-105 bg-white hover:outline-4">
+            {/* Tooltip layer outside clipping */}
+            <div className="absolute h-5 top-0 left-0 w-full flex justify-between px-1 z-50 bg-slate-800 rounded-t-lg">
+                {/* Add tooltip */}
+                <div className="relative group">
+                    <button
+                        onClick={() => console.log("Add to sequence")}
+                        className="text-green-600/90 hover:text-lime-300 p-[0.1rem]"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-[0.9rem] w-[0.9rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.6rem] px-1.5 py-[0.1rem] rounded bg-black text-white opacity-0 group-hover:opacity-60 transition pointer-events-none">
+                        Add monomer
+                    </div>
+                </div>
 
-                <button
-                    onClick={() => console.log("Add to sequence")}
-                    className="rounded text-green-600/90 hover:text-lime-300 transition duration-100"
-                    title="Add monomer"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-[0.9rem] w-[0.9rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                </button>
-
-                <button
-                    onClick={() => console.log("More info")}
-                    className="rounded text-neutral-200/80 hover:text-white"
-                    title="View details"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" />
-                    </svg>
-                </button>
-
-            </div>
-            <div className='flex flex-col items-center justify-center border-b border-slate-300 h-[55%] w-full mb-[0.1rem]'>
-                <img
-                    src={`data:image/png;base64,${monomer.image_url}`}
-                    alt={`Structure of ${monomer.symbol}`}
-                    className="object-cove mx-auto  w-[65%]"
-                />
-
+                {/* Info tooltip */}
+                <div className="relative group">
+                    <button
+                        onClick={() => console.log("More info")}
+                        className="text-neutral-200/80 hover:text-white p-[0.1rem]"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" />
+                        </svg>
+                    </button>
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[0.6rem] px-1.5 py-[0.1rem] rounded bg-black text-white opacity-0 group-hover:opacity-60 transition pointer-events-none">
+                        View details
+                    </div>
+                </div>
             </div>
 
-            <div className="flex flex-col text-center">
-                <span className="text-[0.65rem] font-bold text-slate-700 user-select-none">{monomer.pdbName}</span>
-                <span className="relative -top-[0.1rem] text-[0.55rem] text-gray-600 truncate user-select-none mx-2">{monomer.symbol}</span>
+            {/* Main card with overflow hidden */}
+            <div
+                className="w-full h-20 rounded-lg"
+                onClick={onClick}
+                onDoubleClick={addMonomerOnDoubleClick}
+                onMouseDown={(e) => e.preventDefault()}
+            >
+                <div className='flex flex-col items-center justify-center border-b border-slate-300 h-[78%] w-full mb-[0.1rem] mt-5'>
+                    <img
+                        src={`data:image/png;base64,${monomer.image_url}`}
+                        alt={`Structure of ${monomer.symbol}`}
+                        className="object-cover mx-auto w-[67%]"
+                    />
+                </div>
+                <div className="flex flex-col text-center">
+                    <span className="text-[0.65rem] font-bold text-slate-700 user-select-none">{monomer.pdbName}</span>
+                    {/* <span className="text-[0.55rem] text-gray-600 truncate user-select-none mx-2">{monomer.symbol}</span> */}
+                </div>
             </div>
-
         </div>
     );
 };
@@ -99,8 +115,8 @@ const MonomerItem = ({
 
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
-        <div className="flex flex-wrap justify-center gap-3">
-            {monomers.map((monomer) => (
+        <div className="relative flex flex-wrap justify-center gap-3">
+            {monomers.slice(0, 105).map((monomer) => (
                 <MonomerItem
                     key={monomer._id}
                     monomer={monomer}
@@ -151,7 +167,7 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
             {/* Main content area */}
             <main className="flex-1 p-6 border-2 h-full overflow-y-auto">
                 {isLoading ? (
-                    <div className="flex justify-center items-center ">
+                    <div className="relative flex justify-center items-center ">
                         <div className="loader">Loading...</div>
                     </div>
                 ) : (
