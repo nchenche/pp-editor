@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { log } from '../../utils/dev';
 
 
@@ -74,10 +74,9 @@ const DesignPeptideContainer = ({ children }) => {
 
     const [rowMonomerLists, setRowMonomerLists] = useState([]);
     const [activeSeqIdx, setActiveSeqIdx] = useState(0);
-
+    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
 
     const svgContainer = useRef(null);
-    const monomerListRef = useRef(null);
 
     // log('RENDERING DesignPeptideContainer');
     const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
@@ -99,6 +98,30 @@ const DesignPeptideContainer = ({ children }) => {
         const tokens = parts.filter((_, i) => i % 2 === 0);
         const seps = parts.filter((_, i) => i % 2 === 1);
         return { tokens, seps };
+    }
+
+    /**
+     * Builds a link map from a BILN string.
+     * @param {string} bilnValue - The BILN string to process.
+     * @returns {Object} - A map of link IDs to their corresponding monomer indices and R-groups.
+     * @example
+     * Input: "A-C(1,3)-K-A-C(1,3)"
+     * Output: { "1": [{ monomerIdx: 1, rgroup: 3 }, { monomerIdx: 4, rgroup: 3 }] }
+     */
+    function buildLinkMapFromBiln(bilnValue) {
+        const { tokens } = decomposeBiln(bilnValue);
+        const linkMap = {};
+        tokens.forEach((tok, monomerIdx) => {
+            const matches = Array.from(tok.matchAll(/\((\d+),(\d+)\)/g));
+            matches.forEach(([, linkId, rgroup]) => {
+                if (!linkMap[linkId]) linkMap[linkId] = [];
+                // Only add if not already there (defensive, in case of malformed BILN)
+                if (!linkMap[linkId].some(pair => pair.monomerIdx === monomerIdx && pair.rgroup === Number(rgroup))) {
+                    linkMap[linkId].push({ monomerIdx, rgroup: Number(rgroup) });
+                }
+            });
+        });
+        return linkMap;
     }
 
     // Ensure to treat as a single sequence if the input doesn't include dots
@@ -204,6 +227,7 @@ const DesignPeptideContainer = ({ children }) => {
         setBilnValue(newBiln);
     };
 
+
     const handleMonomerHover = useCallback((data) => {
 
         if (typeof data === 'object') {
@@ -221,6 +245,7 @@ const DesignPeptideContainer = ({ children }) => {
             setHoveredMonomer(data);
         }
     }, [monomers]);
+
 
     const handleMonomerLinking = (monomer1, monomer2) => {
         const res_idx1 = parseInt(monomer1.residue.split('-')[1]);
@@ -244,19 +269,41 @@ const DesignPeptideContainer = ({ children }) => {
     };
 
     const handlebondBreaking = (residues, rgroups) => {
-        const res1Idx = residues[0];
-        const res2Idx = residues[1];
-        const res1RgroupIdx = rgroups[0];
-        const res2RgroupIdx = rgroups[1];
+        const res_idx1 = parseInt(residues[0]);
+        const res_idx2 = parseInt(residues[1]);
+        const rgroup1 = parseInt(rgroups[0]);
+        const rgroup2 = parseInt(rgroups[1]);
 
-        console.log(`Breaking bond between ${res1Idx}-${res1RgroupIdx} and ${res2Idx}-${res2RgroupIdx}`);
+        // 1. Find the connectionId (linkMap key) being removed
+        const linkMapIdToRemove = Object.entries(linkMap).find(([connId, pairs]) => {
+            const ids = pairs.map(p => `${p.monomerIdx}-${p.rgroup}`);
+            const target1 = `${res_idx1}-${rgroup1}`;
+            const target2 = `${res_idx2}-${rgroup2}`;
 
+            return ids.includes(target1) && ids.includes(target2);
+        })?.[0];
+
+        const removedId = parseInt(linkMapIdToRemove, 10);
+
+
+        // 2. Remove the bond from the relevant monomers in bilnParts
         const bilnParts = bilnValue.split(/([.-])/);
-        bilnParts[res1Idx * 2] = removeGroup(bilnParts[res1Idx * 2], res1RgroupIdx);
-        bilnParts[res2Idx * 2] = removeGroup(bilnParts[res2Idx * 2], res2RgroupIdx);
+        bilnParts[res_idx1 * 2] = removeGroup(bilnParts[res_idx1 * 2], rgroup1);
+        bilnParts[res_idx2 * 2] = removeGroup(bilnParts[res_idx2 * 2], rgroup2);
 
-        setBilnValue(bilnParts.join(''));
-        setConnectionCounter((prev) => prev + 1);
+        // 3. Decrement all connection IDs > removedId throughout the BILN string
+        let newBiln = bilnParts.join('');
+        newBiln = newBiln.replace(/\((\d+),(\d+)\)/g, (match, n, rg) => {  // Pattern: \(N,rg\) where N > removedId
+            const nNum = parseInt(n, 10);
+            if (nNum > removedId) {
+                return `(${nNum - 1},${rg})`;
+            }
+            return match;
+        });
+
+        // 4. Update bilnValue and connectionCounter
+        setBilnValue(newBiln);
+        setConnectionCounter((prev) => prev - 1);
     };
 
     const handleDownloadArchive = () => {
@@ -484,19 +531,20 @@ const DesignPeptideContainer = ({ children }) => {
                         <DragDropContext
                             onDragEnd={handleOnDragEnd}
                         >
+
                             {rowMonomerLists.map((list, seqIdx) => (
                                 <div
                                     key={seqIdx}
                                     onMouseEnter={() => setActiveSeqIdx(seqIdx)}
                                     className={seqIdx === activeSeqIdx ? 'ring-1 ring-blue-300 rounded-md' : ''}
                                 >
-                                    <Droppable droppableId={`${seqIdx}`} direction='horizontal'>
-                                        {(provided) => (
+                                    <Droppable droppableId={`${seqIdx}`} direction='horizontal' className='border border-stone-500'>
+                                        {(provided, snapshot) => (
                                             <MonomerList
                                                 {...provided.droppableProps}
-                                                ref={provided.innerRef}
+                                                droppableRef={provided.innerRef}
                                                 monomers={list}
-                                                monomerListRef={monomerListRef}
+                                                linkMap={linkMap}
                                                 handleMonomerHover={handleMonomerHover}
                                                 hoveredMonomer={hoveredMonomer}
                                                 onDelete={handleDeleteMonomerItem}
@@ -504,7 +552,6 @@ const DesignPeptideContainer = ({ children }) => {
                                                 {provided.placeholder}
                                             </MonomerList>
                                         )}
-
                                     </Droppable>
                                 </div>
                             ))}
