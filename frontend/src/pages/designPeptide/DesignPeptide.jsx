@@ -321,7 +321,7 @@ const DesignPeptideContainer = ({ children }) => {
         link.remove();
     };
 
-    
+
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
@@ -504,38 +504,39 @@ const DesignPeptideContainer = ({ children }) => {
     return (
         <>
             <div className="flex flex-col md:flex-row-reverse m-4 max-h-[85vh]">
+                <DragDropContext
+                    onDragEnd={handleOnDragEnd}
+                >
 
-                {/* === Right Panel: Monomer Library (Visible on md+) === */}
-                <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
-                    <h2 className="text-lg font-semibold mb-2">Monomer Library</h2>
 
-                    <MonomerLibraryContainer filterValue={searchValue} onMonomerItemDoubleClick={addMonomerToBiln} />
-                </div>
+                    {/* === Right Panel: Monomer Library (Visible on md+) === */}
+                    <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
+                        <h2 className="text-lg font-semibold mb-2">Monomer Library</h2>
 
-                {/* === Search input for small screens === */}
-                <div className="block md:hidden mb-4 w-full">
-                    <input
-                        type="text"
-                        placeholder="Search monomers..."
-                        className="w-full px-3 py-2 border rounded-md shadow-sm"
-                    />
-                </div>
+                        <MonomerLibraryContainer filterValue={searchValue} onMonomerItemDoubleClick={addMonomerToBiln} />
+                    </div>
 
-                {/* === Main Content Area === */}
-                <div className="flex-1 overflow-hidden">
-                    <div className="border border-red-500 p-2 mx-auto w-fit">
+                    {/* === Search input for small screens === */}
+                    <div className="block md:hidden mb-4 w-full">
+                        <input
+                            type="text"
+                            placeholder="Search monomers..."
+                            className="w-full px-3 py-2 border rounded-md shadow-sm"
+                        />
+                    </div>
 
-                        <div className=''>
-                            <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
-                        </div>
+                    {/* === Main Content Area === */}
+                    <div className="flex-1 overflow-hidden">
+                        <div className="border border-red-500 p-2 mx-auto w-fit">
 
-                        <div className=''>
-                            <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
-                        </div>
+                            <div className=''>
+                                <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
+                            </div>
 
-                        <DragDropContext
-                            onDragEnd={handleOnDragEnd}
-                        >
+                            <div className=''>
+                                <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
+                            </div>
+
 
                             {rowMonomerLists.map((list, seqIdx) => (
                                 <div
@@ -560,50 +561,51 @@ const DesignPeptideContainer = ({ children }) => {
                                     </Droppable>
                                 </div>
                             ))}
-                        </DragDropContext>
 
-                        <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
-                            <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
-                                <SvgDepictionContainer
-                                    svgData={svgDepiction}
-                                    svgContainer={svgContainer}
-                                    handleMonomerHover={handleMonomerHover}
-                                    hoveredMonomer={hoveredMonomer}
-                                    isShowingAtomIndices={isShowingAtomIndices}
-                                    handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
-                                    handleMonomerLinking={handleMonomerLinking}
-                                    handlebondBreaking={handlebondBreaking}
-                                    error={fetchError}
-                                />
-                                <div className="flex justify-center flex-wrap gap-x-4">
-                                    <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
-                                        Generate 3D
-                                    </button>
-                                    <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
-                                        Download Archive
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
-                                {structureOutput?.pdb ? (
-                                    <MolStarViewer
-                                        pdbRawData={structureOutput?.pdb}
-                                        hoveredMonomer={hoveredMonomer}
+                            <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
+                                <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
+                                    <SvgDepictionContainer
+                                        svgData={svgDepiction}
+                                        svgContainer={svgContainer}
                                         handleMonomerHover={handleMonomerHover}
-                                        defaultRepresentation="ball-and-stick"
-                                        defaultColorScheme="residue-name"
-                                        height="400px"
-                                        width="100%"
-                                        error={generate3DError}
+                                        hoveredMonomer={hoveredMonomer}
+                                        isShowingAtomIndices={isShowingAtomIndices}
+                                        handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
+                                        handleMonomerLinking={handleMonomerLinking}
+                                        handlebondBreaking={handlebondBreaking}
+                                        error={fetchError}
                                     />
-                                ) : (
-                                    <div className="text-xl text-slate-500">No structure</div>
-                                )}
+                                    <div className="flex justify-center flex-wrap gap-x-4">
+                                        <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
+                                            Generate 3D
+                                        </button>
+                                        <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                                            Download Archive
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
+                                    {structureOutput?.pdb ? (
+                                        <MolStarViewer
+                                            pdbRawData={structureOutput?.pdb}
+                                            hoveredMonomer={hoveredMonomer}
+                                            handleMonomerHover={handleMonomerHover}
+                                            defaultRepresentation="ball-and-stick"
+                                            defaultColorScheme="residue-name"
+                                            height="400px"
+                                            width="100%"
+                                            error={generate3DError}
+                                        />
+                                    ) : (
+                                        <div className="text-xl text-slate-500">No structure</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </DragDropContext>
             </div >
         </>
     );

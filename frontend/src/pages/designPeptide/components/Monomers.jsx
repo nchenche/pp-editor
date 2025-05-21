@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Draggable } from '@hello-pangea/dnd';
 
 
 export const MonomerItem = ({

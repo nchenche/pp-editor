@@ -10,6 +10,9 @@ import { setCanvasModule } from 'molstar/lib/mol-geo/geometry/text/font-atlas';
 // import './styles.css'
 
 
+import { Droppable, Draggable } from '@hello-pangea/dnd';
+
+
 const sizeStyles = {
     sm: {
         container: "w-24 h-28",
@@ -39,7 +42,7 @@ const MonomerItem = ({
     handleOnDoubleClick
 }) => {
     const styles = sizeStyles[size];
-    
+
 
     const addMonomerOnDoubleClick = useCallback((event) => {
         event.stopPropagation();
@@ -49,7 +52,7 @@ const MonomerItem = ({
 
     return (
         <div
-            className={`group relative ${styles.container} rounded-lg overflow-hidden shadow-md hover:scale-105 transform transition-all cursor-pointer user-select-none`}
+            className={`group relative ${styles.container} bg-slate-50 rounded-lg overflow-hidden shadow-md hover:scale-105 transform transition-all cursor-pointer user-select-none`}
             onClick={onClick}
             onDoubleClick={addMonomerOnDoubleClick}
             onMouseDown={(e) => e.preventDefault()} // Prevent text selection
@@ -76,17 +79,38 @@ const MonomerItem = ({
 
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
-        <div className="flex flex-wrap justify-center gap-6">
-            {monomers.map((monomer) => (
-                <MonomerItem
-                    key={monomer._id}
-                    monomer={monomer}
-                    size="sm"
-                    handleOnDoubleClick={handleOnDoubleClick}
-                />
-            ))}
-        </div>
+            <Droppable droppableId="library" direction="horizontal" isDropDisabled={true}>
+                {(droppableProvided, snapshot) => (
+                    <div
+                        ref={droppableProvided.innerRef}
+                        {...droppableProvided.droppableProps}
+                        className={`flex flex-wrap justify-center gap-6 p-4`}
+                    >
+                        {monomers.map((monomer, index) => (
+                            <MonomerItem
+                                key={monomer._id}
+                                monomer={monomer}
+                                size="sm"
+                                handleOnDoubleClick={handleOnDoubleClick}
+                            />
+                        ))}
+                        {droppableProvided.placeholder}
+                    </div>
+                )}
+            </Droppable>
     )
+
+            {/* <div className="flex flex-wrap justify-center gap-6">
+                {monomers.map((monomer) => (
+                    <MonomerItem
+                        key={monomer._id}
+                        monomer={monomer}
+                        size="sm"
+                        handleOnDoubleClick={handleOnDoubleClick}
+                    />
+                ))}
+            </div> */}
+    // )
 }
 
 
