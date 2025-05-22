@@ -55,13 +55,13 @@ const MonomerItem = ({
     }, []);
 
     return (
-        <div className="relative w-20 rounded-lg shadow-md border border-slate-300 transition-all hover:scale-105 bg-white hover:outline-4">
+        <div className="relative w-20 rounded-lg shadow-md border border-slate-300 duration-200 hover:scale-105 transform-gpu bg-white">
             {/* Tooltip layer outside clipping */}
-            <div className="absolute h-5 top-0 left-0 w-full flex justify-between px-1 z-50 bg-slate-800 rounded-t-lg">
+            <div className="absolute top-0 left-0 w-full h-5 flex justify-between px-1 z-50 bg-slate-800 rounded-t-lg">
                 {/* Add tooltip */}
                 <div className="relative group">
                     <button
-                        onClick={() => console.log("Add to sequence")}
+                        onClick={addMonomerOnDoubleClick}
                         className="text-green-600/90 hover:text-lime-300 p-[0.1rem]"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-[0.9rem] w-[0.9rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,20 +91,18 @@ const MonomerItem = ({
 
             {/* Main card with overflow hidden */}
             <div
-                className="w-full h-20 rounded-lg"
-                onClick={onClick}
-                onDoubleClick={addMonomerOnDoubleClick}
+                className="w-full h-20"
                 onMouseDown={(e) => e.preventDefault()}
             >
-                <div className='flex flex-col items-center justify-center border-b border-slate-300 h-[78%] w-full mb-[0.1rem] mt-5'>
+                <div className='flex flex-col items-center justify-center shadow-md border-slate-300 h-[78%] w-full mb-[0.1rem] mt-5'>
                     <img
                         src={`data:image/png;base64,${monomer.image_url}`}
                         alt={`Structure of ${monomer.symbol}`}
-                        className="object-cover mx-auto w-[67%]"
+                        className="mx-auto w-[67%]"
                     />
                 </div>
                 <div className="flex flex-col text-center">
-                    <span className="text-[0.65rem] font-bold text-slate-700 user-select-none">{monomer.pdbName}</span>
+                    <span className="text-[0.65rem] font-bold text-slate-700 user-select-none cursor-default">{monomer.pdbName}</span>
                     {/* <span className="text-[0.55rem] text-gray-600 truncate user-select-none mx-2">{monomer.symbol}</span> */}
                 </div>
             </div>
@@ -116,7 +114,7 @@ const MonomerItem = ({
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
         <div className="relative flex flex-wrap justify-center gap-3">
-            {monomers.slice(0, 105).map((monomer) => (
+            {monomers.slice(0, 20).map((monomer) => (
                 <MonomerItem
                     key={monomer._id}
                     monomer={monomer}

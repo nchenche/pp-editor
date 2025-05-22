@@ -68,7 +68,6 @@ export const MonomerItem = ({
     let dragAreaClasses = "relative text-center";
     if (!isCapped) dragAreaClasses += " cursor-grab";
 
-
     const handleOnDelete = () => {
         onDelete(monomer);
     }
@@ -113,7 +112,7 @@ export const MonomerItem = ({
                 {isCapped && <span className={capClassName}>CAP</span>}
 
                 {/* Pellet connection flag */}
-                {linkIndices.length > 0 && (
+                {linkIndices.length > 0 && !snapshot.isDropAnimating && (
                     <div className='flex items-center justify-around absolute bottom-0 translate-y-[50%] w-7 h-3 ap-x-[0.2em]'>
                         {linkIndices.map((linkId, i) => (
 

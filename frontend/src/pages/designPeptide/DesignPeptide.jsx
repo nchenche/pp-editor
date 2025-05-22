@@ -258,9 +258,6 @@ const DesignPeptideContainer = ({ children }) => {
             `Linking ${res_idx1}-${rgroup1} and ${res_idx2}-${rgroup2} with connection ${connectionCounter}`
         );
 
-        console.log('monomer1:', monomer1);
-        console.log('monomer2:', monomer2);
-
         const bilnParts = bilnValue.split(/([.-])/);
         bilnParts[res_idx1 * 2] += `(${connectionCounter},${rgroup1})`;
         bilnParts[res_idx2 * 2] += `(${connectionCounter},${rgroup2})`;
@@ -343,6 +340,9 @@ const DesignPeptideContainer = ({ children }) => {
 
     useEffect(() => {
         if (!sequences.length || !monomers.length) return;
+
+        console.log('Sequences:', sequences);
+        console.log("rowMonomerLists", rowMonomerLists);
 
         let offset = 0;  // offset for slicing monomers
 
