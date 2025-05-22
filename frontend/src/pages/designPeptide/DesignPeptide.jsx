@@ -52,37 +52,7 @@ const InputSearch = ({ value, onChangeValue }) => {
 
 
 const DesignPeptideContainer = ({ children }) => {
-    const [fetchError, setFetchError] = useState(null);
-    const [generate3DError, setGenerate3DError] = useState(null);
-
-    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');  // A-C-K-A-C
-    const [svgDepiction, setSvgDepiction] = useState('');
-    const [monomers, setMonomers] = useState([]);
-    const [hoveredMonomer, setHoveredMonomer] = useState(null);
-    const [sequences, setSequences] = useState([]);
-    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
-    const [selectedMonomer, setSelectedMonomer] = useState(null);
-    const [connectionCounter, setConnectionCounter] = useState(1);
-    // const [monomersToLink, setMonomersToLink] = useState([]);
-
-    const [structureOutput, setStructureOutput] = useState(null);
-    const [generatedPdbUrl, setGeneratedPdbUrl] = useState(null);
-
-    // const [show3DViewer, setShow3DViewer] = useState(false);
-
-    const [searchValue, setSearchValue] = useState('');
-
-    const [rowMonomerLists, setRowMonomerLists] = useState([]);
-    const [activeSeqIdx, setActiveSeqIdx] = useState(0);
-    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
-
-    const svgContainer = useRef(null);
-
-    // log('RENDERING DesignPeptideContainer');
-    const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
-    const API_BASE_URL = 'http://0.0.0.0:5000';
-    let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
-
+    // Set up utilitary functions
 
     /**
     * Decomposes a BILN string into tokens and separators.
@@ -140,26 +110,41 @@ const DesignPeptideContainer = ({ children }) => {
     }
 
 
-    const fetchData = async () => {
-        try {
-            const response = await fetch(DEPICT_2D_URL + query);
-            if (!response.ok) {
-                const res = await response.json();
-                console.error(res.message);
-                setFetchError(res.message);
-                return;
-            }
-            const data = await response.json();
-            setSvgDepiction(data.data.svg);
-            setMonomers(data.data.monomers);
-            setSequences(getSequences(bilnValue));
 
-            setFetchError(null);
-        } catch (error) {
-            console.error(error);
-            setFetchError(error);
-        }
-    }
+    // State variables
+    const [fetchError, setFetchError] = useState(null);
+    const [generate3DError, setGenerate3DError] = useState(null);
+
+    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');  // A-C-K-A-C
+    const [svgDepiction, setSvgDepiction] = useState('');
+    const [monomers, setMonomers] = useState([]);
+    const [hoveredMonomer, setHoveredMonomer] = useState(null);
+    // const [sequences, setSequences] = useState([]);
+    const sequences = useMemo(() => {return bilnValue ? getSequences(bilnValue) : []}, [bilnValue]);
+    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
+    const [selectedMonomer, setSelectedMonomer] = useState(null);
+    const [connectionCounter, setConnectionCounter] = useState(1);
+    // const [monomersToLink, setMonomersToLink] = useState([]);
+
+    const [structureOutput, setStructureOutput] = useState(null);
+    const [generatedPdbUrl, setGeneratedPdbUrl] = useState(null);
+
+    // const [show3DViewer, setShow3DViewer] = useState(false);
+
+    const [searchValue, setSearchValue] = useState('');
+
+    const [rowMonomerLists, setRowMonomerLists] = useState([]);
+    const [activeSeqIdx, setActiveSeqIdx] = useState(0);
+    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
+
+    const svgContainer = useRef(null);
+
+    // log('RENDERING DesignPeptideContainer');
+    const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
+    const API_BASE_URL = 'http://0.0.0.0:5000';
+    let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
+
+
 
 
     const handleGenerate3D = async () => {
@@ -319,11 +304,33 @@ const DesignPeptideContainer = ({ children }) => {
     };
 
 
+    const fetchData = async () => {
+        try {
+            const response = await fetch(DEPICT_2D_URL + query);
+            if (!response.ok) {
+                const res = await response.json();
+                console.error(res.message);
+                setFetchError(res.message);
+                return;
+            }
+            const data = await response.json();
+            setSvgDepiction(data.data.svg);
+            setMonomers(data.data.monomers);
+            // setSequences(getSequences(bilnValue));
+
+            setFetchError(null);
+        } catch (error) {
+            console.error(error);
+            setFetchError(error);
+        }
+    }
+
+
     useEffect(() => {
         if (!bilnValue) {
             setSvgDepiction('');
             setMonomers([]);
-            setSequences([]);
+            // setSequences([]);
             setRowMonomerLists([]);
             setStructureOutput(null);
             return;
@@ -354,7 +361,7 @@ const DesignPeptideContainer = ({ children }) => {
         });
 
         setRowMonomerLists(lists);
-    }, [monomers, sequences]);
+    }, [monomers]);
 
 
     /**
@@ -507,7 +514,6 @@ const DesignPeptideContainer = ({ children }) => {
                 <DragDropContext
                     onDragEnd={handleOnDragEnd}
                 >
-
 
                     {/* === Right Panel: Monomer Library (Visible on md+) === */}
                     <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
