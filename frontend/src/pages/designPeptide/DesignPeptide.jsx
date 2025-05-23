@@ -52,7 +52,9 @@ const InputSearch = ({ value, onChangeValue }) => {
 
 
 const DesignPeptideContainer = ({ children }) => {
-    // Set up utilitary functions
+
+    /* SET UP UTILITARY FUNCTIONS */
+    /* -------------------------- */
 
     /**
     * Decomposes a BILN string into tokens and separators.
@@ -96,7 +98,10 @@ const DesignPeptideContainer = ({ children }) => {
 
     // Ensure to treat as a single sequence if the input doesn't include dots
     const getSequences = (input) => {
+        if (!input) return [];
+        // Split the input string by '.' to get the sequences
         const seqArr = input.includes('.') ? input.split('.') : [input];
+        // Remove any parentheses and their contents from each sequence
         return seqArr.map((sequence) => (sequence.replace(/\([^)]*\)/g, '')));
     };
 
@@ -109,18 +114,141 @@ const DesignPeptideContainer = ({ children }) => {
         return str.replace(regex, "");
     }
 
+    /**
+ * Rebuild the BILN string from the reordered monomer lists.
+ * @param {Array} rowLists - Array of rows, each row is an array of monomer objects in new order.
+ * @param {string} prevBiln - The original BILN string, e.g. "A-C-K-A-C".
+ * @returns {string} - The new BILN string.
+ */
+    function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
+        const { tokens: origTokens } = decomposeBiln(prevBiln);
+
+        // for each row, map your reordered monomers back to the original tokens
+        const rowStrs = rowLists.map((row) => {
+            const newTokens = row.map((m) => {
+                // extract the original position index from "C-4"
+                const idx = parseInt(m['res-idx'].split('-')[1], 10);
+                // grab the exact token (with any (id,rg) suffix) from origTokens
+                return origTokens[idx];
+            });
+            // join residues with '-' within a row
+            return newTokens.join('-');
+        });
+
+        // Join rows and clean any trailing characters on the final biln
+        return rowStrs.join('.').replace(/[-.\s]+$/g, '');
+    }
+
+    /**
+     * Add a monomer to the current BILN string.
+     * @param {Object} monomer - The monomer object to add.
+     * @param {number} activeSeqIdx - The index of the active sequence.
+     * @param {string} bilnValue - The current BILN string.
+     * @param {Array} monomers - The list of all monomers.
+     * @param {Function} setBilnValue - Function to update the BILN string.
+     */
+    function addMonomerToBiln(monomer) {
+        if (!monomer) return;
+
+        const code = monomer.symbol || monomer.m_abbr;
+        const isNterCap =
+            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
+        const isCterCap =
+            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
+
+        // 1. split into segments and trim stray separators
+        const trimmed = bilnValue.replace(/^[.-]+|[.-]+$/g, "");
+        const segments = trimmed.split(".");
+
+        // 2. target segment string and its monomer codes
+        const seg = segments[activeSeqIdx] || "";
+        const segMonomers = seg ? seg.split("-") : [];
+
+        // 3. find “global” offsets to look up current terminal monomers
+        const offset = segments
+            .slice(0, activeSeqIdx)
+            .reduce((sum, s) => sum + (s ? s.split("-").length : 0), 0);
+        const nterGlobalIdx = offset;
+        const cterGlobalIdx = offset + segMonomers.length - 1;
+
+        // 4. grab the actual monomer objects
+        const nterMonomer = monomers.find(
+            (m) => parseInt(m["res-idx"].split("-")[1], 10) === nterGlobalIdx
+        );
+        const cterMonomer = monomers.find(
+            (m) => parseInt(m["res-idx"].split("-")[1], 10) === cterGlobalIdx
+        );
+
+        // 5. detect if they’re already caps
+        const isNterCapped =
+            nterMonomer?.m_subtype === "cap" && nterMonomer.m_RgroupIdx[1] != null;
+        const isCterCapped =
+            cterMonomer?.m_subtype === "cap" && cterMonomer.m_RgroupIdx[0] != null;
+
+        // 6. build the new segment
+        let newSegMonomers = segMonomers.slice(); // copy array
+
+        if (isNterCap) {
+            if (isNterCapped) {
+                // replace index 0
+                newSegMonomers[0] = code;
+            } else {
+                // prepend
+                newSegMonomers.unshift(code);
+            }
+        } else {
+            if (isCterCap && isCterCapped) {
+                // replace last
+                newSegMonomers[newSegMonomers.length - 1] = code;
+            } else {
+                // append
+                newSegMonomers.push(code);
+            }
+        }
+
+        // 7. write back full BILN
+        segments[activeSeqIdx] = newSegMonomers.join("-");
+        const newBiln = segments.join(".");
+
+        setBilnValue(newBiln);
+        console.log("Updated BILN:", newBiln);
+    }
 
 
-    // State variables
+    const fetchData = async () => {
+        try {
+            const response = await fetch(DEPICT_2D_URL + query);
+            if (!response.ok) {
+                const res = await response.json();
+                console.error(res.message);
+                setFetchError(res.message);
+                return;
+            }
+            const data = await response.json();
+            setSvgDepiction(data.data.svg);
+            setMonomers(data.data.monomers);
+            // setSequences(getSequences(bilnValue));
+
+            setFetchError(null);
+        } catch (error) {
+            console.error(error);
+            setFetchError(error);
+        }
+    }
+    /* ********************** */
+
+
+    /* SET UP STATE VARIABLES */
+    /* ---------------------- */
+
     const [fetchError, setFetchError] = useState(null);
     const [generate3DError, setGenerate3DError] = useState(null);
 
-    const [bilnValue, setBilnValue] = useState('A-C-K-A-C');  // A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  //  A-C-K-A-C
     const [svgDepiction, setSvgDepiction] = useState('');
     const [monomers, setMonomers] = useState([]);
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
     // const [sequences, setSequences] = useState([]);
-    const sequences = useMemo(() => {return bilnValue ? getSequences(bilnValue) : []}, [bilnValue]);
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [selectedMonomer, setSelectedMonomer] = useState(null);
     const [connectionCounter, setConnectionCounter] = useState(1);
@@ -133,9 +261,11 @@ const DesignPeptideContainer = ({ children }) => {
 
     const [searchValue, setSearchValue] = useState('');
 
+    // const sequences = useMemo(() => { return bilnValue ? getSequences(bilnValue) : [] }, [bilnValue]);
     const [rowMonomerLists, setRowMonomerLists] = useState([]);
+
     const [activeSeqIdx, setActiveSeqIdx] = useState(0);
-    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
+    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers]);
 
     const svgContainer = useRef(null);
 
@@ -144,9 +274,56 @@ const DesignPeptideContainer = ({ children }) => {
     const API_BASE_URL = 'http://0.0.0.0:5000';
     let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
 
+    /* ********************** */
 
 
+    /* SET UP EFFECTS */
+    /* ------------- */
 
+    useEffect(() => {
+        if (!bilnValue) {
+            setSvgDepiction('');
+            setMonomers([]);
+            setRowMonomerLists([]);
+            setStructureOutput(null);
+            return;
+        }
+
+        const loadAndGenerate = async () => {
+            await fetchData();         // Wait until monomers are actually updated
+            await handleGenerate3D();  // THEN trigger 3D generation
+        };
+
+        loadAndGenerate();
+    }, [bilnValue, isShowingAtomIndices]);
+
+
+    useEffect(() => {
+        if (!monomers.length) {
+            setRowMonomerLists([]);
+            return;
+        }
+
+        const sequences = getSequences(bilnValue);
+        if (!sequences.length) {
+            setRowMonomerLists([]);
+            return;
+        }
+
+        let offset = 0;  // offset for slicing monomers
+        const lists = sequences.map((seq) => {
+            const count = seq.split('-').length;  // how many residues in this row
+            const slice = monomers.slice(offset, offset + count);  // take that many monomers from the current offset
+            offset += count;  // advance for next row
+            return slice;
+        });
+
+        setRowMonomerLists(lists);
+    }, [monomers]);
+
+
+    /* SET UP HANDLER FUNCTIONS */
+    /* ---------------------- */
     const handleGenerate3D = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/core/molecules/generate_3d`, {
@@ -304,166 +481,6 @@ const DesignPeptideContainer = ({ children }) => {
     };
 
 
-    const fetchData = async () => {
-        try {
-            const response = await fetch(DEPICT_2D_URL + query);
-            if (!response.ok) {
-                const res = await response.json();
-                console.error(res.message);
-                setFetchError(res.message);
-                return;
-            }
-            const data = await response.json();
-            setSvgDepiction(data.data.svg);
-            setMonomers(data.data.monomers);
-            // setSequences(getSequences(bilnValue));
-
-            setFetchError(null);
-        } catch (error) {
-            console.error(error);
-            setFetchError(error);
-        }
-    }
-
-
-    useEffect(() => {
-        if (!bilnValue) {
-            setSvgDepiction('');
-            setMonomers([]);
-            // setSequences([]);
-            setRowMonomerLists([]);
-            setStructureOutput(null);
-            return;
-        }
-
-        const loadAndGenerate = async () => {
-            await fetchData();         // Wait until monomers are actually updated
-            await handleGenerate3D();  // THEN trigger 3D generation
-        };
-
-        loadAndGenerate();
-    }, [bilnValue, isShowingAtomIndices]);
-
-
-    useEffect(() => {
-        if (!sequences.length || !monomers.length) return;
-
-        console.log('Sequences:', sequences);
-        console.log("rowMonomerLists", rowMonomerLists);
-
-        let offset = 0;  // offset for slicing monomers
-
-        const lists = sequences.map((seq) => {
-            const count = seq.split('-').length;  // how many residues in this row
-            const slice = monomers.slice(offset, offset + count);  // take that many monomers from the current offset
-            offset += count;  // advance for next row
-            return slice;
-        });
-
-        setRowMonomerLists(lists);
-    }, [monomers]);
-
-
-    /**
-     * Rebuild the BILN string from the reordered monomer lists.
-     * @param {Array} rowLists - Array of rows, each row is an array of monomer objects in new order.
-     * @param {string} prevBiln - The original BILN string, e.g. "A-C-K-A-C".
-     * @returns {string} - The new BILN string.
-     */
-    function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
-        const { tokens: origTokens } = decomposeBiln(prevBiln);
-
-        // for each row, map your reordered monomers back to the original tokens
-        const rowStrs = rowLists.map((row) => {
-            const newTokens = row.map((m) => {
-                // extract the original position index from "C-4"
-                const idx = parseInt(m['res-idx'].split('-')[1], 10);
-                // grab the exact token (with any (id,rg) suffix) from origTokens
-                return origTokens[idx];
-            });
-            // join residues with '-' within a row
-            return newTokens.join('-');
-        });
-
-        // Join rows and clean any trailing characters on the final biln
-        return rowStrs.join('.').replace(/[-.\s]+$/g, '');
-    }
-
-    /**
-     * Add a monomer to the current BILN string.
-     * @param {Object} monomer - The monomer object to add.
-     * @param {number} activeSeqIdx - The index of the active sequence.
-     * @param {string} bilnValue - The current BILN string.
-     * @param {Array} monomers - The list of all monomers.
-     * @param {Function} setBilnValue - Function to update the BILN string.
-     */
-    function addMonomerToBiln(monomer) {
-        if (!monomer) return;
-
-        const code = monomer.symbol || monomer.m_abbr;
-        const isNterCap =
-            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
-        const isCterCap =
-            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
-
-        // 1. split into segments and trim stray separators
-        const trimmed = bilnValue.replace(/^[.-]+|[.-]+$/g, "");
-        const segments = trimmed.split(".");
-
-        // 2. target segment string and its monomer codes
-        const seg = segments[activeSeqIdx] || "";
-        const segMonomers = seg ? seg.split("-") : [];
-
-        // 3. find “global” offsets to look up current terminal monomers
-        const offset = segments
-            .slice(0, activeSeqIdx)
-            .reduce((sum, s) => sum + (s ? s.split("-").length : 0), 0);
-        const nterGlobalIdx = offset;
-        const cterGlobalIdx = offset + segMonomers.length - 1;
-
-        // 4. grab the actual monomer objects
-        const nterMonomer = monomers.find(
-            (m) => parseInt(m["res-idx"].split("-")[1], 10) === nterGlobalIdx
-        );
-        const cterMonomer = monomers.find(
-            (m) => parseInt(m["res-idx"].split("-")[1], 10) === cterGlobalIdx
-        );
-
-        // 5. detect if they’re already caps
-        const isNterCapped =
-            nterMonomer?.m_subtype === "cap" && nterMonomer.m_RgroupIdx[1] != null;
-        const isCterCapped =
-            cterMonomer?.m_subtype === "cap" && cterMonomer.m_RgroupIdx[0] != null;
-
-        // 6. build the new segment
-        let newSegMonomers = segMonomers.slice(); // copy array
-
-        if (isNterCap) {
-            if (isNterCapped) {
-                // replace index 0
-                newSegMonomers[0] = code;
-            } else {
-                // prepend
-                newSegMonomers.unshift(code);
-            }
-        } else {
-            if (isCterCap && isCterCapped) {
-                // replace last
-                newSegMonomers[newSegMonomers.length - 1] = code;
-            } else {
-                // append
-                newSegMonomers.push(code);
-            }
-        }
-
-        // 7. write back full BILN
-        segments[activeSeqIdx] = newSegMonomers.join("-");
-        const newBiln = segments.join(".");
-
-        setBilnValue(newBiln);
-        console.log("Updated BILN:", newBiln);
-    }
-
     const handleOnDragEnd = (result) => {
         // console.log('Drag result:', result);
         const { source, destination, draggableId } = result;
@@ -471,6 +488,8 @@ const DesignPeptideContainer = ({ children }) => {
         if (!destination) {
             return; // dropped outside the list
         }
+
+        let newBiln = null;
         if (source.droppableId === destination.droppableId) {
             // Reorder within the same list
             const reorderedList = Array.from(rowMonomerLists[source.droppableId]);
@@ -481,9 +500,7 @@ const DesignPeptideContainer = ({ children }) => {
                 const next = [...prev];
                 next[source.droppableId] = reorderedList;
 
-                const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-                setBilnValue(newBiln);
-                console.log("Updated BILN:", newBiln);
+                newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
                 return next;
             });
         }
@@ -499,12 +516,12 @@ const DesignPeptideContainer = ({ children }) => {
                 next[source.droppableId] = sourceList;
                 next[destination.droppableId] = destList;
 
-                const newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-                setBilnValue(newBiln);
-                console.log("Updated BILN:", newBiln);
+                newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
                 return next;
             });
         }
+        if (newBiln) setBilnValue(() => newBiln);
+
     }
 
 

@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Draggable } from '@hello-pangea/dnd';
 
 
+
 export const MonomerItem = ({
     monomer,
     index,
@@ -52,7 +53,9 @@ export const MonomerItem = ({
         "#FFD166", // Pastel Yellow
     ];
 
-    const getLinkColor = (linkId) => linkColors[(parseInt(linkId, 10) - 1) % linkColors.length];
+    const monomerBondIndices = monomer.bond_idx;
+
+    // const getLinkColor = (linkId) => linkColors[(parseInt(linkId, 10) - 1) % linkColors.length];
 
     const isHovered = monomer['res-idx'] === hoveredMonomer;
     const isCapped = isNterCap || isCterCap;
@@ -92,8 +95,8 @@ export const MonomerItem = ({
         };
     }
 
-
     const MonomerContent = ({ provided = {}, snapshot = {} }) => {
+
         const style = provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {};
 
         return (
@@ -112,13 +115,13 @@ export const MonomerItem = ({
                 {isCapped && <span className={capClassName}>CAP</span>}
 
                 {/* Pellet connection flag */}
-                {linkIndices.length > 0 && !snapshot.isDropAnimating && (
+                {monomerBondIndices.length > 0 && !snapshot.isDropAnimating && (
                     <div className='flex items-center justify-around absolute bottom-0 translate-y-[50%] w-7 h-3 ap-x-[0.2em]'>
-                        {linkIndices.map((linkId, i) => (
+                        {monomerBondIndices.map((linkId) => (
 
                             <span
                                 key={linkId}
-                                style={{ background: getLinkColor(linkId) }}
+                                style={{ background: linkColors[linkId] }}
                                 className="rounded w-[0.47em] h-[0.47em] mx-[1px] border border-stone-800"
                             />
                         ))}
@@ -166,7 +169,7 @@ export const MonomerList = ({
     hoveredMonomer,
     onDelete,
     children,  // placeholder will be passed here
-    droppableRef
+    droppableRef,
 }) => {
 
     return (
