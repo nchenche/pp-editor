@@ -114,7 +114,7 @@ const MonomerItem = ({
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
         <div className="relative flex flex-wrap justify-center gap-3">
-            {monomers.slice(0, 20).map((monomer) => (
+            {monomers.map((monomer) => (
                 <MonomerItem
                     key={monomer._id}
                     monomer={monomer}

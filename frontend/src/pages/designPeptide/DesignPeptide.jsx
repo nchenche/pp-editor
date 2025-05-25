@@ -228,6 +228,7 @@ const DesignPeptideContainer = ({ children }) => {
             setSvgDepiction(data.data.svg);
             setMonomers(data.data.monomers);
             // setSequences(getSequences(bilnValue));
+            console.log('smiles:', data.data.smiles);
 
             setFetchError(null);
         } catch (error) {
