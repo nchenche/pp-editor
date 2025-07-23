@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { log } from '../../utils/dev';
 
+import {
+    decomposeBiln,
+    buildLinkMapFromBiln,
+    getSequences,
+    removeGroup,
+    buildBilnFromRowMonomerLists,
+} from '../../utils/bilnUtils';
+
+import { useFetchDepiction } from '../../hooks/useFetchDepiction';
+import { useGenerate3D } from '../../hooks/useGenerate3D';
+
 
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
 import { MonomerItem, MonomerList } from './components/Monomers';
@@ -9,16 +20,11 @@ import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
 // import MolStarViewer from './components/MolBasicWrapper';
 import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
-
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 
 
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Paper from '@mui/material/Paper';
-import Switch from '@mui/material/Switch'; import TextField from '@mui/material/TextField';
+const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
+const API_BASE_URL = 'http://0.0.0.0:5000';
 
 
 const InputBiln = ({ value, onChangeValue }) => {
@@ -53,91 +59,6 @@ const InputSearch = ({ value, onChangeValue }) => {
 
 const DesignPeptideContainer = ({ children }) => {
 
-    /* SET UP UTILITARY FUNCTIONS */
-    /* -------------------------- */
-
-    /**
-    * Decomposes a BILN string into tokens and separators.
-    * @param {string} biln - The BILN string to decompose.
-    * @returns {Object} - An object containing tokens and separators.
-    * @example
-    * Input: "A-C(1,3)-K-A-C(1,3)"
-    * Output: { tokens: ["A", "C(1,3)", "K", "A", "C(1,3)"], seps: ["-", "-", "-", "-"] }
-    */
-    function decomposeBiln(biln) {
-        // ["A","-","C(1,3)","-","K","-","A","-","C"]
-        const parts = biln.split(/([.-])/);
-        const tokens = parts.filter((_, i) => i % 2 === 0);
-        const seps = parts.filter((_, i) => i % 2 === 1);
-        return { tokens, seps };
-    }
-
-    /**
-     * Builds a link map from a BILN string.
-     * @param {string} bilnValue - The BILN string to process.
-     * @returns {Object} - A map of link IDs to their corresponding monomer indices and R-groups.
-     * @example
-     * Input: "A-C(1,3)-K-A-C(1,3)"
-     * Output: { "1": [{ monomerIdx: 1, rgroup: 3 }, { monomerIdx: 4, rgroup: 3 }] }
-     */
-    function buildLinkMapFromBiln(bilnValue) {
-        const { tokens } = decomposeBiln(bilnValue);
-        const linkMap = {};
-        tokens.forEach((tok, monomerIdx) => {
-            const matches = Array.from(tok.matchAll(/\((\d+),(\d+)\)/g));
-            matches.forEach(([, linkId, rgroup]) => {
-                if (!linkMap[linkId]) linkMap[linkId] = [];
-                // Only add if not already there (defensive, in case of malformed BILN)
-                if (!linkMap[linkId].some(pair => pair.monomerIdx === monomerIdx && pair.rgroup === Number(rgroup))) {
-                    linkMap[linkId].push({ monomerIdx, rgroup: Number(rgroup) });
-                }
-            });
-        });
-        return linkMap;
-    }
-
-    // Ensure to treat as a single sequence if the input doesn't include dots
-    const getSequences = (input) => {
-        if (!input) return [];
-        // Split the input string by '.' to get the sequences
-        const seqArr = input.includes('.') ? input.split('.') : [input];
-        // Remove any parentheses and their contents from each sequence
-        return seqArr.map((sequence) => (sequence.replace(/\([^)]*\)/g, '')));
-    };
-
-
-    const removeGroup = (str, target) => {
-        // Build a regex that matches: an opening parenthesis,
-        // followed by any characters (non-greedily) until a comma,
-        // optional whitespace, the target value, and then a closing parenthesis.
-        const regex = new RegExp("\\([^)]*?,\\s*" + target + "\\)", "g");
-        return str.replace(regex, "");
-    }
-
-    /**
- * Rebuild the BILN string from the reordered monomer lists.
- * @param {Array} rowLists - Array of rows, each row is an array of monomer objects in new order.
- * @param {string} prevBiln - The original BILN string, e.g. "A-C-K-A-C".
- * @returns {string} - The new BILN string.
- */
-    function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
-        const { tokens: origTokens } = decomposeBiln(prevBiln);
-
-        // for each row, map your reordered monomers back to the original tokens
-        const rowStrs = rowLists.map((row) => {
-            const newTokens = row.map((m) => {
-                // extract the original position index from "C-4"
-                const idx = parseInt(m['res-idx'].split('-')[1], 10);
-                // grab the exact token (with any (id,rg) suffix) from origTokens
-                return origTokens[idx];
-            });
-            // join residues with '-' within a row
-            return newTokens.join('-');
-        });
-
-        // Join rows and clean any trailing characters on the final biln
-        return rowStrs.join('.').replace(/[-.\s]+$/g, '');
-    }
 
     /**
      * Add a monomer to the current BILN string.
@@ -242,8 +163,12 @@ const DesignPeptideContainer = ({ children }) => {
     /* SET UP STATE VARIABLES */
     /* ---------------------- */
 
+
+    const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
+    const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
+
     const [fetchError, setFetchError] = useState(null);
-    const [generate3DError, setGenerate3DError] = useState(null);
+    // const [generate3DError, setGenerate3DError] = useState(null);
 
     const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  //  A-C-K-A-C
     const [svgDepiction, setSvgDepiction] = useState('');
@@ -255,8 +180,7 @@ const DesignPeptideContainer = ({ children }) => {
     const [connectionCounter, setConnectionCounter] = useState(1);
     // const [monomersToLink, setMonomersToLink] = useState([]);
 
-    const [structureOutput, setStructureOutput] = useState(null);
-    const [generatedPdbUrl, setGeneratedPdbUrl] = useState(null);
+    // const [structureOutput, setStructureOutput] = useState(null);
 
     // const [show3DViewer, setShow3DViewer] = useState(false);
 
@@ -271,9 +195,9 @@ const DesignPeptideContainer = ({ children }) => {
     const svgContainer = useRef(null);
 
     // log('RENDERING DesignPeptideContainer');
-    const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
-    const API_BASE_URL = 'http://0.0.0.0:5000';
-    let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
+    // const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
+    // const API_BASE_URL = 'http://0.0.0.0:5000';
+    // let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
 
     /* ********************** */
 
@@ -290,9 +214,19 @@ const DesignPeptideContainer = ({ children }) => {
             return;
         }
 
+        // const loadAndGenerate = async () => {
+        //     await fetchData();         // Wait until monomers are actually updated
+        //     await handleGenerate3D();  // THEN trigger 3D generation
+        // };
+
+        const query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
         const loadAndGenerate = async () => {
-            await fetchData();         // Wait until monomers are actually updated
-            await handleGenerate3D();  // THEN trigger 3D generation
+            await fetchDepiction(DEPICT_2D_URL + query);
+            await generate3D(bilnValue);
+
+            setSvgDepiction(depictionData.svg);
+            setMonomers(depictionData.monomers);
+            console.log('smiles:', depictionData.smiles);
         };
 
         loadAndGenerate();
