@@ -16,11 +16,10 @@ import { useGenerate3D } from '../../hooks/useGenerate3D';
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
 import { MonomerItem, MonomerList } from './components/Monomers';
 import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
-// import MolStarViewer from './components/MolstarTest';
-// import MolStarViewer from './components/MolBasicWrapper';
 import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import TextField from '@mui/material/TextField';
 
 
 const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
@@ -136,29 +135,6 @@ const DesignPeptideContainer = ({ children }) => {
     }
 
 
-    const fetchData = async () => {
-        try {
-            const response = await fetch(DEPICT_2D_URL + query);
-            if (!response.ok) {
-                const res = await response.json();
-                console.error(res.message);
-                setFetchError(res.message);
-                return;
-            }
-            const data = await response.json();
-            setSvgDepiction(data.data.svg);
-            setMonomers(data.data.monomers);
-            // setSequences(getSequences(bilnValue));
-            console.log('smiles:', data.data.smiles);
-
-            setFetchError(null);
-        } catch (error) {
-            console.error(error);
-            setFetchError(error);
-        }
-    }
-    /* ********************** */
-
 
     /* SET UP STATE VARIABLES */
     /* ---------------------- */
@@ -167,12 +143,11 @@ const DesignPeptideContainer = ({ children }) => {
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [fetchError, setFetchError] = useState(null);
-    // const [generate3DError, setGenerate3DError] = useState(null);
 
     const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  //  A-C-K-A-C
-    const [svgDepiction, setSvgDepiction] = useState('');
-    const [monomers, setMonomers] = useState([]);
+    const svgDepiction = depictionData?.svg || '';
+    const monomers = depictionData?.monomers || [];
+
     const [hoveredMonomer, setHoveredMonomer] = useState(null);
     // const [sequences, setSequences] = useState([]);
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
@@ -207,8 +182,7 @@ const DesignPeptideContainer = ({ children }) => {
 
     useEffect(() => {
         if (!bilnValue) {
-            setSvgDepiction('');
-            setMonomers([]);
+            setDepictionData(null);
             setRowMonomerLists([]);
             setStructureOutput(null);
             return;
@@ -223,10 +197,6 @@ const DesignPeptideContainer = ({ children }) => {
         const loadAndGenerate = async () => {
             await fetchDepiction(DEPICT_2D_URL + query);
             await generate3D(bilnValue);
-
-            setSvgDepiction(depictionData.svg);
-            setMonomers(depictionData.monomers);
-            console.log('smiles:', depictionData.smiles);
         };
 
         loadAndGenerate();
@@ -257,36 +227,7 @@ const DesignPeptideContainer = ({ children }) => {
     }, [monomers]);
 
 
-    /* SET UP HANDLER FUNCTIONS */
-    /* ---------------------- */
-    const handleGenerate3D = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/core/molecules/generate_3d`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sequence: bilnValue,
-                })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                console.error('3D Generation error:', err.message);
-                return;
-            }
-
-            const result = await response.json();
-            setStructureOutput(result.data); // save the full structure payload
-            const pdbUrl = `${API_BASE_URL}${result.data.pdb_download_url}`;
-            // console.log('Generated data:', result.data);
-            // setGeneratedPdbUrl(pdbUrl);
-        } catch (error) {
-            console.error('Error during 3D generation:', error);
-            setGenerate3DError(error);
-        }
-    };
-
-
+    
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
 
@@ -532,12 +473,12 @@ const DesignPeptideContainer = ({ children }) => {
                                         handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
                                         handleMonomerLinking={handleMonomerLinking}
                                         handlebondBreaking={handlebondBreaking}
-                                        error={fetchError}
+                                        error={depictionError}
                                     />
                                     <div className="flex justify-center flex-wrap gap-x-4">
-                                        <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
+                                        {/* <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
                                             Generate 3D
-                                        </button>
+                                        </button> */}
                                         <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
                                             Download Archive
                                         </button>
