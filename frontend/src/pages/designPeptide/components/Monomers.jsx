@@ -1,22 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { log } from '../../../utils/dev';
 
-import {
-    DndContext,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    closestCenter
-} from '@dnd-kit/core';
-import {
-    SortableContext,
-    useSortable,
-    arrayMove,
-    horizontalListSortingStrategy
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
 import { Draggable } from '@hello-pangea/dnd';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
 
 
@@ -54,6 +40,9 @@ export const MonomerItem = ({
     ];
 
     const monomerBondIndices = monomer.bond_idx;
+    const [selectedMonomer, setSelectedMonomer] = useState(null);
+    const [isSelectedMonomer, setIsSelectedMonomer] = useState(false);
+
 
     // const getLinkColor = (linkId) => linkColors[(parseInt(linkId, 10) - 1) % linkColors.length];
 
@@ -64,6 +53,7 @@ export const MonomerItem = ({
     let containerClasses =
         "relative flex items-center justify-center border border-slate-600 h-5 w-8 rounded-md text-[0.67rem] select-none bg-lime-50 cursor-pointe shadow-sm";
     if (isHovered) containerClasses += " outline outline-1 outline-slate-600";
+    if (isSelectedMonomer) containerClasses += " outline outline-1 outline-slate-400 shadow-lg bg-lime-100";
 
     let capClassName = "absolute flex items-center justify-center bottom-0 translate-y-[80%] bg-blue-400 text-white text-[0.5rem] font-medium rounded-full w-6";
     capClassName += isNterCap ? " bg-green-400" : " bg-blue-400";
@@ -132,7 +122,7 @@ export const MonomerItem = ({
                 {/* Delete button */}
                 {isHovered && (
                     <button
-                        className="absolute top-0 translate-y-[-110%] right-0 translate-x-[25%] text-slate-500 hover:text-slate-900 hover:scale-110 borde border-slate-500"
+                        className="absolute top-0 translate-y-[-110%] right-0 translate-x-[25%] text-slate-500 hover:text-slate-900 hover:scale-110"
                         aria-label="Delete monomer"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -142,6 +132,21 @@ export const MonomerItem = ({
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 pointer-events-none">
                             <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
                         </svg>
+                    </button>
+                )}
+
+                {isHovered && (
+                    <button
+                        className="absolute top-0 left-0 translate-x-[-0%] translate-y-[-100%]"
+                        aria-label="Replace monomer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            console.log(monomer);
+                            setIsSelectedMonomer(!isSelectedMonomer);
+                            setSelectedMonomer(monomer);
+                        }}
+                    >
+                        <SwapHorizIcon sx={{ fontSize: 14 }} className="text-slate-500 hover:text-slate-900" />
                     </button>
                 )}
             </div>
