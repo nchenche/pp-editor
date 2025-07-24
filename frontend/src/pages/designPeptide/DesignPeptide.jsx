@@ -148,31 +148,29 @@ const DesignPeptideContainer = ({ children }) => {
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
 
-    const [hoveredMonomer, setHoveredMonomer] = useState(null);
-    // const [sequences, setSequences] = useState([]);
+    // const [hoveredMonomer, setHoveredMonomer] = useState(null);
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [selectedMonomer, setSelectedMonomer] = useState(null);
-    const [connectionCounter, setConnectionCounter] = useState(1);
-    // const [monomersToLink, setMonomersToLink] = useState([]);
+    const [activeSeqIdx, setActiveSeqIdx] = useState(0);
 
-    // const [structureOutput, setStructureOutput] = useState(null);
+    const [uiState, setUiState] = useState({
+        activeSeqIdx: 0,
+        selectedMonomer: null,
+        hoveredMonomer: null,
+    });
 
-    // const [show3DViewer, setShow3DViewer] = useState(false);
+
 
     const [searchValue, setSearchValue] = useState('');
 
     // const sequences = useMemo(() => { return bilnValue ? getSequences(bilnValue) : [] }, [bilnValue]);
     const [rowMonomerLists, setRowMonomerLists] = useState([]);
 
-    const [activeSeqIdx, setActiveSeqIdx] = useState(0);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers]);
 
     const svgContainer = useRef(null);
 
-    // log('RENDERING DesignPeptideContainer');
-    // const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
-    // const API_BASE_URL = 'http://0.0.0.0:5000';
-    // let query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
+
 
     /* ********************** */
 
@@ -227,7 +225,7 @@ const DesignPeptideContainer = ({ children }) => {
     }, [monomers]);
 
 
-    
+
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
 
@@ -280,9 +278,17 @@ const DesignPeptideContainer = ({ children }) => {
                 return;
             }
 
-            setHoveredMonomer(monomer['res-idx']);
+            // setHoveredMonomer(monomer['res-idx']);
+            setUiState((prev) => ({
+                ...prev,
+                hoveredMonomer: monomer['res-idx'],
+            }));
         } else {
-            setHoveredMonomer(data);
+            setUiState((prev) => ({
+                ...prev,
+                hoveredMonomer: data,
+            }));
+            // setHoveredMonomer(data);
         }
     }, [monomers]);
 
@@ -292,21 +298,25 @@ const DesignPeptideContainer = ({ children }) => {
         const res_idx2 = parseInt(monomer2.residue.split('-')[1]);
         const rgroup1 = parseInt(monomer1.rgroup) + 1;
         const rgroup2 = parseInt(monomer2.rgroup) + 1;
+
+        // Find all existing connection IDs in the BILN string
+        const matches = Array.from(bilnValue.matchAll(/\((\d+),\d+\)/g));
+        const existingIds = matches.map(m => parseInt(m[1], 10));
+        const maxId = existingIds.length ? Math.max(...existingIds) : 0;
+        const nextConnectionId = maxId + 1;
+
         console.log(
-            `Linking ${res_idx1}-${rgroup1} and ${res_idx2}-${rgroup2} with connection ${connectionCounter}`
+            `Linking ${res_idx1}-${rgroup1} and ${res_idx2}-${rgroup2} with connection ${nextConnectionId}`
         );
 
         const bilnParts = bilnValue.split(/([.-])/);
-        bilnParts[res_idx1 * 2] += `(${connectionCounter},${rgroup1})`;
-        bilnParts[res_idx2 * 2] += `(${connectionCounter},${rgroup2})`;
+        bilnParts[res_idx1 * 2] += `(${nextConnectionId},${rgroup1})`;
+        bilnParts[res_idx2 * 2] += `(${nextConnectionId},${rgroup2})`;
 
-        console.log(bilnParts.join(''));
         setBilnValue(bilnParts.join(''));
-        setConnectionCounter((prev) => prev + 1);
     };
 
-
-    const handlebondBreaking = (residues, rgroups) => {
+    const handleBondBreaking = (residues, rgroups) => {
         const res_idx1 = parseInt(residues[0]);
         const res_idx2 = parseInt(residues[1]);
         const rgroup1 = parseInt(rgroups[0]);
@@ -317,12 +327,14 @@ const DesignPeptideContainer = ({ children }) => {
             const ids = pairs.map(p => `${p.monomerIdx}-${p.rgroup}`);
             const target1 = `${res_idx1}-${rgroup1}`;
             const target2 = `${res_idx2}-${rgroup2}`;
-
             return ids.includes(target1) && ids.includes(target2);
         })?.[0];
 
         const removedId = parseInt(linkMapIdToRemove, 10);
-
+        if (isNaN(removedId)) {
+            console.warn("handleBondBreaking: No connection found for these residues/rgroups.");
+            return;
+        }
 
         // 2. Remove the bond from the relevant monomers in bilnParts
         const bilnParts = bilnValue.split(/([.-])/);
@@ -331,7 +343,7 @@ const DesignPeptideContainer = ({ children }) => {
 
         // 3. Decrement all connection IDs > removedId throughout the BILN string
         let newBiln = bilnParts.join('');
-        newBiln = newBiln.replace(/\((\d+),(\d+)\)/g, (match, n, rg) => {  // Pattern: \(N,rg\) where N > removedId
+        newBiln = newBiln.replace(/\((\d+),(\d+)\)/g, (match, n, rg) => {
             const nNum = parseInt(n, 10);
             if (nNum > removedId) {
                 return `(${nNum - 1},${rg})`;
@@ -339,9 +351,7 @@ const DesignPeptideContainer = ({ children }) => {
             return match;
         });
 
-        // 4. Update bilnValue and connectionCounter
         setBilnValue(newBiln);
-        setConnectionCounter((prev) => prev - 1);
     };
 
 
@@ -451,7 +461,7 @@ const DesignPeptideContainer = ({ children }) => {
                                                 monomers={list}
                                                 linkMap={linkMap}
                                                 handleMonomerHover={handleMonomerHover}
-                                                hoveredMonomer={hoveredMonomer}
+                                                hoveredMonomer={uiState.hoveredMonomer}
                                                 onDelete={handleDeleteMonomerItem}
                                             >
                                                 {provided.placeholder}
@@ -468,11 +478,11 @@ const DesignPeptideContainer = ({ children }) => {
                                         svgData={svgDepiction}
                                         svgContainer={svgContainer}
                                         handleMonomerHover={handleMonomerHover}
-                                        hoveredMonomer={hoveredMonomer}
+                                        hoveredMonomer={uiState.hoveredMonomer}
                                         isShowingAtomIndices={isShowingAtomIndices}
                                         handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
                                         handleMonomerLinking={handleMonomerLinking}
-                                        handlebondBreaking={handlebondBreaking}
+                                        handleBondBreaking={handleBondBreaking}
                                         error={depictionError}
                                     />
                                     <div className="flex justify-center flex-wrap gap-x-4">
@@ -489,7 +499,7 @@ const DesignPeptideContainer = ({ children }) => {
                                     {structureOutput?.pdb ? (
                                         <MolStarViewer
                                             pdbRawData={structureOutput?.pdb}
-                                            hoveredMonomer={hoveredMonomer}
+                                            hoveredMonomer={uiState.hoveredMonomer}
                                             handleMonomerHover={handleMonomerHover}
                                             defaultRepresentation="ball-and-stick"
                                             defaultColorScheme="residue-name"

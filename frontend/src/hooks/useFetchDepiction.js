@@ -16,8 +16,7 @@ export function useFetchDepiction() {
                 setLoading(false);
                 return;
             }
-            const json = await response.json();
-            console.log('Depiction data:', json);
+            const json = await response.json();            
             setData(json.data);
             setError(null);
         } catch (err) {

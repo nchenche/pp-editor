@@ -13,7 +13,7 @@ export const SvgDepictionContainer = ({
     isShowingAtomIndices,
     handleShowingAtomIndices,
     handleMonomerLinking,
-    handlebondBreaking,
+    handleBondBreaking,
     error
 }) => {
     const [isShowRGroups, setIsShowRGroups] = useState(false);
@@ -148,7 +148,7 @@ export const SvgDepictionContainer = ({
         const residue_indices = Array.from(group.matchAll(regex_residues), m => Number(m[1] || m[2]));
         const rgroup_indices = Array.from(group.matchAll(regex_rgroups), m => Number(m[1] || m[2]));
 
-        handlebondBreaking(residue_indices, rgroup_indices);
+        handleBondBreaking(residue_indices, rgroup_indices);
     };
 
     // Effect to watch for changes to monomersToLink
