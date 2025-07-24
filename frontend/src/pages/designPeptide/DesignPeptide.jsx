@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { log } from '../../utils/dev';
 
+
+import { DesignPageLayout } from '../../layouts/DesignPageLayout';
 import {
     decomposeBiln,
     buildLinkMapFromBiln,
@@ -12,6 +14,9 @@ import {
 import { useFetchDepiction } from '../../hooks/useFetchDepiction';
 import { useGenerate3D } from '../../hooks/useGenerate3D';
 
+import { InputBiln, InputSearch } from './components/Inputs';
+import { MonomerRows } from './components/MonomerRows';
+import { ViewerPanel } from './components/ViewerPanel';
 
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
 import { MonomerItem, MonomerList } from './components/Monomers';
@@ -19,41 +24,11 @@ import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
 import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
-import TextField from '@mui/material/TextField';
 
 
 const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
-
-const InputBiln = ({ value, onChangeValue }) => {
-    return (
-        <div className='p-2 w-2/4 mx-auto'>
-            <TextField
-                id="outlined-required"
-                label="Enter BILN sequence"
-                fullWidth
-                value={value}
-                onChange={onChangeValue}
-            />
-        </div>
-    );
-}
-
-
-const InputSearch = ({ value, onChangeValue }) => {
-    return (
-        <div className='p-2 w-2/4 mx-auto'>
-            <TextField
-                id="outlined-required"
-                label="Search monomers"
-                fullWidth
-                value={value}
-                onChange={onChangeValue}
-            />
-        </div>
-    );
-}
 
 
 const DesignPeptideContainer = ({ children }) => {
@@ -81,12 +56,12 @@ const DesignPeptideContainer = ({ children }) => {
         const segments = trimmed.split(".");
 
         // 2. target segment string and its monomer codes
-        const seg = segments[activeSeqIdx] || "";
+        const seg = segments[uiState.activeSeqIdx] || "";
         const segMonomers = seg ? seg.split("-") : [];
 
         // 3. find “global” offsets to look up current terminal monomers
         const offset = segments
-            .slice(0, activeSeqIdx)
+            .slice(0, uiState.activeSeqIdx)
             .reduce((sum, s) => sum + (s ? s.split("-").length : 0), 0);
         const nterGlobalIdx = offset;
         const cterGlobalIdx = offset + segMonomers.length - 1;
@@ -127,7 +102,7 @@ const DesignPeptideContainer = ({ children }) => {
         }
 
         // 7. write back full BILN
-        segments[activeSeqIdx] = newSegMonomers.join("-");
+        segments[uiState.activeSeqIdx] = newSegMonomers.join("-");
         const newBiln = segments.join(".");
 
         setBilnValue(newBiln);
@@ -151,7 +126,6 @@ const DesignPeptideContainer = ({ children }) => {
     // const [hoveredMonomer, setHoveredMonomer] = useState(null);
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [selectedMonomer, setSelectedMonomer] = useState(null);
-    const [activeSeqIdx, setActiveSeqIdx] = useState(0);
 
     const [uiState, setUiState] = useState({
         activeSeqIdx: 0,
@@ -159,20 +133,12 @@ const DesignPeptideContainer = ({ children }) => {
         hoveredMonomer: null,
     });
 
-
-
     const [searchValue, setSearchValue] = useState('');
-
-    // const sequences = useMemo(() => { return bilnValue ? getSequences(bilnValue) : [] }, [bilnValue]);
     const [rowMonomerLists, setRowMonomerLists] = useState([]);
 
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers]);
 
     const svgContainer = useRef(null);
-
-
-
-    /* ********************** */
 
 
     /* SET UP EFFECTS */
@@ -186,11 +152,6 @@ const DesignPeptideContainer = ({ children }) => {
             return;
         }
 
-        // const loadAndGenerate = async () => {
-        //     await fetchData();         // Wait until monomers are actually updated
-        //     await handleGenerate3D();  // THEN trigger 3D generation
-        // };
-
         const query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
         const loadAndGenerate = async () => {
             await fetchDepiction(DEPICT_2D_URL + query);
@@ -198,6 +159,7 @@ const DesignPeptideContainer = ({ children }) => {
         };
 
         loadAndGenerate();
+        console.log('smiles:', depictionData?.smiles);
     }, [bilnValue, isShowingAtomIndices]);
 
 
@@ -413,109 +375,79 @@ const DesignPeptideContainer = ({ children }) => {
 
     return (
         <>
-            <div className="flex flex-col md:flex-row-reverse m-4 max-h-[85vh]">
-                <DragDropContext
-                    onDragEnd={handleOnDragEnd}
-                >
-
-                    {/* === Right Panel: Monomer Library (Visible on md+) === */}
-                    <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
-                        <h2 className="text-lg font-semibold mb-2">Monomer Library</h2>
-
-                        <MonomerLibraryContainer filterValue={searchValue} onMonomerItemDoubleClick={addMonomerToBiln} />
-                    </div>
-
-                    {/* === Search input for small screens === */}
+            <DesignPageLayout
+                mobileTopPanel={
                     <div className="block md:hidden mb-4 w-full">
-                        <input
-                            type="text"
-                            placeholder="Search monomers..."
-                            className="w-full px-3 py-2 border rounded-md shadow-sm"
-                        />
+                        <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
                     </div>
+                }
+                leftPanel={
+                    <MonomerLibraryContainer filterValue={searchValue} onMonomerItemDoubleClick={addMonomerToBiln} />
+                }
+                mainPanel={
+                    <div className="border border-red-500 p-2 mx-auto w-fit">
 
-                    {/* === Main Content Area === */}
-                    <div className="flex-1 overflow-hidden">
-                        <div className="border border-red-500 p-2 mx-auto w-fit">
+                        <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
+                        <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
 
-                            <div className=''>
-                                <InputSearch value={searchValue} onChangeValue={(e) => setSearchValue(e.target.value)} />
-                            </div>
+                        <DragDropContext
+                            onDragEnd={handleOnDragEnd}
+                        >
+                            <MonomerRows
+                                rowMonomerLists={rowMonomerLists}
+                                activeSeqIdx={uiState.activeSeqIdx}
+                                onSetActiveSeqIdx={seqIdx => setUiState(prev => ({ ...prev, activeSeqIdx: seqIdx }))}
+                                linkMap={linkMap}
+                                handleMonomerHover={handleMonomerHover}
+                                hoveredMonomer={uiState.hoveredMonomer}
+                                handleDeleteMonomerItem={handleDeleteMonomerItem}
+                            />
+                        </DragDropContext>
 
-                            <div className=''>
-                                <InputBiln value={bilnValue} onChangeValue={(e) => setBilnValue(e.target.value)} />
-                            </div>
-
-
-                            {rowMonomerLists.map((list, seqIdx) => (
-                                <div
-                                    key={seqIdx}
-                                    onMouseEnter={() => setActiveSeqIdx(seqIdx)}
-                                    className={seqIdx === activeSeqIdx ? 'ring-1 ring-blue-300 rounded-md' : ''}
-                                >
-                                    <Droppable droppableId={`${seqIdx}`} direction='horizontal' className='border border-stone-500'>
-                                        {(provided, snapshot) => (
-                                            <MonomerList
-                                                {...provided.droppableProps}
-                                                droppableRef={provided.innerRef}
-                                                monomers={list}
-                                                linkMap={linkMap}
-                                                handleMonomerHover={handleMonomerHover}
-                                                hoveredMonomer={uiState.hoveredMonomer}
-                                                onDelete={handleDeleteMonomerItem}
-                                            >
-                                                {provided.placeholder}
-                                            </MonomerList>
-                                        )}
-                                    </Droppable>
-                                </div>
-                            ))}
-
-
-                            <div className="flex flex-col lg:flex-row items-start gap-x-2 mt-4 w-full">
-                                <div className="flex-1 flex flex-col items-center border p-4 mx-auto w-full">
-                                    <SvgDepictionContainer
-                                        svgData={svgDepiction}
-                                        svgContainer={svgContainer}
-                                        handleMonomerHover={handleMonomerHover}
-                                        hoveredMonomer={uiState.hoveredMonomer}
-                                        isShowingAtomIndices={isShowingAtomIndices}
-                                        handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
-                                        handleMonomerLinking={handleMonomerLinking}
-                                        handleBondBreaking={handleBondBreaking}
-                                        error={depictionError}
-                                    />
-                                    <div className="flex justify-center flex-wrap gap-x-4">
-                                        {/* <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
+                        <ViewerPanel
+                            svgSection={
+                                <SvgDepictionContainer
+                                    svgData={svgDepiction}
+                                    svgContainer={svgContainer}
+                                    handleMonomerHover={handleMonomerHover}
+                                    hoveredMonomer={uiState.hoveredMonomer}
+                                    isShowingAtomIndices={isShowingAtomIndices}
+                                    handleShowingAtomIndices={() => setIsShowingAtomIndices((prev) => !prev)}
+                                    handleMonomerLinking={handleMonomerLinking}
+                                    handleBondBreaking={handleBondBreaking}
+                                    error={depictionError}
+                                />
+                            }
+                            controlsSection={
+                                <div className="flex justify-center flex-wrap gap-x-4">
+                                    {/* <button onClick={handleGenerate3D} className="text-sm bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">
                                             Generate 3D
                                         </button> */}
-                                        <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
-                                            Download Archive
-                                        </button>
-                                    </div>
+                                    <button onClick={handleDownloadArchive} disabled={!structureOutput} className={`text-sm font-medium py-2 px-4 rounded ${structureOutput ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}>
+                                        Download Archive
+                                    </button>
                                 </div>
-
-                                <div className="w-[400px] h-[400px] lg:mt-12 mx-auto border border-slate-400 bg-white rounded-md overflow-hidden flex items-center justify-center relative">
-                                    {structureOutput?.pdb ? (
-                                        <MolStarViewer
-                                            pdbRawData={structureOutput?.pdb}
-                                            hoveredMonomer={uiState.hoveredMonomer}
-                                            handleMonomerHover={handleMonomerHover}
-                                            defaultRepresentation="ball-and-stick"
-                                            defaultColorScheme="residue-name"
-                                            height="400px"
-                                            width="100%"
-                                            error={generate3DError}
-                                        />
-                                    ) : (
-                                        <div className="text-xl text-slate-500">No structure</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                            }
+                            structureSection={
+                                structureOutput?.pdb ? (
+                                    <MolStarViewer
+                                        pdbRawData={structureOutput?.pdb}
+                                        hoveredMonomer={uiState.hoveredMonomer}
+                                        handleMonomerHover={handleMonomerHover}
+                                        defaultRepresentation="ball-and-stick"
+                                        defaultColorScheme="residue-name"
+                                        height="400px"
+                                        width="100%"
+                                        error={generate3DError}
+                                    />
+                                ) : (
+                                    <div className="text-xl text-slate-500">No structure</div>
+                                )
+                            }
+                        />
                     </div>
-                </DragDropContext>
-            </div >
+                }
+            />
         </>
     );
 }
