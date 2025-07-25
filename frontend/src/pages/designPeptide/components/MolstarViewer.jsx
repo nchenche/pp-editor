@@ -1,21 +1,11 @@
-import { debounceTime } from 'rxjs/operators';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { PluginContext } from 'molstar/lib/mol-plugin/context';
-import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
-import { createStructureRepresentationParams } from "molstar/lib/mol-plugin-state/helpers/structure-representation-params";
-import { StateSelection, StateTransform } from "molstar/lib/mol-state";
-import { Script } from 'molstar/lib/mol-script/script';
-import { StructureElement, StructureSelection, Bond } from 'molstar/lib/mol-model/structure';
-import { PluginConfig } from 'molstar/lib/mol-plugin/config';
+import { useMolstarPlugin } from '../../../hooks/useMolstarPlugin';
+import { useMolstarStructure } from '../../../hooks/useMolstarStructure';
+import { useMolstarSelection } from '../../../hooks/useMolstarSelection';
 
-import { Structure, StructureProperties, } from "molstar/lib/mol-model/structure";
-import { lociLabel } from "molstar/lib/mol-theme/label";
-import { EmptyLoci } from 'molstar/lib/mol-model/loci';
-
-import { createPluginUI } from "molstar/lib/mol-plugin-ui";
-import { renderReact18 } from "molstar/lib/mol-plugin-ui/react18";
-
+import { RepresentationSelector } from "./molstar/RepresentationSelector";
+import { ColorSchemeSelector } from "./molstar/ColorSchemeSelector";
 
 
 const MolStarViewer = ({
@@ -26,313 +16,49 @@ const MolStarViewer = ({
     pdbRawData,
     hoveredMonomer,
     handleMonomerHover,
-    defaultRepresentation = 'cartoon',
+    defaultRepresentation = 'ball-and-stick',
     defaultColorScheme = 'chain-id',
     height = '400px',
     width = '400px'
 }) => {
-    const canvasRef = useRef(null);
-    const containerRef = useRef(null);
-    const pluginRef = useRef(null);
-    const [pluginInitialized, setPluginInitialized] = useState(false);
-    const [structure, setStructure] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [currentRepresentation, setCurrentRepresentation] = useState(defaultRepresentation);
-    const [currentColorScheme, setCurrentColorScheme] = useState(defaultColorScheme);
 
-    const [seqId, setSeqId] = useState('');
+    const [representation, setRepresentation] = useState(defaultRepresentation);
+    const [colorScheme, setColorScheme] = useState(defaultColorScheme);
 
-    // Initialize the plugin only once.
-    useEffect(() => {
-        const initPlugin = async () => {
-            if (!canvasRef.current || !containerRef.current) return;
-            if (!pdbFile && !blobFile && !pdbId && !pdbURL && !pdbRawData) return;
+    const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin();
+    const {
+        structure,
+        loading: structureLoading,
+        error: structureError,
+        loadFromPdbId,
+        loadFromPdbFile,
+        loadFromRawData,
+        loadFromBlob,
+        loadFromURL,
+    } = useMolstarStructure(pluginRef, {
+        defaultRepresentation: representation,
+        defaultColorScheme: colorScheme
+    });
 
-            try {
-                const MySpec = {
-                    ...DefaultPluginSpec(),
-                    config: [
-                        [PluginConfig.VolumeStreaming.Enabled, false]
-                    ]
-                }
-
-                const plugin = new PluginContext(DefaultPluginSpec(MySpec));
-                if (!plugin.initViewer(canvasRef.current, containerRef.current)) {
-                    throw new Error('Failed to initialize MolStar viewer');
-                }
-                await plugin.init();
+    useMolstarSelection({
+        pluginRef,
+        pluginInitialized,
+        hoveredMonomer,
+        handleMonomerHover,
+    });
 
 
-                pluginRef.current = plugin;
-                window["molstar"] = plugin;
-                window["Structure"] = Structure;
-                window["StructureProperties"] = StructureProperties;
-                window["lociLabel"] = lociLabel;
-
-                setPluginInitialized(true);
-            } catch (err) {
-                console.error('Error initializing MolStar:', err);
-                setError(err.message);
-                setLoading(false);
-            }
-        };
-
-        initPlugin();
-
-        return () => {
-            if (pluginRef.current) {
-                pluginRef.current.dispose();
-            }
-        };
-    }, []);
 
     // Load structure once the plugin is initialized and whenever the source props change.
     useEffect(() => {
-        if (!pluginInitialized) return;
-        const loadStructure = async () => {
-            setLoading(true);
-            try {
-                if (pdbId) {
-                    await loadFromPdbId(pdbId);
-                } else if (pdbFile) {
-                    await loadFromPdbFile(pdbFile);
-                } else if (blobFile) {
-                    await loadFromBlob(blobFile);
-                } else if (pdbURL) {
-                    await loadFromURL(pdbURL);
-                } else if (pdbRawData) {
-                    await loadFromRawData(pdbRawData);
-                }
-                setLoading(false);
-            } catch (err) {
-                console.error('Error loading structure:', err);
-                setError(err.message);
-                setLoading(false);
-            }
-        };
-
-        loadStructure();
+        if (pluginInitialized) {
+            if (pdbId) loadFromPdbId(pdbId);
+            else if (pdbFile) loadFromPdbFile(pdbFile);
+            else if (blobFile) loadFromBlob(blobFile);
+            else if (pdbURL) loadFromURL(pdbURL);
+            else if (pdbRawData) loadFromRawData(pdbRawData);
+        }
     }, [pluginInitialized, pdbId, pdbFile, blobFile, pdbURL, pdbRawData]);
-
-
-    // Select residue by position
-    useEffect(() => {
-        if (!pluginInitialized) return;
-        if (!pluginRef.current) return;
-
-        const plugin = pluginRef.current;
-        if (!hoveredMonomer) {
-            plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
-            return;
-        }
-
-        const selectedResidue = parseInt(hoveredMonomer.split('-')[1]) + 1;
-        if (isNaN(selectedResidue)) return;
-
-        const data = plugin?.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
-        if (!data) return;
-
-        const sel = Script.getStructureSelection((Q) =>
-            Q.struct.generator.atomGroups({
-                "residue-test": Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), selectedResidue,]),
-                "group-by": Q.struct.atomProperty.macromolecular.residueKey(),
-            }),
-            data
-        );
-        const loci = StructureSelection.toLociWithSourceUnits(sel);  // lociSelects
-        plugin?.managers.interactivity.lociHighlights.highlightOnly({ loci, });
-
-    }, [hoveredMonomer, pluginInitialized]);
-
-    // 1. Keep a ref to the latest callback
-    const hoverHandlerRef = useRef(handleMonomerHover);
-
-    // 2. Always point to the latest version
-    // The hoverHandlerRef will always have the latest handleMonomerHover, with fresh monomers.
-    useEffect(() => {
-        hoverHandlerRef.current = handleMonomerHover;
-    }, [handleMonomerHover]);
-
-    // 3. Subscribe ONCE with a stable handler
-    useEffect(() => {
-        if (!pluginInitialized) return;
-        const plugin = pluginRef.current;
-
-        const handleClick = (event) => {
-            if (!event.current || !event.current.loci || event.current.loci.kind === 'empty-loci') {
-                hoverHandlerRef.current('');
-                return;
-            }
-
-            const loci = event.current.loci;
-
-            if (StructureElement.Loci.is(loci)) {
-                const loc = StructureElement.Loci.getFirstLocation(loci);
-                if (loc) {
-                    const residueId = StructureProperties.residue.label_seq_id(loc);
-                    hoverHandlerRef.current({
-                        origin: 'molstarViewer',
-                        resid: residueId,
-                    });
-                }
-            } else if (Bond.isLoci(loci)) {
-                const bondLoc = loci.bonds[0];
-                if (bondLoc) {
-                    const a = bondLoc.aUnit;
-                    const aIndex = bondLoc.aIndex;
-                    const residueId = a.getResidueIndex(aIndex) + 1;
-                    hoverHandlerRef.current({
-                        origin: 'molstarViewer',
-                        resid: residueId,
-                    });
-                }
-            }
-        };
-
-        plugin.behaviors.interaction.hover.subscribe(handleClick);
-
-        return () => {
-            try {
-                plugin.behaviors.interaction.hover.unsubscribe(handleClick);
-            } catch (e) {
-                console.warn('Failed to unsubscribe hover handler:', e);
-            }
-        };
-    }, [pluginInitialized, pluginRef]);
-
-
-    // Memoized helper to determine file format.
-    const determineFileFormat = useCallback((filename, mimeType) => {
-        if (filename.endsWith('.pdb')) return 'pdb';
-        if (filename.endsWith('.cif') || filename.endsWith('.mmcif')) return 'mmcif';
-        if (filename.endsWith('.bcif')) return 'mmcif';
-        if (filename.endsWith('.sdf')) return 'sdf';
-        if (mimeType === 'chemical/x-pdb') return 'pdb';
-        if (mimeType === 'chemical/x-mmcif') return 'mmcif';
-        return 'pdb';
-    }, []);
-
-
-    // Process structure data, parse trajectory and create an initial representation.
-    const processStructureData = useCallback(async (fileData, format) => {
-        const trajectorySO = await pluginRef.current.builders.structure.parseTrajectory(fileData, format);
-        const modelSO = await pluginRef.current.builders.structure.createModel(trajectorySO);
-        const structureSO = await pluginRef.current.builders.structure.createStructure(modelSO);
-        // console.log('Structure:', structureSO);
-        setStructure(structureSO);
-
-        // Add the initial representation.
-        await pluginRef.current.builders.structure.representation.addRepresentation(
-            structureSO,
-            { type: currentRepresentation, color: currentColorScheme },
-            { tag: 'current-representation' }
-        );
-    }, [currentRepresentation, currentColorScheme]);
-
-
-    const loadFromRawData = useCallback(async (data) => {
-        if (!pluginRef.current) return;
-        try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.rawData({ data: data });
-            await processStructureData(fileData, 'pdb');
-        } catch (err) {
-            setError(`Failed to load PDB from raw data: ${err.message}`);
-            throw err;
-        }
-    }, [processStructureData]);
-
-
-    const loadFromPdbId = useCallback(async (id) => {
-        if (!pluginRef.current) return;
-        try {
-            await pluginRef.current.clear();
-            const url = `https://models.rcsb.org/${id}.bcif`;
-            const fileData = await pluginRef.current.builders.data.download({ url, isBinary: true });
-            await processStructureData(fileData, 'mmcif');
-        } catch (err) {
-            setError(`Failed to load PDB ID ${id}: ${err.message}`);
-            throw err;
-        }
-    }, [processStructureData]);
-
-    const loadFromPdbFile = useCallback(async (file) => {
-        if (!pluginRef.current) return;
-        try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.readFile({ file });
-            await processStructureData(fileData, 'pdb');
-        } catch (err) {
-            setError(`Failed to load PDB file: ${err.message}`);
-            throw err;
-        }
-    }, [processStructureData]);
-
-    const loadFromURL = useCallback(async (url) => {
-        if (!pluginRef.current) return;
-        try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.download({ url, isBinary: false });
-            await processStructureData(fileData, 'pdb');
-        } catch (err) {
-            setError(`Failed to load PDB from URL ${url}: ${err.message}`);
-            throw err;
-        }
-    }, [processStructureData]);
-
-    const loadFromBlob = useCallback(async (blob) => {
-        if (!pluginRef.current) return;
-        try {
-            await pluginRef.current.clear();
-            const file = new File([blob], 'structure.pdb', { type: blob.type });
-            const fileData = await pluginRef.current.builders.data.readFile({ file });
-            const format = determineFileFormat(file.name, blob.type);
-            await processStructureData(fileData, format);
-        } catch (err) {
-            setError(`Failed to load blob: ${err.message}`);
-            throw err;
-        }
-    }, [determineFileFormat, processStructureData]);
-
-    // Update the representation by deleting existing ones tagged 'current-representation'
-    // and adding a new one.
-    const updateRepresentation = useCallback(async (type, colorScheme, structureSO = structure) => {
-        if (!structureSO || !pluginRef.current) return;
-
-        console.log('Updating representation:', type, colorScheme);
-
-        try {
-            // const builder = pluginRef.current.build();
-            // const representations = StateSelection.findWithAllTags(
-            //     builder.getTree(),
-            //     builder.toRoot().ref,
-            //     new Set(['current-representation'])
-            // );
-            // console.log('Deleting representations:', representations);
-            // if (representations.length !== 0) {
-            //     representations.forEach((rep) => {
-            //         if (rep.ref) builder.delete(rep.ref);
-            //     });
-            // }
-            // builder.commit();
-            await pluginRef.current.builders.structure.representation.addRepresentation(
-                structureSO,
-                { type, color: colorScheme },
-                { tag: 'current-representation' }
-            );
-        } catch (err) {
-            console.error('Failed to update representation:', err);
-        }
-    }, [structure]);
-
-    const handleRepresentationChange = useCallback((representation) => {
-        setCurrentRepresentation(representation);
-    }, []);
-
-    const handleColorSchemeChange = useCallback((colorScheme) => {
-        setCurrentColorScheme(colorScheme);
-    }, []);
 
     return (
         <div className="molstar-viewer mx-auto text-center">
@@ -370,7 +96,7 @@ const MolStarViewer = ({
                     }}
                 />
 
-                {loading && (
+                {structureLoading && (
                     <div className="loading-overlay" style={{
                         position: 'absolute',
                         top: 0,
@@ -387,7 +113,7 @@ const MolStarViewer = ({
                     </div>
                 )}
 
-                {error && (
+                {pluginError && (
                     <div className="error-overlay" style={{
                         position: 'absolute',
                         top: 0,
@@ -400,136 +126,18 @@ const MolStarViewer = ({
                         backgroundColor: 'rgba(255, 200, 200, 0.7)',
                         zIndex: 10
                     }}>
-                        <span>Error: {error}</span>
+                        <span>Error: {pluginError}</span>
                     </div>
                 )}
             </div>
 
             {/* Controls placed *outside* the viewer box to avoid stretching */}
             <div className="absolute controls mt-2 flex gap-4 justify-center -top-2 left-0">
-                <RepresentationSelector
-                    currentRepresentation={currentRepresentation}
-                    onChange={handleRepresentationChange}
-                />
-                <ColorSchemeSelector
-                    currentColorScheme={currentColorScheme}
-                    onChange={handleColorSchemeChange}
-                />
+                <RepresentationSelector value={representation} onChange={setRepresentation} />
+                <ColorSchemeSelector value={colorScheme} onChange={setColorScheme} />
             </div>
         </div>
     );
 };
 
-// Memoized selector for representations.
-const RepresentationSelector = React.memo(({ currentRepresentation, onChange }) => {
-    const representations = useMemo(() => ([
-        { id: 'cartoon', label: 'Cartoon' },
-        { id: 'ball-and-stick', label: 'Ball & Stick' },
-        { id: 'spacefill', label: 'Spacefill' },
-        { id: 'backbone', label: 'Backbone' },
-        { id: 'licorice', label: 'Licorice' },
-        { id: 'ribbon', label: 'Ribbon' },
-        { id: 'line', label: 'Line' },
-    ]), []);
-
-    return (
-        <div className="representation-selector">
-            <label className="text-sm font-medium">Representation:</label>
-            <select
-                value={currentRepresentation}
-                onChange={(e) => onChange(e.target.value)}
-                className="ml-2 p-1 border rounded text-sm"
-            >
-                {representations.map(rep => (
-                    <option key={rep.id} value={rep.id}>{rep.label}</option>
-                ))}
-            </select>
-        </div>
-    );
-});
-
-// Memoized selector for color schemes.
-const ColorSchemeSelector = React.memo(({ currentColorScheme, onChange }) => {
-    const colorSchemes = useMemo(() => ([
-        { id: 'chain-id', label: 'Chain' },
-        { id: 'residue-name', label: 'Residue Name' },
-        { id: 'sequence-id', label: 'Sequence Position' },
-        { id: 'secondary-structure', label: 'Secondary Structure' },
-        { id: 'residue-type', label: 'Residue Type' },
-        { id: 'hydrophobicity', label: 'Hydrophobicity' },
-        { id: 'uniform', label: 'Uniform' },
-    ]), []);
-
-    return (
-        <div className="color-scheme-selector">
-            <label className="text-sm font-medium">Color Scheme:</label>
-            <select
-                value={currentColorScheme}
-                onChange={(e) => onChange(e.target.value)}
-                className="ml-2 p-1 border rounded text-sm"
-            >
-                {colorSchemes.map(scheme => (
-                    <option key={scheme.id} value={scheme.id}>{scheme.label}</option>
-                ))}
-            </select>
-        </div>
-    );
-});
-
-const PeptideViewer = (props) => {
-    const {
-        showBackbone = false,
-        showSideChains = false,
-        highlightResidues = [],
-        ...otherProps
-    } = props;
-
-    const [representations, setRepresentations] = useState([
-        { type: 'cartoon', color: 'chain-id', visible: true }
-    ]);
-
-    return (
-        <div className="peptide-viewer">
-            <MolStarViewer {...otherProps} />
-
-            <div className="peptide-controls mt-3 p-2 border rounded">
-                <h3 className="text-lg font-medium mb-2">Peptide Options</h3>
-
-                <div className="flex flex-col gap-2">
-                    <label className="flex items-center">
-                        <input
-                            type="checkbox"
-                            checked={showBackbone}
-                            onChange={() => props.onToggleBackbone?.()}
-                            className="mr-2"
-                        />
-                        Show Backbone
-                    </label>
-
-                    <label className="flex items-center">
-                        <input
-                            type="checkbox"
-                            checked={showSideChains}
-                            onChange={() => props.onToggleSideChains?.()}
-                            className="mr-2"
-                        />
-                        Show Side Chains
-                    </label>
-
-                    <div>
-                        <label className="block text-sm mb-1">Highlight Residues:</label>
-                        <input
-                            type="text"
-                            value={highlightResidues.join(', ')}
-                            onChange={(e) => props.onHighlightChange?.(e.target.value.split(',').map(x => x.trim()))}
-                            placeholder="e.g. A:123, B:45"
-                            className="w-full p-1 border rounded"
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export { MolStarViewer, PeptideViewer };
+export { MolStarViewer };

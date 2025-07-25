@@ -18,7 +18,7 @@ import { MonomerRows } from './components/MonomerRows';
 import { ViewerPanel } from './components/ViewerPanel';
 
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
-import { MolStarViewer, PeptideViewer } from './components/MolstarViewer';
+import { MolStarViewer } from './components/MolstarViewer';
 import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
 
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
@@ -26,7 +26,6 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 
 const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
 const API_BASE_URL = 'http://0.0.0.0:5000';
-
 
 
 const DesignPeptideContainer = ({ children }) => {

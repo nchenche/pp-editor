@@ -12,7 +12,7 @@ import { renderReact18 } from "molstar/lib/mol-plugin-ui/react18";
 
 
 
-const MolStarViewer = ({
+export const MolstarBasicViewer = ({
     useInterface = true,
     pdbId = '1rcn',
     file = null,
@@ -150,4 +150,3 @@ const MolStarViewer = ({
     );
 };
 
-export default MolStarViewer;
