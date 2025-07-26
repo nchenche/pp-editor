@@ -49,7 +49,7 @@ function App() {
         <Header>
           <NavBar dataLinks={dataLinks}/>
         </Header>
-        <main className="flex-grow">
+        <main className="flex-grow min-h-0 h-full">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/peptide" element={<DesignPeptideContainer />} />

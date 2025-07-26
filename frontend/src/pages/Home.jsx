@@ -1,10 +1,19 @@
 import React from 'react';
 
-function Home( {children} ) {
+
+import { DesignPageLayout2 } from '../layouts/DesignPageLayout';
+import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibrary';
+
+function Home({ children }) {
   return (
-    <>
-        Home page to define
-    </>
+    <div className="h-full min-h-0">
+      <DesignPageLayout2
+        sidebar={<MonomerLibraryContainer filterValue={""} onMonomerItemDoubleClick={() => {}} />}
+        sequenceEditor={"Editor"}
+        viewerContainer={"Viewer"}
+        outputPanel={"Output"}
+      />
+    </div>
   );
 }
 

@@ -3,10 +3,7 @@ import { log } from '../../utils/dev';
 
 
 import { DesignPageLayout } from '../../layouts/DesignPageLayout';
-import {
-    buildLinkMapFromBiln,
-    getSequences,
-} from '../../utils/bilnUtils';
+import { buildLinkMapFromBiln, getSequences } from '../../utils/bilnUtils';
 
 import { useFetchDepiction } from '../../hooks/useFetchDepiction';
 import { useGenerate3D } from '../../hooks/useGenerate3D';

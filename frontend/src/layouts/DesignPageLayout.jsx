@@ -7,7 +7,7 @@ export const DesignPageLayout = ({
     mobileTopPanel, // for mobile-specific stuff if needed
     ...rest
 }) => (
-    <div className="flex flex-col md:flex-row-reverse m-4 max-h-[85vh]" {...rest}>
+    <div className="flex flex-col md:flex-row-reverse m-4" {...rest}>
         {/* Side panel (right on desktop, top on mobile if you want) */}
         <div className="hidden md:block w-full md:w-1/3 border p-4 rounded-md shadow-sm max-h-[80vh] overflow-hidden">
             {leftPanel}
@@ -24,3 +24,64 @@ export const DesignPageLayout = ({
 );
 
 
+
+export const DesignPageLayout2 = ({
+    sidebar,
+    sequenceEditor,
+    viewerContainer,
+    outputPanel,
+    ...rest
+}) => (
+    <div
+        className="
+            grid
+            grid-cols-1
+            lg:grid-cols-[500px_1fr_400px]
+            h-[85vh] min-h-0
+            gap-4 p-2 bg-gray-50
+        "
+    >
+        {/* Sidebar */}
+        <aside
+            className="
+                flex flex-col
+                overflow-hidden
+                border-2 border-blue-400 bg-blue-50 rounded-lg p-0 shadow-sm
+                order-1 lg:col-span-1 lg:row-span-2 lg:order-none
+                "
+        >
+            {/* Only this child will scroll */}
+            <div className="flex-1 overflow-y-auto p-2">
+                {sidebar}
+            </div>
+        </aside>
+
+        {/* Center main interface */}
+        <section
+            className="
+                flex flex-col gap-4 min-h-0
+                order-2
+                lg:col-start-2 lg:col-end-3 lg:row-span-2 lg:order-none
+            "
+        >
+            <section className="border-2 border-green-400 bg-green-50 rounded-lg p-4 shadow-sm mb-2 overflow-auto">
+                {sequenceEditor}
+            </section>
+            <section className="border-2 border-yellow-400 bg-yellow-50 rounded-lg p-4 shadow-sm flex-1 min-h-0 overflow-auto">
+                {viewerContainer}
+            </section>
+        </section>
+
+        {/* Output panel */}
+        <aside
+            className="
+                h-full min-h-0
+                border-2 border-purple-400 bg-purple-50 rounded-lg p-4 shadow-sm overflow-auto
+                order-3
+                lg:col-start-3 lg:col-end-4 lg:row-span-2 lg:order-none
+            "
+        >
+            {outputPanel}
+        </aside>
+    </div>
+);

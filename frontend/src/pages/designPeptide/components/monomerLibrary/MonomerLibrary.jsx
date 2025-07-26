@@ -10,6 +10,9 @@ import { setCanvasModule } from 'molstar/lib/mol-geo/geometry/text/font-atlas';
 // import './styles.css'
 import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { Box, Typography } from "@mui/material";
+
+import { MonomerLibraryHeader } from './monomerLibraryHeader';
 
 const sizeStyles = {
     sm: {
@@ -113,7 +116,7 @@ const MonomerItem = ({
 
 const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
     return (
-        <div className="relative flex flex-wrap justify-center gap-3">
+        <div className="relative flex flex-wrap justify-center gap-2">
             {monomers.map((monomer) => (
                 <MonomerItem
                     key={monomer._id}
@@ -131,6 +134,13 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
     const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
     const dataRef = useRef(null);
     const [filteredMonomers, setFilteredMonomers] = useState([]);
+
+    const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+    const [searchValue, setSearchValue] = useState("");
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [quickFilters, setQuickFilters] = useState({
+        caps: false, natural: false, nonNatural: false
+    });
 
     useEffect(() => {
         if (!isLoading && !error && data) {
@@ -161,18 +171,40 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
     if (!data) return null;
 
     return (
-        <>
-            {/* Main content area */}
-            <main className="flex-1 p-6 border-2 h-full overflow-y-auto">
+        <Box display="flex" flexDirection="column" height="100%">
+            <MonomerLibraryHeader
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                {...quickFilters}
+                onQuickFilterChange={setQuickFilters}
+                onOpenDrawer={() => setDrawerOpen(true)}
+            />
+
+            {/* Scrollable content area */}
+            <Box
+                flex={1}
+                minHeight={0}
+                overflow="auto"
+                bgcolor="white"
+                borderRadius={1}
+                p={1}
+                border={1}
+                borderColor="grey.200"
+                display="flex"
+                flexDirection="column"
+                justifyContent={isLoading ? "center" : "flex-start"}
+                alignItems="center"
+            >
                 {isLoading ? (
-                    <div className="relative flex justify-center items-center ">
-                        <div className="loader">Loading...</div>
-                    </div>
+                    <CircularProgress size={32} />
                 ) : (
-                    <ListMonomerLibrary monomers={filteredMonomers} handleOnDoubleClick={onMonomerItemDoubleClick} />
+                    <ListMonomerLibrary
+                        monomers={filteredMonomers}
+                        handleOnDoubleClick={onMonomerItemDoubleClick}
+                    />
                 )}
-            </main>
-        </>
+            </Box>
+        </Box>
     );
 };
 
