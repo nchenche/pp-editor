@@ -16,7 +16,7 @@ import { ViewerPanel } from './components/ViewerPanel';
 
 import { SvgDepictionContainer } from './components/SVGMolDepiction';
 import { MolStarViewer } from './components/MolstarViewer';
-import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibrary';
+import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibraryContainer';
 
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 

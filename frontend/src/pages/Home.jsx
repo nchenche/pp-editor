@@ -2,7 +2,7 @@ import React from 'react';
 
 
 import { DesignPageLayout2 } from '../layouts/DesignPageLayout';
-import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibrary';
+import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 
 function Home({ children }) {
   return (

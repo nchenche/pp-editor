@@ -140,8 +140,7 @@ export function MonomerLibraryHeader({
                 range={range || [50, 800]}
                 onRangeChange={onRangeChange || (() => { })}
             />
-
-            <Divider sx={{ my: 2 }} />
+            <Divider sx={{ my: 1 }} />
         </Box>
     );
 }
