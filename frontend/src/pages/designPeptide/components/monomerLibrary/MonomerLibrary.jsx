@@ -8,9 +8,8 @@ import { setCanvasModule } from 'molstar/lib/mol-geo/geometry/text/font-atlas';
 
 // import { log, initializeRangeFilter } from '../../utils/dev'
 // import './styles.css'
-import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { Box, Typography } from "@mui/material";
+
+import { Box, Typography, CircularProgress } from "@mui/material";
 
 import { MonomerLibraryHeader } from './monomerLibraryHeader';
 
@@ -130,57 +129,109 @@ const ListMonomerLibrary = ({ monomers, handleOnDoubleClick }) => {
 }
 
 
-export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
-    const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
-    const dataRef = useRef(null);
-    const [filteredMonomers, setFilteredMonomers] = useState([]);
+// export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
+//     const { data, isLoading, error } = useGetData('http://0.0.0.0:5000/api/db/monomers/images');
+//     const dataRef = useRef(null);
+//     const [filteredMonomers, setFilteredMonomers] = useState([]);
 
-    const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+//     const [searchValue, setSearchValue] = useState("");
+//     const [quickFilters, setQuickFilters] = useState({
+//         caps: false, natural: false, nonNatural: false
+//     });
+
+//     useEffect(() => {
+//         if (!isLoading && !error && data) {
+//             dataRef.current = data.data || data;
+//             setFilteredMonomers(dataRef.current);  // Initialize filteredMonomers with fetched data
+//         }
+//     }, [data, isLoading, error]);
+
+
+//     useEffect(() => {
+//         if (!dataRef.current) return;
+//         let filteredData = dataRef.current;
+//         const lowerFilterValue = filterValue.toLowerCase();
+
+//         filteredData = filteredData.filter((monomer) => (
+//             monomer.m_name.toLowerCase().includes(lowerFilterValue) ||
+//             monomer.symbol.toLowerCase().includes(lowerFilterValue) ||
+//             monomer.pdbName.toLowerCase().includes(lowerFilterValue) ||
+//             monomer.m_subtype.toLowerCase().includes(lowerFilterValue) ||
+//             monomer.natAnalog.toLowerCase().includes(lowerFilterValue)
+//         ));
+
+//         setFilteredMonomers(filteredData);
+//     }, [filterValue]);
+
+
+//     if (error) return <p>Error: {error}</p>;
+//     if (!data) return null;
+
+//     return (
+//         <Box display="flex" flexDirection="column" height="100%">
+//             <MonomerLibraryHeader
+//                 searchValue={searchValue}
+//                 onSearchChange={setSearchValue}
+//                 {...quickFilters}
+//                 onQuickFilterChange={setQuickFilters}
+//                 onOpenDrawer={() => setDrawerOpen(true)}
+//             />
+
+//             {/* Scrollable content area */}
+//             <Box
+//                 flex={1}
+//                 minHeight={0}
+//                 overflow="auto"
+//                 bgcolor="white"
+//                 borderRadius={1}
+//                 p={1}
+//                 border={1}
+//                 borderColor="grey.200"
+//                 display="flex"
+//                 flexDirection="column"
+//                 justifyContent={isLoading ? "center" : "flex-start"}
+//                 alignItems="center"
+//             >
+//                 {isLoading ? (
+//                     <CircularProgress size={32} />
+//                 ) : (
+//                     <ListMonomerLibrary
+//                         monomers={filteredMonomers}
+//                         handleOnDoubleClick={onMonomerItemDoubleClick}
+//                     />
+//                 )}
+//             </Box>
+//         </Box>
+//     );
+// };
+
+import { useLibraryFetching } from '../../../../hooks/useLibraryFetching';
+
+export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
     const [searchValue, setSearchValue] = useState("");
-    const [drawerOpen, setDrawerOpen] = useState(false);
     const [quickFilters, setQuickFilters] = useState({
         caps: false, natural: false, nonNatural: false
     });
 
-    useEffect(() => {
-        if (!isLoading && !error && data) {
-            dataRef.current = data.data || data;
-            setFilteredMonomers(dataRef.current);  // Initialize filteredMonomers with fetched data
-        }
-    }, [data, isLoading, error]);
+    // Use the new hook
+    const { data: filteredMonomers, isLoading, error } = useLibraryFetching({
+        search: searchValue || filterValue || '',
+        ...quickFilters
+    });
 
-
-    useEffect(() => {
-        if (!dataRef.current) return;
-        let filteredData = dataRef.current;
-        const lowerFilterValue = filterValue.toLowerCase();
-
-        filteredData = filteredData.filter((monomer) => (
-            monomer.m_name.toLowerCase().includes(lowerFilterValue) ||
-            monomer.symbol.toLowerCase().includes(lowerFilterValue) ||
-            monomer.pdbName.toLowerCase().includes(lowerFilterValue) ||
-            monomer.m_subtype.toLowerCase().includes(lowerFilterValue) ||
-            monomer.natAnalog.toLowerCase().includes(lowerFilterValue)
-        ));
-
-        setFilteredMonomers(filteredData);
-    }, [filterValue]);
-
-
+    // ...rest of your component remains the same...
     if (error) return <p>Error: {error}</p>;
-    if (!data) return null;
+    if (!filteredMonomers) return null;
 
     return (
         <Box display="flex" flexDirection="column" height="100%">
             <MonomerLibraryHeader
                 searchValue={searchValue}
                 onSearchChange={setSearchValue}
-                {...quickFilters}
+                quickFilter={quickFilters}
                 onQuickFilterChange={setQuickFilters}
                 onOpenDrawer={() => setDrawerOpen(true)}
             />
-
-            {/* Scrollable content area */}
             <Box
                 flex={1}
                 minHeight={0}
@@ -192,17 +243,30 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
                 borderColor="grey.200"
                 display="flex"
                 flexDirection="column"
-                justifyContent={isLoading ? "center" : "flex-start"}
+                justifyContent="flex-start"
                 alignItems="center"
+                position="relative"
             >
-                {isLoading ? (
-                    <CircularProgress size={32} />
-                ) : (
-                    <ListMonomerLibrary
-                        monomers={filteredMonomers}
-                        handleOnDoubleClick={onMonomerItemDoubleClick}
-                    />
+                {isLoading && (
+                    <Box
+                        position="absolute"
+                        top={0}
+                        left={0}
+                        width="100%"
+                        height="100%"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        bgcolor="rgba(255,255,255,0.6)"
+                        zIndex={2}
+                    >
+                        <CircularProgress size={32} />
+                    </Box>
                 )}
+                <ListMonomerLibrary
+                    monomers={filteredMonomers}
+                    handleOnDoubleClick={onMonomerItemDoubleClick}
+                />
             </Box>
         </Box>
     );
