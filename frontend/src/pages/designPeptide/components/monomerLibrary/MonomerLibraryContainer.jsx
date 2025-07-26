@@ -44,6 +44,7 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
                 // p={1}
                 // border={1}
                 // borderColor="grey.200"
+                pt={1}
                 pb={2}
                 display="flex"
                 flexDirection="column"
