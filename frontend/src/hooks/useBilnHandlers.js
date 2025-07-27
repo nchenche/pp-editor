@@ -24,7 +24,7 @@ export function useBilnHandlers({
      * @param {Array} monomers - The list of all monomers.
      * @param {Function} setBilnValue - Function to update the BILN string.
      */
-    const addMonomerToBiln = useCallback((monomer, activeSeqIdx) => {
+    const addMonomerToBiln = useCallback((monomer, uiState) => {
         if (!monomer) return;
 
         const code = monomer.symbol || monomer.m_abbr;

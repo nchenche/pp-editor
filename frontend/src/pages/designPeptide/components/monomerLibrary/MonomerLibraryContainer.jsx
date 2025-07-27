@@ -10,15 +10,30 @@ import { MonomerLibraryItems } from './monomerLibraryItems';
 import { Box, Typography, CircularProgress } from "@mui/material";
 
 
+// Simple debounce hook
+function useDebouncedValue(value, delay = 200) {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const id = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(id);
+    }, [value, delay]);
+    return debounced;
+}
+
+
 export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
     const [searchValue, setSearchValue] = useState("");
     const [quickFilters, setQuickFilters] = useState({
         caps: false, natural: false, nonNatural: false
     });
 
+
+    // Debounce the search value
+    const debouncedSearch = useDebouncedValue(searchValue || filterValue || '', 220);
+
     // Use the new hook
     const { data: filteredMonomers, isLoading, error } = useLibraryFetching({
-        search: searchValue || filterValue || '',
+        search: debouncedSearch,
         ...quickFilters
     });
 
