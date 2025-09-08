@@ -36,7 +36,8 @@ export const DesignPageLayout2 = ({
         className="
             grid
             grid-cols-1
-            lg:grid-cols-[500px_1fr_400px]
+            lg:grid-cols-[550px_1fr_400px
+            lg:grid-cols-3
             h-[85vh] min-h-0
             gap-4 p-2 bg-gray-50
         "
@@ -61,15 +62,12 @@ export const DesignPageLayout2 = ({
             className="
                 flex flex-col gap-4 min-h-0
                 order-2
-                lg:col-start-2 lg:col-end-3 lg:row-span-2 lg:order-none
+                lg:col-start-2 lg:col-end-3 lg:row-span-2 lg:order-none resize-x
             "
         >
-            <section className="border-2 border-green-400 bg-green-50 rounded-lg p-4 shadow-sm mb-2 overflow-auto">
-                {sequenceEditor}
-            </section>
-            <section className="border-2 border-yellow-400 bg-yellow-50 rounded-lg p-4 shadow-sm flex-1 min-h-0 overflow-auto">
+            <div className="border-2 border-yellow-400 rounded-lg p-4 shadow-sm flex-1 min-h-0 min-w-[480px]">
                 {viewerContainer}
-            </section>
+            </div>
         </section>
 
         {/* Output panel */}
@@ -78,7 +76,7 @@ export const DesignPageLayout2 = ({
                 h-full min-h-0
                 border-2 border-purple-400 bg-purple-50 rounded-lg p-4 shadow-sm overflow-auto
                 order-3
-                lg:col-start-3 lg:col-end-4 lg:row-span-2 lg:order-none
+                lg:col-start-3 lg:col-end-4 lg:row-span-2 lg:order-none min-w-[300px]
             "
         >
             {outputPanel}

@@ -57,3 +57,19 @@ export function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
     });
     return rowStrs.join('.').replace(/[-.\s]+$/g, '');
 }
+
+/**
+ * Set monomer sequences from a BILN string and monomers.
+ */
+export function setMonomerSequences(bilnValue, monomers) {
+    const sequences = getSequences(bilnValue);
+    if (!sequences.length) return [];
+
+    let offset = 0;
+    return sequences.map(seq => {
+        const count = seq.split('-').length;
+        const slice = monomers.slice(offset, offset + count);
+        offset += count;
+        return slice;
+    });
+}

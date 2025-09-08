@@ -67,3 +67,37 @@ function App() {
 
 export default App
 
+
+
+// src/
+// ├── components/
+// │   ├── peptide-editor/
+// │   │   ├── PeptideEditorMain.jsx         # Parent layout container (as above)
+// │   │   ├── SequenceInput.jsx             # BILN text input + controls
+// │   │   ├── MonomerTrack.jsx              # Interactive sequence track
+// │   │   ├── Viewer2D/
+// │   │   │   ├── Viewer2D.jsx              # 2D viewer entry point
+// │   │   │   ├── Viewer2DControls.jsx      # Collapsible toolbar
+// │   │   │   └── ... (utils/hooks)         
+// │   │   ├── Viewer3D/
+// │   │   │   ├── Viewer3D.jsx              # 3D viewer entry point
+// │   │   │   ├── Viewer3DControls.jsx      # Collapsible toolbar
+// │   │   │   └── ... (utils/hooks)         
+// │   │   ├── ControlBar.jsx                # Generic collapsible bar (reused)
+// │   │   └── index.js                      # Exports for easy import
+// │   ├── monomer-library/
+// │   │   ├── MonomerLibraryPanel.jsx       # Library browser/search/filters
+// │   │   └── ... (filters, item, etc)
+// │   └── output-panel/
+// │       ├── OutputPanel.jsx               # Export formats, peptide props
+// │       └── ... (subcomponents)
+// │
+// ├── hooks/
+// │   ├── usePeptideEditorState.js          # State for sequence, selection, etc
+// │   └── ... (other shared hooks)
+// │
+// ├── pages/
+// │   └── DesignPeptidePage.jsx             # Main app page, composes all above
+// │
+// └── utils/
+//     └── ... (formatting, molecular tools, helpers)

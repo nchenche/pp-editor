@@ -87,14 +87,15 @@ export function useBilnHandlers({
         segments[uiState.activeSeqIdx] = newSegMonomers.join("-");
         const newBiln = segments.join(".");
 
-        setBilnValue(newBiln);
+        // setBilnValue(newBiln);
+        rowMonomerLists = newBiln;
         console.log("Updated BILN:", newBiln);
 
     }, [bilnValue, setBilnValue, monomers]);
 
 
     // Delete monomer
-    const handleDeleteMonomerItem = useCallback((monomer) => {
+    const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
 
         const resIdx = parseInt(monomer['res-idx'].split('-')[1], 10); // 0-based
@@ -131,8 +132,10 @@ export function useBilnHandlers({
 
         // 5. Rebuild the BILN
         const newBiln = tokens.map((t, i) => t + (seps[i] || '')).join('').replace(/[-.\s]+$/g, '');
+        console.log("Deletion of monomer:", monomer["res-idx"]);
+        console.log("New BILN:", newBiln);
         setBilnValue(newBiln);
-    }, [bilnValue, setBilnValue]);
+    };
 
 
     // Link two monomers
@@ -216,13 +219,17 @@ export function useBilnHandlers({
             const [removed] = reorderedList.splice(source.index, 1);
             reorderedList.splice(destination.index, 0, removed);
 
-            setRowMonomerLists((prev) => {
-                const next = [...prev];
-                next[source.droppableId] = reorderedList;
+            // setRowMonomerLists((prev) => {
+            //     const next = [...prev];
+            //     next[source.droppableId] = reorderedList;
 
-                newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-                return next;
-            });
+            //     newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
+            //     return next;
+            // });
+
+            rowMonomerLists[source.droppableId] = reorderedList;
+            newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
+            console.log("Reordered BILN:", newBiln);
         }
         else {
             // Move between lists
@@ -231,14 +238,19 @@ export function useBilnHandlers({
             const [removed] = sourceList.splice(source.index, 1);
             destList.splice(destination.index, 0, removed);
 
-            setRowMonomerLists((prev) => {
-                const next = [...prev];
-                next[source.droppableId] = sourceList;
-                next[destination.droppableId] = destList;
+            // setRowMonomerLists((prev) => {
+            //     const next = [...prev];
+            //     next[source.droppableId] = sourceList;
+            //     next[destination.droppableId] = destList;
 
-                newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-                return next;
-            });
+            //     newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
+            //     return next;
+            // });
+
+            rowMonomerLists[source.droppableId] = sourceList;
+            rowMonomerLists[destination.droppableId] = destList;
+            newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
+            console.log("Moved BILN:", newBiln);
         }
         if (newBiln) setBilnValue(() => newBiln);
 

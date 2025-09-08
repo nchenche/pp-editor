@@ -1,37 +1,27 @@
-import { useState, useMemo } from 'react';
-
-import { Box } from '@mui/material';
-
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 
 import { DesignPageLayout2 } from '../layouts/DesignPageLayout';
+import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMain';
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
-
-import { InputBiln, InputSearch } from './designPeptide/components/Inputs';
 
 
 function Home({ children }) {
-  const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  // Example initial value
 
-  // Memoize the sidebar so it's created once and not on every Home re-render
-  const memoizedLibraryContainer = useMemo(
-    () => <MonomerLibraryContainer filterValue={""} onMonomerItemDoubleClick={() => { }} />,
-    [] // Only create once; add dependencies if sidebar should update
-  );
+  const memoizedLibraryContainer = useMemo(() => (
+    <MonomerLibraryContainer filterValue={""} onMonomerItemDoubleClick={() => { }} />
+  ), []);
 
-  // Handlers and state management would go here
-  // ...
+  const memoizedPeptideEditor = useMemo(() => (
+    <PeptideEditorMain
+      Viewer3D={<div>3D Viewer Placeholder</div>} // Replace with actual component
+    />
+  ), []); // Recreate if bilnValue or monomers change
 
   return (
     <div className="h-full min-h-0">
       <DesignPageLayout2
         sidebar={memoizedLibraryContainer}
-        sequenceEditor={
-
-          <Box width={{ xs: "100%", sm: 400, md: 500 }} mx="auto" p={0}>
-            <InputBiln value={bilnValue} onChangeValue={setBilnValue} />
-          </Box>
-        }
-        viewerContainer={"Viewer"}
+        viewerContainer={memoizedPeptideEditor}
         outputPanel={"Output"}
       />
     </div>

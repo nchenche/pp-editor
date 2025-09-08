@@ -1,0 +1,341 @@
+#svg-container {
+    /* prevent the SVG from painting outside its box */
+    contain: paint;
+}
+
+#svg-container svg {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* N-terminal indicator (for elements with is-n-ter) */
+.nter-circle {
+    /* replicates .is-n-ter::before */
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151;
+    /* Tailwind gray-800 */
+    border-radius: 50%;
+}
+
+.nter-line {
+    /* replicates .is-n-ter::after */
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    width: 6px;
+    height: 1.5px;
+    background-color: #374151;
+}
+
+/* C-terminal indicator (for elements with is-c-ter) */
+.cter-circle {
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151;
+    border-radius: 50%;
+}
+
+.cter-line {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    width: 6px;
+    height: 1.7px;
+    background-color: #374151;
+}
+
+/* R3 indicator (for elements with has-r3) */
+.r3-circle {
+    position: absolute;
+    top: -35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background-color: #374151;
+    border-radius: 50%;
+}
+
+.r3-line {
+    position: absolute;
+    top: calc(-35% + 3px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1.3px;
+    height: 6px;
+    background-color: #374151;
+}
+
+.r3-circle.branch-highlight {
+    position: absolute;
+    top: -35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 11px;
+    height: 11px;
+    background-color: green;
+    border-radius: 50%;
+}
+
+/* .selected-monomer {
+    position: relative;
+    border: 2px dashed #FF5733;
+    animation: shadowPulse 1.5s linear infinite;
+} */
+
+@keyframes shadowPulse {
+    0% {
+        box-shadow: 0 0 0 0px rgba(255, 87, 51, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px rgba(255, 87, 51, 0.3);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0px rgba(255, 87, 51, 0.7);
+    }
+}
+
+
+/* By default, all groups are fully opaque */
+/* svg g {
+    opacity: 1;
+    /* transition: opacity 0.2s ease; 
+} */
+
+/* When the mouse is over the SVG, dim all groups */
+/* svg:hover g{
+    opacity: 0.4;
+} */
+
+/* Restore full opacity for a group that is hovered */
+/* svg:hover g:hover {
+    opacity: 1;
+} */
+
+/* When a monomer is hovered (i.e. svg has the monomer-hover class), dim all groups
+/* svg.monomer-hover g{
+    opacity: 0.4;
+} */
+
+/* Except for the highlighted one (which should be the residue corresponding to the hovered monomer) */
+/* svg.monomer-hover g.highlighted {
+    opacity: 1;
+} */
+
+/* And for the hover rect inside a group, apply your stroke and fill rules */
+/* svg g:hover rect.hover-residue {
+    stroke: black;
+    stroke-width: 1px;
+    fill: gray;
+    fill-opacity: 0.05;
+    stroke-linejoin: round;
+} */
+
+/* Make the entire group pointer-transparent by default */
+svg g.r-group {
+    pointer-events: none;
+}
+
+/* Except the background rect, which should handle hover/click */
+svg g.r-group rect.visible {
+    pointer-events: auto;
+}
+
+svg g.highlighted rect.hover-residue {
+    stroke: black;
+    stroke-width: 1px;
+    fill: gray;
+    fill-opacity: 0.05;
+    stroke-linejoin: round;
+}
+
+svg g.r-group rect {
+    rx: 5%;
+    ry: 3%;
+}
+
+svg g.r-group rect.visible {
+    stroke: slategray;
+    stroke-width: 1px;
+}
+
+svg g.r-group:hover rect.visible {
+    cursor: pointer;
+    stroke-width: 1.5px;
+    fill: gray;
+    fill-opacity: 0.25;
+}
+
+svg g.r-group.selected rect.visible,
+svg g.r-group.selected:hover rect.visible {
+    cursor: pointer;
+    stroke: slategray;
+    stroke-width: 1.5px;
+    fill: rgba(255, 255, 0, 0.562);
+    fill-opacity: 0.25;
+    /* Set up the dashed stroke */
+    stroke-dasharray: 5;
+    /* Apply the animation */
+    animation: dashFlow 5s linear infinite;
+}
+
+@keyframes dashFlow {
+    from {
+        stroke-dashoffset: 100;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+svg:has(rect:first-of-type.linking-mode) path {
+    opacity: 0.33;
+}
+
+svg:has(rect:first-of-type.linking-mode) g.r-group path {
+    opacity: 1;
+}
+
+svg:has(rect:first-of-type.linking-mode) g.r-group rect.visible {
+    stroke-width: 1.5px;
+}
+
+svg g.bond rect.visible {
+    stroke: slategray;
+    stroke-width: 1px;
+    fill: gray;
+    fill-opacity: 0.25;
+    rx: 5%;
+}
+
+/* svg g.bond:hover rect.visible {
+    cursor: pointer;
+    stroke-width: 1.5px;
+    fill: gray;
+    fill-opacity: 0.45;
+}
+
+svg:has(rect:first-of-type.linking-mode) g.bond rect.visible,
+svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
+    opacity: 0.1;
+    fill-opacity: 0.1;
+    cursor: default;
+} */
+
+
+
+/* Remove default hiding for R-groups; keep extra-bonds hidden by default */
+/* #svg-container .extra-bond {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease-in-out;
+} */
+
+
+
+/* Bonds-on emphasis mode: dim everything */
+#svg-container.bonds-on svg :is(path, line, polyline, polygon, circle, ellipse, rect, text) {
+    opacity: 0.33;
+    transition: opacity 50ms ease-in-out;
+}
+
+/* Keep "type-other" bonds fully visible (reset opacity on all descendants) */
+#svg-container.bonds-on svg g.type-other,
+#svg-container.bonds-on svg g.type-other * {
+    opacity: 1 !important;
+}
+
+/* Also keep the two atoms that participate in each extra bond fully visible */
+#svg-container.bonds-on svg .highlight-extra-bond-atom {
+    opacity: 1 !important;
+}
+
+/* Make the extra-bond hit-rect actually visible while bonds-on */
+#svg-container.bonds-on svg g.type-other rect.extra-bond {
+    stroke: #334155;
+    stroke-width: 0.75px;
+    stroke-dasharray: 5;
+    animation: dashFlow 5s linear infinite;
+    rx: 2%;
+}
+
+/* Optional: ensure it’s clickable in this mode */
+#svg-container.bonds-on svg g.type-other rect.extra-bond {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+
+/* Emphasis mode: dim everything except R-groups */
+#svg-container.rgroups-emphasis svg :is(path, line, polyline, polygon, circle, ellipse, rect, text):not(g.r-group *):not(.r-group) {
+    opacity: 0.33;
+    transition: opacity 50ms ease-in-out;
+}
+
+/* Keep R-groups fully visible */
+#svg-container.rgroups-emphasis svg g.r-group,
+#svg-container.rgroups-emphasis svg g.r-group * {
+    opacity: 1;
+}
+
+#svg-container svg g.r-group rect {
+    fill: slategray;
+    fill-opacity: 0;
+    rx: 5%;
+}
+
+#svg-container.rgroups-emphasis svg g.r-group rect {
+    stroke: #334155;
+    /* inkLight */
+    stroke-width: 0.67px;
+    fill: #1e293b;
+    /* ink */
+    fill-opacity: 0.05;
+    rx: 5%;
+    transition: stroke-width 50ms ease-in-out, fill-opacity 50ms ease-in-out;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+
+
+/* Keep only the selected R-group fully visible */
+#svg-container.linking-mode svg g.r-group.selected,
+#svg-container.linking-mode svg g.r-group.selected * {
+    opacity: 1;
+}
+
+/* Make selected R-group overlay box prominent (dashFlow already defined below) */
+#svg-container.linking-mode svg g.r-group.selected rect {
+    stroke: #334155;
+    stroke-width: 1.25px;
+    fill: #1e293b62;
+    fill-opacity: 0.25;
+    stroke-dasharray: 5;
+    animation: dashFlow 5s linear infinite;
+}
+
+/* Background stays default cursor */
+#svg-container.linking-mode {
+    cursor: default;
+}
+
+#svg-container:focus,
+#svg-container svg:focus {
+    outline: none;
+}
