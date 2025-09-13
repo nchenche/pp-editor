@@ -105,7 +105,7 @@ export const PeptideEditorMain = ({
     useEffect(() => {
         if (!bilnValue) return;
         loadData(bilnValue);
-    }, [bilnValue]);
+    }, [bilnValue]); // [bilnValue, isShowingAtomIndices]
 
     function handleBilnChange(newBiln) {
         setBilnValue(newBiln);

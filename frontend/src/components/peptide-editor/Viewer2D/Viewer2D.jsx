@@ -12,6 +12,8 @@ import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Alert from '@mui/material/Alert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+
 
 import usePanZoom from "../../../hooks/usePanZoom";
 import { useViewer2DHandlers } from '../../../hooks/useViewer2DHandlers';
@@ -106,12 +108,27 @@ export function Viewer2D(props) {
     const processedSvg = useMemo(() => makeTightResponsiveSvg(svgData, { padding: 16, preserve: 'xMidYMid meet' }), [svgData]);
 
     const svgContainer = useRef(null);
+    const panZoomApi = useRef(null);
 
     const [isShowRGroups, setIsShowRGroups] = useState(false);
     const [isShowBonds, setIsShowBonds] = useState(false);
     const [monomersToLink, setMonomersToLink] = useState([]);
 
-    usePanZoom(svgContainer, [svgData]);
+    // Simple: compute presence of extra bonds from the SVG text
+    const hasExtraBonds = useMemo(() => {
+        if (!svgData) return false;
+        // Adjust if your exporter uses a different class pattern
+        return svgData.includes('class="bond type-other"')
+            || svgData.includes("class='bond type-other'")
+            || /class="[^"]*\bbond\b[^"]*\btype-other\b/.test(svgData);
+    }, [svgData]);
+
+    // If none remain, auto turn off the toggle
+    useEffect(() => {
+        if (!hasExtraBonds && isShowBonds) setIsShowBonds(false);
+    }, [hasExtraBonds, isShowBonds]);
+
+    usePanZoom(svgContainer, [svgData], panZoomApi);
 
     const {
         onMouseEnterGroup,
@@ -175,28 +192,42 @@ export function Viewer2D(props) {
     // --- Vertical Controls Array ---
     const controls = [
         {
+            icon: <RestartAltIcon />,
+            tooltip: 'Reset view',
+            onClick: () => panZoomApi.current?.reset(),
+            aria: 'reset-view',
+            disabled: !svgData,
+        },
+        {
             icon: <DeviceHubIcon sx={{ color: isShowRGroups ? uiColors.ink : 'inherit' }} />,
             tooltip: isShowRGroups ? 'Exit link mode' : 'Link monomers',
             onClick: handleToggleLinkMode,
             aria: 'link-monomers',
+            disabled: !svgData,
         },
         {
             icon: isShowingAtomIndices ? <VisibilityIcon /> : <VisibilityOffIcon />,
             tooltip: isShowingAtomIndices ? 'Hide atom indices' : 'Show atom indices',
-            onClick: handleShowingAtomIndices,
+            onClick: () => {
+                handleShowingAtomIndices(!isShowingAtomIndices);
+                console.log('Toggle atom indices to', !isShowingAtomIndices);
+            },  // handleShowingAtomIndices,
             aria: 'toggle-atom-indices',
+            disabled: !svgData,
         },
         {
             icon: isShowBonds ? <VisibilityIcon /> : <VisibilityOffIcon />,
             tooltip: isShowBonds ? 'Hide extra bonds' : 'Show extra bonds',
             onClick: () => setIsShowBonds(v => !v),
             aria: 'toggle-bonds',
+            disabled: !hasExtraBonds || !svgData,
         },
         {
             icon: <HighlightAltIcon />,
             tooltip: 'Highlight',
             onClick: () => { },
             aria: 'highlight',
+            disabled: !svgData,
         },
     ];
 
@@ -302,11 +333,19 @@ export function Viewer2D(props) {
 
             {/* Vertical controls: absolute on the right */}
             <div className="absolute top-12 right-0 flex flex-col gap-4 z-10">
-                {controls.map(({ icon, tooltip, onClick, aria }, i) => (
+                {controls.map(({ icon, tooltip, onClick, aria, disabled }, i) => (
                     <Tooltip title={tooltip} key={aria || i} placement="left">
-                        <IconButton size="small" onClick={onClick} aria-label={aria}>
-                            {icon}
-                        </IconButton>
+                        {/* Wrap disabled button with a span so Tooltip can receive events */}
+                        <span className="inline-flex">
+                            <IconButton
+                                size="small"
+                                onClick={onClick}
+                                aria-label={aria}
+                                disabled={disabled}
+                            >
+                                {icon}
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 ))}
             </div>
