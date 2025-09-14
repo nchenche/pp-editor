@@ -266,13 +266,27 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 }
 
 /* Make the extra-bond hit-rect actually visible while bonds-on */
-#svg-container.bonds-on svg g.type-other rect.extra-bond {
+/* #svg-container.bonds-on svg g.type-other rect.extra-bond {
     stroke: #334155;
     stroke-width: 0.75px;
     stroke-dasharray: 5;
     animation: dashFlow 5s linear infinite;
     rx: 2%;
+} */
+
+#svg-container.bonds-on svg g.type-other rect.extra-bond {
+    stroke: #334155;
+    /* inkLight */
+    stroke-width: 0.67px;
+    fill: #1e293b;
+    /* ink */
+    fill-opacity: 0.05;
+    rx: 4%;
+    transition: stroke-width 50ms ease-in-out, fill-opacity 50ms ease-in-out;
+    cursor: pointer;
+    pointer-events: auto;
 }
+
 
 /* Optional: ensure it’s clickable in this mode */
 #svg-container.bonds-on svg g.type-other rect.extra-bond {

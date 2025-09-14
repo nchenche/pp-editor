@@ -13,6 +13,10 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Alert from '@mui/material/Alert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import ContentCut from '@mui/icons-material/ContentCut';
+
+
 
 
 import usePanZoom from "../../../hooks/usePanZoom";
@@ -163,6 +167,7 @@ export function Viewer2D(props) {
         onBondClick,
         hoveredMonomer,
         cancelLinking,
+        setIsShowBonds
     });
 
 
@@ -203,7 +208,7 @@ export function Viewer2D(props) {
             tooltip: isShowRGroups ? 'Exit link mode' : 'Link monomers',
             onClick: handleToggleLinkMode,
             aria: 'link-monomers',
-            disabled: !svgData,
+            disabled: !svgData || isShowBonds,
         },
         {
             icon: isShowingAtomIndices ? <VisibilityIcon /> : <VisibilityOffIcon />,
@@ -216,11 +221,11 @@ export function Viewer2D(props) {
             disabled: !svgData,
         },
         {
-            icon: isShowBonds ? <VisibilityIcon /> : <VisibilityOffIcon />,
-            tooltip: isShowBonds ? 'Hide extra bonds' : 'Show extra bonds',
+            icon: <ContentCut />,
+            tooltip: 'Show extra bonds',
             onClick: () => setIsShowBonds(v => !v),
             aria: 'toggle-bonds',
-            disabled: !hasExtraBonds || !svgData,
+            disabled: !hasExtraBonds || !svgData || isShowRGroups,
         },
         {
             icon: <HighlightAltIcon />,
@@ -255,8 +260,8 @@ export function Viewer2D(props) {
                     </div>
                 )}
 
-                {/* Instruction banner: full width, thin, behind SVG, no margin */}
-                {isShowRGroups && (
+                {/* Instruction banner for linking monomers: full width, thin, behind SVG, no margin */}
+                {isShowRGroups && !isShowBonds && (
                     <div className="absolute inset-x-0 top-0 z-0">
                         <Alert
                             severity="info"
@@ -329,6 +334,45 @@ export function Viewer2D(props) {
                         </Alert>
                     </div>
                 )}
+
+                {/* Instruction banner to remove a bond */}
+                {isShowBonds && !isShowRGroups && (
+                    <div className="absolute inset-x-0 top-0 z-0">
+                        <Alert
+                            severity="info"
+                            icon={false}
+                            variant="filled"
+                            sx={{
+                                borderRadius: 0,
+                                px: 1,
+                                py: 0.25,
+                                minHeight: 40, // keep your current height
+                                alignItems: 'center',
+                                bgcolor: uiColors.surface,          // themed bg
+                                color: uiColors.ink,                // themed text
+                                backdropFilter: 'blur(1.5px)',
+                                borderBottom: `1px solid ${uiColors.surfaceHover}`,
+                                // Make the message a centered flex row so the icon sits right after the text
+                                '.MuiAlert-message': {
+                                    p: 0,
+                                    m: 0,
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8, // small gap between text and icon
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    letterSpacing: 0.2,
+                                    textAlign: 'center',
+                                },
+                            }}
+                        >
+                            Double click on a bond to remove it (Esc to cancel)
+                        </Alert>
+                    </div>
+                )}
+
             </div>
 
             {/* Vertical controls: absolute on the right */}

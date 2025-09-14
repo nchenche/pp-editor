@@ -12,7 +12,8 @@ export function useViewer2DEffects({
     onBondClick,
     hoveredMonomer,
     cancelLinking,
-    isShowBonds
+    isShowBonds,
+    setIsShowBonds,
 }) {
 
     useEffect(() => {
@@ -27,7 +28,7 @@ export function useViewer2DEffects({
                 return;
             }
 
-            const padding = 10;
+            const padding = 12;
             const groupClasses = group.classList;
             const attr = { fill: "transparent" };
             const rect = createRect(group, attr, padding);
@@ -142,4 +143,21 @@ export function useViewer2DEffects({
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [cancelLinking, svgContainer]);
+
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === 'Escape' && isShowBonds) {
+                e.preventDefault();
+                setIsShowBonds(false);
+                // If focus is inside the SVG container, blur it
+                const active = document.activeElement;
+                if (active && svgContainer.current?.contains(active)) {
+                    // defer to after DOM/state updates
+                    requestAnimationFrame(() => active.blur());
+                }
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [svgContainer, isShowBonds, setIsShowBonds]);
 }
