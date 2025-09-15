@@ -24,6 +24,7 @@ export const MonomerSequence = ({
     droppableRef,
     handleMonomerEnter,
     handleMonomerLeave,
+    isDragging = true,
 }) => {
 
     return (
@@ -36,18 +37,30 @@ export const MonomerSequence = ({
                 const isCterCap = monomer.m_subtype === 'cap' && monomer.m_RgroupIdx[0] !== null;
                 const isHovered = monomer['res-idx'] === hoveredMonomer;
 
-
-                const monomerIdx = parseInt(monomer['res-idx'].split('-')[1]);
-
+                // const monomerIdx = parseInt(monomer['res-idx'].split('-')[1]);
+                // console.log("Monomer idx:", monomer);
 
                 // Find all link IDs where this monomerIdx appears
-                const linkIndices = Object.entries(linkMap)
-                    .filter(([linkId, pairs]) => pairs.some(p => p.monomerIdx === monomerIdx))
-                    .map(([linkId]) => linkId);
+                // const linkIndices = Object.entries(linkMap)
+                //     .filter(([linkId, pairs]) => pairs.some(p => p.monomerIdx === monomerIdx))
+                //     .map(([linkId]) => linkId);
+
+                // Prefer stable, precomputed link IDs attached to the monomer
+                let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
+
+                // Fallback (only if needed): compute from linkMap by current index
+                if (!linkIndices.length && linkMap) {
+                    const monomerIdx = parseInt(String(monomer['res-idx']).split('-')[1], 10);
+                    linkIndices = Object.entries(linkMap)
+                        .filter(([, pairs]) => pairs?.some(p => p.monomerIdx === monomerIdx))
+                        .map(([linkId]) => linkId);
+                }
+
+                if (isDragging) linkIndices = []; // avoid flicker during reorder
 
                 return (
                     <MonomerItem
-                        key={monomer['res-idx']}
+                        key={monomer.uid || monomer._id || monomer['res-idx']}
                         index={index}
                         monomer={monomer}
                         handleMonomerEnter={handleMonomerEnter}

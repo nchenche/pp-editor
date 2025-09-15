@@ -197,29 +197,22 @@ export function Viewer2D(props) {
     // --- Vertical Controls Array ---
     const controls = [
         {
-            icon: <RestartAltIcon />,
-            tooltip: 'Reset view',
-            onClick: () => panZoomApi.current?.reset(),
-            aria: 'reset-view',
-            disabled: !svgData,
-        },
-        {
             icon: <DeviceHubIcon sx={{ color: isShowRGroups ? uiColors.ink : 'inherit' }} />,
             tooltip: isShowRGroups ? 'Exit link mode' : 'Link monomers',
             onClick: handleToggleLinkMode,
             aria: 'link-monomers',
             disabled: !svgData || isShowBonds,
         },
-        {
-            icon: isShowingAtomIndices ? <VisibilityIcon /> : <VisibilityOffIcon />,
-            tooltip: isShowingAtomIndices ? 'Hide atom indices' : 'Show atom indices',
-            onClick: () => {
-                handleShowingAtomIndices(!isShowingAtomIndices);
-                console.log('Toggle atom indices to', !isShowingAtomIndices);
-            },  // handleShowingAtomIndices,
-            aria: 'toggle-atom-indices',
-            disabled: !svgData,
-        },
+        // {
+        //     icon: isShowingAtomIndices ? <VisibilityIcon /> : <VisibilityOffIcon />,
+        //     tooltip: isShowingAtomIndices ? 'Hide atom indices' : 'Show atom indices',
+        //     onClick: () => {
+        //         handleShowingAtomIndices(!isShowingAtomIndices);
+        //         console.log('Toggle atom indices to', !isShowingAtomIndices);
+        //     },  // handleShowingAtomIndices,
+        //     aria: 'toggle-atom-indices',
+        //     disabled: !svgData,
+        // },
         {
             icon: <ContentCut />,
             tooltip: 'Show extra bonds',
@@ -228,10 +221,10 @@ export function Viewer2D(props) {
             disabled: !hasExtraBonds || !svgData || isShowRGroups,
         },
         {
-            icon: <HighlightAltIcon />,
-            tooltip: 'Highlight',
-            onClick: () => { },
-            aria: 'highlight',
+            icon: <RestartAltIcon />,
+            tooltip: 'Reset view',
+            onClick: () => panZoomApi.current?.reset(),
+            aria: 'reset-view',
             disabled: !svgData,
         },
     ];
@@ -244,7 +237,7 @@ export function Viewer2D(props) {
             <div
                 id="svg-container"
                 className={`
-                    relative h-full w-full p-1 overflow-hidden bg-white border border-slate-200 rounded-lg
+                    relative h-80 w-full p-4 overflow-hidden bg-white border border-slate-200 rounded-lg
                     ${isShowRGroups ? 'rgroups-emphasis' : ''} ${isShowBonds ? 'bonds-on' : ''} ${monomersToLink.length > 0 ? 'linking-mode' : ''
                     }`}
                 ref={svgContainer}
@@ -394,13 +387,11 @@ export function Viewer2D(props) {
                 ))}
             </div>
             {/* Error below viewer */}
-            {
-                error && (
-                    <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center text-red-500 text-sm">
-                        <ErrorOutlineIcon className="mr-1" /> {error}
-                    </div>
-                )
-            }
-        </div >
+            {error && (
+                <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center text-red-500 text-sm">
+                    <ErrorOutlineIcon className="mr-1" /> {error}
+                </div>
+            )}
+        </div>
     );
 };

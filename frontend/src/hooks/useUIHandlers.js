@@ -1,33 +1,10 @@
 import { useCallback } from "react";
 
 
-// export function useUIHandlers({
-//     monomers,
-//     setUiState
-// }) {
-//     const handleMonomerHover = useCallback((newIdx) => {
-//         let newResIdx = newIdx;
-//         if (typeof newIdx === 'object' && newIdx !== null) {
-//             const monomer = monomers.find((ele) =>
-//                 ele['res-idx'].split('-')[1] == (newIdx.resid - 1)
-//             );
-//             newResIdx = monomer ? monomer['res-idx'] : '';
-//             if (!monomer) {
-//                 console.warn('No matching monomer found for:', newIdx);
-//             }
-//         }
-//         setUiState(prev => (
-//             prev.hoveredMonomer === newResIdx ? prev : { ...prev, hoveredMonomer: newResIdx }
-//         ));
-//     }, [monomers, setUiState]);
-
-//     return {
-//         handleMonomerHover
-//     };
-// }
-
-export function useUIHandlers({ monomers, setHoveredMonomer }) {
+export function useUIHandlers({ monomers, setHoveredMonomer, isDragging }) {
     const handleMonomerEnter = useCallback((newIdx) => {
+        if (isDragging) return; // Ignore hover events while dragging
+
         let newResIdx = newIdx;
         if (typeof newIdx === 'object' && newIdx !== null) {
             const monomer = monomers.find((ele) =>
@@ -39,11 +16,13 @@ export function useUIHandlers({ monomers, setHoveredMonomer }) {
             }
         }
         setHoveredMonomer(newResIdx);
-    }, [monomers, setHoveredMonomer]);
+    }, [monomers, setHoveredMonomer, isDragging]);
 
     const handleMonomerLeave = useCallback(() => {
+        if (isDragging) return; // Ignore hover events while dragging
+
         setHoveredMonomer('');
-    }, [setHoveredMonomer]);
+    }, [setHoveredMonomer, isDragging]);
 
     return {
         handleMonomerEnter,

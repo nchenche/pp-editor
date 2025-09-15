@@ -19,12 +19,12 @@ export const PeptideEditorMain = ({
     Viewer3D,
 }) => {
 
-    console.log('PeptideEditorMain rendered');
+    // console.log('PeptideEditorMain rendered');
 
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  //  A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState('A-C(1,3)-K-A-C(1,3)-G-L');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
 
@@ -36,10 +36,13 @@ export const PeptideEditorMain = ({
         hoveredMonomer: '',
     });
 
+    const [isDragging, setIsDragging] = useState(false);
+
+
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers, bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [bilnValue, monomers]);
 
-    const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd,
+    const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart
     } = useBilnHandlers({
         bilnValue,
         setBilnValue,
@@ -48,9 +51,11 @@ export const PeptideEditorMain = ({
         linkMap,
         uiState,
         setUiState,
+        setIsDragging,
+        setHoveredMonomer,
     });
 
-    const { handleMonomerEnter, handleMonomerLeave } = useUIHandlers({ monomers, setHoveredMonomer });
+    const { handleMonomerEnter, handleMonomerLeave } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
     const monomerTrack = <MonomerTrack
         rowMonomerLists={rowMonomerLists}
@@ -59,32 +64,11 @@ export const PeptideEditorMain = ({
         linkMap={linkMap}
         hoveredMonomer={hoveredMonomer}
         handleDeleteMonomerItem={handleDeleteMonomerItem}
+        onDragStart={handleDragStart}
         onDragEnd={handleOnDragEnd}
         handleMonomerEnter={handleMonomerEnter}
         handleMonomerLeave={handleMonomerLeave}
     />;
-
-    // useEffect(() => {
-    //     if (!bilnValue) {
-    //         setDepictionData(null);
-    //         // setRowMonomerLists([]);
-    //         setStructureOutput(null);
-    //         return;
-    //     }
-
-    //     const query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
-    //     const loadAndGenerate = async () => {
-    //         await fetchDepiction(DEPICT_2D_URL + query);
-    //         await generate3D(bilnValue);
-    //     };
-
-    //     loadAndGenerate();
-    //     // console.log('smiles:', depictionData?.smiles);
-    // }, [bilnValue, isShowingAtomIndices]);
-
-
-
-
 
     function loadData(newBiln) {
         const params = {
@@ -137,6 +121,8 @@ export const PeptideEditorMain = ({
                     handleMonomerLeave={handleMonomerLeave}
                     onLinkMonomers={handleMonomerLinking}
                     onBreakBond={handleBondBreaking}
+                    error={depictionError}
+                    loading={depictionLoading}
                 />
             </section>
 

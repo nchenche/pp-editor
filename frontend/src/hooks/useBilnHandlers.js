@@ -13,7 +13,9 @@ export function useBilnHandlers({
     setRowMonomerLists,
     linkMap,
     uiState,
-    setUiState
+    setUiState,
+    setIsDragging,
+    setHoveredMonomer,
 }) {
 
     /**
@@ -202,9 +204,15 @@ export function useBilnHandlers({
         setBilnValue(newBiln);
     }, [bilnValue, setBilnValue, linkMap]);
 
+    // Handle drag start
+    const handleDragStart = useCallback(() => {
+        setIsDragging(true);
+        setHoveredMonomer(''); // Clear hover state when dragging starts
+    }, [setIsDragging, setHoveredMonomer]);
 
     // Handle drag end
     const handleOnDragEnd = useCallback((result) => {
+        setIsDragging(false);
         // console.log('Drag result:', result);
         const { source, destination, draggableId } = result;
 
@@ -219,33 +227,16 @@ export function useBilnHandlers({
             const [removed] = reorderedList.splice(source.index, 1);
             reorderedList.splice(destination.index, 0, removed);
 
-            // setRowMonomerLists((prev) => {
-            //     const next = [...prev];
-            //     next[source.droppableId] = reorderedList;
-
-            //     newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-            //     return next;
-            // });
-
             rowMonomerLists[source.droppableId] = reorderedList;
             newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
             console.log("Reordered BILN:", newBiln);
         }
         else {
-            // Move between lists
+            // Move between 2 different lists
             const sourceList = Array.from(rowMonomerLists[source.droppableId]);
             const destList = Array.from(rowMonomerLists[destination.droppableId]);
             const [removed] = sourceList.splice(source.index, 1);
             destList.splice(destination.index, 0, removed);
-
-            // setRowMonomerLists((prev) => {
-            //     const next = [...prev];
-            //     next[source.droppableId] = sourceList;
-            //     next[destination.droppableId] = destList;
-
-            //     newBiln = buildBilnFromRowMonomerLists(next, bilnValue);
-            //     return next;
-            // });
 
             rowMonomerLists[source.droppableId] = sourceList;
             rowMonomerLists[destination.droppableId] = destList;
@@ -263,5 +254,6 @@ export function useBilnHandlers({
         handleMonomerLinking,
         handleBondBreaking,
         handleOnDragEnd,
+        handleDragStart,
     };
 }

@@ -9,17 +9,15 @@ export const MonomerTrack = ({
     activeSeqIdx,
     onSetActiveSeqIdx,
     linkMap,
-    // handleMonomerHover,
     hoveredMonomer,
     handleDeleteMonomerItem,
     onDragEnd,
     handleMonomerEnter,
     handleMonomerLeave,
+    onDragStart,
 }) => {
-    // console.log("Rendering MonomerTrack");
-
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {rowMonomerLists.map((list, seqIdx) => (
                 <div
                     key={seqIdx}
@@ -33,7 +31,6 @@ export const MonomerTrack = ({
                                 droppableRef={provided.innerRef}
                                 monomers={list}
                                 linkMap={linkMap}
-                                // handleMonomerHover={handleMonomerHover}
                                 hoveredMonomer={hoveredMonomer}
                                 onDelete={handleDeleteMonomerItem}
                                 handleMonomerEnter={handleMonomerEnter}
