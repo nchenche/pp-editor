@@ -40,7 +40,7 @@ export const PeptideEditorMain = ({
 
 
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers, bilnValue]);
-    const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [bilnValue, monomers]);
+    const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
     const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart
     } = useBilnHandlers({
