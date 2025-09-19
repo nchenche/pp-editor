@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 import { DefaultPluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { PluginConfig } from 'molstar/lib/mol-plugin/config';
+import { Color } from 'molstar/lib/mol-util/color';
 
 export function useMolstarPlugin() {
     const canvasRef = useRef(null);
@@ -16,18 +17,25 @@ export function useMolstarPlugin() {
         const initPlugin = async () => {
             try {
                 // Custom spec disables volume streaming for lighter load.
-                const MySpec = {
-                    ...DefaultPluginSpec(),
-                    config: [
-                        [PluginConfig.VolumeStreaming.Enabled, false]
-                    ]
-                };
-                const plugin = new PluginContext(DefaultPluginSpec(MySpec));
+                const spec = DefaultPluginSpec();
+                spec.config = [
+                    [PluginConfig.VolumeStreaming.Enabled, false],
+                    [PluginConfig.Viewport.ShowControls, 'right'], // 'compact' | 'right' | 'left'
+                    [PluginConfig.Viewport.ShowExpand, true],
+                    [PluginConfig.Viewport.ShowSettings, true],
+                    [PluginConfig.Viewport.ShowSelectionMode, true],
+                    [PluginConfig.Viewport.ShowScreenshot, true],
+                ];
+                spec.layout = { initial: { isExpanded: true, showControls: true } };
+
+                const plugin = new PluginContext(spec);
                 if (!plugin.initViewer(canvasRef.current, containerRef.current)) {
                     throw new Error('Failed to initialize MolStar viewer');
                 }
                 await plugin.init();
+
                 pluginRef.current = plugin;
+
                 if (!disposed) setPluginInitialized(true);
             } catch (err) {
                 if (!disposed) setError(err.message);
@@ -43,6 +51,7 @@ export function useMolstarPlugin() {
             if (pluginRef.current) {
                 try {
                     pluginRef.current.dispose();
+                    pluginRef.current = null;
                 } catch (e) {
                     // ignore
                 }
@@ -52,4 +61,3 @@ export function useMolstarPlugin() {
 
     return { pluginRef, canvasRef, containerRef, pluginInitialized, error };
 }
-

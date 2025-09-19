@@ -7,6 +7,7 @@ import { MonomerSequence } from './MonomerSequence';
 export const MonomerTrack = ({
     rowMonomerLists,
     activeSeqIdx,
+    handleAddingMonomer,
     onSetActiveSeqIdx,
     linkMap,
     hoveredMonomer,
@@ -31,6 +32,7 @@ export const MonomerTrack = ({
                                 droppableRef={provided.innerRef}
                                 monomers={list}
                                 linkMap={linkMap}
+                                isActive={seqIdx === activeSeqIdx}
                                 hoveredMonomer={hoveredMonomer}
                                 onDelete={handleDeleteMonomerItem}
                                 handleMonomerEnter={handleMonomerEnter}

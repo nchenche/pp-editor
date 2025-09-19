@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 
+import { CircularProgress } from "@mui/material";
+
 // Helper: Determine file format
 function determineFileFormat(filename, mimeType) {
     if (filename.endsWith('.pdb')) return 'pdb';

@@ -6,7 +6,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 
 
-const MonomerLibraryItem = ({ monomer, onAdd, onInfo = () => { } }) => {
+const MonomerLibraryItem = ({ monomer, onMonomerAdd, onInfo = () => { } }, activeSeqIdx) => {
     return (
         <Card
             variant="outlined"
@@ -43,7 +43,7 @@ const MonomerLibraryItem = ({ monomer, onAdd, onInfo = () => { } }) => {
                     <IconButton
                         size="small"
                         color="success"
-                        onClick={onAdd}
+                        onClick={() => onMonomerAdd(monomer, activeSeqIdx)}
                         sx={{ p: 0.6, color: "grey.400" }}
                         className='hover:text-slate-200'
                     >
@@ -133,14 +133,14 @@ const MonomerLibraryItem = ({ monomer, onAdd, onInfo = () => { } }) => {
 }
 
 
-export const MonomerLibraryItems = ({ monomers, handleOnDoubleClick }) => {
+export const MonomerLibraryItems = ({ monomers, handleAddingMonomer }) => {
     return (
         <div className="relative flex flex-wrap justify-center gap-4">
             {monomers.map((monomer) => (
                 <MonomerLibraryItem
                     key={monomer._id}
                     monomer={monomer}
-                    onAdd={handleOnDoubleClick}
+                    onMonomerAdd={handleAddingMonomer}
                     onInfo={() => console.log("More info for", monomer.symbol)}
                 />
             ))}

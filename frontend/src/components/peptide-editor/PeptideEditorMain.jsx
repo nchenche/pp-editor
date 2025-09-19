@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 
 import { SequenceInput } from './SequenceInput';
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
+import { Viewer3D } from './Viewer3D/Viewer3D';
+// import { MolstarApp } from './Viewer3D/molstar/MolstarApp';
 
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
@@ -15,9 +16,7 @@ import { buildLinkMapFromBiln, setMonomerSequences } from '../../../src/utils/bi
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
 
-export const PeptideEditorMain = ({
-    Viewer3D,
-}) => {
+const PeptideEditorMainInner = ({onOutputChange, uiState, setUiState}, ref) => {
 
     // console.log('PeptideEditorMain rendered');
 
@@ -27,18 +26,24 @@ export const PeptideEditorMain = ({
     const [bilnValue, setBilnValue] = useState('A-C(1,3)-K-A-C(1,3)-G-L');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
+    const smiles = depictionData?.smiles || '';
+    const helm = depictionData?.helm || '';
+
+    // Lift state up: output data
+    useEffect(() => {
+        if (onOutputChange) {
+            onOutputChange({
+                biln: bilnValue,
+                helm: helm,
+                smiles: smiles,
+                structure3D: structureOutput?.pdb || '',
+            });
+        }
+    }, [bilnValue, smiles, helm, structureOutput, onOutputChange]);
 
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [hoveredMonomer, setHoveredMonomer] = useState('');
-    const [uiState, setUiState] = useState({
-        activeSeqIdx: 0,
-        selectedMonomer: null,
-        hoveredMonomer: '',
-    });
-
     const [isDragging, setIsDragging] = useState(false);
-
-
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers, bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
@@ -55,7 +60,14 @@ export const PeptideEditorMain = ({
         setHoveredMonomer,
     });
 
-    const { handleMonomerEnter, handleMonomerLeave } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+    const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+
+    // Expose a minimal API to parent
+    useImperativeHandle(ref, () => ({
+        addMonomer: (monomer, ui = uiState) => addMonomerToBiln(monomer, ui),
+        setBiln: (biln) => setBilnValue(biln),
+        getBiln: () => bilnValue,
+    }), [addMonomerToBiln, uiState, bilnValue]);
 
     const monomerTrack = <MonomerTrack
         rowMonomerLists={rowMonomerLists}
@@ -78,22 +90,20 @@ export const PeptideEditorMain = ({
         }
 
         // const query = `?sequence=${newBiln}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
-        const loadAndGenerate = async () => {
-            await fetchDepiction(params);
-            // await generate3D(newBiln);
+        const loadAndGenerate = () => {
+            fetchDepiction(params);
+            generate3D(newBiln);
         };
-
         loadAndGenerate();
     }
 
     useEffect(() => {
         if (!bilnValue) return;
         loadData(bilnValue);
-    }, [bilnValue]); // [bilnValue, isShowingAtomIndices]
+    }, [bilnValue]);  // [bilnValue, isShowingAtomIndices]
 
     function handleBilnChange(newBiln) {
         setBilnValue(newBiln);
-        // loadData(newBiln);
     }
 
 
@@ -127,9 +137,21 @@ export const PeptideEditorMain = ({
             </section>
 
             {/* 3D Viewer (self-contained with controls) */}
-            <section className="border p-2 rounded shadow-sm min-h-[300px] flex-1">
-                <div>3D Viewer Placeholder</div>
+            <section className="border p-2 rounded shadow-sm min-h-[300px] max-h-[500px] flex-1">
+                {/* <Viewer3D
+                    pdbRawData={structureOutput?.pdb}
+                    hoveredMonomer={hoveredMonomer}
+                    handleMonomerHover={handleMonomerHover}
+                    defaultRepresentation="ball-and-stick"
+                    defaultColorScheme="residue-name"
+                    height="20rem"  // match 2D viewer height h-80
+                    width="100%"
+                    error={generate3DError}
+                    isGenerating3D={structureLoading}
+                /> */}
             </section>
         </div>
     );
 };
+
+export const PeptideEditorMain = forwardRef(PeptideEditorMainInner);

@@ -21,7 +21,9 @@ function useDebouncedValue(value, delay = 200) {
 }
 
 
-export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick }) => {
+export const MonomerLibraryContainer = ({ filterValue, handleAddingMonomer, activeSeqIdx }) => {
+    console.log("Rendering MonomerLibraryContainer");
+
     const [searchValue, setSearchValue] = useState("");
     const [quickFilters, setQuickFilters] = useState({
         caps: false, natural: false, nonNatural: false
@@ -85,7 +87,8 @@ export const MonomerLibraryContainer = ({ filterValue, onMonomerItemDoubleClick 
                 )}
                 <MonomerLibraryItems
                     monomers={filteredMonomers}
-                    handleOnDoubleClick={onMonomerItemDoubleClick}
+                    handleAddingMonomer={handleAddingMonomer}
+                    activeSeqIdx={activeSeqIdx}
                 />
             </Box>
         </Box>

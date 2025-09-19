@@ -29,11 +29,11 @@ export function useBilnHandlers({
     const addMonomerToBiln = useCallback((monomer, uiState) => {
         if (!monomer) return;
 
+        console.log("Adding monomer:", monomer);
+
         const code = monomer.symbol || monomer.m_abbr;
-        const isNterCap =
-            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
-        const isCterCap =
-            monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
+        const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
+        const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
 
         // 1. split into segments and trim stray separators
         const trimmed = bilnValue.replace(/^[.-]+|[.-]+$/g, "");
@@ -89,7 +89,7 @@ export function useBilnHandlers({
         segments[uiState.activeSeqIdx] = newSegMonomers.join("-");
         const newBiln = segments.join(".");
 
-        // setBilnValue(newBiln);
+        setBilnValue(newBiln);
         rowMonomerLists = newBiln;
         console.log("Updated BILN:", newBiln);
 

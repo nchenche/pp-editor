@@ -47,8 +47,6 @@ const MolStarViewer = ({
         handleMonomerHover,
     });
 
-
-
     // Load structure once the plugin is initialized and whenever the source props change.
     useEffect(() => {
         if (pluginInitialized) {
