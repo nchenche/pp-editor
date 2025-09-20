@@ -6,7 +6,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 
 
-const MonomerLibraryItem = ({ monomer, onMonomerAdd, onInfo = () => { } }, activeSeqIdx) => {
+const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) => {
     return (
         <Card
             variant="outlined"
@@ -43,7 +43,7 @@ const MonomerLibraryItem = ({ monomer, onMonomerAdd, onInfo = () => { } }, activ
                     <IconButton
                         size="small"
                         color="success"
-                        onClick={() => onMonomerAdd(monomer, activeSeqIdx)}
+                        onClick={() => onMonomerAdd(monomer)}
                         sx={{ p: 0.6, color: "grey.400" }}
                         className='hover:text-slate-200'
                     >
@@ -82,13 +82,17 @@ const MonomerLibraryItem = ({ monomer, onMonomerAdd, onInfo = () => { } }, activ
                     component="img"
                     src={`data:image/png;base64,${monomer.image_url}`}
                     alt={`Structure of ${monomer.symbol}`}
+                    loading="lazy"          // native lazy loading
+                    decoding="async"        // non-blocking decode
+                    // fetchpriority="low"  // optional (Chromium)
+                    width={72}              // set intrinsic size to avoid layout shift
+                    height={56}
                     sx={{
-                        // width: "75%",
                         objectFit: "contain",
-                        // mb: 0.5,
                         maxHeight: 56,
                         userSelect: "none",
                         pointerEvents: "none",
+                        display: "block",
                     }}
                 />
             </Box>
@@ -130,10 +134,10 @@ const MonomerLibraryItem = ({ monomer, onMonomerAdd, onInfo = () => { } }, activ
             </CardContent>
         </Card >
     );
-}
+});
 
 
-export const MonomerLibraryItems = ({ monomers, handleAddingMonomer }) => {
+const MonomerLibraryItemsInner = ({ monomers, handleAddingMonomer }) => {
     return (
         <div className="relative flex flex-wrap justify-center gap-4">
             {monomers.map((monomer) => (
@@ -147,3 +151,5 @@ export const MonomerLibraryItems = ({ monomers, handleAddingMonomer }) => {
         </div>
     )
 }
+
+export const MonomerLibraryItems = memo(MonomerLibraryItemsInner);
