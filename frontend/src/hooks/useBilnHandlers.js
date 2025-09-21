@@ -32,6 +32,13 @@ export function useBilnHandlers({
         console.log("Adding monomer:", monomer);
 
         const code = monomer.symbol || monomer.m_abbr;
+        if (!code) {
+            console.warn("Monomer has no valid code:", monomer);
+            return;
+        }
+
+        // Determine if the monomer is an N-terminal or C-terminal cap
+        //
         const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
         const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
 

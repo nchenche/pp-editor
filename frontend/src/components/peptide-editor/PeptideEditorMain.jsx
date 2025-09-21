@@ -16,7 +16,7 @@ import { buildLinkMapFromBiln, setMonomerSequences } from '../../../src/utils/bi
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
 
-const PeptideEditorMainInner = ({onOutputChange, uiState, setUiState}, ref) => {
+const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) => {
 
     // console.log('PeptideEditorMain rendered');
 
@@ -44,7 +44,7 @@ const PeptideEditorMainInner = ({onOutputChange, uiState, setUiState}, ref) => {
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [hoveredMonomer, setHoveredMonomer] = useState('');
     const [isDragging, setIsDragging] = useState(false);
-    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [monomers, bilnValue]);
+    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
     const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart
@@ -98,11 +98,17 @@ const PeptideEditorMainInner = ({onOutputChange, uiState, setUiState}, ref) => {
     }
 
     useEffect(() => {
-        if (!bilnValue) return;
+        if (!bilnValue) {
+            setMonomerSequences(bilnValue, []); // clear sequences
+            setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
+            setStructureOutput({ pdb: '' });
+            return;
+        }
         loadData(bilnValue);
     }, [bilnValue]);  // [bilnValue, isShowingAtomIndices]
 
     function handleBilnChange(newBiln) {
+        console.log("BILN changed:", newBiln);
         setBilnValue(newBiln);
     }
 
