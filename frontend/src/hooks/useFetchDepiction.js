@@ -26,6 +26,7 @@ export function useFetchDepiction() {
             const response = await fetch(fetchUrl);
             if (!response.ok) {
                 const res = await response.json();
+                console.error('Error fetching depiction:', res);
                 setError(res.message);
                 setLoading(false);
                 return;

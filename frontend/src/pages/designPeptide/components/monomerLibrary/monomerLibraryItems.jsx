@@ -3,25 +3,125 @@ import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Card, CardContent, CardActions, IconButton, Box, Tooltip, Typography } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import Chip from "@mui/material/Chip";
 
 
+// Helper: derive a concise tag for the monomer
+function deriveMonomerTag(m) {
+    const subtype = m?.m_subtype || m?.m_type;
 
-const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) => {
+    // Caps: prefer m_RgroupIdx to determine N-ter vs C-ter
+    if (subtype === 'cap') {
+        const rg = m?.m_RgroupIdx;
+        const hasIdx = Array.isArray(rg);
+        const isNterCap = hasIdx && rg[1] != null; // N-ter uses index 1
+        const isCterCap = hasIdx && rg[0] != null; // C-ter uses index 0
+
+        if (isNterCap && !isCterCap) return 'N-cap';
+        if (!isNterCap && isCterCap) return 'C-cap';
+        if (isNterCap && isCterCap) return 'Cap'; // both present (fallback label)
+
+        // Fallback heuristics (name/capSide) if m_RgroupIdx is absent
+        const name = (m?.m_name || '').toLowerCase();
+        if (name.includes('n-cap') || name.includes('ncap') || m?.capSide === 'N' || m?.cap_side === 'N') return 'N-cap';
+        if (name.includes('c-cap') || name.includes('ccap') || m?.capSide === 'C' || m?.cap_side === 'C') return 'C-cap';
+        return 'Cap';
+    }
+
+    // Natural / non-natural
+    if (m?.m_subtype === 'natural' || m?.natural === true) return 'Natural';
+    if (m?.m_subtype === 'non-natural' || m?.nonNatural === true) return 'Non-natural';
+
+    return null;
+}
+
+// Themed styles for the vertical side tag, now parameterized by width
+function sideTagSx(label, sidebarW = 22) {
+    const base = {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: sidebarW, // sidebar width
+        zIndex: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        writingMode: 'vertical-rl',
+        textOrientation: 'mixed',
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        borderTopRightRadius: 8,
+        borderBottomRightRadius: 8,
+        transform: 'translateY(10%) rotate(180deg)',
+    };
+    let color = '#1e293b', bg = 'rgba(30,41,59,0.08)'; // slate
+    if (label === 'Natural') {
+        color = '#166534'; bg = 'rgba(22,101,52,0.10)';
+    } else if (label === 'Non-natural') {
+        color = '#7c2d12'; bg = 'rgba(124,45,18,0.10)';
+    } else if (label === 'N-cap' || label === 'C-cap' || label === 'Cap') {
+        color = '#334155'; bg = 'rgba(51,65,85,0.10)';
+    }
+    return { ...base, color, backgroundColor: bg };
+}
+
+// Size tokens
+const SIZE = {
+    sm: {
+        cardW: 128,
+        sidebarW: 22,
+        imgW: 92,
+        imgH: 68,
+        imgMinH: 84,
+        titleFs: '0.72rem',
+        nameFs: '0.66rem',
+        gapClass: 'gap-5',
+    },
+    lg: {
+        cardW: 160,
+        sidebarW: 26,
+        imgW: 120,
+        imgH: 88,
+        imgMinH: 112,
+        titleFs: '0.80rem',
+        nameFs: '0.72rem',
+        gapClass: 'gap-6',
+    }
+};
+
+const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm' }) => {
+    const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
+    const sz = SIZE[itemSize] || SIZE.sm;
+
+    console.log('Rendering monomer item:', monomer);
+
     return (
         <Card
             variant="outlined"
             sx={{
-                width: 95, // ~w-20 in Tailwind
+                width: sz.cardW,
                 minWidth: 0,
                 p: 0,
                 borderRadius: 2,
                 boxShadow: 2,
                 transition: "transform 0.2s",
-                "&:hover": { transform: "scale(1.05)", zIndex: 2 },
+                "&:hover": { transform: "scale(1.04)", zIndex: 2 },
                 bgcolor: "background.paper",
                 position: "relative",
             }}
         >
+            {/* Vertical side tag (left) */}
+            {tag && (
+                <Box sx={sideTagSx(tag, sz.sidebarW)}>
+                    {tag}
+                </Box>
+            )}
+
             {/* Top bar: actions */}
             <CardActions
                 sx={{
@@ -34,7 +134,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) 
                     zIndex: 3,
                     display: "flex",
                     justifyContent: "space-around",
-                    background: "rgba(30,41,59,0.97)", // slate-800
+                    background: "rgba(30,41,59,0.97)",
                     borderTopLeftRadius: 8,
                     borderTopRightRadius: 8,
                 }}
@@ -57,23 +157,23 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) 
                         onClick={onInfo}
                         sx={{ p: 0.6, color: "grey.400" }}
                         className='hover:text-slate-200'
-
                     >
                         <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
             </CardActions>
+
             {/* Main area: structure image */}
             <Box
                 sx={{
-                    mt: 3.6, // Push content below action bar
-                    // mb: 0.5,
-                    pt: 0.5,
+                    mt: 3.8,
+                    pt: 0.75,
+                    ml: tag ? `${sz.sidebarW}px` : 0,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    minHeight: 56,
+                    minHeight: sz.imgMinH,
                     overflow: "hidden",
                 }}
                 onMouseDown={e => e.preventDefault()}
@@ -82,33 +182,27 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) 
                     component="img"
                     src={`data:image/png;base64,${monomer.image_url}`}
                     alt={`Structure of ${monomer.symbol}`}
-                    loading="lazy"          // native lazy loading
-                    decoding="async"        // non-blocking decode
-                    // fetchpriority="low"  // optional (Chromium)
-                    width={72}              // set intrinsic size to avoid layout shift
-                    height={56}
+                    loading="lazy"
+                    decoding="async"
+                    width={sz.imgW}
+                    height={sz.imgH}
                     sx={{
                         objectFit: "contain",
-                        maxHeight: 56,
+                        maxHeight: sz.imgMinH,
                         userSelect: "none",
                         pointerEvents: "none",
                         display: "block",
                     }}
                 />
             </Box>
+
             {/* PDB code (bold) and name (ellipsis) */}
-            <CardContent sx={{
-                p: 0.5,
-                textAlign: "center",
-                // border: "1px solid rgba(209,213,219,0.5)", // slate-300
-                // height: 20,
-                pb: "4px !important", // Override default padding-bottom
-            }}>
+            <CardContent sx={{ p: 0.75, textAlign: "center", pb: "6px !important", ml: tag ? `${sz.sidebarW}px` : 0 }}>
                 <Typography
                     variant="caption"
                     fontWeight="bold"
                     color="text.primary"
-                    sx={{ display: "block", fontSize: "0.68rem", lineHeight: 1.1, mb: 0.1 }}
+                    sx={{ display: "block", fontSize: sz.titleFs, lineHeight: 1.15, mb: 0.25 }}
                     noWrap
                 >
                     {monomer.pdbName}
@@ -119,7 +213,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) 
                         color="text.secondary"
                         sx={{
                             display: "block",
-                            fontSize: "0.64rem",
+                            fontSize: sz.nameFs,
                             lineHeight: 1.1,
                             textOverflow: "ellipsis",
                             overflow: "hidden",
@@ -132,24 +226,26 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { } }) 
                     </Typography>
                 </Tooltip>
             </CardContent>
-        </Card >
+        </Card>
     );
 });
 
-
-const MonomerLibraryItemsInner = ({ monomers, handleAddingMonomer }) => {
+function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
+    const gapClass = (SIZE[itemSize] || SIZE.sm).gapClass;
     return (
-        <div className="relative flex flex-wrap justify-center gap-4">
+        <div className={`relative flex flex-wrap justify-center ${gapClass} p-2`}>
             {monomers.map((monomer) => (
                 <MonomerLibraryItem
                     key={monomer._id}
                     monomer={monomer}
                     onMonomerAdd={handleAddingMonomer}
                     onInfo={() => console.log("More info for", monomer.symbol)}
+                    itemSize={itemSize}
                 />
             ))}
         </div>
-    )
+    );
 }
+
 
 export const MonomerLibraryItems = memo(MonomerLibraryItemsInner);

@@ -23,7 +23,7 @@ const PeptideEditorMainInner = ({onOutputChange, uiState, setUiState}, ref) => {
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [bilnValue, setBilnValue] = useState('A-C(1,3)-K-A-C(1,3)-G-L');  //  A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState('ac-A-C(1,3)-K-A-C(1,3)-G-L');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
