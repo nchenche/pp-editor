@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo, forwardRef } from 'react';
+
+import { ConfirmProvider } from '../components/common/ConfirmDialogProvider';
 
 import { DesignPageLayout2 } from '../layouts/DesignPageLayout';
 import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMain';
@@ -6,7 +8,7 @@ import { MonomerLibraryContainer } from './designPeptide/components/monomerLibra
 import { OutputContainer } from '../components/output/OutputContainer';
 
 
-function Home({ children }) {
+const Home = forwardRef((props, ref) => {
 
   const editorRef = useRef(null);
   const [outputData, setOutputData] = useState({});
@@ -35,21 +37,23 @@ function Home({ children }) {
       uiState={uiState}
       setUiState={setUiState}
     />
-  ), [setOutputData, uiState, setUiState]); 
+  ), [setOutputData, uiState, setUiState]);
 
   const memoizedOutputContainer = useMemo(() => (
     <OutputContainer outputData={outputData} />
   ), [outputData]);
 
   return (
-    <div className="h-full min-h-0">
-      <DesignPageLayout2
-        sidebar={memoizedLibraryContainer}
-        viewerContainer={memoizedPeptideEditor}
-        outputPanel={memoizedOutputContainer}
-      />
-    </div>
+    <ConfirmProvider>
+      <div className="h-full min-h-0">
+        <DesignPageLayout2
+          sidebar={memoizedLibraryContainer}
+          viewerContainer={memoizedPeptideEditor}
+          outputPanel={memoizedOutputContainer}
+        />
+      </div>
+    </ConfirmProvider>
   );
-}
+});
 
 export default Home;

@@ -98,8 +98,6 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
 
-    console.log('Rendering monomer item:', monomer);
-
     return (
         <Card
             variant="outlined"

@@ -1,9 +1,7 @@
 import { useCallback } from "react";
-import {
-    decomposeBiln,
-    removeGroup,
-    buildBilnFromRowMonomerLists,
-} from "../utils/bilnUtils";
+import { decomposeBiln, removeGroup, buildBilnFromRowMonomerLists } from "../utils/bilnUtils";
+import { useConfirm } from "../components/common/ConfirmDialogProvider";
+
 
 export function useBilnHandlers({
     bilnValue,
@@ -17,19 +15,25 @@ export function useBilnHandlers({
     setIsDragging,
     setHoveredMonomer,
 }) {
+    const confirm = useConfirm();
+
+    // Helper: is C-ter free to append?
+    const isCterFree = useCallback((cterGlobalIdx, cterMonomer) => {
+        if (!cterMonomer) return true; // empty sequence: free
+        const isCterCap = cterMonomer?.m_subtype === 'cap' && cterMonomer?.m_RgroupIdx?.[0] != null;
+        if (isCterCap) return false;
+        // Check if C-ter R-group (index 2 in BILN, 1-based) is already used in a bond (e.g., cyclic)
+        const used = Object.values(linkMap || {}).some((pairs) =>
+            pairs?.some(p => Number(p.monomerIdx) === Number(cterGlobalIdx) && Number(p.rgroup) === 2)
+        );
+        return !used;
+    }, [linkMap]);
 
     /**
-     * Add a monomer to the current BILN string.
-     * @param {Object} monomer - The monomer object to add.
-     * @param {number} activeSeqIdx - The index of the active sequence.
-     * @param {string} bilnValue - The current BILN string.
-     * @param {Array} monomers - The list of all monomers.
-     * @param {Function} setBilnValue - Function to update the BILN string.
+     * Add a monomer at C-ter with smart handling of caps and occupied termini.
      */
-    const addMonomerToBiln = useCallback((monomer, uiState) => {
+    const addMonomerToBiln = useCallback(async (monomer, uiState) => {
         if (!monomer) return;
-
-        console.log("Adding monomer:", monomer);
 
         const code = monomer.symbol || monomer.m_abbr;
         if (!code) {
@@ -37,72 +41,110 @@ export function useBilnHandlers({
             return;
         }
 
-        // Determine if the monomer is an N-terminal or C-terminal cap
-        //
-        const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[1] != null;
-        const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx[0] != null;
+        const addingIsCap = monomer.m_subtype === "cap";
+        // Determine cap direction of the item being added (if a cap)
+        const isNterCap = addingIsCap && monomer.m_RgroupIdx?.[1] != null;
+        const isCterCap = addingIsCap && monomer.m_RgroupIdx?.[0] != null;
 
-        // 1. split into segments and trim stray separators
-        const trimmed = bilnValue.replace(/^[.-]+|[.-]+$/g, "");
-        const segments = trimmed.split(".");
+        // Split current BILN into segments
+        const trimmed = (bilnValue || "").replace(/^[.-]+|[.-]+$/g, "");
+        const segments = trimmed ? trimmed.split(".") : [""];
 
-        // 2. target segment string and its monomer codes
-        const seg = segments[uiState.activeSeqIdx] || "";
+        // Active segment
+        const segIdx = uiState.activeSeqIdx ?? 0;
+        const seg = segments[segIdx] || "";
         const segMonomers = seg ? seg.split("-") : [];
 
-        // 3. find “global” offsets to look up current terminal monomers
+        // Global indices to fetch terminal monomers
         const offset = segments
-            .slice(0, uiState.activeSeqIdx)
+            .slice(0, segIdx)
             .reduce((sum, s) => sum + (s ? s.split("-").length : 0), 0);
-        const nterGlobalIdx = offset;
-        const cterGlobalIdx = offset + segMonomers.length - 1;
 
-        // 4. grab the actual monomer objects
-        const nterMonomer = monomers.find(
-            (m) => parseInt(m["res-idx"].split("-")[1], 10) === nterGlobalIdx
+        const cterGlobalIdx = offset + Math.max(segMonomers.length - 1, 0);
+
+        // Lookup terminal monomer object
+        const getByResIdx = (gi) => monomers.find(
+            (m) => parseInt(String(m["res-idx"]).split("-")[1], 10) === gi
         );
-        const cterMonomer = monomers.find(
-            (m) => parseInt(m["res-idx"].split("-")[1], 10) === cterGlobalIdx
-        );
+        const cterMonomer = segMonomers.length > 0 ? getByResIdx(cterGlobalIdx) : undefined;
 
-        // 5. detect if they’re already caps
-        const isNterCapped =
-            nterMonomer?.m_subtype === "cap" && nterMonomer.m_RgroupIdx[1] != null;
-        const isCterCapped =
-            cterMonomer?.m_subtype === "cap" && cterMonomer.m_RgroupIdx[0] != null;
+        // Case: adding a non-cap but C-ter is not free (either capped or already bonded)
+        const cterAvailable = isCterFree(cterGlobalIdx, cterMonomer);
 
-        // 6. build the new segment
-        let newSegMonomers = segMonomers.slice(); // copy array
+        // If empty sequence, just add
+        if (segMonomers.length === 0) {
+            const newSeg = addingIsCap && isNterCap ? [code] : [code];
+            segments[segIdx] = newSeg.join("-");
+            setBilnValue(segments.join("."));
+            return;
+        }
 
-        if (isNterCap) {
-            if (isNterCapped) {
-                // replace index 0
-                newSegMonomers[0] = code;
-            } else {
-                // prepend
-                newSegMonomers.unshift(code);
-            }
-        } else {
-            if (isCterCap && isCterCapped) {
-                // replace last
+        if (!addingIsCap && !cterAvailable) {
+            // Build helpful, short message
+            const lastLabel = segMonomers[segMonomers.length - 1];
+            const isLastCap = cterMonomer?.m_subtype === 'cap';
+            const reason = isLastCap
+                ? `The C-terminus is capped with “${cterMonomer?.symbol || lastLabel}”.`
+                : `The C-terminus is already used in a bond (e.g., head‑to‑tail cyclization).`;
+
+            const title = 'Cannot append at C‑terminus';
+            const message = [
+                reason,
+                '',
+                isLastCap
+                    ? `Append is not possible while the cap is present. You can replace the C‑ter cap with “${code}”.`
+                    : `Append is not possible while the C‑ter is occupied. Insert at another position or remove the bond first.`,
+            ].join('\n');
+
+            if (isLastCap) {
+                const ok = await confirm({
+                    title,
+                    message,
+                    confirmText: `Replace cap with “${code}”`,
+                    cancelText: 'Cancel',
+                });
+                if (!ok) return;
+
+                // Replace last token (the cap) with the new monomer code
+                const newSegMonomers = segMonomers.slice();
                 newSegMonomers[newSegMonomers.length - 1] = code;
+                segments[segIdx] = newSegMonomers.join("-");
+                setBilnValue(segments.join("."));
+                return;
             } else {
-                // append
-                newSegMonomers.push(code);
+                // Inform-only dialog
+                await confirm({
+                    title,
+                    message,
+                    confirmText: 'Close',
+                    hideCancel: true,
+                });
+                return;
             }
         }
 
-        // 7. write back full BILN
-        segments[uiState.activeSeqIdx] = newSegMonomers.join("-");
-        const newBiln = segments.join(".");
+        // Default behavior:
+        // - If adding an N-ter cap: replace or prepend at N-ter (not covered here; kept simple)
+        // - If adding a C-ter cap: replace existing cap or append cap
+        // - Else append to C-ter
+        let newSegMonomers = segMonomers.slice();
 
-        setBilnValue(newBiln);
-        rowMonomerLists = newBiln;
-        console.log("Updated BILN:", newBiln);
+        if (isNterCap) {
+            // Optional: implement N-ter capping policy here
+            newSegMonomers.unshift(code);
+        } else if (isCterCap) {
+            // Replace existing C-ter cap or append cap
+            const lastIsCap = cterMonomer?.m_subtype === 'cap';
+            if (lastIsCap) newSegMonomers[newSegMonomers.length - 1] = code;
+            else newSegMonomers.push(code);
+        } else {
+            // Regular monomer append
+            newSegMonomers.push(code);
+        }
 
-    }, [bilnValue, setBilnValue, monomers]);
-
-
+        segments[segIdx] = newSegMonomers.join("-");
+        setBilnValue(segments.join("."));
+    }, [bilnValue, monomers, setBilnValue, isCterFree]);
     // Delete monomer
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
