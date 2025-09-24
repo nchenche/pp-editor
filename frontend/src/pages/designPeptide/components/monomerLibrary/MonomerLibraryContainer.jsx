@@ -76,12 +76,6 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         return out;
     }, [allMonomers, debouncedSearch, quickFilters]);
 
-    // Derive sequence options from seqNumber: [0, 1, ...]
-    const sequenceOptions = useMemo(() => {
-        const n = Math.max(1, Number(seqNumber) || 1);
-        return Array.from({ length: n }, (_, i) => i);
-    }, [seqNumber]);
-
     // Keep current linking settings without causing renders
     const linkingRef = useRef({
         mode: 'append',

@@ -246,4 +246,12 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
 }
 
 
-export const MonomerLibraryItems = memo(MonomerLibraryItemsInner);
+export const MonomerLibraryItems = memo(MonomerLibraryItemsInner, areEqualItems);
+
+
+function areEqualItems(prev, next) {
+  // Only re-render when data or handlers change
+  if (prev.monomers !== next.monomers) return false;
+  if (prev.handleAddingMonomer !== next.handleAddingMonomer) return false;
+  return true;
+}

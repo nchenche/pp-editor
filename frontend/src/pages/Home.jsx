@@ -25,31 +25,28 @@ const Home = forwardRef((props, ref) => {
     editorRef.current?.addMonomer(monomer, options);
   }, []);
 
-  const memoizedLibraryContainer = useMemo(() => (
-    <MonomerLibraryContainer filterValue={""} handleAddingMonomer={handleAddingMonomer} uiState={uiState} setUiState={setUiState} />
-  ), [handleAddingMonomer, uiState, setUiState]);
-
-  const memoizedPeptideEditor = useMemo(() => (
-    <PeptideEditorMain
-      ref={editorRef}
-      Viewer3D={<div>3D Viewer Placeholder</div>} // Replace with actual component
-      onOutputChange={setOutputData}
-      uiState={uiState}
-      setUiState={setUiState}
-    />
-  ), [setOutputData, uiState, setUiState]);
-
-  const memoizedOutputContainer = useMemo(() => (
-    <OutputContainer outputData={outputData} />
-  ), [outputData]);
-
   return (
     <ConfirmProvider>
       <div className="h-full min-h-0">
         <DesignPageLayout2
-          sidebar={memoizedLibraryContainer}
-          viewerContainer={memoizedPeptideEditor}
-          outputPanel={memoizedOutputContainer}
+          sidebar={
+            <MonomerLibraryContainer
+              filterValue=""
+              handleAddingMonomer={handleAddingMonomer}
+              uiState={uiState}
+              setUiState={setUiState}
+            />
+          }
+          viewerContainer={
+            <PeptideEditorMain
+              ref={editorRef}
+              Viewer3D={<div>3D Viewer Placeholder</div>}
+              onOutputChange={setOutputData}
+              uiState={uiState}
+              setUiState={setUiState}
+            />
+          }
+          outputPanel={<OutputContainer outputData={outputData} />}
         />
       </div>
     </ConfirmProvider>

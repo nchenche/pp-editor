@@ -63,6 +63,12 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
+    // Stable setter to avoid MonomerTrack re-render due to inline function identity changes
+    const onSetActiveSeqIdx = useCallback(
+        (seqIdx) => setUiState(prev => (prev.activeSeqIdx === seqIdx ? prev : { ...prev, activeSeqIdx: seqIdx })),
+        [setUiState]
+    );
+
     // Expose a minimal API to parent
     useImperativeHandle(ref, () => ({
         addMonomer: (monomer, options) => addMonomerToBiln(monomer, {
@@ -75,18 +81,30 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         getBiln: () => bilnValue,
     }), [addMonomerToBiln, uiState, bilnValue]);
 
-    const monomerTrack = <MonomerTrack
-        rowMonomerLists={rowMonomerLists}
-        activeSeqIdx={uiState.activeSeqIdx}
-        onSetActiveSeqIdx={seqIdx => setUiState(prev => ({ ...prev, activeSeqIdx: seqIdx }))}
-        linkMap={linkMap}
-        hoveredMonomer={hoveredMonomer}
-        handleDeleteMonomerItem={handleDeleteMonomerItem}
-        onDragStart={handleDragStart}
-        onDragEnd={handleOnDragEnd}
-        handleMonomerEnter={handleMonomerEnter}
-        handleMonomerLeave={handleMonomerLeave}
-    />;
+    const monomerTrack = useMemo(() => (
+        <MonomerTrack
+            rowMonomerLists={rowMonomerLists}
+            activeSeqIdx={uiState.activeSeqIdx}
+            onSetActiveSeqIdx={onSetActiveSeqIdx}
+            linkMap={linkMap}
+            hoveredMonomer={hoveredMonomer}
+            handleDeleteMonomerItem={handleDeleteMonomerItem}
+            onDragStart={handleDragStart}
+            onDragEnd={handleOnDragEnd}
+            handleMonomerEnter={handleMonomerEnter}
+            handleMonomerLeave={handleMonomerLeave}
+        />
+    ), [
+        rowMonomerLists,
+        uiState.activeSeqIdx,
+        linkMap,
+        hoveredMonomer,
+        handleDeleteMonomerItem,
+        handleDragStart,
+        handleOnDragEnd,
+        handleMonomerEnter,
+        handleMonomerLeave,
+    ]);
 
     function loadData(newBiln) {
         const params = {
