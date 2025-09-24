@@ -14,20 +14,20 @@ const Home = forwardRef((props, ref) => {
   const [outputData, setOutputData] = useState({});
 
   const [uiState, setUiState] = useState({
-    activeSeqIdx: 0,
+    activeSeqIdx: null,  // none focused until one exists
+    seqNumber: 0,        // 0 while BILN is empty
     selectedMonomer: null,
     hoveredMonomer: '',
   });
 
   // Handlers for MonomerLibrary interactions
-  const handleAddingMonomer = useCallback((monomer) => {
-    console.log("Add monomer clicked:", monomer);
-    editorRef.current?.addMonomer(monomer);
+  const handleAddingMonomer = useCallback((monomer, options) => {
+    editorRef.current?.addMonomer(monomer, options);
   }, []);
 
   const memoizedLibraryContainer = useMemo(() => (
-    <MonomerLibraryContainer filterValue={""} handleAddingMonomer={handleAddingMonomer} activeSeqIdx={uiState.activeSeqIdx} />
-  ), [handleAddingMonomer]);
+    <MonomerLibraryContainer filterValue={""} handleAddingMonomer={handleAddingMonomer} uiState={uiState} setUiState={setUiState} />
+  ), [handleAddingMonomer, uiState, setUiState]);
 
   const memoizedPeptideEditor = useMemo(() => (
     <PeptideEditorMain

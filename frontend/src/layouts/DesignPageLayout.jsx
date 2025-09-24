@@ -47,7 +47,7 @@ export const DesignPageLayout2 = ({
             className="
                 flex flex-col
                 overflow-hidden
-                border-2 border-blue-400 bg-slate-100 rounded-lg p-0 shadow-sm
+                border-2 border-blue-400 rounded-lg p-0 shadow-sm
                 order-1 lg:col-span-1 lg:row-span-2 lg:order-none
                 "
         >

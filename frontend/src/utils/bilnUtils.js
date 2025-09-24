@@ -47,15 +47,30 @@ export function removeGroup(str, target) {
  * Rebuild the BILN string from the reordered monomer lists.
  */
 export function buildBilnFromRowMonomerLists(rowLists, prevBiln) {
-    const { tokens: origTokens } = decomposeBiln(prevBiln);
-    const rowStrs = rowLists.map((row) => {
-        const newTokens = row.map((m) => {
-            const idx = parseInt(m['res-idx'].split('-')[1], 10);
-            return origTokens[idx];
-        });
-        return newTokens.join('-');
-    });
-    return rowStrs.join('.').replace(/[-.\s]+$/g, '');
+    const { tokens: origTokens } = decomposeBiln(prevBiln || '');
+
+    // Build per-row sequences, skipping empty rows
+    const rowStrs = (rowLists || [])
+        .map((row) => {
+            const newTokens = (row || [])
+                .map((m) => {
+                    const idx = parseInt(String(m['res-idx']).split('-')[1], 10);
+                    return origTokens[idx];
+                })
+                .filter(Boolean); // drop undefined/empty tokens
+            return newTokens.join('-');
+        })
+        .filter((seg) => seg && seg.trim().length > 0); // drop empty segments
+
+    if (rowStrs.length === 0) return '';
+
+    // Join and normalize separators (defensive)
+    return rowStrs
+        .join('.')
+        .replace(/^\.+|\.+$/g, '') // trim leading/trailing dots
+        .replace(/\.+/g, '.')      // collapse multiple dots
+        .replace(/\-+/g, '-')      // collapse multiple hyphens
+        .replace(/[-.]+$/g, '');   // trim any trailing separators
 }
 
 /**
@@ -73,3 +88,24 @@ export function setMonomerSequences(bilnValue, monomers) {
         return slice;
     });
 }
+
+/**
+ * Reconcile activeSeqIdx when seq count changes
+ * - If newCount is 0, return null
+ * - If prevIdx is null or <0, return 0
+ * - Else return min(prevIdx, newCount-1)
+ */
+export const reconcileActiveSeqIdx = (prevIdx, newCount) => {
+    if (!newCount || newCount <= 0) return null;
+    if (prevIdx == null || prevIdx < 0) return 0;
+    return Math.min(prevIdx, newCount - 1);
+};
+
+/**
+ * Derive number of sequences from bilnValue (robust to extra dots)
+ */
+export const deriveSeqCount = (biln) => {
+    const t = (biln || '').trim().replace(/^\.+|\.+$/g, '').replace(/\.+/g, '.');
+    if (!t) return 0;
+    return t.split('.').filter(Boolean).length;
+};

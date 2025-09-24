@@ -19,7 +19,6 @@ export function useFetchDepiction() {
             ? `?${new URLSearchParams(params).toString()}`
             : '';
         const fetchUrl = DEPICT_2D_URL + queryString;
-        console.log('Fetching depiction from:', fetchUrl);
 
         setLoading(true);
         try {

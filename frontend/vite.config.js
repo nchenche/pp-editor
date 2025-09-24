@@ -15,4 +15,15 @@ export default defineConfig({
   // commonjsOptions: {
   //   requireReturnsDefault: "auto"
   // }
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./test/setup.js'],
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'html'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.js', 'src/**/*.jsx'],
+    },
+  },
 })

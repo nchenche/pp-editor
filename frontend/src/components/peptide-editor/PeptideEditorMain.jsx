@@ -11,7 +11,8 @@ import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
 import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 
-import { buildLinkMapFromBiln, setMonomerSequences } from '../../../src/utils/bilnUtils';
+import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
+import { use } from 'react';
 
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
@@ -23,7 +24,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [bilnValue, setBilnValue] = useState('ac-A-C(1,3)-K-A-C(1,3)-G-L');  //  A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState('A-C');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
@@ -64,7 +65,12 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     // Expose a minimal API to parent
     useImperativeHandle(ref, () => ({
-        addMonomer: (monomer, ui = uiState) => addMonomerToBiln(monomer, ui),
+        addMonomer: (monomer, options) => addMonomerToBiln(monomer, {
+            mode: options?.mode,
+            link: options?.link,
+            activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
+            insert: options?.insert,
+        }),
         setBiln: (biln) => setBilnValue(biln),
         getBiln: () => bilnValue,
     }), [addMonomerToBiln, uiState, bilnValue]);
@@ -107,11 +113,18 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         loadData(bilnValue);
     }, [bilnValue]);  // [bilnValue, isShowingAtomIndices]
 
+    useEffect(() => {
+        const count = deriveSeqCount(bilnValue);
+        setUiState(prev => {
+            const nextIdx = reconcileActiveSeqIdx(prev.activeSeqIdx, count);
+            if (prev.seqNumber === count && prev.activeSeqIdx === nextIdx) return prev;
+            return { ...prev, seqNumber: count, activeSeqIdx: nextIdx };
+        });
+    }, [bilnValue, setUiState]);
+
     function handleBilnChange(newBiln) {
-        console.log("BILN changed:", newBiln);
         setBilnValue(newBiln);
     }
-
 
     return (
         <div className="flex flex-col space-y-2 h-full overflow-hidden">

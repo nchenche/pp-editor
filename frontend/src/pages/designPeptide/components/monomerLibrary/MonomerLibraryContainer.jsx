@@ -1,14 +1,22 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { Box, Typography, CircularProgress } from "@mui/material";
 
 import { useLibraryFetching } from '../../../../hooks/useLibraryFetching';
 import { MonomerLibraryHeader } from './monomerLibraryHeader';
 import { MonomerLibraryItems } from './monomerLibraryItems';
 
-import { Box, Typography, CircularProgress } from "@mui/material";
+export const LINKING_MODES = {
+    append: 'append',
+    replace: 'replace',
+};
 
+export const LINK_CHOICES = {
+    peptide: 'peptide',
+    other: 'other',
+};
 
 // Simple debounce hook
 function useDebouncedValue(value, delay = 200) {
@@ -20,19 +28,25 @@ function useDebouncedValue(value, delay = 200) {
     return debounced;
 }
 
-
+// Build a haystack string for searching
 function buildHaystack(monomer) {
     return [
         monomer.m_name,
         monomer.symbol,
         monomer.pdbName,
         monomer.m_subtype,
-        monomer.natAnalog
+        monomer.natAnalog,
+        monomer.smiles,
     ].filter(Boolean).join(' ').toLowerCase();
 }
 
 
-export const MonomerLibraryContainer = ({ filterValue, handleAddingMonomer, activeSeqIdx }) => {
+export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContainer(
+    { filterValue, handleAddingMonomer, uiState, setUiState },
+    ref
+) {
+    const { activeSeqIdx, seqNumber } = uiState;
+
     console.log("Rendering MonomerLibraryContainer");
 
     const [searchValue, setSearchValue] = useState("");
@@ -46,7 +60,6 @@ export const MonomerLibraryContainer = ({ filterValue, handleAddingMonomer, acti
 
     // Debounce the search value
     const debouncedSearch = useDebouncedValue(searchValue || filterValue || '', 220);
-
 
     const filteredMonomers = useMemo(() => {
         if (!Array.isArray(allMonomers) || allMonomers.length === 0) return [];
@@ -63,18 +76,55 @@ export const MonomerLibraryContainer = ({ filterValue, handleAddingMonomer, acti
         return out;
     }, [allMonomers, debouncedSearch, quickFilters]);
 
+    // Derive sequence options from seqNumber: [0, 1, ...]
+    const sequenceOptions = useMemo(() => {
+        const n = Math.max(1, Number(seqNumber) || 1);
+        return Array.from({ length: n }, (_, i) => i);
+    }, [seqNumber]);
+
+    // Keep current linking settings without causing renders
+    const linkingRef = useRef({
+        mode: 'append',
+        activeSequenceIdx: activeSeqIdx,     // numeric index
+        link: 'peptide',
+    });
+
+    // Keep the ref in sync when the active sequence changes elsewhere
+    useEffect(() => {
+        console.log("MonomerLibraryContainer: activeSeqIdx changed:", activeSeqIdx);
+        linkingRef.current.activeSequenceIdx = activeSeqIdx;
+    }, [activeSeqIdx]);
+
+    // Update linking snapshot (no re-render)
+    const onLinkingSnapshotChange = useCallback((partial) => {
+        linkingRef.current = { ...linkingRef.current, ...partial };
+    }, []);
+
+    // Stable add handler – reads latest options from ref
+    const handleAdd = useCallback((monomer, options) => {
+        handleAddingMonomer?.(monomer, { ...linkingRef.current, ...options });
+    }, [handleAddingMonomer]);
+
     if (error) return <p>Error: {String(error)}</p>;
     const initialLoading = isLoading && (!allMonomers || allMonomers.length === 0);
 
+    // Header now receives uiState directly and controls the sequence index
+    const memoizedLibraryHeader = useMemo(() => (
+        <MonomerLibraryHeader
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            quickFilter={quickFilters}
+            onQuickFilterChange={setQuickFilters}
+            uiState={uiState}
+            setUiState={setUiState}
+            defaultLinkingSnapshot={linkingRef.current}
+            onLinkingSnapshotChange={onLinkingSnapshotChange}
+        />
+    ), [searchValue, quickFilters, onLinkingSnapshotChange, uiState, setUiState]);
+
     return (
         <Box display="flex" flexDirection="column" height="100%">
-            <MonomerLibraryHeader
-                searchValue={searchValue}
-                onSearchChange={setSearchValue}
-                quickFilter={quickFilters}
-                onQuickFilterChange={setQuickFilters}
-                onOpenDrawer={() => { }}
-            />
+            {memoizedLibraryHeader}
             <Box
                 flex={1}
                 minHeight={0}
@@ -106,13 +156,13 @@ export const MonomerLibraryContainer = ({ filterValue, handleAddingMonomer, acti
 
                 <MonomerLibraryItems
                     monomers={filteredMonomers}
-                    handleAddingMonomer={handleAddingMonomer}
+                    handleAddingMonomer={handleAdd}
                     activeSeqIdx={activeSeqIdx}
                 />
             </Box>
         </Box>
     );
-};
+});
 
 
 export default MonomerLibraryContainer;
