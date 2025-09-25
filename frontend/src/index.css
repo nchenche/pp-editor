@@ -3,6 +3,6 @@
 @tailwind utilities;
 
 /* Add any custom global styles here */
-body {
-  @apply bg-gray-100 text-gray-900;
-}
+/* body {
+  @apply bg-slate-50 text-gray-900;
+} */

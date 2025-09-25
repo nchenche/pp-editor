@@ -29,10 +29,11 @@ export function useMolstarPlugin() {
                 spec.layout = { initial: { isExpanded: true, showControls: true } };
 
                 const plugin = new PluginContext(spec);
+                await plugin.init();
+
                 if (!plugin.initViewer(canvasRef.current, containerRef.current)) {
                     throw new Error('Failed to initialize MolStar viewer');
-                }
-                await plugin.init();
+                }                
 
                 pluginRef.current = plugin;
 

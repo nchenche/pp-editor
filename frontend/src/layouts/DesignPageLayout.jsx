@@ -39,7 +39,7 @@ export const DesignPageLayout2 = ({
             lg:grid-cols-[550px_1fr_400px
             lg:grid-cols-3
             h-[85vh] min-h-0
-            gap-4 p-2 bg-gray-50
+            gap-4 p-2
         "
     >
         {/* Sidebar */}

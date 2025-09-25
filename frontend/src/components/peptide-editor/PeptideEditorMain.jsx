@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 
-import { SequenceInput } from './SequenceInput';
+import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
+
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
@@ -148,7 +149,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         <div className="flex flex-col space-y-2 h-full overflow-hidden">
             {/* Sequence Input */}
             <section className="border p-2 rounded shadow-sm">
-                <SequenceInput value={bilnValue} onChangeValue={handleBilnChange} />
+                {/* <SequenceInput value={bilnValue} onChangeValue={handleBilnChange} /> */}
+                <SequenceEditorPanel biln={bilnValue} onChangeBiln={handleBilnChange} />
             </section>
 
             {/* Monomer Track */}
