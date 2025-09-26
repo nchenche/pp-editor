@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import './viewer2D.css'; // Assuming you have a CSS file for styles
 import { addClassName, removeClassName, createRect } from './utils';
 
@@ -15,6 +15,10 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ContentCut from '@mui/icons-material/ContentCut';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import Box from "@mui/material/Box";
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 
 
 
@@ -96,7 +100,7 @@ function makeTightResponsiveSvg(svgString, { padding = 8, preserve = 'xMidYMid m
     return out;
 }
 
-export function Viewer2D(props) {
+export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const {
         svgData,
         hoveredMonomer,
@@ -106,7 +110,8 @@ export function Viewer2D(props) {
         handleShowingAtomIndices,
         onLinkMonomers,
         onBreakBond,
-        error
+        error,
+        onModesChange
     } = props;
 
     const processedSvg = useMemo(() => makeTightResponsiveSvg(svgData, { padding: 16, preserve: 'xMidYMid meet' }), [svgData]);
@@ -170,6 +175,67 @@ export function Viewer2D(props) {
         setIsShowBonds
     });
 
+    // Keep parent in sync for button highlight + canCut
+    useEffect(() => {
+        onModesChange?.({ linkMode: isShowRGroups, bondsMode: isShowBonds, canCut: hasExtraBonds });
+    }, [isShowRGroups, isShowBonds, hasExtraBonds, onModesChange]);
+
+    // NEW: Cancel current linking on Escape (no focus change)
+    useEffect(() => {
+        if (!isShowRGroups) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelLinking?.(); // keep link mode, just clear selection
+            }
+        };
+        window.addEventListener('keydown', onKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
+    }, [isShowRGroups, cancelLinking]);
+
+    // Expose minimal commands
+    useImperativeHandle(ref, () => ({
+        setLinkMode(next) {
+            setIsShowRGroups(prev => {
+                const v = Boolean(next);
+                if (v) {
+                    setIsShowBonds(false);
+                } else {
+                    cancelLinking?.();
+                }
+                onModesChange?.({ linkMode: v, bondsMode: v ? false : isShowBonds, canCut: hasExtraBonds });
+                return v;
+            });
+        },
+        setBondsMode(next) {
+            // Guard: do nothing if requesting ON but there are no extra bonds
+            if (Boolean(next) && !hasExtraBonds) {
+                onModesChange?.({ linkMode: isShowRGroups, bondsMode: false, canCut: hasExtraBonds });
+                return;
+            }
+            setIsShowBonds(prev => {
+                const v = Boolean(next);
+                if (v) {
+                    setIsShowRGroups(false);
+                    cancelLinking?.();
+                }
+                onModesChange?.({ linkMode: v ? false : isShowRGroups, bondsMode: v, canCut: hasExtraBonds });
+                return v;
+            });
+        },
+        toggleLinkMode() {
+            const v = !isShowRGroups;
+            this.setLinkMode(v);
+        },
+        toggleBondsMode() {
+            const v = !isShowBonds;
+            this.setBondsMode(v);
+        },
+        resetView() { panZoomApi.current?.reset?.(); },
+        getModes() { return { linkMode: isShowRGroups, bondsMode: isShowBonds }; },
+    }));
+
 
     // Toggle link mode (emphasis). Turning off also clears any selection.
     const handleToggleLinkMode = useCallback(() => {
@@ -194,52 +260,14 @@ export function Viewer2D(props) {
         surfaceHover: 'rgba(30,41,59,0.12)',// hover bg
     };
 
-    // --- Vertical Controls Array ---
-    const controls = [
-        {
-            icon: <DeviceHubIcon sx={{ color: isShowRGroups ? uiColors.ink : 'inherit' }} />,
-            tooltip: isShowRGroups ? 'Exit link mode' : 'Link monomers',
-            onClick: handleToggleLinkMode,
-            aria: 'link-monomers',
-            disabled: !svgData || isShowBonds,
-        },
-        // {
-        //     icon: isShowingAtomIndices ? <VisibilityIcon /> : <VisibilityOffIcon />,
-        //     tooltip: isShowingAtomIndices ? 'Hide atom indices' : 'Show atom indices',
-        //     onClick: () => {
-        //         handleShowingAtomIndices(!isShowingAtomIndices);
-        //         console.log('Toggle atom indices to', !isShowingAtomIndices);
-        //     },  // handleShowingAtomIndices,
-        //     aria: 'toggle-atom-indices',
-        //     disabled: !svgData,
-        // },
-        {
-            icon: <ContentCut />,
-            tooltip: 'Show extra bonds',
-            onClick: () => setIsShowBonds(v => !v),
-            aria: 'toggle-bonds',
-            disabled: !hasExtraBonds || !svgData || isShowRGroups,
-        },
-        {
-            icon: <RestartAltIcon />,
-            tooltip: 'Reset view',
-            onClick: () => panZoomApi.current?.reset(),
-            aria: 'reset-view',
-            disabled: !svgData,
-        },
-    ];
-
-
     return (
-        <div className="relative w-full h-full">
-
-            {/* SVG viewer */}
+        <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px dashed #cbd5e1', borderRadius: 1, position: 'relative' }}>
             <div
                 id="svg-container"
-                className={`
-                    relative h-80 w-full p-4 overflow-hidden bg-white border border-slate-200 rounded-lg
-                    ${isShowRGroups ? 'rgroups-emphasis' : ''} ${isShowBonds ? 'bonds-on' : ''} ${monomersToLink.length > 0 ? 'linking-mode' : ''
-                    }`}
+                className={`relative w-full h-full overflow-hidden bg-white
+                    ${isShowRGroups ? 'rgroups-emphasis' : ''}
+                    ${isShowBonds ? 'bonds-on' : ''}
+                    ${isShowRGroups && monomersToLink.length > 0 ? 'linking-mode' : ''}  // NEW: highlight selected`}
                 ref={svgContainer}
             >
                 {svgData ? (
@@ -253,7 +281,7 @@ export function Viewer2D(props) {
                     </div>
                 )}
 
-                {/* Instruction banner for linking monomers: full width, thin, behind SVG, no margin */}
+                {/* Instruction banner for linking monomers */}
                 {isShowRGroups && !isShowBonds && (
                     <div className="absolute inset-x-0 top-0 z-0">
                         <Alert
@@ -264,13 +292,12 @@ export function Viewer2D(props) {
                                 borderRadius: 0,
                                 px: 1,
                                 py: 0.25,
-                                minHeight: 40, // keep your current height
+                                minHeight: 40,
                                 alignItems: 'center',
-                                bgcolor: uiColors.surface,          // themed bg
-                                color: uiColors.ink,                // themed text
+                                bgcolor: uiColors.surface,
+                                color: uiColors.ink,
                                 backdropFilter: 'blur(1.5px)',
                                 borderBottom: `1px solid ${uiColors.surfaceHover}`,
-                                // Make the message a centered flex row so the icon sits right after the text
                                 '.MuiAlert-message': {
                                     p: 0,
                                     m: 0,
@@ -278,7 +305,7 @@ export function Viewer2D(props) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: 8, // small gap between text and icon
+                                    gap: 8,
                                     fontSize: 12,
                                     fontWeight: 600,
                                     letterSpacing: 0.2,
@@ -304,17 +331,13 @@ export function Viewer2D(props) {
                                                 ml: 0.5,
                                                 bgcolor: 'transparent',
                                                 border: 'none',
-                                                // set color on the SvgIcon itself
                                                 '& .MuiSvgIcon-root': {
                                                     fontSize: 16,
-                                                    color: uiColors.ink, // base
+                                                    color: uiColors.ink,
                                                     transition: 'color 120ms ease-in-out',
                                                 },
-                                                // darken icon only on hover (no bg)
                                                 '&:hover': { bgcolor: 'transparent' },
-                                                '&:hover .MuiSvgIcon-root': {
-                                                    color: uiColors.inkDarker,
-                                                },
+                                                '&:hover .MuiSvgIcon-root': { color: uiColors.inkDarker },
                                                 '&.Mui-focusVisible': { bgcolor: 'transparent' },
                                                 '& .MuiTouchRipple-root': { display: 'none' },
                                             }}
@@ -329,7 +352,7 @@ export function Viewer2D(props) {
                 )}
 
                 {/* Instruction banner to remove a bond */}
-                {isShowBonds && !isShowRGroups && (
+                {isShowBonds && !isShowRGroups && hasExtraBonds && (
                     <div className="absolute inset-x-0 top-0 z-0">
                         <Alert
                             severity="info"
@@ -339,13 +362,12 @@ export function Viewer2D(props) {
                                 borderRadius: 0,
                                 px: 1,
                                 py: 0.25,
-                                minHeight: 40, // keep your current height
+                                minHeight: 40,
                                 alignItems: 'center',
-                                bgcolor: uiColors.surface,          // themed bg
-                                color: uiColors.ink,                // themed text
+                                bgcolor: uiColors.surface,
+                                color: uiColors.ink,
                                 backdropFilter: 'blur(1.5px)',
                                 borderBottom: `1px solid ${uiColors.surfaceHover}`,
-                                // Make the message a centered flex row so the icon sits right after the text
                                 '.MuiAlert-message': {
                                     p: 0,
                                     m: 0,
@@ -353,7 +375,7 @@ export function Viewer2D(props) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: 8, // small gap between text and icon
+                                    gap: 8,
                                     fontSize: 12,
                                     fontWeight: 600,
                                     letterSpacing: 0.2,
@@ -365,33 +387,16 @@ export function Viewer2D(props) {
                         </Alert>
                     </div>
                 )}
-
             </div>
 
-            {/* Vertical controls: absolute on the right */}
-            <div className="absolute top-12 right-0 flex flex-col gap-4 z-10">
-                {controls.map(({ icon, tooltip, onClick, aria, disabled }, i) => (
-                    <Tooltip title={tooltip} key={aria || i} placement="left">
-                        {/* Wrap disabled button with a span so Tooltip can receive events */}
-                        <span className="inline-flex">
-                            <IconButton
-                                size="small"
-                                onClick={onClick}
-                                aria-label={aria}
-                                disabled={disabled}
-                            >
-                                {icon}
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ))}
-            </div>
+            {/* Removed old vertical controls */}
+
             {/* Error below viewer */}
             {error && (
                 <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center text-red-500 text-sm">
                     <ErrorOutlineIcon className="mr-1" /> {error}
                 </div>
             )}
-        </div>
+        </Box>
     );
-};
+});

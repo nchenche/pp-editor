@@ -73,40 +73,21 @@ export function SequenceEditorPanel({ biln, onChangeBiln }) {
     onChangeBiln?.('');
   };
 
-  const helper = useMemo(() => (error ? error : 'Enter BILN (use - between residues and . between sequences)'), [error]);
+  const helper = useMemo(() => (error ? error : ''), [error]);
 
   return (
     <Box sx={{ position: 'sticky', top: 0, zIndex: 1 }}>
-      <Accordion defaultExpanded disableGutters elevation={0} sx={{ '&::before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ width: '100%', pr: 1 }}>
-            <Typography fontWeight={700} fontSize={13} sx={{ flex: 1 }}>
-              Expert sequence editor
-            </Typography>
-          </Stack>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Stack spacing={1}>
-            <TextField
-              label="Enter BILN sequence"
-              size="small"
-              fullWidth
-              value={bilnText}
-              onChange={(e) => handleBilnChange(e.target.value)}
-              helperText={helper}
-              error={!!error}
-            />
-            <Stack direction="row" spacing={1}>
-              <Button size="small" variant="outlined" startIcon={<CleaningServicesIcon />} onClick={handleClean}>
-                Clean
-              </Button>
-              <Button size="small" variant="outlined" color="error" startIcon={<ClearIcon />} onClick={handleClear}>
-                Clear
-              </Button>
-            </Stack>
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
+      <Stack spacing={1}>
+        <TextField
+          label="Enter BILN sequence"
+          size="small"
+          fullWidth
+          value={bilnText}
+          onChange={(e) => handleBilnChange(e.target.value)}
+          helperText={helper}
+          error={!!error}
+        />
+      </Stack>
     </Box>
   );
 }

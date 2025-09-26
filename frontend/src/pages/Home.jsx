@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useRef, useMemo, forwardRef } from 'r
 
 import { ConfirmProvider } from '../components/common/ConfirmDialogProvider';
 
-import { DesignPageLayout2 } from '../layouts/DesignPageLayout';
+import { DesignPageLayout2, DesignPageLayoutMUI } from '../layouts/DesignPageLayout';
 import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMain';
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 import { OutputContainer } from '../components/output/OutputContainer';
@@ -28,7 +28,7 @@ const Home = forwardRef((props, ref) => {
   return (
     <ConfirmProvider>
       <div className="h-full min-h-0">
-        <DesignPageLayout2
+        <DesignPageLayoutMUI
           sidebar={
             <MonomerLibraryContainer
               filterValue=""

@@ -13,7 +13,15 @@ import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 
 import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
-import { use } from 'react';
+
+import { Box, Grid2, Paper, Typography } from '@mui/material';
+import { Collapse, IconButton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import DeviceHubIcon from '@mui/icons-material/DeviceHub';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
@@ -25,11 +33,16 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
+    const [isEditorOpen, setIsEditorOpen] = useState(true);
+
     const [bilnValue, setBilnValue] = useState('A-C');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
+
+    const viewer2DRef = useRef(null);
+    const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
 
     // Lift state up: output data
     useEffect(() => {
@@ -145,51 +158,170 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         setBilnValue(newBiln);
     }
 
+
+    // Compact, subtle button style for the 2D toolbar
+    const toolbarBtnSx = {
+        textTransform: 'none',
+        lineHeight: 1.1,
+        minHeight: 24,
+        px: 0.75,
+        color: 'text.secondary',
+        borderColor: 'divider',
+        '& .MuiSvgIcon-root': { fontSize: 16, color: 'text.secondary' },
+        '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+    };
+
     return (
-        <div className="flex flex-col space-y-2 h-full overflow-hidden">
-            {/* Sequence Input */}
-            <section className="border p-2 rounded shadow-sm">
-                {/* <SequenceInput value={bilnValue} onChangeValue={handleBilnChange} /> */}
-                <SequenceEditorPanel biln={bilnValue} onChangeBiln={handleBilnChange} />
-            </section>
+        <Box
+            sx={{
+                display: 'grid',
+                gridTemplateRows: 'auto minmax(100px, 1fr) minmax(100px, 25%)',
+                gap: 1,
+                height: '100%',
+                minHeight: 0,
+                overflow: 'hidden',
+            }}
+        >
+            {/* Top: Collapsible container for the sequence editor */}
+            <Paper variant="outlined" sx={{ p: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <Box
+                    role="button"
+                    aria-expanded={isEditorOpen}
+                    tabIndex={0}
+                    onClick={() => setIsEditorOpen(v => !v)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsEditorOpen(v => !v); } }}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                    }}
+                >
+                    <IconButton
+                        size="small"
+                        sx={{
+                            transform: isEditorOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 120ms ease',
+                        }}
+                        aria-label={isEditorOpen ? 'Collapse editor' : 'Expand editor'}
+                    >
+                        <ExpandMoreIcon />
+                    </IconButton>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                        Expert editor
+                    </Typography>
+                </Box>
 
-            {/* Monomer Track */}
-            <section className="border p-2 rounded shadow-sm overflow-x-auto">
+                <Collapse in={isEditorOpen} unmountOnExit timeout="auto">
+                    <Box sx={{ mt: 1 }}>
+                        <SequenceEditorPanel
+                            biln={bilnValue}
+                            onChangeBiln={handleBilnChange}
+                            disableInternalCollapse
+                            hideInternalHeader
+                        />
+                    </Box>
+                </Collapse>
+            </Paper>
+
+            {/* Middle: 2D and 3D viewers side-by-side */}
+            <Box sx={{ minHeight: 0 }}>
+                <Grid2 container spacing={1} sx={{ height: '100%', minHeight: 0 }}>
+                    <Grid2 item xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
+                        <Paper
+                            variant="outlined"
+                            sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                        >
+                            {/* Header row: title + tools on the right */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                    2D Sketch
+                                </Typography>
+                                <ButtonGroup
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                        '& .MuiButton-root': toolbarBtnSx,
+                                        '& .MuiButton-startIcon': { mr: 0.5 },
+                                    }}
+                                >
+                                    <Button
+                                        onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                        color="inherit"
+                                        startIcon={<DeviceHubIcon fontSize="inherit" />}
+                                        disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                        aria-label="link-monomers"
+                                    >
+                                        Link
+                                    </Button>
+                                    <Button
+                                        onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                        color="inherit"
+                                        startIcon={<LinkOffIcon fontSize="inherit" />}
+                                        disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                        aria-label="toggle-bonds"
+                                    >
+                                        Cut
+                                    </Button>
+                                    <Button
+                                        onClick={() => viewer2DRef.current?.resetView()}
+                                        color="inherit"
+                                        startIcon={<RestartAltIcon fontSize="inherit" />}
+                                        disabled={!svgDepiction}
+                                        aria-label="reset-view"
+                                    >
+                                        Reset
+                                    </Button>
+                                </ButtonGroup>
+                            </Box>
+
+                            {/* Canvas area */}
+                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                                <Viewer2D
+                                    ref={viewer2DRef}
+                                    svgData={svgDepiction}
+                                    isShowingAtomIndices={isShowingAtomIndices}
+                                    handleShowingAtomIndices={setIsShowingAtomIndices}
+                                    hoveredMonomer={hoveredMonomer}
+                                    handleMonomerEnter={handleMonomerEnter}
+                                    handleMonomerLeave={handleMonomerLeave}
+                                    onLinkMonomers={handleMonomerLinking}
+                                    onBreakBond={handleBondBreaking}
+                                    error={depictionError}
+                                    loading={depictionLoading}
+                                    onModesChange={setViewer2DModes}   // NEW: keep buttons in sync
+                                />
+                            </Box>
+                        </Paper>
+                    </Grid2>
+                    <Grid2 item xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
+                        <Paper
+                            variant="outlined"
+                            sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                        >
+                            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                                3D Viewer
+                            </Typography>
+                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                                {/* <Viewer3D ... /> */}
+                            </Box>
+                        </Paper>
+                    </Grid2>
+                </Grid2>
+            </Box>
+
+            {/* Bottom: Sequence tracks (scrollable) */}
+            <Paper
+                variant="outlined"
+                sx={{ p: 1, height: '100%', minHeight: 0, overflowY: 'auto', overflowX: 'auto' }}
+            >
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                    Sequences
+                </Typography>
                 {monomerTrack}
-            </section>
-
-            {/* 2D Viewer (self-contained with controls) */}
-            <section className="border p-2 rounded shadow-sm min-h-[300px] max-h-[500px] flex-1 bg-whit">
-                {/* <div>2D Viewer Placeholder</div> */}
-                <Viewer2D
-                    svgData={svgDepiction}
-                    isShowingAtomIndices={isShowingAtomIndices}
-                    handleShowingAtomIndices={setIsShowingAtomIndices}
-                    hoveredMonomer={hoveredMonomer}
-                    handleMonomerEnter={handleMonomerEnter}
-                    handleMonomerLeave={handleMonomerLeave}
-                    onLinkMonomers={handleMonomerLinking}
-                    onBreakBond={handleBondBreaking}
-                    error={depictionError}
-                    loading={depictionLoading}
-                />
-            </section>
-
-            {/* 3D Viewer (self-contained with controls) */}
-            <section className="border p-2 rounded shadow-sm min-h-[300px] max-h-[500px] flex-1">
-                {/* <Viewer3D
-                    pdbRawData={structureOutput?.pdb}
-                    hoveredMonomer={hoveredMonomer}
-                    handleMonomerHover={handleMonomerHover}
-                    defaultRepresentation="ball-and-stick"
-                    defaultColorScheme="residue-name"
-                    height="20rem"  // match 2D viewer height h-80
-                    width="100%"
-                    error={generate3DError}
-                    isGenerating3D={structureLoading}
-                /> */}
-            </section>
-        </div>
+            </Paper>
+        </Box>
     );
 };
 
