@@ -16,7 +16,7 @@ const LINK_COLORS = [
 const containerBase = [
     "monomer-item", "relative", "flex", "items-center", "justify-center",
     "border", "border-slate-600", "h-5", "w-8", "rounded-md", "text-[0.67rem]",
-    "select-none", "bg-lime-50", "cursor-pointe", "shadow-sm"
+    "select-none", "bg-lime-50", "cursor-pointe", "shadow-sm", 
 ].join(" ");
 
 const capBase = [
@@ -116,7 +116,7 @@ const MonomerItemComponent = (props) => {
                         aria-label="Delete monomer"
                         onClick={handleDelete}
                         tabIndex={-1}
-                        style={{ position: 'absolute', bottom: 0, right: 0, transform: 'translateY(-60%) translateX(30%)', pointerEvents: 'auto' }}
+                        style={{ position: 'absolute', bottom: 0, right: 0, transform: 'translateY(-55%) translateX(30%)', pointerEvents: 'auto' }}
                     >
                         <DeleteIcon
                             style={{ fontSize: '0.9rem' }}
@@ -128,7 +128,7 @@ const MonomerItemComponent = (props) => {
                         aria-label="Replace monomer"
                         onClick={handleReplace}
                         tabIndex={-1}
-                        style={{ position: 'absolute', bottom: 0, left: 0, transform: 'translateY(-60%) translateX(-30%)', pointerEvents: 'auto' }}
+                        style={{ position: 'absolute', bottom: 0, left: 0, transform: 'translateY(-55%) translateX(-30%)', pointerEvents: 'auto' }}
                     >
                         <SwapHorizIcon
                             style={{ fontSize: '0.9rem' }}

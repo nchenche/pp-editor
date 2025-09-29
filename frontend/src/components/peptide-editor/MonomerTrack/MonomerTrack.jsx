@@ -37,6 +37,7 @@ export const MonomerTrack = ({
                                 onDelete={handleDeleteMonomerItem}
                                 handleMonomerEnter={handleMonomerEnter}
                                 handleMonomerLeave={handleMonomerLeave}
+                                label={`Sequence ${seqIdx + 1}`}
                             >
                                 {provided.placeholder}
                             </MonomerSequence>
