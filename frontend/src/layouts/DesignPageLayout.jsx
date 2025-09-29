@@ -94,8 +94,8 @@ export const DesignPageLayoutMUI = ({
     viewerContainer,   // right/top: main interface (sequence input, 2D/3D viewers, tracks)
     outputPanel,       // right/bottom: output details
     height = '85vh',   // keep page from scrolling; adjust if you have a fixed header
-    minLeftPx = 400,   // minimum sidebar width
-    maxLeftFrac = 0.40, // maximum sidebar width as fraction of viewport width
+    minLeftPx = 600,   // minimum sidebar width 
+    maxLeftFrac = 0.45, // maximum sidebar width as fraction of viewport width
     handleWidth = 6,   // draggable handle width (px)
     ...rest
 }) => {

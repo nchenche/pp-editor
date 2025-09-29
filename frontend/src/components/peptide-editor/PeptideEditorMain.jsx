@@ -35,7 +35,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     const [isEditorOpen, setIsEditorOpen] = useState(true);
 
-    const [bilnValue, setBilnValue] = useState('A-C');  //  A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState('A-F-R-I-C-A');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';

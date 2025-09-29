@@ -47,8 +47,6 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
 ) {
     const { activeSeqIdx, seqNumber } = uiState;
 
-    console.log("Rendering MonomerLibraryContainer");
-
     const [searchValue, setSearchValue] = useState("");
     const [quickFilters, setQuickFilters] = useState({
         caps: false, natural: false, nonNatural: false
@@ -152,6 +150,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     monomers={filteredMonomers}
                     handleAddingMonomer={handleAdd}
                     activeSeqIdx={activeSeqIdx}
+                    itemSize="sm"
                 />
             </Box>
         </Box>
