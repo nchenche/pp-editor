@@ -165,10 +165,23 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         lineHeight: 1.1,
         minHeight: 24,
         px: 0.75,
-        color: 'text.secondary',
+        color: 'text.secondary',            // default
         borderColor: 'divider',
-        '& .MuiSvgIcon-root': { fontSize: 16, color: 'text.secondary' },
+        '& .MuiSvgIcon-root': {
+            fontSize: 16,
+            color: 'currentColor',            // let icon follow button color
+        },
+        '& .MuiButton-startIcon': { mr: 0.5 },
         '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+
+        // Disabled styling (button + icon shaded)
+        '&.Mui-disabled': {
+            color: 'text.disabled',
+            borderColor: 'divider',
+        },
+        '&.Mui-disabled .MuiSvgIcon-root': {
+            color: 'text.disabled',
+        },
     };
 
     return (
@@ -242,8 +255,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     size="small"
                                     variant="outlined"
                                     sx={{
-                                        '& .MuiButton-root': toolbarBtnSx,
-                                        '& .MuiButton-startIcon': { mr: 0.5 },
+                                        '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
                                     }}
                                 >
                                     <Button
