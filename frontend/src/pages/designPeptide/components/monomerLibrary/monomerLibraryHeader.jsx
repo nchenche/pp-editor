@@ -15,7 +15,7 @@ import { alpha } from '@mui/material/styles';
 export const LINKING_MODES = {
     append: 'append',      // C-ter
     prepend: 'prepend',    // N-ter
-    insert: 'insert',      // pick residue
+    // insert: 'insert',      // pick residue
     newSeq: 'new-sequence' // new sequence
 };
 export const LINK_CHOICES = {
@@ -211,7 +211,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
     const seqCount = Math.max(0, Number(uiState?.seqNumber) || 0);
     const noSeq = seqCount === 0;
     const seqIdx = uiState?.activeSeqIdx ?? null;
-    const seqOptions = useMemo(() => Array.from({ length: seqCount }, (_, i) => ({ value: i, label: String(i) })), [seqCount]);
+    const seqOptions = useMemo(() => Array.from({ length: seqCount }, (_, i) => ({ value: i, label: String(i+1) })), [seqCount]);
 
     // When sequence count changes, coerce mode accordingly
     const prevSeqCountRef = useRef(seqCount);
@@ -334,14 +334,14 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                     disabled={noSeq}
                     placeholder="—"
                 />
-                <CompactSelect
+                {/* <CompactSelect
                     label="Link via"
                     value={linkState}
                     onChange={setLink}
                     options={linkOptions}
                     minWidth={140}
                     icon={<LinkOutlinedIcon fontSize="small" />}
-                />
+                /> */}
             </Stack>
 
             {/* Advanced filter popover */}
