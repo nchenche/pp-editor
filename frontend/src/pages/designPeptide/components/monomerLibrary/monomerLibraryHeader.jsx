@@ -151,7 +151,7 @@ function CompactSelect({
                     open={open}
                     onClose={handleClose}
                     MenuListProps={{ dense: true }}
-                    PaperProps={{
+                    slotProps={{
                         sx: {
                             minWidth,
                             bgcolor: 'background.paper',
@@ -159,9 +159,9 @@ function CompactSelect({
                         }
                     }}
                 >
-                    {options.map(opt => (
+                    {options.map((opt, idx) => (
                         <MenuItem
-                            key={opt.value}
+                            key={idx}
                             selected={opt.value === value}
                             onClick={() => handleSelect(opt.value)}
                             disabled={optionDisabled ? optionDisabled(opt) : false}

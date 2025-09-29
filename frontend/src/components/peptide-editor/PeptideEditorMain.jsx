@@ -175,8 +175,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         <Box
             sx={{
                 display: 'grid',
-                gridTemplateRows: 'auto minmax(100px, 1fr) minmax(100px, 25%)',
-                gap: 1,
+                gridTemplateRows: 'auto minmax(100px, 1fr) minmax(100px, 30%)',
+                gap: 2,
                 height: '100%',
                 minHeight: 0,
                 overflow: 'hidden',
@@ -228,13 +228,13 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             {/* Middle: 2D and 3D viewers side-by-side */}
             <Box sx={{ minHeight: 0 }}>
                 <Grid2 container spacing={1} sx={{ height: '100%', minHeight: 0 }}>
-                    <Grid2 item xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
+                    <Grid2 xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
                         <Paper
                             variant="outlined"
                             sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                         >
                             {/* Header row: title + tools on the right */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                                     2D Sketch
                                 </Typography>
@@ -277,7 +277,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                             </Box>
 
                             {/* Canvas area */}
-                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                            <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
                                 <Viewer2D
                                     ref={viewer2DRef}
                                     svgData={svgDepiction}
@@ -295,7 +295,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                             </Box>
                         </Paper>
                     </Grid2>
-                    <Grid2 item xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
+                    <Grid2 xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
                         <Paper
                             variant="outlined"
                             sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
