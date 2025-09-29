@@ -103,8 +103,7 @@ export const MonomerSequence = ({
                     flex: 1,
                     minHeight: 32,
                     px: 0.75,
-                    overflowX: "auto",
-                    overflowY: "visible",
+                    overflow: "visible",
                     position: "relative",
                 }}
             >

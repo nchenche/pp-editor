@@ -23,7 +23,7 @@ export const MonomerTrack = ({
                 <div
                     key={seqIdx}
                     onClick={() => onSetActiveSeqIdx(seqIdx)}
-                    className={seqIdx === activeSeqIdx ? 'ring-1 ring-blue-300 rounded-md' : ''}
+                    className={seqIdx === activeSeqIdx ? 'ring-1 ring-slate-300 rounded-md' : ''}
                 >
                     <Droppable droppableId={`${seqIdx}`} direction='horizontal' className='border border-stone-500'>
                         {(provided, snapshot) => (

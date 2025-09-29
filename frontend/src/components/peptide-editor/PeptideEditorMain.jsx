@@ -314,7 +314,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             {/* Bottom: Sequence tracks (scrollable) */}
             <Paper
                 variant="outlined"
-                sx={{ p: 1, height: '100%', minHeight: 0, overflowY: 'auto', overflowX: 'auto' }}
+                sx={{ p: 1, height: '100%', minHeight: 0, overflowY: 'auto' }}
             >
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                     Sequences
