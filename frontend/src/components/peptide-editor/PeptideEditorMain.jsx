@@ -427,6 +427,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     MenuListProps={{ dense: true }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
                                 >
                                     {/* Title */}
                                     <MenuItem
@@ -485,6 +486,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                     MenuListProps={{ dense: true }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+
                                 >
                                     {/* Title */}
                                     <MenuItem

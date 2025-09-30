@@ -50,7 +50,7 @@ async function applyStyle(plugin) {
                 },
                 shadow: { name: 'off', params: {} },
             },
-            transparentBackground: PD.Boolean(false),
+            // transparentBackground: PD.Boolean(false),
             renderer: PD.Group({ ...RendererParams, backgroundColor: PD.Color(Color(0xFFFFFF)) }) // white
         });
     }
