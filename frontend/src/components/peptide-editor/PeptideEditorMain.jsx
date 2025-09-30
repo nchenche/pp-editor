@@ -28,6 +28,8 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
+import Tooltip from '@mui/material/Tooltip';
+import Divider from '@mui/material/Divider';
 
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
@@ -43,8 +45,10 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     const [repMenuEl, setRepMenuEl] = useState(null);
     const [colorMenuEl, setColorMenuEl] = useState(null);
+    const [reset3DEl, setReset3DEl] = useState(null);
     const repMenuOpen = Boolean(repMenuEl);
     const colorMenuOpen = Boolean(colorMenuEl);
+    const reset3DOpen = Boolean(reset3DEl);
 
     const [bilnValue, setBilnValue] = useState('A-F-R-I-C-A');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
@@ -172,21 +176,20 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
 
     // Compact, subtle button style for the 2D toolbar
+    // Compact, subtle button style for the 2D/3D toolbars (icon-only)
     const toolbarBtnSx = {
         textTransform: 'none',
         lineHeight: 1.1,
         minHeight: 24,
-        px: 0.75,
-        color: 'text.secondary',            // default
+        minWidth: 34,         // tighter buttons for icon-only
+        px: 0.5,
+        color: 'text.secondary',
         borderColor: 'divider',
         '& .MuiSvgIcon-root': {
             fontSize: 16,
-            color: 'currentColor',            // let icon follow button color
+            color: 'currentColor',
         },
-        '& .MuiButton-startIcon': { mr: 0.5 },
         '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-
-        // Disabled styling (button + icon shaded)
         '&.Mui-disabled': {
             color: 'text.disabled',
             borderColor: 'divider',
@@ -275,37 +278,42 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                             <ButtonGroup
                                 size="small"
                                 variant="outlined"
-                                sx={{
-                                    '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
-                                }}
+                                sx={{ '& .MuiButton-root': toolbarBtnSx }}
                             >
-                                <Button
-                                    onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                                    color="inherit"
-                                    startIcon={<DeviceHubIcon fontSize="inherit" />}
-                                    disabled={!svgDepiction || viewer2DModes.bondsMode}
-                                    aria-label="link-monomers"
-                                >
-                                    Link
-                                </Button>
-                                <Button
-                                    onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                                    color="inherit"
-                                    startIcon={<LinkOffIcon fontSize="inherit" />}
-                                    disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
-                                    aria-label="toggle-bonds"
-                                >
-                                    Cut
-                                </Button>
-                                <Button
-                                    onClick={() => viewer2DRef.current?.resetView()}
-                                    color="inherit"
-                                    startIcon={<RestartAltIcon fontSize="inherit" />}
-                                    disabled={!svgDepiction}
-                                    aria-label="reset-view"
-                                >
-                                    Reset
-                                </Button>
+                                <Tooltip title="Link" arrow placement='top'>
+                                    <Button
+                                        onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                        color="inherit"
+                                        disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                        aria-label="link-monomers"
+                                    >
+                                        <DeviceHubIcon fontSize="inherit" />
+                                    </Button>
+                                </Tooltip>
+
+                                <Tooltip title="Cut" arrow placement='top'>
+                                    <span>
+                                        <Button
+                                            onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                            color="inherit"
+                                            disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                            aria-label="toggle-bonds"
+                                        >
+                                            <LinkOffIcon fontSize="inherit" />
+                                        </Button>
+                                    </span>
+                                </Tooltip>
+
+                                <Tooltip title="Reset" arrow placement='top'>
+                                    <Button
+                                        onClick={() => viewer2DRef.current?.resetView()}
+                                        color="inherit"
+                                        disabled={!svgDepiction}
+                                        aria-label="reset-view"
+                                    >
+                                        <RestartAltIcon fontSize="inherit" />
+                                    </Button>
+                                </Tooltip>
                             </ButtonGroup>
                         </Box>
                         {/* Canvas area */}
@@ -339,21 +347,19 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                             <ButtonGroup
                                 size="small"
                                 variant="outlined"
-                                sx={{
-                                    '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
-                                }}
+                                sx={{ '& .MuiButton-root': toolbarBtnSx }}
                             >
-                                <Button
-                                    onClick={(e) => setRepMenuEl(e.currentTarget)}
-                                    color="inherit"
-                                    startIcon={<CategoryIcon fontSize="inherit" />}
-                                    disabled={false}
-                                    aria-haspopup="menu"
-                                    aria-controls={repMenuOpen ? 'rep-menu' : undefined}
-                                    aria-expanded={repMenuOpen ? 'true' : undefined}
-                                >
-                                    Representation
-                                </Button>
+                                <Tooltip title="Representation" arrow placement='top'>
+                                    <Button
+                                        onClick={(e) => setRepMenuEl(e.currentTarget)}
+                                        color="inherit"
+                                        aria-haspopup="menu"
+                                        aria-controls={repMenuOpen ? 'rep-menu' : undefined}
+                                        aria-expanded={repMenuOpen ? 'true' : undefined}
+                                    >
+                                        <CategoryIcon fontSize="inherit" />
+                                    </Button>
+                                </Tooltip>
                                 <Menu
                                     id="rep-menu"
                                     anchorEl={repMenuEl}
@@ -361,30 +367,58 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     onClose={() => setRepMenuEl(null)}
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+
+                                    MenuListProps={{ dense: true }}
                                 >
-                                    {MolstarSchemes.representationSchemes.map(rep => (
-                                        <MenuItem
-                                            key={rep.id}
-                                            onClick={() => {
-                                                viewer3DRef.current?.setRepresentation?.(rep.id);
-                                                setRepMenuEl(null);
-                                            }}
-                                        >
-                                            {rep.label}
-                                        </MenuItem>
-                                    ))}
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
+                                    >
+                                        Representation
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {/* Compact items with subtle dividers */}
+                                    {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={rep.id}
+                                                onClick={() => {
+                                                    viewer3DRef.current?.setRepresentation?.(rep.id);
+                                                    setRepMenuEl(null);
+                                                }}
+                                                sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {rep.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
                                 </Menu>
-                                <Button
-                                    onClick={(e) => setColorMenuEl(e.currentTarget)}
-                                    color="inherit"
-                                    startIcon={<PaletteIcon fontSize="inherit" />}
-                                    disabled={false}
-                                    aria-haspopup="menu"
-                                    aria-controls={colorMenuOpen ? 'color-menu' : undefined}
-                                    aria-expanded={colorMenuOpen ? 'true' : undefined}
-                                >
-                                    Color by
-                                </Button>
+
+                                <Tooltip title="Color by" arrow placement='top'>
+                                    <Button
+                                        onClick={(e) => setColorMenuEl(e.currentTarget)}
+                                        color="inherit"
+                                        aria-haspopup="menu"
+                                        aria-controls={colorMenuOpen ? 'color-menu' : undefined}
+                                        aria-expanded={colorMenuOpen ? 'true' : undefined}
+                                    >
+                                        <PaletteIcon fontSize="inherit" />
+                                    </Button>
+                                </Tooltip>
                                 <Menu
                                     id="color-menu"
                                     anchorEl={colorMenuEl}
@@ -392,31 +426,110 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     onClose={() => setColorMenuEl(null)}
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    MenuListProps={{ dense: true }}
                                 >
-                                    {MolstarSchemes.colorBySchemes.map(color => (
-                                        <MenuItem
-                                            key={color.id}
-                                            onClick={() => {
-                                                viewer3DRef.current?.setColorScheme?.(color.id);
-                                                setColorMenuEl(null);
-                                            }}
-                                        >
-                                            {color.label}
-                                        </MenuItem>
-                                    ))}
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
+                                    >
+                                        Color by
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={color.id}
+                                                onClick={() => {
+                                                    viewer3DRef.current?.setColorScheme?.(color.id);
+                                                    setColorMenuEl(null);
+                                                }}
+                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {color.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
                                 </Menu>
-                                <Button
-                                    onClick={() => viewer3DRef.current?.resetAxes()}
-                                    color="inherit"
-                                    startIcon={<RestartAltIcon fontSize="inherit" />}
-                                    disabled={!svgDepiction}
-                                    aria-label="reset-view"
+
+                                <Tooltip title="Reset 3D View" arrow placement='top'>
+                                    <Button
+                                        onClick={(e) => setReset3DEl(e.currentTarget)}
+                                        color="inherit"
+                                        aria-haspopup="menu"
+                                        aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
+                                        aria-expanded={reset3DOpen ? 'true' : undefined}
+                                        aria-label="reset-view"
+                                    >
+                                        <RestartAltIcon fontSize="inherit" />
+                                    </Button>
+                                </Tooltip>
+
+                                <Menu
+                                    id="reset3D-menu"
+                                    anchorEl={reset3DEl}
+                                    open={reset3DOpen}
+                                    onClose={() => setReset3DEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    MenuListProps={{ dense: true }}
                                 >
-                                    Reset
-                                </Button>
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
+                                    >
+                                        Reset 3D View
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={reset.id}
+                                                onClick={() => {
+                                                    if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
+                                                    else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
+                                                    else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
+                                                    setReset3DEl(null);
+                                                }}
+                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {reset.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </Menu>
+
+
+
+
                             </ButtonGroup>
                         </Box>
-
+                        {/* Canvas area */}
                         <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                             <Viewer3D
                                 ref={viewer3DRef}
