@@ -1,6 +1,61 @@
 import { useState, useCallback, useEffect } from "react";
 
 import { CircularProgress } from "@mui/material";
+import { PresetStructureRepresentations } from 'molstar/lib/mol-plugin-state/builder/structure/representation-preset';
+import { Color } from 'molstar/lib/mol-util/color';
+import { CollapsableControls, PurePluginUIComponent } from 'molstar/lib/mol-plugin-ui/base';
+import { MagicWandSvg } from 'molstar/lib/mol-plugin-ui/controls/icons';
+import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
+import { PostprocessingParams } from 'molstar/lib/mol-canvas3d/passes/postprocessing';
+import { PluginConfig } from 'molstar/lib/mol-plugin/config';
+import { StructureComponentManager } from 'molstar/lib/mol-plugin-state/manager/structure/component';
+import { cameraProject } from "molstar/lib/mol-canvas3d/camera/util";
+import { transformDirectionArray } from "molstar/lib/mol-geo/util";
+import { RendererParams } from "molstar/lib/mol-gl/renderer";
+
+
+async function applyStyle(plugin) {
+    plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, ignoreLight: false });
+
+    if (plugin.canvas3d) {
+        const pp = plugin.canvas3d.props.postprocessing;
+        plugin.canvas3d.setProps({
+            postprocessing: {
+                outline: {
+                    name: 'on',
+                    params: pp.outline.name === 'on'
+                        ? pp.outline.params
+                        : {
+                            scale: 1,
+                            color: Color(0x000000),
+                            threshold: 0.33,
+                            includeTransparent: true,
+                        }
+                },
+                occlusion: {
+                    name: 'on',
+                    params: pp.occlusion.name === 'on'
+                        ? pp.occlusion.params
+                        : {
+                            multiScale: { name: 'off', params: {} },
+                            radius: 5,
+                            bias: 0.8,
+                            blurKernelSize: 15,
+                            blurDepthBias: 0.5,
+                            samples: 32,
+                            resolutionScale: 1,
+                            color: Color(0x000000),
+                            transparentThreshold: 0.4,
+                        }
+                },
+                shadow: { name: 'off', params: {} },
+            },
+            transparentBackground: PD.Boolean(false),
+            renderer: PD.Group({ ...RendererParams, backgroundColor: PD.Color(Color(0xFFFFFF)) }) // white
+        });
+    }
+}
+
 
 // Helper: Determine file format
 function determineFileFormat(filename, mimeType) {
@@ -22,7 +77,7 @@ export function useMolstarStructure(pluginRef, {
     const [error, setError] = useState(null);
 
     // Always use latest representation/color scheme (in case they are made dynamic)
-    const processStructureData = useCallback(async (fileData, format, rep = defaultRepresentation, color = defaultColorScheme) => {
+    const processStructureData = useCallback(async (fileData, format, rep = defaultRepresentation, colorScheme = defaultColorScheme) => {
         if (!pluginRef.current) return;
         const plugin = pluginRef.current;
         const trajectorySO = await plugin.builders.structure.parseTrajectory(fileData, format);
@@ -31,10 +86,15 @@ export function useMolstarStructure(pluginRef, {
         setStructure(structureSO);
         await plugin.builders.structure.representation.addRepresentation(
             structureSO,
-            { type: rep, color },
+            {
+                type: rep,
+                color: colorScheme,
+                typeParams: { alpha: 0.01, },
+            },
             { tag: 'current-representation' }
         );
-    }, [pluginRef, defaultRepresentation, defaultColorScheme]);
+        await applyStyle(plugin);
+    }, [pluginRef]);
 
     // Loader: PDB raw data string
     const loadFromRawData = useCallback(async (data, format = 'pdb') => {
@@ -137,7 +197,15 @@ export function useMolstarStructure(pluginRef, {
                 { tag: "current-representation" }
             );
         },
-        [structure, pluginRef]
+        // async () => {
+        //     const { structures } = pluginRef.current.managers.structure.hierarchy.selection;
+        //     console.log('Updating representation/color for structures:', structures);
+        //     if (!structures) return;
+
+        //     await pluginRef.current.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['molecular-surface']);
+
+        // },
+        [structure]
     );
 
     // If representation/color changes, update it

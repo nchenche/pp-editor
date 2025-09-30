@@ -31,11 +31,13 @@ export function useMolstarPlugin() {
                 const plugin = new PluginContext(spec);
                 await plugin.init();
 
-                if (!plugin.initViewer(canvasRef.current, containerRef.current)) {
+                const initViewer = plugin.initViewer(canvasRef.current, containerRef.current);
+                if (!initViewer) {
                     throw new Error('Failed to initialize MolStar viewer');
-                }                
+                } 
 
                 pluginRef.current = plugin;
+                window.plugin = plugin; // for debugging
 
                 if (!disposed) setPluginInitialized(true);
             } catch (err) {

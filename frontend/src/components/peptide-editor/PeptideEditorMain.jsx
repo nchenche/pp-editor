@@ -15,6 +15,7 @@ import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
 
 import { Box, Grid2, Paper, Typography } from '@mui/material';
+
 import { Collapse, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
@@ -22,6 +23,10 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import CategoryIcon from '@mui/icons-material/Category';
+import PaletteIcon from '@mui/icons-material/Palette';
 
 const API_BASE_URL = 'http://0.0.0.0:5000';
 
@@ -35,6 +40,11 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     const [isEditorOpen, setIsEditorOpen] = useState(true);
 
+    const [repMenuEl, setRepMenuEl] = useState(null);
+    const [colorMenuEl, setColorMenuEl] = useState(null);
+    const repMenuOpen = Boolean(repMenuEl);
+    const colorMenuOpen = Boolean(colorMenuEl);
+
     const [bilnValue, setBilnValue] = useState('A-F-R-I-C-A');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
@@ -43,6 +53,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
+    const viewer3DRef = useRef(null);
 
     // Lift state up: output data
     useEffect(() => {
@@ -240,89 +251,188 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
 
             {/* Middle: 2D and 3D viewers side-by-side */}
             <Box sx={{ minHeight: 0 }}>
-                <Grid2 container spacing={1} sx={{ height: '100%', minHeight: 0 }}>
-                    <Grid2 xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
-                        <Paper
-                            variant="outlined"
-                            sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                        >
-                            {/* Header row: title + tools on the right */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                    2D Sketch
-                                </Typography>
-                                <ButtonGroup
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                        '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
-                                    }}
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', // always 50% / 50%
+                        gap: 1,
+                        height: '100%',
+                        minHeight: 0,
+                        minWidth: 0,
+                        alignItems: 'stretch',
+                    }}
+                >
+                    <Paper
+                        variant="outlined"
+                        sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                    >
+                        {/* Header row for 2D Viewer & Controls */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                2D Sketch
+                            </Typography>
+                            <ButtonGroup
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
+                                }}
+                            >
+                                <Button
+                                    onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                    color="inherit"
+                                    startIcon={<DeviceHubIcon fontSize="inherit" />}
+                                    disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                    aria-label="link-monomers"
                                 >
-                                    <Button
-                                        onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                                        color="inherit"
-                                        startIcon={<DeviceHubIcon fontSize="inherit" />}
-                                        disabled={!svgDepiction || viewer2DModes.bondsMode}
-                                        aria-label="link-monomers"
-                                    >
-                                        Link
-                                    </Button>
-                                    <Button
-                                        onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                                        color="inherit"
-                                        startIcon={<LinkOffIcon fontSize="inherit" />}
-                                        disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
-                                        aria-label="toggle-bonds"
-                                    >
-                                        Cut
-                                    </Button>
-                                    <Button
-                                        onClick={() => viewer2DRef.current?.resetView()}
-                                        color="inherit"
-                                        startIcon={<RestartAltIcon fontSize="inherit" />}
-                                        disabled={!svgDepiction}
-                                        aria-label="reset-view"
-                                    >
-                                        Reset
-                                    </Button>
-                                </ButtonGroup>
-                            </Box>
+                                    Link
+                                </Button>
+                                <Button
+                                    onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                    color="inherit"
+                                    startIcon={<LinkOffIcon fontSize="inherit" />}
+                                    disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                    aria-label="toggle-bonds"
+                                >
+                                    Cut
+                                </Button>
+                                <Button
+                                    onClick={() => viewer2DRef.current?.resetView()}
+                                    color="inherit"
+                                    startIcon={<RestartAltIcon fontSize="inherit" />}
+                                    disabled={!svgDepiction}
+                                    aria-label="reset-view"
+                                >
+                                    Reset
+                                </Button>
+                            </ButtonGroup>
+                        </Box>
+                        {/* Canvas area */}
+                        <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
+                            <Viewer2D
+                                ref={viewer2DRef}
+                                svgData={svgDepiction}
+                                isShowingAtomIndices={isShowingAtomIndices}
+                                handleShowingAtomIndices={setIsShowingAtomIndices}
+                                hoveredMonomer={hoveredMonomer}
+                                handleMonomerEnter={handleMonomerEnter}
+                                handleMonomerLeave={handleMonomerLeave}
+                                onLinkMonomers={handleMonomerLinking}
+                                onBreakBond={handleBondBreaking}
+                                error={depictionError}
+                                loading={depictionLoading}
+                                onModesChange={setViewer2DModes}
+                            />
+                        </Box>
+                    </Paper>
 
-                            {/* Canvas area */}
-                            <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
-                                <Viewer2D
-                                    ref={viewer2DRef}
-                                    svgData={svgDepiction}
-                                    isShowingAtomIndices={isShowingAtomIndices}
-                                    handleShowingAtomIndices={setIsShowingAtomIndices}
-                                    hoveredMonomer={hoveredMonomer}
-                                    handleMonomerEnter={handleMonomerEnter}
-                                    handleMonomerLeave={handleMonomerLeave}
-                                    onLinkMonomers={handleMonomerLinking}
-                                    onBreakBond={handleBondBreaking}
-                                    error={depictionError}
-                                    loading={depictionLoading}
-                                    onModesChange={setViewer2DModes}   // NEW: keep buttons in sync
-                                />
-                            </Box>
-                        </Paper>
-                    </Grid2>
-                    <Grid2 xs={12} md={6} sx={{ height: '100%', minHeight: 0 }}>
-                        <Paper
-                            variant="outlined"
-                            sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                        >
-                            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>
+                    <Paper
+                        variant="outlined"
+                        sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                    >
+                        {/* Header row for 3D Viewer & Controls */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                                 3D Viewer
                             </Typography>
-                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                                {/* <Viewer3D ... /> */}
-                            </Box>
-                        </Paper>
-                    </Grid2>
-                </Grid2>
-            </Box>
+                            <ButtonGroup
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                    '& .MuiButton-root': toolbarBtnSx,    // uses disabled shading above
+                                }}
+                            >
+                                <Button
+                                    onClick={(e) => setRepMenuEl(e.currentTarget)}
+                                    color="inherit"
+                                    startIcon={<CategoryIcon fontSize="inherit" />}
+                                    disabled={false}
+                                    aria-haspopup="menu"
+                                    aria-controls={repMenuOpen ? 'rep-menu' : undefined}
+                                    aria-expanded={repMenuOpen ? 'true' : undefined}
+                                >
+                                    Rep
+                                </Button>
+                                <Menu
+                                    id="rep-menu"
+                                    anchorEl={repMenuEl}
+                                    open={repMenuOpen}
+                                    onClose={() => setRepMenuEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                >
+                                    {['ball-and-stick', 'cartoon', 'surface'].map(rep => (
+                                        <MenuItem
+                                            key={rep}
+                                            onClick={() => {
+                                                viewer3DRef.current?.setRepresentation?.(rep);
+                                                setRepMenuEl(null);
+                                            }}
+                                        >
+                                            {rep}
+                                        </MenuItem>
+                                    ))}
+                                </Menu>
+                                <Button
+                                    onClick={(e) => setColorMenuEl(e.currentTarget)}
+                                    color="inherit"
+                                    startIcon={<PaletteIcon fontSize="inherit" />}
+                                    disabled={false}
+                                    aria-haspopup="menu"
+                                    aria-controls={colorMenuOpen ? 'color-menu' : undefined}
+                                    aria-expanded={colorMenuOpen ? 'true' : undefined}
+                                >
+                                    Color
+                                </Button>
+                                <Menu
+                                    id="color-menu"
+                                    anchorEl={colorMenuEl}
+                                    open={colorMenuOpen}
+                                    onClose={() => setColorMenuEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                >
+                                    {['residue-name', 'chain-id', 'element-symbol'].map(color => (
+                                        <MenuItem
+                                            key={color}
+                                            onClick={() => {
+                                                viewer3DRef.current?.setColorScheme?.(color);
+                                                setColorMenuEl(null);
+                                            }}
+                                        >
+                                            {color}
+                                        </MenuItem>
+                                    ))}
+                                </Menu>
+                                <Button
+                                    onClick={() => viewer2DRef.current?.resetView()}
+                                    color="inherit"
+                                    startIcon={<RestartAltIcon fontSize="inherit" />}
+                                    disabled={!svgDepiction}
+                                    aria-label="reset-view"
+                                >
+                                    Reset
+                                </Button>
+                            </ButtonGroup>
+                        </Box>
 
+                        <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                            <Viewer3D
+                                ref={viewer3DRef}
+                                pdbRawData={structureOutput?.pdb}
+                                hoveredMonomer={hoveredMonomer}
+                                handleMonomerHover={handleMonomerHover}
+                                defaultRepresentation="ball-and-stick"
+                                defaultColorScheme="residue-name"
+                                height="100%"
+                                width="100%"
+                                error={generate3DError}
+                                isGenerating3D={structureLoading}
+                            />
+                        </Box>
+                    </Paper>
+                </Box>
+            </Box>
             {/* Bottom: Sequence tracks (scrollable) */}
             <Paper
                 variant="outlined"
