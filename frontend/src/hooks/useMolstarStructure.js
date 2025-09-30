@@ -27,7 +27,7 @@ async function applyStyle(plugin) {
                         ? pp.outline.params
                         : {
                             scale: 1,
-                            color: Color(0x000000),
+                            color: Color(0x000000),  // black
                             threshold: 0.33,
                             includeTransparent: true,
                         }
@@ -44,7 +44,7 @@ async function applyStyle(plugin) {
                             blurDepthBias: 0.5,
                             samples: 32,
                             resolutionScale: 1,
-                            color: Color(0x000000),
+                            color: Color(0x000000),  // black
                             transparentThreshold: 0.4,
                         }
                 },
@@ -84,15 +84,15 @@ export function useMolstarStructure(pluginRef, {
         const modelSO = await plugin.builders.structure.createModel(trajectorySO);
         const structureSO = await plugin.builders.structure.createStructure(modelSO);
         setStructure(structureSO);
-        await plugin.builders.structure.representation.addRepresentation(
-            structureSO,
-            {
-                type: rep,
-                color: colorScheme,
-                typeParams: { alpha: 0.01, },
-            },
-            { tag: 'current-representation' }
-        );
+        // await plugin.builders.structure.representation.addRepresentation(
+        //     structureSO,
+        //     {
+        //         type: rep,
+        //         color: colorScheme,
+        //         typeParams: { alpha: 0.01, },
+        //     },
+        //     { tag: 'current-representation' }
+        // );
         await applyStyle(plugin);
     }, [pluginRef]);
 
@@ -183,7 +183,7 @@ export function useMolstarStructure(pluginRef, {
 
     // **Add an effect to update rep/color**
     const updateRepresentation = useCallback(
-        async (type, colorScheme) => {
+        async (repType, colorScheme) => {
             if (!structure || !pluginRef.current) return;
             const plugin = pluginRef.current;
             // Remove old representation (tagged 'current-representation')
@@ -193,7 +193,11 @@ export function useMolstarStructure(pluginRef, {
             // Add new representation
             await plugin.builders.structure.representation.addRepresentation(
                 structure,
-                { type, color: colorScheme },
+                {
+                    type: repType,
+                    color: colorScheme,
+                    // typeParams: { alpha: 0.01, },
+                },
                 { tag: "current-representation" }
             );
         },
@@ -212,7 +216,7 @@ export function useMolstarStructure(pluginRef, {
     useEffect(() => {
         if (!structure) return;
         updateRepresentation(defaultRepresentation, defaultColorScheme);
-    }, [structure, defaultRepresentation, defaultColorScheme, updateRepresentation]);
+    }, [defaultRepresentation, defaultColorScheme, updateRepresentation]);
 
     return {
         structure,
