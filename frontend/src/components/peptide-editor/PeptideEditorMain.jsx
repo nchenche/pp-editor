@@ -5,7 +5,8 @@ import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
-// import { MolstarApp } from './Viewer3D/molstar/MolstarApp';
+import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
+
 
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
@@ -351,7 +352,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     aria-controls={repMenuOpen ? 'rep-menu' : undefined}
                                     aria-expanded={repMenuOpen ? 'true' : undefined}
                                 >
-                                    Rep
+                                    Representation
                                 </Button>
                                 <Menu
                                     id="rep-menu"
@@ -361,15 +362,15 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                 >
-                                    {['ball-and-stick', 'cartoon', 'surface'].map(rep => (
+                                    {MolstarSchemes.representationSchemes.map(rep => (
                                         <MenuItem
-                                            key={rep}
+                                            key={rep.id}
                                             onClick={() => {
-                                                viewer3DRef.current?.setRepresentation?.(rep);
+                                                viewer3DRef.current?.setRepresentation?.(rep.id);
                                                 setRepMenuEl(null);
                                             }}
                                         >
-                                            {rep}
+                                            {rep.label}
                                         </MenuItem>
                                     ))}
                                 </Menu>
@@ -382,7 +383,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     aria-controls={colorMenuOpen ? 'color-menu' : undefined}
                                     aria-expanded={colorMenuOpen ? 'true' : undefined}
                                 >
-                                    Color
+                                    Color by
                                 </Button>
                                 <Menu
                                     id="color-menu"
@@ -392,20 +393,20 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                 >
-                                    {['residue-name', 'chain-id', 'element-symbol'].map(color => (
+                                    {MolstarSchemes.colorBySchemes.map(color => (
                                         <MenuItem
-                                            key={color}
+                                            key={color.id}
                                             onClick={() => {
-                                                viewer3DRef.current?.setColorScheme?.(color);
+                                                viewer3DRef.current?.setColorScheme?.(color.id);
                                                 setColorMenuEl(null);
                                             }}
                                         >
-                                            {color}
+                                            {color.label}
                                         </MenuItem>
                                     ))}
                                 </Menu>
                                 <Button
-                                    onClick={() => viewer2DRef.current?.resetView()}
+                                    onClick={() => viewer3DRef.current?.resetAxes()}
                                     color="inherit"
                                     startIcon={<RestartAltIcon fontSize="inherit" />}
                                     disabled={!svgDepiction}

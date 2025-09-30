@@ -51,7 +51,9 @@ const Viewer3DInner = ({
 
     // Imperative API
     useImperativeHandle(ref, () => ({
-        resetView: () => pluginRef.current?.canvas3d?.requestCameraReset?.(),
+        resetZoom: () => pluginRef.current?.canvas3d?.requestCameraReset?.(),
+        orientAxes: () => pluginRef.current?.managers.camera.orientAxes(undefined, 0),
+        resetAxes: () => pluginRef.current?.managers.camera.resetAxes(),
         resize: () => pluginRef.current?.canvas3d?.requestResize?.(),
         setRepresentation: (type) => setRepresentation(type),
         setColorScheme: (scheme) => setColorScheme(scheme),
