@@ -1,6 +1,8 @@
 // src/hooks/useGenerate3D.js
 import { useState, useCallback } from 'react';
 
+import { decomposeBiln } from '../utils/bilnUtils';
+
 export function useGenerate3D(apiBaseUrl) {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
@@ -8,11 +10,16 @@ export function useGenerate3D(apiBaseUrl) {
 
     const generate3D = useCallback(async (bilnValue) => {
         setLoading(true);
+        // HHHHHHHHH, CCCCCCCCC, EEEEEEEEE
+        // Generate helix as long as the sequence
+        const parsedBiln = decomposeBiln(bilnValue);        
+        const helixLength = parsedBiln.tokens.length;
+        const secstruct = 'H'.repeat(helixLength);
         try {
-            const response = await fetch(`${apiBaseUrl}/api/core/molecules/generate_3d`, {
+            const response = await fetch(`${apiBaseUrl}/api/core/molecules/generate_3d?without_ss=false`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sequence: bilnValue })
+                body: JSON.stringify({ sequence: bilnValue, secstruct: secstruct})
             });
             if (!response.ok) {
                 const err = await response.json();
