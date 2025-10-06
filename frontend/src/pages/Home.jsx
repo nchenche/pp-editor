@@ -7,7 +7,6 @@ import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMai
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 import { OutputContainer } from '../components/output/OutputContainer';
 
-
 const Home = forwardRef((props, ref) => {
 
   const editorRef = useRef(null);

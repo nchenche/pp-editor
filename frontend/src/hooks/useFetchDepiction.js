@@ -1,10 +1,10 @@
 // src/hooks/useFetchDepiction.js
 import { useState, useCallback } from 'react';
-
-const DEPICT_2D_URL = 'http://localhost:5000/api/core/molecules/depiction/2d';
+import { DEPICT_2D_URL } from '../config';
 
 
 export function useFetchDepiction() {
+
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);

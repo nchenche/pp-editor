@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-
+import { API_BASE_URL } from '../config';
 import { log } from '../utils/dev'
 
 
@@ -12,7 +12,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
     useEffect(() => {
         if (!smiles) return;
 
-        const baseURL = "http://localhost:5000/api/molecules/svg-rendering";
+        const baseURL = `${API_BASE_URL}/api/molecules/svg-rendering`;
         const params = new URLSearchParams();
 
         // Append query parameters

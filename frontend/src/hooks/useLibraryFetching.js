@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { API_BASE_URL } from '../config';
+
 
 // Simple in-memory cache (per session)
 const CACHE = new Map(); // key -> { data, ts }
@@ -45,7 +47,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const baseUrl = 'http://localhost:5000/api/db/monomers/images';
+  const baseUrl = `${API_BASE_URL}/api/db/monomers/images`;
 
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]

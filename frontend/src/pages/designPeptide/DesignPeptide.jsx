@@ -20,15 +20,10 @@ import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibr
 
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 
-
-const DEPICT_2D_URL = 'http://localhost:5000/api/core/molecules/depiction/2d';
-const API_BASE_URL = 'http://localhost:5000';
-
-
 const DesignPeptideContainer = ({ children }) => {
 
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
-    const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
+    const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D();
 
     const [bilnValue, setBilnValue] = useState('A-C-K-A-C-G-L');  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
