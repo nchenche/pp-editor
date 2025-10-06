@@ -31,7 +31,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 
-const API_BASE_URL = 'http://0.0.0.0:5000';
+const API_BASE_URL = 'http://localhost:5000';
 
 
 const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) => {
