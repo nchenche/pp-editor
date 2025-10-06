@@ -149,7 +149,7 @@ const UIAddMonomers = memo(() => {
     console.log('typeof', typeof(molBlock));
 
     try {
-      const response = await fetch('http://0.0.0.0:5000/api/db/monomers/add', {
+      const response = await fetch('http://localhost:5000/api/db/monomers/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',

@@ -12,7 +12,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
     useEffect(() => {
         if (!smiles) return;
 
-        const baseURL = "http://0.0.0.0:5000/api/molecules/svg-rendering";
+        const baseURL = "http://localhost:5000/api/molecules/svg-rendering";
         const params = new URLSearchParams();
 
         // Append query parameters

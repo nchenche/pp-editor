@@ -21,8 +21,8 @@ import { MonomerLibraryContainer } from './components/monomerLibrary/MonomerLibr
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 
 
-const DEPICT_2D_URL = 'http://0.0.0.0:5000/api/core/molecules/depiction/2d';
-const API_BASE_URL = 'http://0.0.0.0:5000';
+const DEPICT_2D_URL = 'http://localhost:5000/api/core/molecules/depiction/2d';
+const API_BASE_URL = 'http://localhost:5000';
 
 
 const DesignPeptideContainer = ({ children }) => {

@@ -45,7 +45,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const baseUrl = 'http://0.0.0.0:5000/api/db/monomers/images';
+  const baseUrl = 'http://localhost:5000/api/db/monomers/images';
 
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
