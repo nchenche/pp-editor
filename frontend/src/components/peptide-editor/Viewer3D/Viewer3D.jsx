@@ -135,12 +135,6 @@ const Viewer3DInner = ({
                     </Overlay>
                 )}
             </div>
-
-            {/* Controls placed outside the viewer box */}
-            {/* <div className="absolute controls mt-2 flex gap-4 justify-center -top-2 left-0">
-                <RepresentationSelector value={representation} onChange={setRepresentation} />
-                <ColorSchemeSelector value={colorScheme} onChange={setColorScheme} />
-            </div> */}
         </div>
     );
 };

@@ -282,14 +282,16 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                 sx={{ '& .MuiButton-root': toolbarBtnSx }}
                             >
                                 <Tooltip title="Link" arrow placement='top'>
-                                    <Button
-                                        onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                                        color="inherit"
-                                        disabled={!svgDepiction || viewer2DModes.bondsMode}
-                                        aria-label="link-monomers"
-                                    >
-                                        <DeviceHubIcon fontSize="inherit" />
-                                    </Button>
+                                    <span>
+                                        <Button
+                                            onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                            color="inherit"
+                                            disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                            aria-label="link-monomers"
+                                        >
+                                            <DeviceHubIcon fontSize="inherit" />
+                                        </Button>
+                                    </span>
                                 </Tooltip>
 
                                 <Tooltip title="Cut" arrow placement='top'>
@@ -306,14 +308,16 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                                 </Tooltip>
 
                                 <Tooltip title="Reset" arrow placement='top'>
-                                    <Button
-                                        onClick={() => viewer2DRef.current?.resetView()}
-                                        color="inherit"
-                                        disabled={!svgDepiction}
-                                        aria-label="reset-view"
-                                    >
-                                        <RestartAltIcon fontSize="inherit" />
-                                    </Button>
+                                    <span>
+                                        <Button
+                                            onClick={() => viewer2DRef.current?.resetView()}
+                                            color="inherit"
+                                            disabled={!svgDepiction}
+                                            aria-label="reset-view"
+                                        >
+                                            <RestartAltIcon fontSize="inherit" />
+                                        </Button>
+                                    </span>
                                 </Tooltip>
                             </ButtonGroup>
                         </Box>
