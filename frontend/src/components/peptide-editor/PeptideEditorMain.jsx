@@ -61,6 +61,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
 
+    console.log("PDB output:", structureOutput?.pdb);
+
     // Lift state up: output data
     useEffect(() => {
         if (onOutputChange) {

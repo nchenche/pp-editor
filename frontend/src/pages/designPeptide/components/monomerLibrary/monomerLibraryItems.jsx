@@ -205,7 +205,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                 >
                     {monomer.pdbName}
                 </Typography>
-                <Tooltip title={monomer.m_name} placement="bottom" arrow disableInteractive>
+                <Tooltip title={`${monomer.m_name} (${monomer.symbol})`} placement="bottom" arrow disableInteractive>
                     <Typography
                         variant="caption"
                         color="text.secondary"
@@ -250,8 +250,8 @@ export const MonomerLibraryItems = memo(MonomerLibraryItemsInner, areEqualItems)
 
 
 function areEqualItems(prev, next) {
-  // Only re-render when data or handlers change
-  if (prev.monomers !== next.monomers) return false;
-  if (prev.handleAddingMonomer !== next.handleAddingMonomer) return false;
-  return true;
+    // Only re-render when data or handlers change
+    if (prev.monomers !== next.monomers) return false;
+    if (prev.handleAddingMonomer !== next.handleAddingMonomer) return false;
+    return true;
 }
