@@ -11,7 +11,14 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:bg": "sh -c 'nohup vite --host 0.0.0.0 > .vite.dev.log 2>&1 & echo $! > .vite.dev.pid && echo Dev PID $(cat .vite.dev.pid)'",
+    "stop:dev": "sh -c 'test -f .vite.dev.pid && kill $(cat .vite.dev.pid) && rm .vite.dev.pid && echo Stopped dev || echo No dev pid file'",
+    "start:prod:bg": "sh -c 'npm run build && nohup vite preview --host 0.0.0.0 --port 4173 > .vite.prod.log 2>&1 & echo $! > .vite.prod.pid && echo Prod PID $(cat .vite.prod.pid)'",
+    "stop:prod": "sh -c 'test -f .vite.prod.pid && kill $(cat .vite.prod.pid) && rm .vite.prod.pid && echo Stopped prod || echo No prod pid file'",
+    "status": "sh -c 'for f in .vite.dev.pid .vite.prod.pid; do [ -f \"$f\" ] && pid=$(cat \"$f\") && ps -p $pid -o pid,cmd= || echo \"$f not running\"; done'",
+    "logs:dev": "tail -n 100 -f .vite.dev.log",
+    "logs:prod": "tail -n 100 -f .vite.prod.log"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
