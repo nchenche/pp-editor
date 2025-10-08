@@ -4,6 +4,8 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Close';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Box, Tooltip } from "@mui/material";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+
 
 // Use outside the component, only defined once
 const LINK_COLORS = [
@@ -27,7 +29,6 @@ const capBase = [
 
 // Main component
 const MonomerItemComponent = (props) => {
-    // console.log("Rendering MonomerItem:");
 
     const {
         monomer,
@@ -125,7 +126,7 @@ const MonomerItemComponent = (props) => {
                         // borderColor: 'divider',
                         // borderRadius: 1,
                         // boxShadow: 1,
-                        p: 0.25,
+                        p: 0.55,
                         pointerEvents: 'auto',
                     }}
                 >
@@ -136,9 +137,42 @@ const MonomerItemComponent = (props) => {
                                 aria-label="Replace monomer"
                                 onClick={handleReplace}
                                 tabIndex={-1}
-                                sx={{ p: 0.5, fontSize: 16 }}
+                                sx={{ p: 0.2, fontSize: 16 }}
                             >
                                 <SwapHorizIcon fontSize="inherit" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    {/* Info */}
+                    <Tooltip
+                        arrow
+                        placement="top"
+                        enterDelay={150}
+                        title={
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'auto 1fr',
+                                    columnGap: 1,
+                                    rowGap: 0.25,
+                                    fontSize: 12,
+                                }}
+                            >
+                                <Box sx={{ color: 'white', fontWeight: 400 }}>Name:</Box>
+                                <Box>{monomer?.m_name ?? '-'}</Box>
+                                <Box sx={{ color: 'white', fontWeight: 400 }}>BILN symbol:</Box>
+                                <Box>{monomer?.m_abbr ?? '-'}</Box>
+                            </Box>
+                        }
+                    >
+                        <span>
+                            <IconButton
+                                size="small"
+                                aria-label="Monomer info"
+                                tabIndex={-1}
+                                sx={{ p: 0.2, fontSize: 16 }}
+                            >
+                                <InfoOutlinedIcon fontSize="inherit" />
                             </IconButton>
                         </span>
                     </Tooltip>
@@ -149,7 +183,7 @@ const MonomerItemComponent = (props) => {
                                 aria-label="Delete monomer"
                                 onClick={handleDelete}
                                 tabIndex={-1}
-                                sx={{ p: 0.5, fontSize: 16 }}
+                                sx={{ p: 0.2, fontSize: 16 }}
                             >
                                 <DeleteIcon fontSize="inherit" />
                             </IconButton>
