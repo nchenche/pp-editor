@@ -1,10 +1,14 @@
-import { memo, useState, useCallback, useMemo } from 'react';
+import { memo, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Close';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Box, Tooltip } from "@mui/material";
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
 
 
 // Use outside the component, only defined once
@@ -43,8 +47,24 @@ const MonomerItemComponent = (props) => {
     } = props;
 
     const [isSelected, setIsSelected] = useState(false);
-
     const isCapped = isNterCap || isCterCap;
+
+    // Swap menu state
+    const swapBtnRef = useRef(null);
+    const [swapAnchorEl, setSwapAnchorEl] = useState(null);
+    const swapMenuOpen = Boolean(swapAnchorEl);
+
+    const handleOpenSwapMenu = useCallback((e) => {
+        e.stopPropagation();
+        // Store a function that returns the ref, not the DOM node directly
+        setSwapAnchorEl(() => swapBtnRef.current);
+    }, []);
+    
+    const handleCloseSwapMenu = useCallback(() => {
+        setSwapAnchorEl(null);
+    }, []);
+
+    useEffect(() => () => setSwapAnchorEl(null), []);
 
     const containerClasses = [
         containerBase,
@@ -87,7 +107,7 @@ const MonomerItemComponent = (props) => {
             {...provided.draggableProps}
             style={provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {}}
             onPointerEnter={() => handleMonomerEnter(monomer['res-idx'])}
-            onPointerLeave={() => handleMonomerLeave(monomer['res-idx'])}
+            onPointerLeave={() => { if (!swapMenuOpen) handleMonomerLeave(monomer['res-idx']); }}
         >
             {/* Monomer label (grab handle if draggable) */}
             <div className={dragAreaClasses} {...(!isCapped ? provided.dragHandleProps : {})}>
@@ -111,7 +131,7 @@ const MonomerItemComponent = (props) => {
             )}
 
             {/* Actions: delete and replace, shown on hover */}
-            {isHovered && (
+            {(isHovered || swapMenuOpen) && (
                 <Box
                     sx={{
                         position: 'absolute',
@@ -133,9 +153,13 @@ const MonomerItemComponent = (props) => {
                     <Tooltip title="Replace monomer" arrow placement="top">
                         <span>
                             <IconButton
+                                ref={swapBtnRef}
                                 size="small"
                                 aria-label="Replace monomer"
-                                onClick={handleReplace}
+                                onClick={handleOpenSwapMenu}
+                                aria-haspopup="menu"
+                                aria-controls={swapMenuOpen ? 'swap-menu' : undefined}
+                                aria-expanded={swapMenuOpen ? 'true' : undefined}
                                 tabIndex={-1}
                                 sx={{ p: 0.2, fontSize: 16 }}
                             >
@@ -143,6 +167,7 @@ const MonomerItemComponent = (props) => {
                             </IconButton>
                         </span>
                     </Tooltip>
+
                     {/* Info */}
                     <Tooltip
                         arrow
@@ -191,8 +216,30 @@ const MonomerItemComponent = (props) => {
                     </Tooltip>
                 </Box>
             )}
+
+            {/* Replace menu - use function anchorEl for safety */}
+            <Menu
+                id="swap-menu"
+                open={swapMenuOpen}
+                anchorEl={swapMenuOpen ? (() => swapBtnRef.current) : null}
+                onClose={handleCloseSwapMenu}
+                keepMounted
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                MenuListProps={{ dense: true }}
+                slotProps={{ paper: { sx: { minWidth: 200, p: 0.5 } } }}
+            >
+                <MenuItem disabled sx={{ opacity: 0.85, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.4 }}>
+                        Replace with...
+                    </Typography>
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem onClick={handleCloseSwapMenu}>Analog monomer</MenuItem>
+                <MenuItem onClick={handleCloseSwapMenu}>Other</MenuItem>
+            </Menu>
         </div>
-    ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, handleReplace]);
+    ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, swapMenuOpen, handleOpenSwapMenu, handleCloseSwapMenu]);
 
     // If capped, not draggable
     if (isCapped) return <MonomerContent />;
