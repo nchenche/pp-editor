@@ -112,8 +112,6 @@ export const MonomerSequence = ({
                     const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[0] != null;
                     const isHovered = monomer["res-idx"] === hoveredMonomer;
 
-                    console.log(monomer);
-
                     // Prefer stable link IDs precomputed on monomer
                     let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
                     if (!linkIndices.length && linkMap) {
