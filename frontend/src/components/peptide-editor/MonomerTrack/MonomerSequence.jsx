@@ -133,7 +133,7 @@ export const MonomerSequence = ({
                             isNterCap={isNterCap}
                             isCterCap={isCterCap}
                             linkIndices={linkIndices}
-                            isHovered={isHovered}
+                            isHovered={monomer.m_abbr === 'C'  || isHovered}
                         />
                     );
                 })}

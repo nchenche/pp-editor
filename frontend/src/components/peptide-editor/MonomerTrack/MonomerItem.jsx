@@ -3,6 +3,7 @@ import { Draggable } from '@hello-pangea/dnd';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Close';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { Box, Tooltip } from "@mui/material";
 
 // Use outside the component, only defined once
 const LINK_COLORS = [
@@ -16,7 +17,7 @@ const LINK_COLORS = [
 const containerBase = [
     "monomer-item", "relative", "flex", "items-center", "justify-center",
     "border", "border-slate-600", "h-5", "w-8", "rounded-md", "text-[0.67rem]",
-    "select-none", "bg-lime-50", "cursor-pointe", "shadow-sm", 
+    "select-none", "bg-lime-50", "cursor-pointe", "shadow-sm",
 ].join(" ");
 
 const capBase = [
@@ -110,31 +111,51 @@ const MonomerItemComponent = (props) => {
 
             {/* Actions: delete and replace, shown on hover */}
             {isHovered && (
-                <>
-                    <IconButton
-                        size="small"
-                        aria-label="Delete monomer"
-                        onClick={handleDelete}
-                        tabIndex={-1}
-                        style={{ position: 'absolute', bottom: 0, right: 0, transform: 'translateY(-55%) translateX(30%)', pointerEvents: 'auto' }}
-                    >
-                        <DeleteIcon
-                            style={{ fontSize: '0.9rem' }}
-                        />
-                    </IconButton>
-
-                    <IconButton
-                        size="small"
-                        aria-label="Replace monomer"
-                        onClick={handleReplace}
-                        tabIndex={-1}
-                        style={{ position: 'absolute', bottom: 0, left: 0, transform: 'translateY(-55%) translateX(-30%)', pointerEvents: 'auto' }}
-                    >
-                        <SwapHorizIcon
-                            style={{ fontSize: '0.9rem' }}
-                        />
-                    </IconButton>
-                </>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translate(-50%, -60%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.1,
+                        bgcolor: 'none', // 'background.paper',
+                        // border: 1,
+                        // borderColor: 'divider',
+                        // borderRadius: 1,
+                        // boxShadow: 1,
+                        p: 0.25,
+                        pointerEvents: 'auto',
+                    }}
+                >
+                    <Tooltip title="Replace monomer" arrow placement="top">
+                        <span>
+                            <IconButton
+                                size="small"
+                                aria-label="Replace monomer"
+                                onClick={handleReplace}
+                                tabIndex={-1}
+                                sx={{ p: 0.5, fontSize: 16 }}
+                            >
+                                <SwapHorizIcon fontSize="inherit" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                    <Tooltip title="Delete monomer" arrow placement="top">
+                        <span>
+                            <IconButton
+                                size="small"
+                                aria-label="Delete monomer"
+                                onClick={handleDelete}
+                                tabIndex={-1}
+                                sx={{ p: 0.5, fontSize: 16 }}
+                            >
+                                <DeleteIcon fontSize="inherit" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                </Box>
             )}
         </div>
     ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, handleReplace]);
