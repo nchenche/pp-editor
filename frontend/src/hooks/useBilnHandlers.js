@@ -380,6 +380,24 @@ export function useBilnHandlers({
         setBilnValue(newBiln);
     }, [bilnValue, setBilnValue, linkMap]);
 
+    const handleDeleteSequence = (index) => {
+        // Parse current sequences
+        const trimmed = (bilnValue || "").replace(/^[.-]+|[.-]+$/g, "");
+        const segments = trimmed ? trimmed.split(".") : [];
+        const newSegments = segments.filter((_, i) => i !== index);
+        const newBiln = newSegments.join(".");
+        setBilnValue(newBiln);
+        setUiState(prev => {
+            const newSeqCount = newSegments.length;
+            let nextIdx = null;
+            if (newSeqCount > 0) {
+                nextIdx = Math.min(index, newSeqCount - 1);
+            }
+            if (prev.seqNumber === newSeqCount && prev.activeSeqIdx === nextIdx) return prev;
+            return { ...prev, seqNumber: newSeqCount, activeSeqIdx: nextIdx };
+        });
+    };
+
     // Handle drag start
     const handleDragStart = useCallback(() => {
         setIsDragging(true);
@@ -405,7 +423,7 @@ export function useBilnHandlers({
 
             rowMonomerLists[source.droppableId] = reorderedList;
             newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
-            console.log("Reordered BILN:", newBiln);
+            // console.log("Reordered BILN:", newBiln);
         }
         else {
             // Move between 2 different lists
@@ -417,7 +435,7 @@ export function useBilnHandlers({
             rowMonomerLists[source.droppableId] = sourceList;
             rowMonomerLists[destination.droppableId] = destList;
             newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
-            console.log("Moved BILN:", newBiln);
+            // console.log("Moved BILN:", newBiln);
         }
         if (newBiln) setBilnValue(() => newBiln);
 
@@ -431,5 +449,6 @@ export function useBilnHandlers({
         handleBondBreaking,
         handleOnDragEnd,
         handleDragStart,
+        handleDeleteSequence,
     };
 }

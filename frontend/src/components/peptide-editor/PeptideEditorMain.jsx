@@ -139,7 +139,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
-    const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart
+    const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart, handleDeleteSequence
     } = useBilnHandlers({
         bilnValue,
         setBilnValue,
@@ -149,7 +149,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         uiState,
         setUiState,
         setIsDragging,
-        setHoveredMonomer,
+        setHoveredMonomer
     });
 
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
@@ -184,6 +184,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             onDragEnd={handleOnDragEnd}
             handleMonomerEnter={handleMonomerEnter}
             handleMonomerLeave={handleMonomerLeave}
+            handleDeleteSequence={handleDeleteSequence}
         />
     ), [
         rowMonomerLists,

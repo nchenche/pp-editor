@@ -83,7 +83,6 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
 
     // Keep the ref in sync when the active sequence changes elsewhere
     useEffect(() => {
-        console.log("MonomerLibraryContainer: activeSeqIdx changed:", activeSeqIdx);
         linkingRef.current.activeSequenceIdx = activeSeqIdx;
     }, [activeSeqIdx]);
 

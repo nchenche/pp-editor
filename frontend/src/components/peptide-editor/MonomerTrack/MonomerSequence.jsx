@@ -143,7 +143,11 @@ export const MonomerSequence = ({
             {/* Right — delete whole sequence (plain icon, no color) */}
             <Box sx={{ display: "flex", alignItems: "center", pl: 0.5, pr: 0.5 }}>
                 <Tooltip title="Delete sequence" placement="left" arrow>
-                    <IconButton size="small" onClick={onDeleteSequence} aria-label={`Delete ${label}`}>
+                    <IconButton
+                        size="small"
+                        onClick={onDeleteSequence}
+                        aria-label={`Delete ${label}`}
+                    >
                         <DeleteOutlineIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>

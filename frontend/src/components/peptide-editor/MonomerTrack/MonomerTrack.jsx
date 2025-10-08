@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback } from "react";
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 
 
@@ -16,7 +16,11 @@ export const MonomerTrack = ({
     handleMonomerEnter,
     handleMonomerLeave,
     onDragStart,
+    handleDeleteSequence
 }) => {
+
+    const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
+
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {rowMonomerLists.map((list, seqIdx) => (
@@ -37,6 +41,7 @@ export const MonomerTrack = ({
                                 onDelete={handleDeleteMonomerItem}
                                 handleMonomerEnter={handleMonomerEnter}
                                 handleMonomerLeave={handleMonomerLeave}
+                                onDeleteSequence={makeDeleteHandler(seqIdx)}
                                 label={`Sequence ${seqIdx + 1}`}
                             >
                                 {provided.placeholder}
