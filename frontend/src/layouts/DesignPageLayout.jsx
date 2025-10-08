@@ -94,29 +94,42 @@ export const DesignPageLayoutMUI = ({
     viewerContainer,   // right/top: main interface (sequence input, 2D/3D viewers, tracks)
     outputPanel,       // right/bottom: output details
     height = '85vh',   // keep page from scrolling; adjust if you have a fixed header
-    minLeftPx = 600,   // minimum sidebar width 
+    minLeftFrac = 0.3,   // minimum sidebar width 
     maxLeftFrac = 0.45, // maximum sidebar width as fraction of viewport width
     handleWidth = 6,   // draggable handle width (px)
+    defaultLeftFrac = 0.4,
     ...rest
 }) => {
     const containerRef = useRef(null);
-    const [leftPx, setLeftPx] = useState(420);
+    const [leftPx, setLeftPx] = useState(() => {
+        const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        return Math.floor(vw * defaultLeftFrac);
+    });
     const [dragging, setDragging] = useState(false);
     const draggingRef = useRef(false); // NEW: source of truth for listeners
+    const userResizedRef = useRef(false);
 
     const clampLeft = useCallback((px) => {
         const vw = window.innerWidth || document.documentElement.clientWidth || 1200;
+        const minLeft = Math.floor(vw * Math.min(minLeftFrac, maxLeftFrac));
         const maxLeft = Math.floor(vw * maxLeftFrac);
-        return Math.min(Math.max(px, minLeftPx), maxLeft);
-    }, [minLeftPx, maxLeftFrac]);
+        return Math.min(Math.max(px, minLeft), maxLeft);
+    }, [minLeftFrac, maxLeftFrac]);
 
     useEffect(() => {
-        const init = () => setLeftPx(prev => clampLeft(prev || Math.floor((window.innerWidth || 1200) * 0.4)));
+        const init = () => setLeftPx(prev => clampLeft(prev));
         init();
         const onResize = () => setLeftPx(prev => clampLeft(prev));
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
-    }, [clampLeft]);
+    }, [clampLeft, defaultLeftFrac]);
+
+    // If defaultLeftFrac prop changes and user hasn't resized, apply it
+    useEffect(() => {
+        if (userResizedRef.current) return;
+        const vw = window.innerWidth || 1200;
+        setLeftPx(clampLeft(Math.floor(vw * defaultLeftFrac)));
+    }, [defaultLeftFrac, clampLeft]);
 
     // Stable move handler (no dragging in deps)
     const onMouseMove = useCallback((e) => {
@@ -141,6 +154,7 @@ export const DesignPageLayoutMUI = ({
         e.preventDefault();
         e.stopPropagation();
         draggingRef.current = true;
+        userResizedRef.current = true;
         setDragging(true);
         document.body.style.userSelect = 'none';
         document.body.style.cursor = 'col-resize';
@@ -184,7 +198,7 @@ export const DesignPageLayoutMUI = ({
                 square
                 sx={{
                     height: '100%',
-                    minWidth: minLeftPx,
+                    minWidth: `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     borderRadius: 1,
@@ -202,7 +216,10 @@ export const DesignPageLayoutMUI = ({
                 tabIndex={0}
                 onMouseDown={startDrag}
                 onKeyDown={(e) => { if (e.key === 'Escape') stopDrag(); }}
-                onDoubleClick={() => setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * 0.4)))}
+                onDoubleClick={() => {
+                    userResizedRef.current = false;
+                    setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac)));
+                }}
                 sx={{
                     cursor: 'col-resize',
                     position: 'relative',

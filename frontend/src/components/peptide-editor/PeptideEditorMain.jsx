@@ -30,10 +30,14 @@ import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 console.log('Using API_BASE_URL:', API_BASE_URL);
 
+const initBiln = 'A-F-R-I-C-A';  //  A-C-K-A-C
 
 const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) => {
 
@@ -51,15 +55,71 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const colorMenuOpen = Boolean(colorMenuEl);
     const reset3DOpen = Boolean(reset3DEl);
 
-    const [bilnValue, setBilnValue] = useState('A-F-R-I-C-A');  //  A-C-K-A-C
+    const [bilnValue, setBilnValue] = useState(initBiln);  //  A-C-K-A-C
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
 
+    // --- BILN history (undo up to 10) ---
+    const MAX_HISTORY = 20;
+    const [bilnHistory, setBilnHistory] = useState(['A-F-R-I-C-A']);
+    const [bilnFuture, setBilnFuture] = useState([]);
+    const didInitHistoryRef = useRef(false);
+    const isUndoingRef = useRef(false);
+    const isRedoingRef = useRef(false);
+
+    // Viewer refs and states
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    // Track bilnValue changes into history unless undo/redo is in progress
+    useEffect(() => {
+        // Initialize history on first render
+        if (!didInitHistoryRef.current) {
+            didInitHistoryRef.current = true;
+            setBilnHistory([bilnValue]);
+            return;
+        }
+        // Skip if change is due to undo/redo
+        if (isUndoingRef.current || isRedoingRef.current) {
+            isUndoingRef.current = false;
+            isRedoingRef.current = false;
+            return;
+        }
+        // Normal edit: push to history
+        setBilnHistory(prev => {
+            if (prev[prev.length - 1] === bilnValue) return prev;
+            const next = [...prev, bilnValue];
+            return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+        });
+        setBilnFuture([]); // Any new user edit invalidates the redo stack
+    }, [bilnValue]);
+
+    const canUndo = bilnHistory.length > 1;
+    const canRedo = bilnFuture.length > 0;
+    const handleUndoBiln = () => {
+        if (!canUndo) return;
+        const current = bilnHistory[bilnHistory.length - 1];
+        const prev = bilnHistory[bilnHistory.length - 2];
+        setBilnHistory(bilnHistory.slice(0, -1));
+        setBilnFuture(f => [current, ...f]);
+        isUndoingRef.current = true;
+        setBilnValue(prev);
+    };
+
+    const handleRedoBiln = () => {
+        if (!canRedo) return;
+        const [next, ...rest] = bilnFuture;
+        setBilnFuture(rest);
+        setBilnHistory(h => {
+            const merged = [...h, next];
+            return merged.length > MAX_HISTORY ? merged.slice(merged.length - MAX_HISTORY) : merged;
+        });
+        isRedoingRef.current = true;
+        setBilnValue(next);
+    };
 
     // Lift state up: output data
     useEffect(() => {
@@ -212,34 +272,84 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             }}
         >
             {/* Top: Collapsible container for the sequence editor */}
+            {/* Top: Collapsible container for the sequence editor */}
             <Paper variant="outlined" sx={{ p: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <Box
-                    role="button"
-                    aria-expanded={isEditorOpen}
-                    tabIndex={0}
-                    onClick={() => setIsEditorOpen(v => !v)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsEditorOpen(v => !v); } }}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                    }}
-                >
-                    <IconButton
-                        size="small"
+                {/* Header row: left (toggle + title) | right (actions) */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    {/* Left: toggle + title (click to expand/collapse) */}
+                    <Box
+                        role="button"
+                        aria-expanded={isEditorOpen}
+                        tabIndex={0}
+                        onClick={() => setIsEditorOpen(v => !v)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsEditorOpen(v => !v); } }}
                         sx={{
-                            transform: isEditorOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 120ms ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            cursor: 'pointer',
+                            userSelect: 'none',
                         }}
-                        aria-label={isEditorOpen ? 'Collapse editor' : 'Expand editor'}
                     >
-                        <ExpandMoreIcon />
-                    </IconButton>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                        Expert editor
-                    </Typography>
+                        <IconButton
+                            size="small"
+                            sx={{
+                                transform: isEditorOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 120ms ease',
+                            }}
+                            aria-label={isEditorOpen ? 'Collapse editor' : 'Expand editor'}
+                        >
+                            <ExpandMoreIcon />
+                        </IconButton>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                            BILN editor
+                        </Typography>
+                    </Box>
+
+                    {/* Right: actions (Undo, Redo, Clear) */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Tooltip title="Undo" arrow placement="top">
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="inherit"
+                                    onClick={handleUndoBiln}
+                                    disabled={!canUndo}
+                                    sx={{ border: 1, borderColor: 'divider' }}
+                                >
+                                    <UndoIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        <Tooltip title="Redo" arrow placement="top">
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="inherit"
+                                    onClick={handleRedoBiln}
+                                    disabled={!canRedo}
+                                    sx={{ border: 1, borderColor: 'divider' }}
+                                >
+                                    <RedoIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        <Tooltip title="Clear sequence" arrow placement="top">
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    color="inherit"
+                                    onClick={() => handleBilnChange('')}
+                                    disabled={!bilnValue}
+                                    sx={{ border: 1, borderColor: 'divider' }}
+                                >
+                                    <DeleteSweepIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </Box>
                 </Box>
 
                 <Collapse in={isEditorOpen} unmountOnExit timeout="auto">
