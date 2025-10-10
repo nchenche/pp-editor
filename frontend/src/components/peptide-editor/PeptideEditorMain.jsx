@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
+import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
 import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
-
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
@@ -73,6 +74,31 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
+    const beginReplaceSelection = useCallback((mode, sourceMonomer) => {
+        setReplaceSelect({ open: true, mode, sourceMonomer });
+    }, []);
+
+    const cancelReplaceSelection = useCallback(() => {
+        setReplaceSelect({ open: false, mode: null, sourceMonomer: null });
+    }, []);
+
+    // Listen to fallback custom event from MonomerItem if prop isn't threaded
+    useEffect(() => {
+        const handler = (e) => beginReplaceSelection(e.detail?.mode, e.detail?.monomer);
+        window.addEventListener('pp-begin-replace-selection', handler);
+        return () => window.removeEventListener('pp-begin-replace-selection', handler);
+    }, [beginReplaceSelection]);
+
+    // Close on Escape when overlay is open
+    useEffect(() => {
+        if (!replaceSelect.open) return;
+        const onKey = (e) => { if (e.key === 'Escape') cancelReplaceSelection(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [replaceSelect.open, cancelReplaceSelection]);
+
 
     // Track bilnValue changes into history unless undo/redo is in progress
     useEffect(() => {
@@ -196,6 +222,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         handleOnDragEnd,
         handleMonomerEnter,
         handleMonomerLeave,
+        beginReplaceSelection
     ]);
 
     function loadData(newBiln) {
@@ -261,6 +288,59 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
         },
     };
 
+    // Portal root provided by DesignPageLayoutMUI (right panel)
+    const { rootRef, overlayActive, setOverlayActive } = useOverlayPortal();
+
+    // Keep layout highlight in sync with overlay visibility
+    useEffect(() => {
+        setOverlayActive?.(replaceSelect.open);
+        return () => setOverlayActive?.(false);
+    }, [replaceSelect.open, overlayActive, setOverlayActive]);
+
+    const replaceOverlay = replaceSelect.open && rootRef?.current
+        ? createPortal(
+            <Box
+                role="dialog"
+                aria-modal="true"
+                aria-label="Select a replacement monomer"
+                onClick={cancelReplaceSelection}
+                sx={{
+                    position: 'absolute',
+                    top: 0,
+                    transform: 'translateZ(-50px)', // fix for MUI modal + portal + z-index bug
+                    inset: 0,
+                    zIndex: (t) => t.zIndex.modal,
+                    bgcolor: 'rgba(0,0,0,0.44)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                <Paper
+                    elevation={3}
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{ p: 2, maxWidth: 460, width: '100%', textAlign: 'center', border: 1, borderColor: 'divider' }}
+                >
+                    <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+                        Replacement selection active
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {replaceSelect.sourceMonomer
+                            ? `Choose a monomer from the Monomer Library to replace ${replaceSelect.sourceMonomer.pdbName} (idx ${replaceSelect.sourceMonomer['res-idx']}).`
+                            : 'Choose a monomer from the Monomer Library.'}
+                    </Typography>
+                    <Box sx={{ mt: 1.25, display: 'flex', justifyContent: 'center', gap: 1 }}>
+                        <Button variant="outlined" size="small" onClick={cancelReplaceSelection}>
+                            Cancel
+                        </Button>
+                    </Box>
+                </Paper>
+            </Box>,
+            rootRef.current
+        )
+        : null;
+
     return (
         <Box
             sx={{
@@ -270,9 +350,9 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                 height: '100%',
                 minHeight: 0,
                 overflow: 'hidden',
+                position: 'relative', // anchor the local overlay
             }}
         >
-            {/* Top: Collapsible container for the sequence editor */}
             {/* Top: Collapsible container for the sequence editor */}
             <Paper variant="outlined" sx={{ p: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 {/* Header row: left (toggle + title) | right (actions) */}
@@ -364,6 +444,9 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                     </Box>
                 </Collapse>
             </Paper>
+
+            {/* Local overlay for “replace monomer” selection */}
+            {replaceOverlay}
 
             {/* Middle: 2D and 3D viewers side-by-side */}
             <Box sx={{ minHeight: 0 }}>

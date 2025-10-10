@@ -59,9 +59,10 @@ const MonomerItemComponent = (props) => {
         // Store a function that returns the ref, not the DOM node directly
         setSwapAnchorEl(() => swapBtnRef.current);
     }, []);
-    
+
     const handleCloseSwapMenu = useCallback(() => {
         setSwapAnchorEl(null);
+        handleMonomerLeave(monomer['res-idx']);
     }, []);
 
     useEffect(() => () => setSwapAnchorEl(null), []);
@@ -235,8 +236,31 @@ const MonomerItemComponent = (props) => {
                     </Typography>
                 </MenuItem>
                 <Divider sx={{ my: 0.5 }} />
-                <MenuItem onClick={handleCloseSwapMenu}>Analog monomer</MenuItem>
-                <MenuItem onClick={handleCloseSwapMenu}>Other</MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        // Prefer prop; fallback to custom event
+                        if (props.onBeginReplaceSelection) {
+                            props.onBeginReplaceSelection('analog', monomer);
+                        } else {
+                            window.dispatchEvent(new CustomEvent('pp-begin-replace-selection', { detail: { mode: 'analog', monomer } }));
+                        }
+                        handleCloseSwapMenu();
+                    }}
+                >
+                    Analog monomer
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        if (props.onBeginReplaceSelection) {
+                            props.onBeginReplaceSelection('other', monomer);
+                        } else {
+                            window.dispatchEvent(new CustomEvent('pp-begin-replace-selection', { detail: { mode: 'other', monomer } }));
+                        }
+                        handleCloseSwapMenu();
+                    }}
+                >
+                    Other
+                </MenuItem>
             </Menu>
         </div>
     ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, swapMenuOpen, handleOpenSwapMenu, handleCloseSwapMenu]);

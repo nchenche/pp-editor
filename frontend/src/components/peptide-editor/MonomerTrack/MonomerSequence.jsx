@@ -60,7 +60,7 @@ export const MonomerSequence = ({
                 minHeight: 48, // reduced height
                 bgcolor: "background.paper",
                 overflow: "visible",
-                position: "relative",
+                position: "relative",                
             }}
             // for screen readers, let the item be selectable
             aria-selected={isActive || undefined}

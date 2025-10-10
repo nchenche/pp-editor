@@ -16,7 +16,7 @@ export const MonomerTrack = ({
     handleMonomerEnter,
     handleMonomerLeave,
     onDragStart,
-    handleDeleteSequence
+    handleDeleteSequence,
 }) => {
 
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);

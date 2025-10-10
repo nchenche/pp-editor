@@ -1,7 +1,27 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { alpha, keyframes } from '@mui/material/styles';
+
+import { OverlayPortalProvider } from '../components/common/OverlayPortalContext';
 
 import { Box, Paper } from '@mui/material';
 
+
+// Use outside the component, only defined once
+const shakeX = keyframes`
+  0% { transform: translateX(0); }
+  15% { transform: translateX(-2px); }
+  30% { transform: translateX(2px); }
+  45% { transform: translateX(-2px); }
+  60% { transform: translateX(2px); }
+  75% { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+`;
+
+const ringPulse = keyframes`
+  0%   { box-shadow: none; }
+  40%  { box-shadow: 0 0 0 2px rgba(0,0,0,0.28), 0 0 0 6px rgba(0,0,0,0.12); }
+  100% { box-shadow: none; }
+`;
 
 // Accepts any slot-like children for each zone
 export const DesignPageLayout = ({
@@ -101,6 +121,9 @@ export const DesignPageLayoutMUI = ({
     ...rest
 }) => {
     const containerRef = useRef(null);
+    const overlayRootRef = useRef(null); // right-panel root for overlays
+    const [overlayActive, setOverlayActive] = useState(false);
+
     const [leftPx, setLeftPx] = useState(() => {
         const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
         return Math.floor(vw * defaultLeftFrac);
@@ -203,6 +226,21 @@ export const DesignPageLayoutMUI = ({
                     overflowX: 'hidden',
                     borderRadius: 1,
                     p: 1,
+                    borderWidth: overlayActive ? 2 : 1,
+                    borderColor: (t) =>
+                        overlayActive
+                            ? (t.palette.mode === 'dark'
+                                ? alpha(t.palette.common.white, 0.35)
+                                : alpha(t.palette.common.black, 0.55))
+                            : t.palette.divider,
+                    boxShadow: (t) =>
+                        overlayActive
+                            ? `
+                               inset 0 0 0 2px ${alpha(t.palette.common.black, 0.48)}`
+                            : 'none',
+                    // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
+                    willChange: 'transform, box-shadow',
+                    '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
                 }}
             >
                 {sidebar}
@@ -243,6 +281,7 @@ export const DesignPageLayoutMUI = ({
 
             {/* Right: Two rows; top ~65%, bottom ~35% */}
             <Box
+                ref={overlayRootRef}
                 sx={{
                     height: '100%',
                     minWidth: 0,
@@ -250,40 +289,45 @@ export const DesignPageLayoutMUI = ({
                     gridTemplateRows: '70% 30%',
                     gap: 1,
                     overflow: 'hidden', // this column doesn't scroll as a whole
+                    position: 'relative', // for overlay portal
                 }}
             >
-                {/* Top: Viewer/Editor area (no scroll) */}
-                <Paper
-                    variant="outlined"
-                    square
-                    sx={{
-                        minHeight: 0,
-                        height: '100%',
-                        overflow: 'hidden', // prevent internal scroll
-                        borderRadius: 1,
-                        p: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                    }}
-                >
-                    {viewerContainer}
-                </Paper>
+                <OverlayPortalProvider rootRef={overlayRootRef} overlayActive={overlayActive} setOverlayActive={setOverlayActive}>
 
-                {/* Bottom: Output panel (scrollable) */}
-                <Paper
-                    variant="outlined"
-                    square
-                    sx={{
-                        minHeight: 0,
-                        height: '100%',
-                        overflowY: 'auto', // scrolls
-                        overflowX: 'hidden',
-                        borderRadius: 1,
-                        p: 1,
-                    }}
-                >
-                    {outputPanel}
-                </Paper>
+
+                    {/* Top: Viewer/Editor area (no scroll) */}
+                    <Paper
+                        variant="outlined"
+                        square
+                        sx={{
+                            minHeight: 0,
+                            height: '100%',
+                            overflow: 'hidden', // prevent internal scroll
+                            borderRadius: 1,
+                            p: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        {viewerContainer}
+                    </Paper>
+
+                    {/* Bottom: Output panel (scrollable) */}
+                    <Paper
+                        variant="outlined"
+                        square
+                        sx={{
+                            minHeight: 0,
+                            height: '100%',
+                            overflowY: 'auto', // scrolls
+                            overflowX: 'hidden',
+                            borderRadius: 1,
+                            p: 1,
+                        }}
+                    >
+                        {outputPanel}
+                    </Paper>
+                </OverlayPortalProvider>
             </Box>
         </Box>
     );
