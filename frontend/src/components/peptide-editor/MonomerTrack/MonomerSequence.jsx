@@ -38,6 +38,7 @@ export const MonomerSequence = ({
 
     // visuals
     isDragging = true, // suppress link highlights during drag
+    dndDisabled = false,
 }) => {
     const theme = useTheme();
 
@@ -133,7 +134,8 @@ export const MonomerSequence = ({
                             isNterCap={isNterCap}
                             isCterCap={isCterCap}
                             linkIndices={linkIndices}
-                            isHovered={isHovered}  // monomer.m_abbr === 'C'  || 
+                            isHovered={isHovered}  // monomer.m_abbr === 'C'  ||
+                            dndDisabled={dndDisabled}
                         />
                     );
                 })}
@@ -147,6 +149,7 @@ export const MonomerSequence = ({
                         size="small"
                         onClick={onDeleteSequence}
                         aria-label={`Delete ${label}`}
+                        disabled={dndDisabled}
                     >
                         <DeleteOutlineIcon fontSize="small" />
                     </IconButton>

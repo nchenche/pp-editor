@@ -238,6 +238,70 @@ export function useBilnHandlers({
     }, [bilnValue, monomers, uiState.activeSeqIdx, setBilnValue, setUiState, isNterFree, isCterFree, confirm, linkMap]);
 
 
+    // Replace a monomer at the sourceMonomer position with newMonomer's code.
+    // Keeps any existing connection annotations present in the token.
+    const replaceMonomerInBiln = useCallback((newMonomer, opts) => {
+        if (!newMonomer) return;
+        const source = opts?.sourceMonomer;
+        if (!source) {
+            console.warn('replaceMonomerInBiln: missing sourceMonomer in opts');
+            return;
+        }
+        const code = newMonomer.symbol || newMonomer.m_abbr;
+        if (!code) {
+            console.warn('replaceMonomerInBiln: newMonomer has no valid code', newMonomer);
+            return;
+        }
+
+        // Normalize and split BILN into segments and per-segment tokens
+        const normalized = (bilnValue || '')
+            .trim()
+            .replace(/^[.\-]+|[.\-]+$/g, '')
+            .replace(/\.+/g, '.')
+            .replace(/\-+/g, '-');
+        const rawSegments = normalized ? normalized.split('.') : [];
+        const segments = rawSegments.map(seg => (seg ? seg.split('-') : []).filter(Boolean));
+
+        if (segments.length === 0) {
+            console.warn('replaceMonomerInBiln: no segments in current BILN');
+            return;
+        }
+
+        // Global residue index of the source monomer
+        const resIdx = parseInt(String(source['res-idx']).split('-')[1], 10);
+        if (Number.isNaN(resIdx)) {
+            console.warn('replaceMonomerInBiln: invalid sourceMonomer res-idx', source);
+            return;
+        }
+
+        // Locate target segment and index within that segment
+        let segIdx = 0;
+        let idxInSeg = resIdx;
+        for (let i = 0, acc = 0; i < segments.length; i++) {
+            const len = segments[i].length;
+            if (resIdx < acc + len) {
+                segIdx = i;
+                idxInSeg = resIdx - acc;
+                break;
+            }
+            acc += len;
+        }
+
+        const tok = segments[segIdx]?.[idxInSeg];
+        if (!tok) {
+            console.warn('replaceMonomerInBiln: target token not found at', { segIdx, idxInSeg, resIdx });
+            return;
+        }
+
+        // Replace only the monomer code at the beginning of token; keep any "(id,rg)" annotations
+        const newTok = tok.replace(/^[^(]+/, code);
+        segments[segIdx][idxInSeg] = newTok;
+
+        const newBiln = segments.map(seg => seg.join('-')).join('.');
+        setBilnValue(newBiln);
+    }, [bilnValue, setBilnValue]);
+
+
     // Delete monomer (segment-aware)
     const handleDeleteMonomerItem = (monomer) => {
         if (!monomer) return;
@@ -450,5 +514,6 @@ export function useBilnHandlers({
         handleOnDragEnd,
         handleDragStart,
         handleDeleteSequence,
+        replaceMonomerInBiln,
     };
 }

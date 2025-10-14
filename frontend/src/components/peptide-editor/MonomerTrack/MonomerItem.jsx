@@ -9,7 +9,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
-
+import { alpha } from '@mui/material/styles';
 
 // Use outside the component, only defined once
 const LINK_COLORS = [
@@ -44,6 +44,7 @@ const MonomerItemComponent = (props) => {
         isHovered = false, // <-- default to false if not passed
         handleMonomerEnter,
         handleMonomerLeave,
+        dndDisabled = false,
     } = props;
 
     const [isSelected, setIsSelected] = useState(false);
@@ -54,10 +55,18 @@ const MonomerItemComponent = (props) => {
     const [swapAnchorEl, setSwapAnchorEl] = useState(null);
     const swapMenuOpen = Boolean(swapAnchorEl);
 
+    const containerClasses = [
+        containerBase,
+        isHovered && "outline outline-1 outline-slate-600",
+        isSelected && "outline outline-2 outline-slate-800/80 shadow-md bg-slate-300/40"
+    ].filter(Boolean).join(" ");
+
+
     const handleOpenSwapMenu = useCallback((e) => {
         e.stopPropagation();
         // Store a function that returns the ref, not the DOM node directly
         setSwapAnchorEl(() => swapBtnRef.current);
+
     }, []);
 
     const handleCloseSwapMenu = useCallback(() => {
@@ -67,11 +76,24 @@ const MonomerItemComponent = (props) => {
 
     useEffect(() => () => setSwapAnchorEl(null), []);
 
-    const containerClasses = [
-        containerBase,
-        isHovered && "outline outline-1 outline-slate-600",
-        isSelected && "outline outline-1 outline-slate-400 shadow-lg bg-lime-100"
-    ].filter(Boolean).join(" ");
+    // Keep selection in sync with global replace flow
+    useEffect(() => {
+        const onBegin = (e) => {
+            const targetIdx = e.detail?.monomer?.['res-idx'];
+            if (targetIdx === monomer['res-idx']) setIsSelected(true);
+            else setIsSelected(false);
+        };
+        const onCancel = () => setIsSelected(false);
+
+        window.addEventListener('pp-begin-replace-selection', onBegin);
+        window.addEventListener('pp-replace-selection-cancel', onCancel);
+        return () => {
+            window.removeEventListener('pp-begin-replace-selection', onBegin);
+            window.removeEventListener('pp-replace-selection-cancel', onCancel);
+        };
+    }, [monomer]);
+
+
 
     const capClassName = [
         capBase,
@@ -79,12 +101,15 @@ const MonomerItemComponent = (props) => {
     ].join(" ");
 
     const dragAreaClasses = [
-        "relative", "text-center", !isCapped && "cursor-grab"
-    ].filter(Boolean).join(" ");
+        'px-1 py-[2px] rounded select-none',
+        dndDisabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
+        isCapped && 'opacity-60',
+    ].filter(Boolean).join(' ');
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
         onDelete(monomer);
+        setIsSelected(false);
     }, [onDelete, monomer]);
 
     const handleReplace = useCallback((e) => {
@@ -110,8 +135,27 @@ const MonomerItemComponent = (props) => {
             onPointerEnter={() => handleMonomerEnter(monomer['res-idx'])}
             onPointerLeave={() => { if (!swapMenuOpen) handleMonomerLeave(monomer['res-idx']); }}
         >
+            <Box
+                aria-hidden
+                sx={{
+                    position: 'absolute',
+                    inset: -2,                 // show ring cleanly around the card
+                    borderRadius: 1,
+                    pointerEvents: 'none',
+                    opacity: isSelected ? 1 : 0,
+                    border: (t) => `2px solid ${alpha(t.palette.primary.dark, t.palette.mode === 'dark' ? 0.55 : 0.5)}`,
+                    boxShadow: (t) =>
+                        isSelected
+                            ? `0 0 0 4px ${alpha(t.palette.primary.dark, 0.16)},
+              0 2px 10px ${alpha(t.palette.common.black, 0.22)}`
+                            : 'none',
+                    backgroundColor: (t) => (isSelected ? alpha(t.palette.primary.light, 0.06) : 'transparent'),
+                    transition: 'opacity 140ms ease, box-shadow 140ms ease, background-color 140ms ease',
+                    zIndex: 0,
+                }}
+            />
             {/* Monomer label (grab handle if draggable) */}
-            <div className={dragAreaClasses} {...(!isCapped ? provided.dragHandleProps : {})}>
+            <div className={dragAreaClasses} {...(!isCapped && !dndDisabled ? provided.dragHandleProps : {})}>
                 {monomer.pdbName}
             </div>
 
@@ -222,13 +266,14 @@ const MonomerItemComponent = (props) => {
             <Menu
                 id="swap-menu"
                 open={swapMenuOpen}
-                anchorEl={swapMenuOpen ? (() => swapBtnRef.current) : null}
+                anchorEl={swapMenuOpen ? (() => swapBtnRef.current) : swapAnchorEl}
                 onClose={handleCloseSwapMenu}
                 keepMounted
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'center' }}
                 MenuListProps={{ dense: true }}
                 slotProps={{ paper: { sx: { minWidth: 200, p: 0.5 } } }}
+                disablePortal
             >
                 <MenuItem disabled sx={{ opacity: 0.85, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.4 }}>
@@ -238,9 +283,9 @@ const MonomerItemComponent = (props) => {
                 <Divider sx={{ my: 0.5 }} />
                 <MenuItem
                     onClick={() => {
-                        // Prefer prop; fallback to custom event
+                        setIsSelected(true); // ensure highlight on selection
                         if (props.onBeginReplaceSelection) {
-                            props.onBeginReplaceSelection('analog', monomer);
+                            // props.onBeginReplaceSelection('analog', monomer);
                         } else {
                             window.dispatchEvent(new CustomEvent('pp-begin-replace-selection', { detail: { mode: 'analog', monomer } }));
                         }
@@ -251,8 +296,9 @@ const MonomerItemComponent = (props) => {
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
+                        setIsSelected(true); // ensure highlight on selection
                         if (props.onBeginReplaceSelection) {
-                            props.onBeginReplaceSelection('other', monomer);
+                            // props.onBeginReplaceSelection('other', monomer);
                         } else {
                             window.dispatchEvent(new CustomEvent('pp-begin-replace-selection', { detail: { mode: 'other', monomer } }));
                         }
@@ -263,13 +309,13 @@ const MonomerItemComponent = (props) => {
                 </MenuItem>
             </Menu>
         </div>
-    ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, swapMenuOpen, handleOpenSwapMenu, handleCloseSwapMenu]);
+    ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, swapMenuOpen, handleOpenSwapMenu, handleCloseSwapMenu, isSelected]);
 
     // If capped, not draggable
     if (isCapped) return <MonomerContent />;
 
     return (
-        <Draggable draggableId={monomer['res-idx'].toString()} index={index}>
+        <Draggable draggableId={monomer['res-idx'].toString()} index={index} isDragDisabled={dndDisabled}>
             {(provided, snapshot) => <MonomerContent provided={provided} snapshot={snapshot} />}
         </Draggable>
     );

@@ -42,7 +42,7 @@ function buildHaystack(monomer) {
 
 
 export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContainer(
-    { filterValue, handleAddingMonomer, uiState, setUiState },
+    { filterValue, handleAddingMonomer, uiState, setUiState, replaceSelection },
     ref
 ) {
     const { activeSeqIdx, seqNumber } = uiState;
@@ -71,8 +71,17 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         if (quickFilters.natural) out = out.filter(m => m.m_subtype === 'natural');
         if (quickFilters.nonNatural) out = out.filter(m => m.m_subtype === 'non-natural');
 
+        // Replace-selection analog filter
+        if (replaceSelection?.active && replaceSelection.mode === 'analog' && replaceSelection.sourceMonomer) {
+            const srcAnalog = replaceSelection.sourceMonomer?.['natural_analog'];
+            if (srcAnalog != null && srcAnalog !== '') {
+                const key = String(srcAnalog).toLowerCase();
+                out = out.filter(m => String(m?.natAnalog ?? '').toLowerCase() === key);
+            }
+        }
+
         return out;
-    }, [allMonomers, debouncedSearch, quickFilters]);
+    }, [allMonomers, debouncedSearch, quickFilters, replaceSelection]);
 
     // Keep current linking settings without causing renders
     const linkingRef = useRef({

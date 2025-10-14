@@ -97,9 +97,7 @@ const SIZE = {
 const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm' }) => {
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
-
-    // if (monomer.symbol === "Dab") console.log("Rendering monomer item:", monomer);
-
+    
     return (
         <Card
             variant="outlined"

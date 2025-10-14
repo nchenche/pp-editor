@@ -40,7 +40,7 @@ console.log('Using API_BASE_URL:', API_BASE_URL);
 
 const initBiln = 'A-F-R-I-C-A';  //  A-C-K-A-C
 
-const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) => {
+const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
     // console.log('PeptideEditorMain rendered');
 
@@ -78,11 +78,15 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
     const beginReplaceSelection = useCallback((mode, sourceMonomer) => {
         setReplaceSelect({ open: true, mode, sourceMonomer });
-    }, []);
+        onBeginReplaceSelection?.(mode, sourceMonomer);
+    }, [onBeginReplaceSelection]);
 
     const cancelReplaceSelection = useCallback(() => {
         setReplaceSelect({ open: false, mode: null, sourceMonomer: null });
-    }, []);
+        onCancelReplaceSelection?.();
+        // notify items to clear selection highlight
+        window.dispatchEvent(new CustomEvent('pp-replace-selection-cancel'));
+    }, [onCancelReplaceSelection]);
 
     // Listen to fallback custom event from MonomerItem if prop isn't threaded
     useEffect(() => {
@@ -165,7 +169,15 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
-    const { addMonomerToBiln, handleDeleteMonomerItem, handleMonomerLinking, handleBondBreaking, handleOnDragEnd, handleDragStart, handleDeleteSequence
+    const {
+        addMonomerToBiln,
+        handleDeleteMonomerItem,
+        handleMonomerLinking,
+        handleBondBreaking,
+        handleOnDragEnd,
+        handleDragStart,
+        handleDeleteSequence,
+        replaceMonomerInBiln,
     } = useBilnHandlers({
         bilnValue,
         setBilnValue,
@@ -194,6 +206,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
             insert: options?.insert,
         }),
+        replaceMonomer: (m, opts) => replaceMonomerInBiln(m, opts),
+        endReplaceSelection: () => { cancelReplaceSelection(); },
         setBiln: (biln) => setBilnValue(biln),
         getBiln: () => bilnValue,
     }), [addMonomerToBiln, uiState, bilnValue]);
@@ -306,10 +320,10 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                 onClick={cancelReplaceSelection}
                 sx={{
                     position: 'absolute',
-                    top: 0,
-                    transform: 'translateZ(-50px)', // fix for MUI modal + portal + z-index bug
+                    top: -0,
+                    // transform: 'translateZ(10px)', // fix for MUI modal + portal + z-index bug
                     inset: 0,
-                    zIndex: (t) => t.zIndex.modal,
+                    zIndex: (t) => t.zIndex.modal,  // t.zIndex.modal
                     bgcolor: 'rgba(0,0,0,0.44)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
@@ -320,7 +334,15 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
                 <Paper
                     elevation={3}
                     onClick={(e) => e.stopPropagation()}
-                    sx={{ p: 2, maxWidth: 460, width: '100%', textAlign: 'center', border: 1, borderColor: 'divider' }}
+                    sx={{
+                        p: 2,
+                        maxWidth: 460,
+                        width: '100%',
+                        textAlign: 'center',
+                        border: 1,
+                        borderColor: 'divider',
+                        transform: 'translateY(-100%)', // shift up by 100% of its height
+                    }}
                 >
                     <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
                         Replacement selection active
@@ -752,7 +774,14 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState }, ref) =>
             {/* Bottom: Sequence tracks (scrollable) */}
             <Paper
                 variant="outlined"
-                sx={{ p: 1, height: '100%', minHeight: 0, overflowY: 'auto' }}
+                sx={{
+                    p: 1,
+                    height: '100%',
+                    minHeight: 0,
+                    overflowY: 'auto',
+                    position: 'relative',
+                    // zIndex: (t) => (overlayActive ? t.zIndex.modal + 1 : 'auto'),
+                }}
             >
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                     Sequences
