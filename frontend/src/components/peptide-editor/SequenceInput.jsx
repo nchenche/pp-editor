@@ -59,49 +59,39 @@ export function SequenceEditorPanel({ biln, onChangeBiln, hoveredResidueIdx }) {
     onChangeBiln?.(val);
   };
 
-  // --- DEBUG: fake hovered residue index ---
-  // Simple approach: always highlight residue 0 (first)
-  // const debugHoveredIdx = 0;
+  // // --- DEBUG: fake hovered residue index ---
+  // // Simple approach: always highlight residue 0 (first)
+  // // const debugHoveredIdx = 0;
 
-  // Slightly better: cycle through residues with a button
-  const [debugHoveredIdx, setDebugHoveredIdx] = useState(0);
-  const residueCount = useMemo(() => {
-    if (!biln) return 0;
-    return biln
-      .split('.')         // segments
-      .flatMap(seg => seg ? seg.split('-') : [])
-      .filter(Boolean).length;
-  }, [biln]);
+  // // Slightly better: cycle through residues with a button
+  // const [debugHoveredIdx, setDebugHoveredIdx] = useState(0);
+  // const residueCount = useMemo(() => {
+  //   if (!biln) return 0;
+  //   return biln
+  //     .split('.')         // segments
+  //     .flatMap(seg => seg ? seg.split('-') : [])
+  //     .filter(Boolean).length;
+  // }, [biln]);
 
-  const nextResidue = useCallback(() => {
-    if (residueCount === 0) return;
-    setDebugHoveredIdx(i => (i + 1) % residueCount);
-  }, [residueCount]);
-
-  console.log('debugHoveredIdx', debugHoveredIdx);
+  // const nextResidue = useCallback(() => {
+  //   if (residueCount === 0) return;
+  //   setDebugHoveredIdx(i => (i + 1) % residueCount);
+  // }, [residueCount]);
+  const helper = useMemo(() => (error ? error : ''), [error]);
 
   return (
-    <Box sx={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          Debug highlight (fake): residue {residueCount === 0 ? '-' : debugHoveredIdx + 1}/{residueCount || 0}
-        </Typography>
-        <Button
+    <Box sx={{ position: 'sticky', top: 0, zIndex: 1 }}>
+      <Stack spacing={1}>
+        <TextField
+          label="Enter BILN sequence"
           size="small"
-          variant="outlined"
-          onClick={nextResidue}
-          disabled={!residueCount}
-          sx={{ textTransform: 'none', lineHeight: 1.1, py: 0.3, px: 1 }}
-        >
-          Next
-        </Button>
-      </Box>
-      <BilnEditorCM
-        value={bilnText}
-        onChange={(v) => handleBilnChange(v)}
-        // Use the real hoveredResidueIdx if provided, else fallback to debug
-        hoveredResidueIdx={typeof hoveredResidueIdx === 'number' ? hoveredResidueIdx : debugHoveredIdx}
-      />
+          fullWidth
+          value={bilnText}
+          onChange={(e) => handleBilnChange(e.target.value)}
+          helperText={helper}
+          error={!!error}
+        />
+      </Stack>
     </Box>
   );
 }
