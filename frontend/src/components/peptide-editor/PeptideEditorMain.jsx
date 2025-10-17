@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
 import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
+
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
@@ -462,6 +463,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                             onChangeBiln={handleBilnChange}
                             disableInternalCollapse
                             hideInternalHeader
+                            hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
                         />
                     </Box>
                 </Collapse>
