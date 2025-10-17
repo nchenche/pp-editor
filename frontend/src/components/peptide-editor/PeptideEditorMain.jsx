@@ -5,6 +5,8 @@ import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
 import BilnEditorInterface from './BilnEditorInterface';
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
+import SequenceTrackToolbar from './MonomerTrack/SequenceTrackToolbar';
+
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
 import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
@@ -32,6 +34,12 @@ import Divider from '@mui/material/Divider';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 console.log('Using API_BASE_URL:', API_BASE_URL);
@@ -46,6 +54,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
     const [isEditorOpen, setIsEditorOpen] = useState(true);
+    const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
     const [repMenuEl, setRepMenuEl] = useState(null);
     const [colorMenuEl, setColorMenuEl] = useState(null);
@@ -72,6 +81,9 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
+    const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
     const beginReplaceSelection = useCallback((mode, sourceMonomer) => {
@@ -166,6 +178,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
+
+
 
     const {
         addMonomerToBiln,
@@ -384,26 +398,61 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                 onRedo={handleRedoBiln}
                 onClear={() => handleBilnChange('')}
             >
-                
                 <Paper
                     // variant="outlined"
                     elevation={0}
                     sx={{
-                        p: 1,
+                        p: 0,
                         // marginTop: 2,
                         height: '100%',
-                        height: 120,
+                        // height: 120,
                         overflowY: 'auto',
                         position: 'relative',
                         // zIndex: (t) => (overlayActive ? t.zIndex.modal + 1 : 'auto'),
                     }}
                 >
-                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                        Sequences
-                    </Typography>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                Sequences
+                            </Typography>
+                            <Tooltip title="Sequences help" arrow>
+                                <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
+                                    <HelpOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+
+                        <SequenceTrackToolbar
+                            linkMode={viewer2DModes.linkMode}
+                            bondsMode={viewer2DModes.bondsMode}
+                            onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                            onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                            canLink={canLink}
+                            canUnlink={canCut}
+                        />
+                    </Box>
                     {monomerTrack}
                 </Paper>
             </BilnEditorInterface>
+
+            {/* Sequences help dialog */}
+            <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Working with sequences</DialogTitle>
+                <DialogContent dividers sx={{ typography: 'body2' }}>
+                    <ul>
+                        <li><strong>Append</strong> adds monomers at the end of the active sequence.</li>
+                        <li><strong>Prepend</strong> adds monomers at the start of the active sequence.</li>
+                        <li><strong>New</strong> creates a new sequence and adds monomers there.</li>
+                        <li>Use <strong>Link</strong> to connect residues and <strong>Cut</strong> to break bonds in the 2D sketch.</li>
+                        <li><strong>Target sequence</strong> selects which sequence receives new monomers from the library.</li>
+                    </ul>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Local overlay for “replace monomer” selection */}
             {replaceOverlay}
