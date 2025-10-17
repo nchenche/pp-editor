@@ -3,22 +3,19 @@ import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
 import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
-
+import BilnEditorInterface from './BilnEditorInterface';
 import { MonomerTrack } from './MonomerTrack/MonomerTrack';
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
 import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
 
-
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
 import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
-
 import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
 
 import { Box, Grid2, Paper, Typography } from '@mui/material';
-
 import { Collapse, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
@@ -368,7 +365,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         <Box
             sx={{
                 display: 'grid',
-                gridTemplateRows: 'auto minmax(100px, 1fr) minmax(100px, 30%)',
+                gridTemplateRows: 'auto 1fr',
                 gap: 2,
                 height: '100%',
                 minHeight: 0,
@@ -376,98 +373,37 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                 position: 'relative', // anchor the local overlay
             }}
         >
-            {/* Top: Collapsible container for the sequence editor */}
-            <Paper variant="outlined" sx={{ p: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                {/* Header row: left (toggle + title) | right (actions) */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                    {/* Left: toggle + title (click to expand/collapse) */}
-                    <Box
-                        role="button"
-                        aria-expanded={isEditorOpen}
-                        tabIndex={0}
-                        onClick={() => setIsEditorOpen(v => !v)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsEditorOpen(v => !v); } }}
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                        }}
-                    >
-                        <IconButton
-                            size="small"
-                            sx={{
-                                transform: isEditorOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 120ms ease',
-                            }}
-                            aria-label={isEditorOpen ? 'Collapse editor' : 'Expand editor'}
-                        >
-                            <ExpandMoreIcon />
-                        </IconButton>
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                            BILN editor
-                        </Typography>
-                    </Box>
-
-                    {/* Right: actions (Undo, Redo, Clear) */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Tooltip title="Undo" arrow placement="top">
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    color="inherit"
-                                    onClick={handleUndoBiln}
-                                    disabled={!canUndo}
-                                    sx={{ border: 1, borderColor: 'divider' }}
-                                >
-                                    <UndoIcon fontSize="inherit" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-
-                        <Tooltip title="Redo" arrow placement="top">
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    color="inherit"
-                                    onClick={handleRedoBiln}
-                                    disabled={!canRedo}
-                                    sx={{ border: 1, borderColor: 'divider' }}
-                                >
-                                    <RedoIcon fontSize="inherit" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-
-                        <Tooltip title="Clear sequence" arrow placement="top">
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    color="inherit"
-                                    onClick={() => handleBilnChange('')}
-                                    disabled={!bilnValue}
-                                    sx={{ border: 1, borderColor: 'divider' }}
-                                >
-                                    <DeleteSweepIcon fontSize="inherit" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    </Box>
-                </Box>
-
-                <Collapse in={isEditorOpen} unmountOnExit timeout="auto">
-                    <Box sx={{ mt: 1 }}>
-                        <SequenceEditorPanel
-                            biln={bilnValue}
-                            onChangeBiln={handleBilnChange}
-                            disableInternalCollapse
-                            hideInternalHeader
-                            hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
-                        />
-                    </Box>
-                </Collapse>
-            </Paper>
+            {/* Top: Biln editor (no collapse) */}
+            <BilnEditorInterface
+                biln={bilnValue}
+                onChangeBiln={handleBilnChange}
+                hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={handleUndoBiln}
+                onRedo={handleRedoBiln}
+                onClear={() => handleBilnChange('')}
+            >
+                
+                <Paper
+                    // variant="outlined"
+                    elevation={0}
+                    sx={{
+                        p: 1,
+                        // marginTop: 2,
+                        height: '100%',
+                        height: 120,
+                        overflowY: 'auto',
+                        position: 'relative',
+                        // zIndex: (t) => (overlayActive ? t.zIndex.modal + 1 : 'auto'),
+                    }}
+                >
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        Sequences
+                    </Typography>
+                    {monomerTrack}
+                </Paper>
+            </BilnEditorInterface>
 
             {/* Local overlay for “replace monomer” selection */}
             {replaceOverlay}
@@ -773,23 +709,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                     </Paper>
                 </Box>
             </Box>
-            {/* Bottom: Sequence tracks (scrollable) */}
-            <Paper
-                variant="outlined"
-                sx={{
-                    p: 1,
-                    height: '100%',
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    position: 'relative',
-                    // zIndex: (t) => (overlayActive ? t.zIndex.modal + 1 : 'auto'),
-                }}
-            >
-                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                    Sequences
-                </Typography>
-                {monomerTrack}
-            </Paper>
+
         </Box>
     );
 };

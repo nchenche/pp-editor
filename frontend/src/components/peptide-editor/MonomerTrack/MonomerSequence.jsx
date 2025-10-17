@@ -58,7 +58,7 @@ export const MonomerSequence = ({
                 my: 0.4,
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 1,
-                minHeight: 48, // reduced height
+                minHeight: 36, // reduced height
                 bgcolor: "background.paper",
                 overflow: "visible",
                 position: "relative",                
