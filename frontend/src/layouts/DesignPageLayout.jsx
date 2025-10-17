@@ -158,7 +158,8 @@ export const DesignPageLayoutMUI = ({
     const onMouseMove = useCallback((e) => {
         if (!draggingRef.current || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
-        const desired = e.clientX - rect.left;
+        // Right sidebar: width = distance from mouse to right edge
+        const desired = rect.right - e.clientX;
         setLeftPx(clampLeft(desired));
     }, [clampLeft, containerRef]);
 
@@ -198,7 +199,7 @@ export const DesignPageLayoutMUI = ({
         };
     }, [onMouseMove, stopDrag]);
 
-    const gridTemplateColumns = useMemo(() => `${leftPx}px ${handleWidth}px 1fr`, [leftPx, handleWidth]);
+    const gridTemplateColumns = useMemo(() => `1fr ${handleWidth}px ${leftPx}px`, [leftPx, handleWidth]);
 
     return (
         <Box
@@ -215,69 +216,6 @@ export const DesignPageLayoutMUI = ({
             }}
             {...rest}
         >
-            {/* Left: Sidebar (scrollable) */}
-            <Paper
-                variant="outlined"
-                square
-                sx={{
-                    height: '100%',
-                    minWidth: `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    borderRadius: 1,
-                    p: 1,
-                    borderWidth: overlayActive ? 2 : 1,
-                    borderColor: (t) =>
-                        overlayActive
-                            ? (t.palette.mode === 'dark'
-                                ? alpha(t.palette.common.white, 0.35)
-                                : alpha(t.palette.common.black, 0.55))
-                            : t.palette.divider,
-                    boxShadow: (t) =>
-                        overlayActive
-                            ? `
-                               inset 0 0 0 2px ${alpha(t.palette.common.black, 0.48)}`
-                            : 'none',
-                    // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
-                    willChange: 'transform, box-shadow',
-                    '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                }}
-            >
-                {sidebar}
-            </Paper>
-
-            {/* Vertical handle (draggable) */}
-            <Box
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize sidebar"
-                tabIndex={0}
-                onMouseDown={startDrag}
-                onKeyDown={(e) => { if (e.key === 'Escape') stopDrag(); }}
-                onDoubleClick={() => {
-                    userResizedRef.current = false;
-                    setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac)));
-                }}
-                sx={{
-                    cursor: 'col-resize',
-                    position: 'relative',
-                    height: '100%',
-                    outline: 'none',
-                    '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '2px',
-                        bgcolor: dragging ? 'primary.main' : 'divider',
-                        borderRadius: 1,
-                    },
-                    '&:hover::before': { bgcolor: 'text.disabled' },
-                    '&': { zIndex: 1 },
-                }}
-            />
 
             {/* Right: Two rows; top ~65%, bottom ~35% */}
             <Box
@@ -293,8 +231,6 @@ export const DesignPageLayoutMUI = ({
                 }}
             >
                 <OverlayPortalProvider rootRef={overlayRootRef} overlayActive={overlayActive} setOverlayActive={setOverlayActive}>
-
-
                     {/* Top: Viewer/Editor area (no scroll) */}
                     <Paper
                         variant="outlined"
@@ -329,6 +265,71 @@ export const DesignPageLayoutMUI = ({
                     </Paper>
                 </OverlayPortalProvider>
             </Box>
+
+            {/* Vertical handle (draggable) */}
+            <Box
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize sidebar"
+                tabIndex={0}
+                onMouseDown={startDrag}
+                onKeyDown={(e) => { if (e.key === 'Escape') stopDrag(); }}
+                onDoubleClick={() => {
+                    userResizedRef.current = false;
+                    setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac)));
+                }}
+                sx={{
+                    cursor: 'col-resize',
+                    position: 'relative',
+                    height: '100%',
+                    outline: 'none',
+                    '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '2px',
+                        bgcolor: dragging ? 'primary.main' : 'divider',
+                        borderRadius: 1,
+                    },
+                    '&:hover::before': { bgcolor: 'text.disabled' },
+                    '&': { zIndex: 1 },
+                }}
+            />
+
+            {/* Left: Sidebar (scrollable) */}
+            <Paper
+                variant="outlined"
+                square
+                sx={{
+                    height: '100%',
+                    minWidth: `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    borderRadius: 1,
+                    p: 1,
+                    borderWidth: overlayActive ? 2 : 1,
+                    borderColor: (t) =>
+                        overlayActive
+                            ? (t.palette.mode === 'dark'
+                                ? alpha(t.palette.common.white, 0.35)
+                                : alpha(t.palette.common.black, 0.55))
+                            : t.palette.divider,
+                    boxShadow: (t) =>
+                        overlayActive
+                            ? `
+                               inset 0 0 0 2px ${alpha(t.palette.common.black, 0.48)}`
+                            : 'none',
+                    // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
+                    willChange: 'transform, box-shadow',
+                    '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+                }}
+            >
+                {sidebar}
+            </Paper>
+
         </Box>
     );
 };
