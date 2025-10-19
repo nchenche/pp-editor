@@ -19,6 +19,9 @@ export const MonomerTrack = ({
     handleMonomerLeave,
     onDragStart,
     handleDeleteSequence,
+    constraintsMode = false,
+    constraintsBySeq = [],
+    onEditConstraint = () => { },
 }) => {
 
     const { overlayActive } = useOverlayPortal();
@@ -59,11 +62,14 @@ export const MonomerTrack = ({
                                 isActive={seqIdx === activeSeqIdx}
                                 hoveredMonomer={overlayActive ? null : hoveredMonomer}
                                 onDelete={handleDeleteMonomerItem}
-                                handleMonomerEnter={overlayActive ? () => {} : handleMonomerEnter}
-                                handleMonomerLeave={overlayActive ? () => {} : handleMonomerLeave}
+                                handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
+                                handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
                                 onDeleteSequence={makeDeleteHandler(seqIdx)}
-                                label={`Sequence ${seqIdx + 1}`}
+                                label={`Chain ${seqIdx + 1}`}
                                 dndDisabled={overlayActive}
+                                constraintsMode={constraintsMode}
+                                constraints={constraintsBySeq?.[seqIdx] ?? []}
+                                onEditConstraint={(idx, val) => onEditConstraint?.(seqIdx, idx, val)}
                             >
                                 {provided.placeholder}
                             </MonomerSequence>

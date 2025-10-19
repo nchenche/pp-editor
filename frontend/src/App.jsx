@@ -27,10 +27,10 @@ const dataLinks = [
       to: '/',
       text: 'Home'
   },
-  {
-      to: '/peptide',
-      text: 'Design a peptide'
-  },
+  // {
+  //     to: '/peptide',
+  //     text: 'Design a peptide'
+  // },
   {
     to: '/monomers',
     text: 'Monomer library'
@@ -53,8 +53,8 @@ function App() {
         </Header>
         <main className="flex-grow min-h-0 h-full">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/peptide" element={<DesignPeptideContainer />} />
+            <Route path="/" element={<Home />} />  
+            {/* <Route path="/peptide" element={<DesignPeptideContainer />} /> */}
             <Route path="/admin-monomers" element={<UIAddMonomers />} />
             <Route path="/monomers" element={<MonomerLibraryContainer />} />
             {/* <Route path="/monomers" element={<FilterableMonomerLibrary />} /> */}

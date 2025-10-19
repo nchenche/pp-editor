@@ -1,7 +1,10 @@
+import React, { useRef } from "react";
+
+import { MonomerItem } from "./MonomerItem";
+
 import { Box, Typography, IconButton, Tooltip, useTheme, ListItem } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { alpha } from "@mui/material/styles";
-import { MonomerItem } from "./MonomerItem";
 
 function mergeRefs(...refs) {
     return (node) => {
@@ -11,6 +14,23 @@ function mergeRefs(...refs) {
         });
     };
 }
+
+
+// helper: allowed letters and tint map
+const ALLOWED = new Set(['H', 'E', 'C', 'T', 'G', 'I', 'B', '-']);
+const letterTint = (t, ch) => {
+    const map = {
+        H: { bg: alpha('#16a34a', 0.14), bd: alpha('#16a34a', 0.35), fg: '#064e3b' },    // green
+        E: { bg: alpha('#1d4ed8', 0.14), bd: alpha('#1d4ed8', 0.35), fg: '#0b3a9a' },    // blue
+        T: { bg: alpha('#d97706', 0.14), bd: alpha('#d97706', 0.35), fg: '#7c2d12' },    // amber
+        C: { bg: alpha('#64748b', 0.14), bd: alpha('#64748b', 0.35), fg: '#1f2937' },    // gray
+        G: { bg: alpha('#0d9488', 0.14), bd: alpha('#0d9488', 0.35), fg: '#064e3b' },    // teal
+        I: { bg: alpha('#7c3aed', 0.14), bd: alpha('#7c3aed', 0.35), fg: '#3b0764' },    // purple
+        B: { bg: alpha('#4338ca', 0.14), bd: alpha('#4338ca', 0.35), fg: '#1e1b4b' },    // indigo
+        '-': { bg: alpha('#94a3b8', 0.10), bd: alpha('#94a3b8', 0.28), fg: '#475569' },
+    };
+    return map[ch] || map['-'];
+};
 
 export const MonomerSequence = ({
     // data
@@ -39,8 +59,18 @@ export const MonomerSequence = ({
     // visuals
     isDragging = true, // suppress link highlights during drag
     dndDisabled = false,
+
+    constraintsMode = false,
+    constraints = [],
+    onEditConstraint = () => { },
 }) => {
     const theme = useTheme();
+
+    const gridGap = 0.5; // spacing between chips (theme spacing units)
+    const chipWidth = 32; // px; matches w-8 from MonomerItem
+    const chipHeight = 20; // px; for reference only
+    const cellSize = 18; // px height for constraints cells
+    const seqLen = monomers.length;
 
     // Subtle background for selected header; otherwise paper-like
     const headerBg = isActive ? theme.palette.action.selected : theme.palette.background.paper;
@@ -58,10 +88,12 @@ export const MonomerSequence = ({
                 my: 0.4,
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 1,
-                minHeight: 36, // reduced height
+                minHeight: 38, // reduced height
                 bgcolor: "background.paper",
                 overflow: "visible",
-                position: "relative",                
+                position: "relative",
+                transition: 'min-height 140ms ease',
+                ...(constraintsMode ? { minHeight: 38 + 6 + cellSize } : null), // room for micro-row
             }}
             // for screen readers, let the item be selectable
             aria-selected={isActive || undefined}
@@ -83,6 +115,8 @@ export const MonomerSequence = ({
                     borderRight: `1px solid ${theme.palette.divider}`, // fused, just a separator line
                     cursor: "pointer",
                     "&:hover": { bgcolor: headerHover },
+                    flexDirection: constraintsMode ? 'column' : 'row',
+                    gap: constraintsMode ? 0.25 : 0,
                 }}
             >
                 <Typography
@@ -92,54 +126,100 @@ export const MonomerSequence = ({
                 >
                     {label}
                 </Typography>
+                {constraintsMode && (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+                        Constraints
+                    </Typography>
+                )}
             </Box>
 
-            {/* Middle — droppable lane with monomers (no dashed border) */}
+            {/* Middle: chips + constraints stacked and scrolled together */}
             <Box
-                ref={mergeRefs(droppableRef)}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
+                    display: 'flex',
+                    flexDirection: 'column',
                     flex: 1,
-                    minHeight: 32,
-                    px: 0.75,
-                    overflow: "visible",
-                    position: "relative",
+                    minWidth: 0,
+                    overflowX: 'auto',          // both rows share the same scroll
+                    overflowY: 'hidden',
                 }}
             >
-                {monomers.map((monomer, index) => {
-                    const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[1] != null;
-                    const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[0] != null;
-                    const isHovered = monomer["res-idx"] === hoveredMonomer;
+                {/* Chips row (droppable) */}
+                <Box
+                    ref={mergeRefs(droppableRef)}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: gridGap,
+                        flex: '0 0 auto',
+                        minHeight: 32,
+                        px: 0.75,
+                        position: "relative",
+                        // no overflow here; wrapper above handles scroll
+                    }}
+                >
+                    {monomers.map((monomer, index) => {
+                        const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[1] != null;
+                        const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[0] != null;
+                        const isHovered = monomer["res-idx"] === hoveredMonomer;
 
-                    // Prefer stable link IDs precomputed on monomer
-                    let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
-                    if (!linkIndices.length && linkMap) {
-                        const monomerIdx = parseInt(String(monomer["res-idx"]).split("-")[1], 10);
-                        linkIndices = Object.entries(linkMap)
-                            .filter(([, pairs]) => pairs?.some((p) => p.monomerIdx === monomerIdx))
-                            .map(([linkId]) => linkId);
-                    }
-                    if (isDragging) linkIndices = []; // avoid flicker during drag
+                        let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
+                        if (!linkIndices.length && linkMap) {
+                            const monomerIdx = parseInt(String(monomer["res-idx"]).split("-")[1], 10);
+                            linkIndices = Object.entries(linkMap)
+                                .filter(([, pairs]) => pairs?.some((p) => p.monomerIdx === monomerIdx))
+                                .map(([linkId]) => linkId);
+                        }
+                        if (isDragging) linkIndices = [];
 
-                    return (
-                        <MonomerItem
-                            key={monomer.uid || monomer._id || monomer["res-idx"] || index}
-                            index={index} // MonomerItem should ignore when isNterCap/isCterCap
-                            monomer={monomer}
-                            handleMonomerEnter={handleMonomerEnter}
-                            handleMonomerLeave={handleMonomerLeave}
-                            onDelete={onDelete}
-                            isNterCap={isNterCap}
-                            isCterCap={isCterCap}
-                            linkIndices={linkIndices}
-                            isHovered={isHovered}  // monomer.m_abbr === 'C'  ||
-                            dndDisabled={dndDisabled}
-                        />
-                    );
-                })}
-                {children}
+                        return (
+                            <MonomerItem
+                                key={monomer.uid || monomer._id || monomer["res-idx"] || index}
+                                index={index}
+                                monomer={monomer}
+                                handleMonomerEnter={handleMonomerEnter}
+                                handleMonomerLeave={handleMonomerLeave}
+                                onDelete={onDelete}
+                                isNterCap={isNterCap}
+                                isCterCap={isCterCap}
+                                linkIndices={linkIndices}
+                                isHovered={isHovered}
+                                dndDisabled={dndDisabled}
+                            />
+                        );
+                    })}
+                    {children}
+                </Box>
+
+                {/* Constraints micro-row (aligned under chips) */}
+                {constraintsMode && (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: gridGap,
+                            flex: '0 0 auto',
+                            px: 0.75,
+                            pb: 0.5,
+                            mt: 0.5,
+                        }}
+                    >
+                        {monomers.map((m, idx) => {
+                            const val = String(constraints[idx] ?? '-').toUpperCase();
+                            const clamped = ALLOWED.has(val) ? val : '-';
+                            return (
+                                <ConstraintCell
+                                    key={(m.uid || m._id || m['res-idx'] || idx) + '-cell'}
+                                    index={idx}
+                                    value={clamped}
+                                    commitAt={(i, ch) => onEditConstraint?.(i, ch)}
+                                    chipWidth={chipWidth}
+                                    cellSize={cellSize}
+                                />
+                            );
+                        })}
+                    </Box>
+                )}
             </Box>
 
             {/* Right — delete whole sequence (plain icon, no color) */}
@@ -158,3 +238,85 @@ export const MonomerSequence = ({
         </ListItem>
     );
 };
+
+
+// place near bottom of file
+function ConstraintCell({ index, value, commitAt, chipWidth = 32, cellSize = 18 }) {
+    const ref = useRef(null);
+    const theme = useTheme();
+
+    const moveFocus = (nextIdx) => {
+        const parent = ref.current?.parentElement;
+        const next = parent?.querySelector(`input[data-idx="${nextIdx}"]`);
+        next?.focus();
+        next?.select?.();
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); moveFocus(index - 1); return; }
+        if (e.key === 'ArrowRight') { e.preventDefault(); moveFocus(index + 1); return; }
+        if (e.key === 'Enter') { e.preventDefault(); moveFocus(e.shiftKey ? index - 1 : index + 1); return; }
+        if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); commitAt(index, '-'); return; }
+        if (e.key && e.key.length === 1) {
+            const ch = e.key.toUpperCase();
+            if (ALLOWED.has(ch)) {
+                e.preventDefault();
+                commitAt(index, ch);
+                moveFocus(index + 1);
+            } else {
+                ref.current?.animate(
+                    [{ transform: 'translateX(0)' }, { transform: 'translateX(-2px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }],
+                    { duration: 120 }
+                );
+            }
+        }
+    };
+
+    const handlePaste = (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData?.getData('text') || '').toUpperCase();
+        if (!text) return;
+        let i = index;
+        for (const raw of text) {
+            if (ALLOWED.has(raw)) {
+                commitAt(i, raw);
+                i += 1;
+            }
+        }
+        moveFocus(i);
+    };
+
+    const tint = letterTint(null, value); // your helper already returns colors
+
+    return (
+        <input
+            ref={ref}
+            data-idx={index}
+            value={value}
+            onChange={() => { }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            inputMode="text"
+            aria-label={`Constraint at ${index + 1}`}
+            style={{
+                width: chipWidth,
+                height: cellSize,
+                lineHeight: `${cellSize}px`,
+                textAlign: 'center',
+                borderRadius: 6,
+                border: `1px solid ${tint.bd}`,
+                outline: 'none',
+                fontSize: 11,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                padding: 0,
+                boxSizing: 'border-box',
+                background: tint.bg,
+                color: tint.fg,
+            }}
+            onFocus={(e) => { e.currentTarget.style.outline = '1px solid var(--mui-palette-primary-main)'; }}
+            onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
+            placeholder="-"
+            maxLength={1}
+        />
+    );
+}

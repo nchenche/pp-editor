@@ -113,7 +113,6 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         return () => window.removeEventListener('keydown', onKey);
     }, [replaceSelect.open, cancelReplaceSelection]);
 
-
     // Track bilnValue changes into history unless undo/redo is in progress
     useEffect(() => {
         // Initialize history on first render
@@ -179,8 +178,6 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
 
-
-
     const {
         addMonomerToBiln,
         handleDeleteMonomerItem,
@@ -203,6 +200,48 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     });
 
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+
+    const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
+    const [constraintsBySeq, setConstraintsBySeq] = useState([]);  // ensure constraints length matches monomers length per sequence
+
+    // keep constraints arrays shaped to sequences
+    useEffect(() => {
+        setConstraintsBySeq(prev => {
+            return rowMonomerLists.map((seq, i) => {
+                const existing = Array.isArray(prev[i]) ? prev[i] : [];
+                const len = seq.length;
+                const out = new Array(len);
+                for (let j = 0; j < len; j++) {
+                    const v = (existing[j] || '-').toString().toUpperCase();
+                    out[j] = ['H', 'E', 'C', 'T', 'G', 'I', 'B', '-'].includes(v) ? v : '-';
+                }
+                return out;
+            });
+        });
+    }, [rowMonomerLists]);
+
+    // shape-safe edit
+    const handleEditConstraint = useCallback((seqIdx, resIdx, ch) => {
+        const ALLOWED = ['H', 'E', 'C', 'T', 'G', 'I', 'B', '-'];
+        setConstraintsBySeq(prev => {
+            const lists = rowMonomerLists; // capture current lengths
+            const next = prev.map(a => (Array.isArray(a) ? a.slice() : []));
+            // ensure outer size
+            while (next.length < lists.length) next.push([]);
+            const targetLen = lists[seqIdx]?.length ?? 0;
+            // ensure inner array and length
+            const arr = Array.isArray(next[seqIdx]) ? next[seqIdx].slice() : new Array(targetLen).fill('-');
+            if (arr.length < targetLen) {
+                const fill = new Array(targetLen - arr.length).fill('-');
+                next[seqIdx] = arr.concat(fill);
+            } else {
+                next[seqIdx] = arr;
+            }
+            const val = (ch || '-').toString().toUpperCase();
+            next[seqIdx][resIdx] = ALLOWED.includes(val) ? val : '-';
+            return next;
+        });
+    }, [rowMonomerLists]);
 
     // Stable setter to avoid MonomerTrack re-render due to inline function identity changes
     const onSetActiveSeqIdx = useCallback(
@@ -237,6 +276,9 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
             handleMonomerEnter={handleMonomerEnter}
             handleMonomerLeave={handleMonomerLeave}
             handleDeleteSequence={handleDeleteSequence}
+            constraintsMode={constraintsMode}
+            onEditConstraint={handleEditConstraint}
+            constraintsBySeq={constraintsBySeq}
         />
     ), [
         rowMonomerLists,
@@ -248,7 +290,10 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         handleOnDragEnd,
         handleMonomerEnter,
         handleMonomerLeave,
-        beginReplaceSelection
+        beginReplaceSelection,
+        constraintsMode,
+        constraintsBySeq,
+        handleEditConstraint,
     ]);
 
     function loadData(newBiln) {
@@ -431,6 +476,8 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                             onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
                             canLink={canLink}
                             canUnlink={canCut}
+                            constraintsMode={constraintsMode}
+                            onToggleConstraintsMode={() => setConstraintsMode(m => !m)}
                         />
                     </Box>
                     {monomerTrack}

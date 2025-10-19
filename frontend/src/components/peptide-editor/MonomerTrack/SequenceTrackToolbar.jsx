@@ -4,7 +4,7 @@ import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import SquareFootIcon from '@mui/icons-material/SquareFoot';
 
 export default function SequenceTrackToolbar({
     linkMode = false,
@@ -13,6 +13,8 @@ export default function SequenceTrackToolbar({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
+    constraintsMode = false,
+    onToggleConstraintsMode = () => { },
 }) {
 
     const btnSx = {
@@ -26,7 +28,7 @@ export default function SequenceTrackToolbar({
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {/* Bonds: Link / Cut */}
+            {/* Bonds: Link / Unlink */}
             <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                 <Tooltip title="Link residues (2D sketch)" arrow>
                     <Button
@@ -39,7 +41,7 @@ export default function SequenceTrackToolbar({
                         Link
                     </Button>
                 </Tooltip>
-                <Tooltip title="Cut bonds (2D sketch)" arrow>
+                <Tooltip title="Unlink bonds (2D sketch)" arrow>
                     <Button
                         onClick={onToggleCutMode}
                         color="inherit"
@@ -48,6 +50,21 @@ export default function SequenceTrackToolbar({
                         startIcon={<LinkOffIcon fontSize="inherit" />}                        
                     >
                         Unlink
+                    </Button>
+                </Tooltip>
+            </ButtonGroup>
+
+            {/* Bonds: Link / Unlink */}
+            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
+                <Tooltip title="Link residues (2D sketch)" arrow>
+                    <Button
+                        onClick={onToggleConstraintsMode}
+                        color="inherit"
+                        variant={constraintsMode ? 'contained' : 'outlined'}
+                        disabled={!canLink}
+                        startIcon={<SquareFootIcon fontSize="inherit" />}
+                    >
+                        Constraints
                     </Button>
                 </Tooltip>
             </ButtonGroup>

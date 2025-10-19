@@ -22,8 +22,8 @@ const LINK_COLORS = [
 // Style helpers (use classnames library if you want more dynamic combinations)
 const containerBase = [
     "monomer-item", "relative", "flex", "items-center", "justify-center",
-    "border", "border-slate-600", "h-5", "w-8", "rounded-md", "text-[0.67rem]",
-    "select-none", "bg-lime-50", "cursor-pointe", "shadow-sm",
+    "border", "border-slate-400", "h-5", "w-8", "rounded-xl", "text-[0.6rem]",
+    "select-none", "bg-lime-50/50", "cursor-pointe", "shadow-md", 
 ].join(" ");
 
 const capBase = [
