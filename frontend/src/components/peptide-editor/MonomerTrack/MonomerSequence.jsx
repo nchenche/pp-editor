@@ -142,6 +142,8 @@ export const MonomerSequence = ({
                     minWidth: 0,
                     overflowX: 'auto',          // both rows share the same scroll
                     overflowY: 'hidden',
+                    overflow: 'visible',
+                    // position: 'relative',
                 }}
             >
                 {/* Chips row (droppable) */}
