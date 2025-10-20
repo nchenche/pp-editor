@@ -782,9 +782,6 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                                     })}
                                 </Menu>
 
-
-
-
                             </ButtonGroup>
                         </Box>
                         {/* Canvas area */}

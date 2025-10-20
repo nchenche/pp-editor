@@ -133,7 +133,7 @@ export default function BilnEditorInterface({
             </Box>
 
             {/* Structural constraints */}
-            <Box sx={{ display: 'flex', marginTop: 2, alignItems: 'center', gap: 0.5 }}>
+            {/* <Box sx={{ display: 'flex', marginTop: 2, alignItems: 'center', gap: 0.5 }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                     Structural constraints
                 </Typography>
@@ -142,7 +142,7 @@ export default function BilnEditorInterface({
                         <HelpOutlineIcon fontSize="inherit" />
                     </IconButton>
                 </Tooltip>
-            </Box>
+            </Box> */}
 
             {/* Structural constraints (design-only for now) */}
             {/* <StructuralConstraintsEditor biln={biln} onChange={() => {}} /> */}

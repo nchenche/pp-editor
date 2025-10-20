@@ -64,7 +64,8 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         return withData.length ? withData : OUTPUT_FIELDS.map(f => f.key);
     }, [OUTPUT_FIELDS, outputData]);
 
-    const [visible, setVisible] = useState(defaultVisible);
+
+    const [visible, setVisible] = useState(["smiles"]);  // defaultVisible
     const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
 
     const handleCloseSnack = () => setSnack(s => ({ ...s, open: false }));
