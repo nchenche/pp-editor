@@ -460,7 +460,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                Sequences
+                                Chains
                             </Typography>
                             <Tooltip title="Sequences help" arrow>
                                 <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
@@ -491,7 +491,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                     <ul>
                         <li><strong>Append</strong> adds monomers at the end of the active sequence.</li>
                         <li><strong>Prepend</strong> adds monomers at the start of the active sequence.</li>
-                        <li><strong>New</strong> creates a new sequence and adds monomers there.</li>
+                        <li><strong>New chain</strong> creates a new chain and adds monomers there.</li>
                         <li>Use <strong>Link</strong> to connect residues and <strong>Cut</strong> to break bonds in the 2D sketch.</li>
                         <li><strong>Target sequence</strong> selects which sequence receives new monomers from the library.</li>
                     </ul>

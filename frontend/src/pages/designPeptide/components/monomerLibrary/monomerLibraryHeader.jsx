@@ -260,8 +260,8 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
     const modeOptions = useMemo(() => ([
         { value: LINKING_MODES.append, label: 'Append', hint: 'Add to C‑terminus if free; offer to replace C‑ter cap.' },
         { value: LINKING_MODES.prepend, label: 'Prepend', hint: 'Add to N‑terminus if free; replace N‑ter cap if needed.' },
-        { value: LINKING_MODES.insert, label: 'Insert', hint: 'Pick a residue, then choose side or R‑group.' },
-        { value: LINKING_MODES.newSeq, label: 'New seq', hint: 'Start a new sequence (unlinked).' },
+        // { value: LINKING_MODES.insert, label: 'Insert', hint: 'Pick a residue, then choose side or R‑group.' },
+        { value: LINKING_MODES.newSeq, label: 'New chain', hint: 'Start a new chain (unlinked).' },
     ]), []);
 
     const linkOptions = useMemo(() => ([
