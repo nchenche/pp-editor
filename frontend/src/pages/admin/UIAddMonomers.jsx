@@ -4,6 +4,7 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { log } from '../../utils/dev'
+import { API_DB_URL } from '../../config';
 
 import FormWizard from "react-form-wizard-component";
 import "react-form-wizard-component/dist/style.css";
@@ -149,7 +150,7 @@ const UIAddMonomers = memo(() => {
     console.log('typeof', typeof(molBlock));
 
     try {
-      const response = await fetch('http://localhost:5000/api/db/monomers/add', {
+      const response = await fetch(`${API_DB_URL}/monomers/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',

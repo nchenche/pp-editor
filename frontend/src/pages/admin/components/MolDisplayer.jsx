@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFetchData } from '../../../hooks/Fetchers'
 import { useFetchMolecule } from '../../../hooks/Fetchers'
 
+import { API_URL } from '../../../config';
 
 
 // MolDisplayer.js
@@ -198,7 +199,7 @@ export const MolDisplayer = ({
     selectableMolecules = false,
     selectedFragment = -1,
 }) => {
-    const baseURL = "http://localhost:5000/api/molecules/svg-rendering";
+    const baseURL = `${API_URL}/molecules/svg-rendering`;
     const params = new URLSearchParams();
     const payload = JSON.stringify({ smiles });
     const isSelectableBonds = selectableBonds;

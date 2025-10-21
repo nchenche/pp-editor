@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef, memo } from 'react';
 
+import { API_URL } from '../../../config';
 
 // Custom Hooks
 export const useFragments = (smiles, selectedBonds) => {
@@ -16,7 +17,7 @@ export const useFragments = (smiles, selectedBonds) => {
 
     const fragmentMolecule = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/molecules/fragmentation', {
+        const response = await fetch(`${API_URL}/molecules/fragmentation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -63,7 +64,7 @@ export const useFormSubmission = (formData, fragments, selectedFragmentIndex) =>
 
     const generateMolBlock = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/molecules/molblock', {
+        const response = await fetch(`${API_URL}/molecules/molblock`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
