@@ -132,21 +132,6 @@ export default function BilnEditorInterface({
                 {children}
             </Box>
 
-            {/* Structural constraints */}
-            {/* <Box sx={{ display: 'flex', marginTop: 2, alignItems: 'center', gap: 0.5 }}>
-                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                    Structural constraints
-                </Typography>
-                <Tooltip title="Structural constraints help" arrow>
-                    <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary' }}>
-                        <HelpOutlineIcon fontSize="inherit" />
-                    </IconButton>
-                </Tooltip>
-            </Box> */}
-
-            {/* Structural constraints (design-only for now) */}
-            {/* <StructuralConstraintsEditor biln={biln} onChange={() => {}} /> */}
-
 
             {/* BILN help dialog with examples */}
             <Dialog open={bilnHelpOpen} onClose={() => setBilnHelpOpen(false)} maxWidth="sm" fullWidth>
