@@ -105,29 +105,11 @@ const Viewer3DInner = ({
                     style={{ width: '100%', height: '100%'}}
                 />
 
-                {/* Overlays */}
-                {isGenerating3D && !pdbRawData && (
-                    <Overlay>
-                        <div className="flex items-center gap-3 text-slate-800">
-                            <CircularProgress size={40} thickness={5} />
-                            <span>Generating 3D structure...</span>
-                        </div>
-                    </Overlay>
-                )}
-
-                {/* {structureLoading && (
-                    <Overlay>
-                        <div className="flex items-center gap-3 text-slate-900">
-                            <CircularProgress size={40} thickness={5} />
-                        </div>
-                    </Overlay>
-                )} */}
-
-                {showNoStructure && (
+                {/* {showNoStructure && (
                     <Overlay bg="transparent">
                         <div className="text-xl text-slate-500">No structure</div>
                     </Overlay>
-                )}
+                )} */}
 
                 {combinedError && (
                     <Overlay bg="rgba(255, 200, 200, 0.7)">

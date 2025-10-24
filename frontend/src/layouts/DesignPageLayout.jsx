@@ -224,7 +224,7 @@ export const DesignPageLayoutMUI = ({
                     height: '100%',
                     minWidth: 0,
                     display: 'grid',
-                    gridTemplateRows: '80% 20%',
+                    gridTemplateRows: '85% 15%',
                     gap: 1,
                     overflow: 'hidden', // this column doesn't scroll as a whole
                     position: 'relative', // for overlay portal

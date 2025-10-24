@@ -9,7 +9,8 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 import { SequenceEditorPanel } from './SequenceInput';
-import StructuralConstraintsEditor from './StructuralConstraintsEditor';
+import ChainsToolbar from './ChainComponent/ChainsToolbar';
+import { ChainSlots } from './ChainComponent/ChainSlots';
 
 // ...existing code...
 export default function BilnEditorInterface({
@@ -21,9 +22,32 @@ export default function BilnEditorInterface({
     onUndo,
     onRedo,
     onClear,
-    children,
+    // Chains section props
+    rowMonomerLists,
+    activeSeqIdx,
+    onSetActiveSeqIdx,
+    linkMap,
+    hoveredMonomer,
+    handleDeleteMonomerItem,
+    onDragStart,
+    onDragEnd,
+    handleMonomerEnter,
+    handleMonomerLeave,
+    handleDeleteSequence,
+    constraintsMode = false,
+    onToggleConstraintsMode = () => { },
+    constraintsBySeq = [],
+    onEditConstraint = () => { },
+    // Sequence toolbar (link/cut + disable logic)
+    linkMode = false,
+    bondsMode = false,
+    onToggleLinkMode = () => { },
+    onToggleCutMode = () => { },
+    canLink = true,
+    canUnlink = true,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
+    const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
     const btnSx = {
         textTransform: 'none',
@@ -127,9 +151,48 @@ export default function BilnEditorInterface({
                 />
             </Box>
 
-            {/* Sequences slot (scrolls within capped panel) */}
-            <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', marginTop: 2 }}>
-                {children}
+            {/* Chains section */}
+            <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', mt: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                            Chains
+                        </Typography>
+                        <Tooltip title="Sequences help" arrow>
+                            <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
+                                <HelpOutlineIcon fontSize="inherit" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                    <ChainsToolbar
+                        linkMode={linkMode}
+                        bondsMode={bondsMode}
+                        onToggleLinkMode={onToggleLinkMode}
+                        onToggleCutMode={onToggleCutMode}
+                        canLink={canLink}
+                        canUnlink={canUnlink}
+                        constraintsMode={constraintsMode}
+                        onToggleConstraintsMode={onToggleConstraintsMode}
+                    />
+                </Box>
+                <Box sx={{ height: '100%', minHeight: 0, overflowY: 'auto', pr: 0.5 }}>
+                    <ChainSlots
+                        rowMonomerLists={rowMonomerLists}
+                        activeSeqIdx={activeSeqIdx}
+                        onSetActiveSeqIdx={onSetActiveSeqIdx}
+                        linkMap={linkMap}
+                        hoveredMonomer={hoveredMonomer}
+                        handleDeleteMonomerItem={handleDeleteMonomerItem}
+                        onDragStart={onDragStart}
+                        onDragEnd={onDragEnd}
+                        handleMonomerEnter={handleMonomerEnter}
+                        handleMonomerLeave={handleMonomerLeave}
+                        handleDeleteSequence={handleDeleteSequence}
+                        constraintsMode={constraintsMode}
+                        constraintsBySeq={constraintsBySeq}
+                        onEditConstraint={onEditConstraint}
+                    />
+                </Box>
             </Box>
 
 
@@ -158,6 +221,24 @@ export default function BilnEditorInterface({
                     <Button onClick={() => setBilnHelpOpen(false)} size="small">Close</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Sequences help dialog */}
+            <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Working with sequences</DialogTitle>
+                <DialogContent dividers sx={{ typography: 'body2' }}>
+                    <ul>
+                        <li>Append adds monomers at the end; Prepend at the start; New creates a new chain.</li>
+                        <li>Use Link to connect residues and Cut to break bonds in the 2D sketch.</li>
+                        <li>Choose the active sequence to receive new monomers from the library.</li>
+                        <li>Per-residue DSSP letters can guide 3D generation (H/E/C…).</li>
+                        <li>Optionally provide a 3D template from a PDB/mmCIF file.</li>
+                    </ul>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
+                </DialogActions>
+            </Dialog>
+
         </Paper>
     );
 }

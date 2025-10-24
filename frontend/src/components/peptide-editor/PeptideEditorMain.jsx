@@ -4,8 +4,8 @@ import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
 import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
 import BilnEditorInterface from './BilnEditorInterface';
-import { MonomerTrack } from './MonomerTrack/MonomerTrack';
-import SequenceTrackToolbar from './MonomerTrack/SequenceTrackToolbar';
+// import { MonomerTrack } from './MonomerTrack/MonomerTrack';
+import SequenceTrackToolbar from './ChainComponent/ChainsToolbar';
 
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
@@ -39,6 +39,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -54,7 +55,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
     const [isEditorOpen, setIsEditorOpen] = useState(true);
-    const [seqHelpOpen, setSeqHelpOpen] = useState(false);
+    // const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
     const [repMenuEl, setRepMenuEl] = useState(null);
     const [colorMenuEl, setColorMenuEl] = useState(null);
@@ -68,6 +69,29 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
+
+    // Parse BILN to decide if it’s “committable” (no trailing sep, no open parenthesis)
+    const analyzeBiln = useCallback((biln) => {
+        const s = (biln || '').trim();
+        if (!s) return { committable: true, tokenCount: 0 };
+        // trailing separator or open paren/comma -> not committable
+        if (/[-.\(,]\s*$/.test(s)) return { committable: false, tokenCount: 0 };
+        // parentheses balance (simple, non-nested expected)
+        let depth = 0;
+        for (let i = 0; i < s.length; i++) {
+            const ch = s[i];
+            if (ch === '(') depth++;
+            else if (ch === ')') { depth--; if (depth < 0) return { committable: false, tokenCount: 0 }; }
+        }
+        if (depth !== 0) return { committable: false, tokenCount: 0 };
+        // count residues: remove paren content then split on '.' or '-' and count non-empty tokens
+        const noParen = s.replace(/\([^)]*\)/g, '');
+        const tokenCount = noParen.split(/[.-]+/).filter(Boolean).length;
+        return { committable: true, tokenCount };
+    }, []);
+
+    // Only this “committed” BILN drives depiction/3D
+    const [committedBiln, setCommittedBiln] = useState(initBiln);
 
     // --- BILN history (undo up to 10) ---
     const MAX_HISTORY = 20;
@@ -176,7 +200,9 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const [hoveredMonomer, setHoveredMonomer] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
-    const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
+    // const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
+    const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers, committedBiln]);
+
 
     const {
         addMonomerToBiln,
@@ -204,44 +230,86 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
     const [constraintsBySeq, setConstraintsBySeq] = useState([]);  // ensure constraints length matches monomers length per sequence
 
+    // Flatten constraints to secstruct (keep '-' for "no constraint")
+    const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
+    const flattenSecstruct = useCallback((cbs) => (
+        (cbs || [])
+            .flat()
+            .map(c => {
+                const ch = (c || '-').toString().toUpperCase();
+                return ALLOWED_SS.has(ch) ? ch : '-';
+            })
+            .join('')
+    ), [ALLOWED_SS]);
+
+    // Debounced generate3D trigger and last sent guard
+    const lastGenRef = useRef({ biln: null, ss: null });
+    const triggerGenerate = useCallback((biln, ss) => {
+        const prev = lastGenRef.current;
+        if (prev.biln === biln && prev.ss === ss) return;
+        lastGenRef.current = { biln, ss };
+        generate3D(biln, ss);
+    }, [generate3D]);
+
     // keep constraints arrays shaped to sequences
     useEffect(() => {
         setConstraintsBySeq(prev => {
-            return rowMonomerLists.map((seq, i) => {
+            const next = rowMonomerLists.map((seq, i) => {
                 const existing = Array.isArray(prev[i]) ? prev[i] : [];
                 const len = seq.length;
                 const out = new Array(len);
                 for (let j = 0; j < len; j++) {
                     const v = (existing[j] || '-').toString().toUpperCase();
-                    out[j] = ['H', 'E', 'C', 'T', 'G', 'I', 'B', '-'].includes(v) ? v : '-';
+                    out[j] = ALLOWED_SS.has(v) ? v : '-';
                 }
                 return out;
             });
+
+            // Deep equality check to avoid no-op state updates
+            let same = next.length === prev.length;
+            if (same) {
+                for (let i = 0; i < next.length && same; i++) {
+                    const a = next[i] || [];
+                    const b = prev[i] || [];
+                    if (a.length !== b.length) { same = false; break; }
+                    for (let j = 0; j < a.length; j++) {
+                        if (a[j] !== b[j]) { same = false; break; }
+                    }
+                }
+            }
+            return same ? prev : next;
         });
     }, [rowMonomerLists]);
 
     // shape-safe edit
     const handleEditConstraint = useCallback((seqIdx, resIdx, ch) => {
-        const ALLOWED = ['H', 'E', 'C', 'T', 'G', 'I', 'B', '-'];
         setConstraintsBySeq(prev => {
             const lists = rowMonomerLists; // capture current lengths
-            const next = prev.map(a => (Array.isArray(a) ? a.slice() : []));
-            // ensure outer size
-            while (next.length < lists.length) next.push([]);
             const targetLen = lists[seqIdx]?.length ?? 0;
-            // ensure inner array and length
+
+            // Sanitize incoming value
+            const val = (() => {
+                const up = (ch || '-').toString().toUpperCase();
+                return ALLOWED_SS.has(up) ? up : '-';
+            })();
+
+            // If current equals new, do nothing (prevents redundant renders)
+            const current = (Array.isArray(prev?.[seqIdx]) && prev[seqIdx][resIdx]) || '-';
+            if (current === val) return prev;
+
+            // Clone and apply change
+            const next = prev.map(a => (Array.isArray(a) ? a.slice() : []));
+            while (next.length < lists.length) next.push([]);
             const arr = Array.isArray(next[seqIdx]) ? next[seqIdx].slice() : new Array(targetLen).fill('-');
             if (arr.length < targetLen) {
-                const fill = new Array(targetLen - arr.length).fill('-');
-                next[seqIdx] = arr.concat(fill);
+                next[seqIdx] = arr.concat(new Array(targetLen - arr.length).fill('-'));
             } else {
                 next[seqIdx] = arr;
             }
-            const val = (ch || '-').toString().toUpperCase();
-            next[seqIdx][resIdx] = ALLOWED.includes(val) ? val : '-';
+            next[seqIdx][resIdx] = val;
             return next;
         });
-    }, [rowMonomerLists]);
+    }, [rowMonomerLists, ALLOWED_SS]);
 
     // Stable setter to avoid MonomerTrack re-render due to inline function identity changes
     const onSetActiveSeqIdx = useCallback(
@@ -263,39 +331,6 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         getBiln: () => bilnValue,
     }), [addMonomerToBiln, uiState, bilnValue]);
 
-    const monomerTrack = useMemo(() => (
-        <MonomerTrack
-            rowMonomerLists={rowMonomerLists}
-            activeSeqIdx={uiState.activeSeqIdx}
-            onSetActiveSeqIdx={onSetActiveSeqIdx}
-            linkMap={linkMap}
-            hoveredMonomer={hoveredMonomer}
-            handleDeleteMonomerItem={handleDeleteMonomerItem}
-            onDragStart={handleDragStart}
-            onDragEnd={handleOnDragEnd}
-            handleMonomerEnter={handleMonomerEnter}
-            handleMonomerLeave={handleMonomerLeave}
-            handleDeleteSequence={handleDeleteSequence}
-            constraintsMode={constraintsMode}
-            onEditConstraint={handleEditConstraint}
-            constraintsBySeq={constraintsBySeq}
-        />
-    ), [
-        rowMonomerLists,
-        uiState.activeSeqIdx,
-        linkMap,
-        hoveredMonomer,
-        handleDeleteMonomerItem,
-        handleDragStart,
-        handleOnDragEnd,
-        handleMonomerEnter,
-        handleMonomerLeave,
-        beginReplaceSelection,
-        constraintsMode,
-        constraintsBySeq,
-        handleEditConstraint,
-    ]);
-
     function loadData(newBiln) {
         const params = {
             sequence: newBiln,
@@ -304,31 +339,52 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         }
 
         // const query = `?sequence=${newBiln}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
-        const loadAndGenerate = () => {
-            fetchDepiction(params);
-            generate3D(newBiln);
-        };
-        loadAndGenerate();
+        fetchDepiction(params);
     }
 
+
+    // Update committedBiln only when BILN is committable (prevents “separator-only” and open '(' churn)
     useEffect(() => {
-        if (!bilnValue) {
-            setMonomerSequences(bilnValue, []); // clear sequences
+        const { committable } = analyzeBiln(bilnValue);
+        if (!committable) return; // keep previous committedBiln
+        if (bilnValue !== committedBiln) setCommittedBiln(bilnValue);
+    }, [bilnValue, committedBiln, analyzeBiln]);
+
+    // Drive depiction only from committedBiln
+    useEffect(() => {
+        if (!committedBiln) {
+            setMonomerSequences('', []); // clear sequences
             setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
             setStructureOutput({ pdb: '' });
             return;
         }
-        loadData(bilnValue);
-    }, [bilnValue]);  // [bilnValue, isShowingAtomIndices]
+        loadData(committedBiln);
+    }, [committedBiln]); // [committedBiln, isShowingAtomIndices] if you want atom indices to affect depiction
 
+
+    // 3D generation only when constraints length matches committed BILN token count
     useEffect(() => {
-        const count = deriveSeqCount(bilnValue);
+        if (!committedBiln) {
+            // Clear 3D when sequence is empty
+            setStructureOutput({ pdb: '' });
+            return;
+        }
+        const ss = flattenSecstruct(constraintsBySeq);
+        const { tokenCount } = analyzeBiln(committedBiln);
+        if (ss.length !== tokenCount) return; // wait for constraints to reshape
+        triggerGenerate(committedBiln, ss);
+    }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln]);
+
+
+    // Keep UI seq count in sync with committed BILN
+    useEffect(() => {
+        const count = deriveSeqCount(committedBiln);
         setUiState(prev => {
             const nextIdx = reconcileActiveSeqIdx(prev.activeSeqIdx, count);
             if (prev.seqNumber === count && prev.activeSeqIdx === nextIdx) return prev;
             return { ...prev, seqNumber: count, activeSeqIdx: nextIdx };
         });
-    }, [bilnValue, setUiState]);
+    }, [committedBiln, setUiState]);
 
     function handleBilnChange(newBiln) {
         setBilnValue(newBiln);
@@ -442,50 +498,33 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                 onUndo={handleUndoBiln}
                 onRedo={handleRedoBiln}
                 onClear={() => handleBilnChange('')}
-            >
-                <Paper
-                    // variant="outlined"
-                    elevation={0}
-                    sx={{
-                        p: 0,
-                        // marginTop: 2,
-                        height: '100%',
-                        // height: 120,
-                        overflowY: 'auto',
-                        position: 'relative',
-                        // zIndex: (t) => (overlayActive ? t.zIndex.modal + 1 : 'auto'),
-                    }}
-                >
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                Chains
-                            </Typography>
-                            <Tooltip title="Sequences help" arrow>
-                                <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
-                                    <HelpOutlineIcon fontSize="inherit" />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-
-                        <SequenceTrackToolbar
-                            linkMode={viewer2DModes.linkMode}
-                            bondsMode={viewer2DModes.bondsMode}
-                            onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                            onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                            canLink={canLink}
-                            canUnlink={canCut}
-                            constraintsMode={constraintsMode}
-                            onToggleConstraintsMode={() => setConstraintsMode(m => !m)}
-                        />
-                    </Box>
-                    {monomerTrack}
-                </Paper>
-            </BilnEditorInterface>
+                // Chains section props
+                rowMonomerLists={rowMonomerLists}
+                activeSeqIdx={uiState.activeSeqIdx}
+                onSetActiveSeqIdx={onSetActiveSeqIdx}
+                linkMap={linkMap}
+                hoveredMonomer={hoveredMonomer}
+                handleDeleteMonomerItem={handleDeleteMonomerItem}
+                onDragStart={handleDragStart}
+                onDragEnd={handleOnDragEnd}
+                handleMonomerEnter={handleMonomerEnter}
+                handleMonomerLeave={handleMonomerLeave}
+                handleDeleteSequence={handleDeleteSequence}
+                constraintsMode={constraintsMode}
+                onToggleConstraintsMode={() => setConstraintsMode((m) => !m)}
+                constraintsBySeq={constraintsBySeq}
+                onEditConstraint={handleEditConstraint}
+                // Toolbar (link/cut) wiring
+                linkMode={viewer2DModes.linkMode}
+                bondsMode={viewer2DModes.bondsMode}
+                onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                canLink={canLink}
+                canUnlink={canCut}
+            />
 
             {/* Sequences help dialog */}
-            <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
+            {/* <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Working with sequences</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
                     <ul>
@@ -499,7 +538,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                 <DialogActions>
                     <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
                 </DialogActions>
-            </Dialog>
+            </Dialog> */}
 
             {/* Local overlay for “replace monomer” selection */}
             {replaceOverlay}
@@ -786,6 +825,50 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                         </Box>
                         {/* Canvas area */}
                         <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                            {structureLoading && (
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        bgcolor: 'rgba(255,255,255,0.6)',
+                                        zIndex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <CircularProgress size={48} />
+                                </Box>
+                            )}
+                            {!structureLoading && !structureOutput?.pdb && (
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        bgcolor: 'background.paper',
+                                        zIndex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        px: 2,
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    {/* Show message about 3D generation status */}
+                                    <Typography
+                                        variant="body1"
+                                        sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
+                                    >
+                                        No data
+                                    </Typography>
+                                </Box>
+                            )}
                             <Viewer3D
                                 ref={viewer3DRef}
                                 pdbRawData={structureOutput?.pdb}

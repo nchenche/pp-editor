@@ -6,7 +6,7 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 
-export default function SequenceTrackToolbar({
+export default function ChainsToolbar({
     linkMode = false,
     bondsMode = false,
     onToggleLinkMode = () => { },
