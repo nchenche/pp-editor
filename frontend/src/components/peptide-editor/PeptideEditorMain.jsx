@@ -583,7 +583,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                                     </span>
                                 </Tooltip>
 
-                                <Tooltip title="Cut" arrow placement='top'>
+                                <Tooltip title="Unlink" arrow placement='top'>
                                     <span>
                                         <Button
                                             onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
@@ -596,7 +596,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
                                     </span>
                                 </Tooltip>
 
-                                <Tooltip title="Reset" arrow placement='top'>
+                                <Tooltip title="Reset View" arrow placement='top'>
                                     <span>
                                         <Button
                                             onClick={() => viewer2DRef.current?.resetView()}

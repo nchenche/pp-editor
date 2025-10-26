@@ -211,7 +211,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
     const seqCount = Math.max(0, Number(uiState?.seqNumber) || 0);
     const noSeq = seqCount === 0;
     const seqIdx = uiState?.activeSeqIdx ?? null;
-    const seqOptions = useMemo(() => Array.from({ length: seqCount }, (_, i) => ({ value: i, label: String(i+1) })), [seqCount]);
+    const seqOptions = useMemo(() => Array.from({ length: seqCount }, (_, i) => ({ value: i, label: String(i + 1) })), [seqCount]);
 
     // When sequence count changes, coerce mode accordingly
     const prevSeqCountRef = useRef(seqCount);
@@ -285,23 +285,36 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
             }}
         >
             {/* SECTION TITLE — Search and filters */}
-            <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 0.6 }}>
-                Search and filters
-            </Typography>
-
-            {/* SECTION 1 — Search + Filters */}
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", mt: 0.5 }}>
-                {/* Search bar (dense) */}
-                <Box display="flex" alignItems="center" sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1, px: 1, py: 0.25, minHeight: 34, bgcolor: 'transparent' }} component="form" onSubmit={e => e.preventDefault()}>
-                    <SearchIcon fontSize="small" sx={{ color: "grey.600", mr: 0.75 }} />
-                    <InputBase placeholder="Search monomers…" value={searchValue} onChange={e => onSearchChange(e.target.value)} sx={{ fontSize: 14, width: "100%" }} inputProps={{ "aria-label": "search monomers" }} />
-                </Box>
-
-                {/* Quick filter toggles + advanced */}
-                <Box display="flex" justifyContent="flex-end">
-                    <QuickFilterBar value={quickFilter} onChange={onQuickFilterChange} onShowAdvanced={e => setPopoverAnchor(e.currentTarget)} />
-                </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.5px' }}>
+                    MONOMER LIBRARY
+                </Typography>
             </Box>
+
+            <Box mt={2}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 0.6 }}>
+                    Search and filters
+                </Typography>
+
+                {/* SECTION 1 — Search + Filters */}
+                <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", mt: 0.5 }}>
+
+                    {/* Search bar (dense) */}
+                    <Box display="flex" alignItems="center" sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1, px: 1, py: 0.25, minHeight: 34, bgcolor: 'transparent' }} component="form" onSubmit={e => e.preventDefault()}>
+                        <SearchIcon fontSize="small" sx={{ color: "grey.600", mr: 0.75 }} />
+                        <InputBase placeholder="Search monomers…" value={searchValue} onChange={e => onSearchChange(e.target.value)} sx={{ fontSize: 14, width: "100%" }} inputProps={{ "aria-label": "search monomers" }} />
+                    </Box>
+
+                    {/* Quick filter toggles + advanced */}
+                    <Box display="flex" justifyContent="flex-end">
+                        <QuickFilterBar value={quickFilter} onChange={onQuickFilterChange} onShowAdvanced={e => setPopoverAnchor(e.currentTarget)} />
+                    </Box>
+                </Box>
+
+            </Box>
+
+
+
 
             <Divider sx={{ my: 1.25 }} />
 
