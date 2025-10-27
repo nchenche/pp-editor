@@ -285,11 +285,11 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
             }}
         >
             {/* SECTION TITLE — Search and filters */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.5px' }}>
                     MONOMER LIBRARY
                 </Typography>
-            </Box>
+            </Box> */}
 
             <Box mt={2}>
                 <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 0.6 }}>

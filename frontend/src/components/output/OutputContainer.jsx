@@ -65,7 +65,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
     }, [OUTPUT_FIELDS, outputData]);
 
 
-    const [visible, setVisible] = useState(["smiles"]);  // defaultVisible
+    const [visible, setVisible] = useState(defaultVisible);  // defaultVisible, ['smiles', 'biln']
     const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
 
     const handleCloseSnack = () => setSnack(s => ({ ...s, open: false }));
@@ -125,7 +125,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                    Outputs
+                    Output formats
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
@@ -197,8 +197,8 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                         const hasValue = !!value;
 
                         return (
-                            <Box key={f.key} component="section" sx={{ mb: idx < visibleFields.length - 1 ? 1.5 : 0 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Box key={f.key} component="section" sx={{ mt: 3, mb: idx < visibleFields.length - 1 ? 3 : 0 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                                     <Typography variant="subtitle2">{f.label}</Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                         <Tooltip title="Copy" arrow placement="top">
@@ -232,7 +232,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
 
                                 <Paper
                                     variant="outlined"
-                                    sx={{ p: 1, bgcolor: 'background.paper', maxHeight: 220, overflow: 'auto' }}
+                                    sx={{ p: 1, bgcolor: 'background.paper', overflow: 'auto' }}
                                 >
                                     <Typography
                                         component="pre"
@@ -259,7 +259,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                 open={snack.open}
                 autoHideDuration={2000}
                 onClose={handleCloseSnack}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
                 <Alert onClose={handleCloseSnack} severity={snack.severity} variant="filled" sx={{ width: '100%' }}>
                     {snack.msg}

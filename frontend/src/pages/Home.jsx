@@ -7,6 +7,10 @@ import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMai
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 import { OutputContainer } from '../components/output/OutputContainer';
 
+import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+
 const Home = forwardRef((props, ref) => {
 
   const editorRef = useRef(null);
@@ -25,6 +29,12 @@ const Home = forwardRef((props, ref) => {
     mode: null,             // 'analog' | 'other' | null
     sourceMonomer: null,    // monomer object (from track)
   });
+
+  const [tabIndex, setTabIndex] = useState(0);
+
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
 
   const handleBeginReplaceSelection = useCallback((mode, sourceMonomer) => {
     setReplaceSelection({ active: true, mode, sourceMonomer });
@@ -56,13 +66,40 @@ const Home = forwardRef((props, ref) => {
       <div className="h-full min-h-0">
         <DesignPageLayoutMUI
           sidebar={
-            <MonomerLibraryContainer
-              filterValue=""
-              handleAddingMonomer={handleAddingMonomer}
-              uiState={uiState}
-              setUiState={setUiState}
-              replaceSelection={replaceSelection}
-            />
+            <Box>
+              <Tabs
+                value={tabIndex}
+                onChange={handleTabChange}
+                variant="fullWidth"
+                sx={{ borderBottom: 1, borderColor: 'divider' }}
+              >
+                <Tab label="Monomer Library" />
+                <Tab label="Output" />
+              </Tabs>
+
+              {/* Keep both mounted; toggle visibility */}
+              <Box
+                role="tabpanel"
+                sx={{ display: tabIndex === 0 ? 'block' : 'none' }}
+                aria-hidden={tabIndex !== 0}
+              >
+                <MonomerLibraryContainer
+                  filterValue=""
+                  handleAddingMonomer={handleAddingMonomer}
+                  uiState={uiState}
+                  setUiState={setUiState}
+                  replaceSelection={replaceSelection}
+                />
+              </Box>
+
+              <Box
+                role="tabpanel"
+                sx={{ display: tabIndex === 1 ? 'block' : 'none' }}
+                aria-hidden={tabIndex !== 1}
+              >
+                <OutputContainer outputData={outputData} />
+              </Box>
+            </Box>
           }
           viewerContainer={
             <PeptideEditorMain
@@ -75,7 +112,7 @@ const Home = forwardRef((props, ref) => {
               onCancelReplaceSelection={handleCancelReplaceSelection}
             />
           }
-          outputPanel={<OutputContainer outputData={outputData} />}
+        // outputPanel={<OutputContainer outputData={outputData} />}
         />
       </div>
     </ConfirmProvider>
