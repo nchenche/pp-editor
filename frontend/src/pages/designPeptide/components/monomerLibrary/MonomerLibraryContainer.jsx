@@ -123,19 +123,20 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     ), [searchValue, quickFilters, onLinkingSnapshotChange, uiState, setUiState]);
 
     return (
-        <Box display="flex" flexDirection="column" height="100%">
+        <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
+            {/* <Box sx={{ flex: '0 0 auto' }}> */}
             {memoizedLibraryHeader}
+            {/* </Box> */}
             <Box
-                flex={1}
-                minHeight={0}
-                overflow="auto"
-                pt={1}
-                pb={2}
-                display="flex"
-                flexDirection="column"
-                justifyContent="flex-start"
-                alignItems="center"
-                position="relative"
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    height: "80%",
+                    pt: 1,
+                    pb: 2,
+                    position: "relative",
+                    overflowY: "auto",
+                }}
             >
                 {initialLoading && (
                     <Box

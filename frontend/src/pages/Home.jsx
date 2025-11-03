@@ -66,7 +66,7 @@ const Home = forwardRef((props, ref) => {
       <div className="h-full min-h-0">
         <DesignPageLayoutMUI
           sidebar={
-            <Box>
+            <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <Tabs
                 value={tabIndex}
                 onChange={handleTabChange}
@@ -80,7 +80,12 @@ const Home = forwardRef((props, ref) => {
               {/* Keep both mounted; toggle visibility */}
               <Box
                 role="tabpanel"
-                sx={{ display: tabIndex === 0 ? 'block' : 'none' }}
+                sx={{
+                  display: tabIndex === 0 ? 'flex' : 'none',
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'hidden', // the MonomerLibraryContainer manages its own scroll
+                }}
                 aria-hidden={tabIndex !== 0}
               >
                 <MonomerLibraryContainer
@@ -94,10 +99,18 @@ const Home = forwardRef((props, ref) => {
 
               <Box
                 role="tabpanel"
-                sx={{ display: tabIndex === 1 ? 'block' : 'none' }}
+                sx={{
+                  display: tabIndex === 1 ? 'flex' : 'none',
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'hidden',
+                }}
                 aria-hidden={tabIndex !== 1}
               >
-                <OutputContainer outputData={outputData} />
+                {/* Output tab: let the first child scroll */}
+                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                  <OutputContainer outputData={outputData} />
+                </Box>
               </Box>
             </Box>
           }

@@ -224,7 +224,7 @@ export const DesignPageLayoutMUI = ({
                     height: '100%',
                     minWidth: 0,
                     display: 'grid',
-                    gridTemplateRows: '100% 15%',
+                    gridTemplateRows: '100% 0%',
                     gap: 1,
                     overflow: 'hidden', // this column doesn't scroll as a whole
                     position: 'relative', // for overlay portal
@@ -306,8 +306,8 @@ export const DesignPageLayoutMUI = ({
                 sx={{
                     height: '100%',
                     minWidth: `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
+                    overflow: 'hidden',
+                    // overflowX: 'hidden',
                     borderRadius: 1,
                     p: 1,
                     borderWidth: overlayActive ? 2 : 1,
@@ -325,9 +325,34 @@ export const DesignPageLayoutMUI = ({
                     // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
                     willChange: 'transform, box-shadow',
                     '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+                    // Make the provided `sidebar` Box fill and behave as a column with fixed Tabs and flexible tab-panels
+                    // '& > *': {
+                    //     display: 'flex',
+                    //     flexDirection: 'column',
+                    //     height: '100%',
+                    //     minHeight: 0,
+                    // },
+                    // Tabs stay fixed height
+                    // '& > * > .MuiTabs-root': {
+                    //     flex: '0 0 auto',
+                    // },
+                    // Each tabpanel fills the remaining height and does not scroll by itself
+                    // '& > * > [role="tabpanel"]': {
+                    //     flex: '1 1 auto',
+                    //     minHeight: 0,
+                    //     overflow: 'hidden',
+                    // },
+                    // Output tab: let the first child (OutputContainer root) scroll
+                    // '& > * > [role="tabpanel"]:nth-of-type(2) > :first-child': {
+                    //     flex: 1,
+                    //     minHeight: 0,
+                    //     overflowY: 'auto',
+                    // },
                 }}
             >
-                {sidebar}
+                <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                    {sidebar}
+                </Box>
             </Paper>
 
         </Box>

@@ -231,7 +231,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
 function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
     const gapClass = (SIZE[itemSize] || SIZE.sm).gapClass;
     return (
-        <div className={`relative flex flex-wrap justify-center ${gapClass} p-2`}>
+        <div className={`relative flex flex-wrap justify-center ${gapClass} p-2 `}>
             {monomers.map((monomer) => (
                 <MonomerLibraryItem
                     key={monomer._id}
