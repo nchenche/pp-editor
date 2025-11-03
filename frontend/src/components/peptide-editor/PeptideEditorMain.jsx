@@ -201,7 +201,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     // const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
-    const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers, committedBiln]);
+    const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
 
 
     const {

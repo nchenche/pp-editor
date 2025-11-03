@@ -325,29 +325,6 @@ export const DesignPageLayoutMUI = ({
                     // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
                     willChange: 'transform, box-shadow',
                     '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                    // Make the provided `sidebar` Box fill and behave as a column with fixed Tabs and flexible tab-panels
-                    // '& > *': {
-                    //     display: 'flex',
-                    //     flexDirection: 'column',
-                    //     height: '100%',
-                    //     minHeight: 0,
-                    // },
-                    // Tabs stay fixed height
-                    // '& > * > .MuiTabs-root': {
-                    //     flex: '0 0 auto',
-                    // },
-                    // Each tabpanel fills the remaining height and does not scroll by itself
-                    // '& > * > [role="tabpanel"]': {
-                    //     flex: '1 1 auto',
-                    //     minHeight: 0,
-                    //     overflow: 'hidden',
-                    // },
-                    // Output tab: let the first child (OutputContainer root) scroll
-                    // '& > * > [role="tabpanel"]:nth-of-type(2) > :first-child': {
-                    //     flex: 1,
-                    //     minHeight: 0,
-                    //     overflowY: 'auto',
-                    // },
                 }}
             >
                 <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>

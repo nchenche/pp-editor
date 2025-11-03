@@ -152,8 +152,18 @@ export default function BilnEditorInterface({
             </Box>
 
             {/* Chains section */}
-            <Box sx={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden', mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Box
+                sx={{
+                    mt: 2,
+                    // cap the section height; <=2 chains fit, >2 will scroll
+                    maxHeight: 500,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    overflow: 'hidden', // header fixed; inner list handles its own scroll
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flex: '0 0 auto' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                             Chains
@@ -175,7 +185,7 @@ export default function BilnEditorInterface({
                         onToggleConstraintsMode={onToggleConstraintsMode}
                     />
                 </Box>
-                <Box sx={{ height: '100%', minHeight: 0, overflowY: 'auto', pr: 0.5 }}>
+                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', pr: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
                         activeSeqIdx={activeSeqIdx}
