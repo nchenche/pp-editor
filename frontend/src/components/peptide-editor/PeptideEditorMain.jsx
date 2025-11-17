@@ -43,11 +43,27 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-console.log('Using API_BASE_URL:', API_BASE_URL);
+const initBiln = 'P-E-P-T-I-D-E';  //  A-C-K-A-C
 
-const initBiln = 'A-F-R-I-C-A';  //  A-C-K-A-C
 
-const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
+// Read persisted editor state once (sync) to avoid flicker on mount/route switch
+function readPersistedDesign() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('design-peptide-v1');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        return {
+            biln: typeof parsed.biln === 'string' ? parsed.biln : null,
+            constraints: Array.isArray(parsed.constraints) ? parsed.constraints : null,
+        };
+    } catch {
+        return null;
+    }
+}
+
+const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
     // console.log('PeptideEditorMain rendered');
 
@@ -64,7 +80,10 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const colorMenuOpen = Boolean(colorMenuEl);
     const reset3DOpen = Boolean(reset3DEl);
 
-    const [bilnValue, setBilnValue] = useState(initBiln);  //  A-C-K-A-C
+    const persisted = useRef(readPersistedDesign()).current;
+    const initialBiln = persisted?.biln ?? initBiln;
+    const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
+
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
@@ -91,11 +110,11 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     }, []);
 
     // Only this “committed” BILN drives depiction/3D
-    const [committedBiln, setCommittedBiln] = useState(initBiln);
+    const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
     // --- BILN history (undo up to 10) ---
     const MAX_HISTORY = 20;
-    const [bilnHistory, setBilnHistory] = useState(['A-F-R-I-C-A']);
+    const [bilnHistory, setBilnHistory] = useState([initialBiln]);
     const [bilnFuture, setBilnFuture] = useState([]);
     const didInitHistoryRef = useRef(false);
     const isUndoingRef = useRef(false);
@@ -228,7 +247,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
     const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
-    const [constraintsBySeq, setConstraintsBySeq] = useState([]);  // ensure constraints length matches monomers length per sequence
+    const [constraintsBySeq, setConstraintsBySeq] = useState(() => persisted?.constraints ?? []);  // ensure constraints length matches monomers length per sequence
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
     const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
@@ -352,6 +371,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
 
     // Drive depiction only from committedBiln
     useEffect(() => {
+        if (!isActive) return; // skip when not active
         if (!committedBiln) {
             setMonomerSequences('', []); // clear sequences
             setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
@@ -359,11 +379,12 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
             return;
         }
         loadData(committedBiln);
-    }, [committedBiln]); // [committedBiln, isShowingAtomIndices] if you want atom indices to affect depiction
+    }, [committedBiln, isActive]); // [committedBiln, isShowingAtomIndices] if you want atom indices to affect depiction
 
 
     // 3D generation only when constraints length matches committed BILN token count
     useEffect(() => {
+        if (!isActive) return;
         if (!committedBiln) {
             // Clear 3D when sequence is empty
             setStructureOutput({ pdb: '' });
@@ -373,7 +394,7 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
         const { tokenCount } = analyzeBiln(committedBiln);
         if (ss.length !== tokenCount) return; // wait for constraints to reshape
         triggerGenerate(committedBiln, ss);
-    }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln]);
+    }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln, isActive]);
 
 
     // Keep UI seq count in sync with committed BILN
@@ -389,6 +410,23 @@ const PeptideEditorMainInner = ({ onOutputChange, uiState, setUiState, onBeginRe
     function handleBilnChange(newBiln) {
         setBilnValue(newBiln);
     }
+
+    // useEffect(() => {
+    //     const saved = localStorage.getItem('design-peptide-v1');
+    //     if (!saved) return;
+    //     try {
+    //         const { biln, constraints } = JSON.parse(saved);
+    //         if (typeof biln === 'string') setBilnValue(biln);
+    //         if (Array.isArray(constraints)) setConstraintsBySeq(constraints);
+    //     } catch { }
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, []);
+
+    useEffect(() => {
+        const payload = JSON.stringify({ biln: bilnValue, constraints: constraintsBySeq });
+        const id = setTimeout(() => localStorage.setItem('design-peptide-v1', payload), 200);
+        return () => clearTimeout(id);
+    }, [bilnValue, constraintsBySeq]);
 
 
     // Compact, subtle button style for the 2D toolbar

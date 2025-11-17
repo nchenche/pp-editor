@@ -12,7 +12,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 
 const Home = forwardRef((props, ref) => {
-
+  const isHomeActive = props.isActive || false;
   const editorRef = useRef(null);
   const [outputData, setOutputData] = useState({});
 
@@ -58,7 +58,6 @@ const Home = forwardRef((props, ref) => {
       editorRef.current?.addMonomer(monomer, options);
     }
   }, [replaceSelection]);
-
 
 
   return (
@@ -116,6 +115,7 @@ const Home = forwardRef((props, ref) => {
           }
           viewerContainer={
             <PeptideEditorMain
+              isActive={isHomeActive}
               ref={editorRef}
               Viewer3D={<div>3D Viewer Placeholder</div>}
               onOutputChange={setOutputData}

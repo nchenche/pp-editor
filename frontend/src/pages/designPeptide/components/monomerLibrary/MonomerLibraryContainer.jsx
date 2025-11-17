@@ -55,9 +55,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     // Fetch once (full list), then filter locally
     const { data: allResp, isLoading, error } = useLibraryFetching({});
     const allMonomers = useMemo(() => (allResp?.data || allResp || []), [allResp]);
-
-    console.log(allResp);
-
+    
     // Debounce the search value
     const debouncedSearch = useDebouncedValue(searchValue || filterValue || '', 220);
 

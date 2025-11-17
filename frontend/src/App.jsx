@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Link, useLocation } from 'react-router-dom';
 
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -22,8 +22,8 @@ import PeptideEditor from './components/core/Peptide';
 
 const dataLinks = [
   {
-      to: '/',
-      text: 'Design peptide'
+    to: '/',
+    text: 'Design peptide'
   },
   // {
   //     to: '/peptide',
@@ -34,11 +34,33 @@ const dataLinks = [
     text: 'Monomer library'
   },
   {
-      to: '/admin-monomers',
-      text: 'Add new monomer'
+    to: '/admin-monomers',
+    text: 'Add new monomer'
   }
 ]
 
+
+function AppRoutes() {
+  const location = useLocation();
+  const isDesignActive = location.pathname === '/';
+
+
+  return (
+    <>
+      {/* Persist Design page; only hide/show */}
+      <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
+        <Home isActive={isDesignActive} />
+      </div>
+      
+      {/* Other routes render normally */}
+      <Routes>
+        <Route path="/" element={<></>} />
+        <Route path="/admin-monomers" element={<UIAddMonomers />} />
+        <Route path="/monomers" element={<MonomerLibraryContainer />} />
+      </Routes>
+    </>
+  );
+}
 
 
 function App() {
@@ -47,17 +69,10 @@ function App() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="flex flex-col min-h-screen">
         <Header>
-          <NavBar dataLinks={dataLinks}/>
+          <NavBar dataLinks={dataLinks} />
         </Header>
         <main className="flex-grow min-h-0 h-full">
-          <Routes>
-            <Route path="/" element={<Home />} />  
-            {/* <Route path="/peptide" element={<DesignPeptideContainer />} /> */}
-            <Route path="/admin-monomers" element={<UIAddMonomers />} />
-            <Route path="/monomers" element={<MonomerLibraryContainer />} />
-            {/* <Route path="/monomers" element={<FilterableMonomerLibrary />} /> */}
-
-          </Routes>
+          <AppRoutes />
         </main>
         <Footer />
       </div>

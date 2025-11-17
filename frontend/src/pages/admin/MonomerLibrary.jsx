@@ -155,7 +155,6 @@ const ListMonomerLibrary = ({ monomers }) => {
 
 
 export const MonomerLibraryContainer = () => {
-    console.log(`API URL: ${API_BASE_URL}/api/db/monomers/images`);
     const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers/images`);
     const dataRef = useRef(null);
 
@@ -189,7 +188,6 @@ export const MonomerLibraryContainer = () => {
             initializeRangeFilter(data, 'NumHDonors', setFilters, limitRangeHBD);
             initializeRangeFilter(data, 'MolLogP', setFilters, limitRangeMolLogP);
 
-            console.log('data', data.min_max_values);
             setFilteredMonomers(dataRef.current);  // Initialize filteredMonomers with fetched data
         }
     }, [data, isLoading, error]);
