@@ -40,6 +40,7 @@ export function useGenerate3D() {
         // Build request body: include secstruct only when constraints are provided and not all '-'
         const body = { sequence: bilnValue };
         if (hasConstraints && !allDash) body.secstruct = ssConstraints;
+        console.log('3D generation request body:', ssConstraints);
 
         const myReqId = ++reqIdRef.current;
         setLoading(true);
