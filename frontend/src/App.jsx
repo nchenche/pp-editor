@@ -20,12 +20,10 @@ import PeptideEditor from './components/core/Peptide';
 
 // import VisNetwork from './components/graph/Test2';
 
-// A-C-K-A-C(1,2).A(1,1)-F
-
 const dataLinks = [
   {
       to: '/',
-      text: 'Home'
+      text: 'Design peptide'
   },
   // {
   //     to: '/peptide',
