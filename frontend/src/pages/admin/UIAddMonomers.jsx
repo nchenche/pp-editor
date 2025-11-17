@@ -41,7 +41,7 @@ const getCurrentTime = () => {
 };
 
 const UIAddMonomers = memo(() => {
-  log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
+  // log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
 
   // State Hooks
   const [smiles, setSmiles] = useState('CCO');
@@ -147,7 +147,7 @@ const UIAddMonomers = memo(() => {
     }
 
     console.log("Form completed, sending molblock data to server...");
-    console.log('typeof', typeof(molBlock));
+    console.log(`Server URL: ${API_DB_URL}/monomers/add`);
 
     try {
       const response = await fetch(`${API_DB_URL}/monomers/add`, {

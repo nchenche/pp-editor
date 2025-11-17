@@ -48,6 +48,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const prevDataRef = useRef([]);
 
   const baseUrl = `${API_BASE_URL}/api/db/monomers/images`;
+  console.log(`Fetching from URL: ${baseUrl}`);
 
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
@@ -74,7 +75,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
         const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
         const json = await res.json();
-        const next = (json?.data || []).slice(0, 200);
+        const next = (json?.data || []);  // .slice(0, 200)
 
         if (cancelled) return;
         setCached(cacheKey, next);

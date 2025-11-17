@@ -155,6 +155,7 @@ const ListMonomerLibrary = ({ monomers }) => {
 
 
 export const MonomerLibraryContainer = () => {
+    console.log(`API URL: ${API_BASE_URL}/api/db/monomers/images`);
     const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers/images`);
     const dataRef = useRef(null);
 
