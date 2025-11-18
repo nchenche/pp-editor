@@ -122,13 +122,15 @@ export const ChainSlots = ({
                                         const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
                                         return (
                                             <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
-                                                <ConstraintCell
-                                                    index={i}
-                                                    value={v}
-                                                    commitAt={(idx, ch) => onEditConstraint?.(seqIdx, idx, ch)}
-                                                    chipWidth={chipWidth}  // match monomer item width
-                                                    cellSize={cellSize}   // match monomer item height (square)
-                                                />
+                                                <span>
+                                                    <ConstraintCell
+                                                        index={i}
+                                                        value={v}
+                                                        commitAt={(idx, ch) => onEditConstraint?.(seqIdx, idx, ch)}
+                                                        chipWidth={chipWidth}  // match monomer item width
+                                                        cellSize={cellSize}   // match monomer item height (square)
+                                                    />
+                                                </span>
                                             </Tooltip>
                                         );
                                     })
