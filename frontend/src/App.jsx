@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
+import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
 
 
 
