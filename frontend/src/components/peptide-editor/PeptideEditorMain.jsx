@@ -43,7 +43,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-const initBiln = 'P-E-P-T-I-D-E';  //  A-C-K-A-C
+const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 
 
 // Read persisted editor state once (sync) to avoid flicker on mount/route switch

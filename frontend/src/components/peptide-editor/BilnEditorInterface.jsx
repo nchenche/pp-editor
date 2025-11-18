@@ -1,12 +1,13 @@
 // ...existing imports...
 import React, { useState } from 'react';
 import {
-    Box, Paper, Typography, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, ButtonGroup
+    Box, Paper, Typography, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, ButtonGroup, 
 } from '@mui/material';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import UploadIcon from '@mui/icons-material/Upload';
 
 import { SequenceEditorPanel } from './SequenceInput';
 import ChainsToolbar from './ChainComponent/ChainsToolbar';
@@ -92,6 +93,40 @@ export default function BilnEditorInterface({
 
                 {/* Right-side toolbar: Undo / Redo / Clear (neutral, outlined) */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <ButtonGroup size="small" variant="outlined">
+                        <Tooltip title="Load example BILN" arrow>
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={() => onChangeBiln('P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)')}
+                                    startIcon={<HelpOutlineIcon fontSize="inherit" />}
+                                    sx={btnSx}
+                                >
+                                    Load Example
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    </ButtonGroup>
+
+                    <ButtonGroup size="small" variant="outlined">
+                        <Tooltip title="Upload sequence" arrow>
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={() => {}}
+                                    startIcon={<UploadIcon fontSize="inherit" />}
+                                    sx={btnSx}
+                                >
+                                    Upload Sequence
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    </ButtonGroup>
+
                     <ButtonGroup size="small" variant="outlined">
                         <Tooltip title="Undo" arrow>
                             <span>
