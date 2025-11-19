@@ -11,6 +11,7 @@ import { API_BASE_URL } from '../../config';
 import { log, initializeRangeFilter } from '../../utils/dev'
 import './styles.css'
 
+import { Box } from '@mui/material';
 
 const MonomerItem = ({ image, name, symbol }) => {
     return (
@@ -268,9 +269,29 @@ export const MonomerLibraryContainer = () => {
     if (!data) return null;
 
     return (
-        <div className="flex m-4 gap-x-2">
-            {/* Left filter sidebar (static placeholders) */}
-            <aside className="w-80 bg-gray-100 p-8 border">
+        <Box
+            sx={{
+                m: 2,
+                height: '100%',
+                minHeight: 0,
+                display: 'flex',
+                gap: 2,
+            }}
+        >
+            {/* Fixed filter sidebar */}
+            <Box
+                component="aside"
+                sx={{
+                    width: 280,
+                    flexShrink: 0,
+                    bgcolor: 'grey.100',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    p: 2,
+                    overflow: 'auto', // allow sidebar itself to scroll if it becomes taller than viewport
+                }}
+            >
                 <FilterMonomerPanel
                     search={filters.search}
                     handleFilterChange={handleFilterChange}
@@ -287,20 +308,47 @@ export const MonomerLibraryContainer = () => {
                     rangeMolLogP={filters.rangeMolLogP}
                     limitRangeMolLogP={limitRangeMolLogP}
                 />
-            </aside>
+            </Box>
 
-            {/* Main content area */}
-            <main className="flex-1 p-6 border-2">
+            {/* Main content: header + scrollable list */}
+            <Box
+                component="main"
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}
+            >
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-full">
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minHeight: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
                         <div className="loader">Loading...</div>
-                    </div>
+                    </Box>
                 ) : (
-                    <ListMonomerLibrary monomers={filteredMonomers} />
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minHeight: 0,
+                            overflowY: 'auto', // only ListMonomerLibrary scrolls
+                        }}
+                    >
+                        <ListMonomerLibrary monomers={filteredMonomers} />
+                    </Box>
                 )}
-            </main>
-
-        </div>
+            </Box>
+        </Box>
     );
 };
 

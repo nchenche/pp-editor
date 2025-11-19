@@ -1,86 +1,164 @@
 import { useState } from 'react';
+import {
+  Box,
+  Tabs,
+  Tab,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  Alert,
+} from '@mui/material';
+import { API_BASE_URL } from '../../../config'; // adjust path if needed
 
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
-import { Description, Field, Input, Label } from '@headlessui/react'
-import { Button } from '@headlessui/react'
-
-import { forwardRef } from 'react'
-
-
-let MyCustomTab = forwardRef(function (props, ref) {
-  return <button className="py-1 px-4 border-opacity-5 border-b-4 border-b-cyan-500  data-[selected]:border-opacity-30" ref={ref} {...props} />
-})
-
-
-const CustomField = ({ descr, name, onChange, value='' }) => {
+const CustomField = ({ descr, name, onChange, value = '', error, helperText }) => {
   return (
-      <Field>
-        {/* <Label>SMILES</Label> */}
-        <Description className="text-sm/6 p-1 text-slate-500">{descr}</Description>
-        <Input
-          type="text"
-          name={name}
-          value={value}
-          className="border rounded-lg data-[hover]:shadow data-[focus]:bg-blue-100"
-          onChange={onChange}
-        />
-      </Field>
-  )
-}
+    <Stack spacing={0.5} sx={{ width: '100%' }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        {descr}
+      </Typography>
+      <TextField
+        type="text"
+        name={name}
+        value={value}
+        size="small"
+        fullWidth
+        onChange={onChange}
+        error={!!error}
+        helperText={helperText}
+      />
+    </Stack>
+  );
+};
 
-
-const InputContainer = ({smiles, handleChangeSmiles}) => {
-  const [inputChemblValue, setInputChemblValue] = useState("");
+const InputContainer = ({ smiles, handleChangeSmiles }) => {
+  const [inputChemblValue, setInputChemblValue] = useState('');
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const [loadingChembl, setLoadingChembl] = useState(false);
+  const [chemblError, setChemblError] = useState('');
 
-  const handleSubmitClick = () => {
-    console.log("selectedTabIndex:", selectedTabIndex);
+  const isSmilesTab = selectedTabIndex === 0;
+  const isChemblTab = selectedTabIndex === 1;
 
-    if (selectedTabIndex === 0) {
-      console.log("smiles value:", smiles);
-    } else
-    console.log("chembl id:", inputChemblValue);
+  const handleSubmitClick = async () => {
+    const id = inputChemblValue.trim();
+    if (!id) {
+      setChemblError('Please enter a CHEMBL ID.');
+      return;
+    }
 
-  }
+    setChemblError('');
+    setLoadingChembl(true);
+
+    try {
+      const baseUrl = 'https://www.ebi.ac.uk/chembl/api/data/molecule';
+      const url = `${baseUrl}.json?molecule_chembl_id=${encodeURIComponent(id)}`;
+
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error('Failed to retrieve data from ChEMBL.');
+      }
+
+      const data = await resp.json();
+      const molecules = data?.molecules || [];
+
+      if (!Array.isArray(molecules) || molecules.length === 0) {
+        throw new Error('No molecule found for this CHEMBL ID.');
+      }
+
+      const structures = molecules[0]?.molecule_structures;
+      const smiles = structures?.canonical_smiles;
+
+      if (!smiles) {
+        throw new Error('No SMILES available for this CHEMBL ID.');
+      }
+
+      // Update SMILES field in parent
+      handleChangeSmiles(smiles);
+
+      // Switch back to SMILES tab so user sees the result
+      setSelectedTabIndex(0);
+    } catch (e) {
+      setChemblError(e.message || 'Error contacting ChEMBL service.');
+    } finally {
+      setLoadingChembl(false);
+    }
+  };
 
   return (
-    <div className='border-2 p-2 sm:w-full md:w-10/12 mx-auto flex flex-col'>
-      <TabGroup className="border" selectedIndex={selectedTabIndex} onChange={(index) => setSelectedTabIndex(index)}>
-
-        <TabList className="flex justify-center space-x-6">
-          <Tab as={MyCustomTab}>SMILES</Tab>
-          <Tab as={MyCustomTab}>CHEMBL ID</Tab>
-        </TabList>
-
-        <TabPanels className="border-2 border-slate-600 flex justify-center my-2 p-4">
-          <TabPanel>            
-            <CustomField 
-            descr="Enter a SMILES" 
-            name="input_smiles" 
-            onChange={(e) => handleChangeSmiles(e.target.value)}
-            value={smiles}></CustomField>
-          </TabPanel>
-
-          <TabPanel>
-          <CustomField 
-            descr="Enter a CHEMBL ID" 
-            name="input_chemblid" 
-            onChange={(e) => setInputChemblValue(e.target.value)} 
-            value={inputChemblValue}></CustomField>
-          </TabPanel>          
-        </TabPanels>
-
-      </TabGroup>
-
-      <Button 
-        className="rounded bg-sky-600 py-2 px-4 text-sm text-white data-[hover]:bg-sky-500 data-[active]:bg-sky-700 self-end"
-        onClick={handleSubmitClick}
+    <Box
+      sx={{
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        p: 2,
+        width: '100%',
+        maxWidth: '48rem',
+        mx: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+    >
+      <Tabs
+        value={selectedTabIndex}
+        onChange={(_, idx) => setSelectedTabIndex(idx)}
+        centered
+        textColor="primary"
+        indicatorColor="primary"
       >
-        Submit
-      </Button>
-    </div>
-  )
-}
+        <Tab label="SMILES" />
+        <Tab label="CHEMBL ID" />
+      </Tabs>
+
+      {/* SMILES tab */}
+      {isSmilesTab && (
+        <Box sx={{ mt: 1 }}>
+          <CustomField
+            descr="Enter a SMILES"
+            name="input_smiles"
+            onChange={(e) => handleChangeSmiles(e.target.value)}
+            value={smiles}
+          />
+        </Box>
+      )}
+
+      {/* CHEMBL tab */}
+      {isChemblTab && (
+        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <CustomField
+            descr="Enter a CHEMBL ID (e.g. CHEMBL25)"
+            name="input_chemblid"
+            onChange={(e) => {
+              setInputChemblValue(e.target.value);
+              setChemblError('');
+            }}
+            value={inputChemblValue}
+            error={!!chemblError}
+            helperText={chemblError || ' '}
+          />
+
+          {chemblError && (
+            <Alert severity="error" variant="outlined">
+              {chemblError}
+            </Alert>
+          )}
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleSubmitClick}
+              disabled={loadingChembl}
+            >
+              {loadingChembl ? 'Loading…' : 'Fetch SMILES'}
+            </Button>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 export default InputContainer;
 

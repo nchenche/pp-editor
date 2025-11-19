@@ -10,7 +10,7 @@ import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
 import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
 
-
+import { Box } from '@mui/material';
 
 // import About from './pages/About';
 
@@ -47,19 +47,42 @@ function AppRoutes() {
 
 
   return (
-    <>
+    <Box
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {/* Persist Design page; only hide/show */}
       <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
-        <Home isActive={isDesignActive} />
+        <main className="flex-grow min-h-0 h-full">
+          <Home isActive={isDesignActive} />
+        </main>
       </div>
-      
+
       {/* Other routes render normally */}
       <Routes>
         <Route path="/" element={<></>} />
-        <Route path="/admin-monomers" element={<UIAddMonomers />} />
-        <Route path="/monomers" element={<MonomerLibraryContainer />} />
+        <Route
+          path="/admin-monomers"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+              <UIAddMonomers />
+            </Box>
+          }
+        />
+        <Route
+          path="/monomers"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', backgroundColor: 'background.default' }}>
+              <MonomerLibraryContainer />
+            </Box>
+          }
+        />
       </Routes>
-    </>
+    </Box>
   );
 }
 
@@ -68,15 +91,20 @@ function App() {
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <div className="flex flex-col min-h-screen">
+      <Box
+        sx={{
+          height: '100%',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Header>
           <NavBar dataLinks={dataLinks} />
         </Header>
-        <main className="flex-grow min-h-0 h-full">
-          <AppRoutes />
-        </main>
+        <AppRoutes />
         <Footer />
-      </div>
+      </Box>
     </Router>
   );
 }

@@ -10,8 +10,6 @@ import { log } from '../../../utils/dev'
 
 
 export const TabStep1 = memo(({ smiles, handleChangeSmiles }) => {
-    log('rendering TabStep1');
-
     return (
         <div className='grid grid-cols-2'>
             <InputContainer smiles={smiles} handleChangeSmiles={handleChangeSmiles} />

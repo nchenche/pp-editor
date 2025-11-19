@@ -23,22 +23,6 @@ import {
 import { useFragments, useFormSubmission } from './hooks/CustomHooks'
 import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
-// import TabStep1 from './components/Steps';
-const getCurrentTime = () => {
-  const now = new Date();
-
-  const day = now.getDate();
-  const month = now.toLocaleString('default', { month: 'short' }); // Short month name
-  const year = now.getFullYear();
-
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  const milliseconds = String(now.getMilliseconds()).padStart(2, '0');
-
-
-  return `${hours}:${minutes}:${seconds}${milliseconds}`;
-};
 
 const UIAddMonomers = memo(() => {
   // log("Rendering UIAddMonomers", { background: 'blue', color: 'white' });
@@ -86,18 +70,6 @@ const UIAddMonomers = memo(() => {
     }
   };
 
-
-  useEffect(() => {
-    console.log("smiles changed", getCurrentTime(), smiles);
-  }, [smiles]);
-
-  useEffect(() => {
-    console.log("fragments changed", getCurrentTime(), fragments);
-  }, [fragments]);
-
-  useEffect(() => {
-    console.log("selectedBonds changed", getCurrentTime(), selectedBonds);
-  }, [selectedBonds]);
 
   // Function to handle navigating to the next tab
   const handleNext = async () => {
@@ -216,60 +188,120 @@ const UIAddMonomers = memo(() => {
 
 
   return (
-    <div className='m-2 w-8/12 mx-auto'>
-      <FormWizard
-        ref={wizardRef}
-        color="rgb(30, 41, 59)"
-        stepSize='xs'
-        shape="circle"
-        onComplete={handleComplete}
-        onTabChange={tabChanged}
-        backButtonTemplate={backButtonTemplate}
-        nextButtonTemplate={nextButtonTemplate}
+
+    <Box
+      sx={{
+        px: 2,
+        py: 1.5,
+        width: '100%',
+        maxWidth: '70rem',
+        mx: 'auto',
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* This Box is the scroll container */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          p: { xs: 1.5, md: 2 },
+          bgcolor: 'background.paper',
+        }}
       >
-        <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
-          <TabStep1
-            smiles={smiles}
-            handleChangeSmiles={handleChangeSmiles}
-          />
-        </FormWizard.TabContent>
+        <FormWizard
+          ref={wizardRef}
+          color="rgb(30, 41, 59)"
+          stepSize='xs'
+          shape="circle"
+          onComplete={handleComplete}
+          onTabChange={tabChanged}
+          backButtonTemplate={backButtonTemplate}
+          nextButtonTemplate={nextButtonTemplate}
+        >
+          <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
+            <TabStep1
+              smiles={smiles}
+              handleChangeSmiles={handleChangeSmiles}
+            />
+          </FormWizard.TabContent>
 
-        <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
-          <TabStep2
-            smiles={smiles}
-            handleSelectedBonds={handleSelectedBonds}
-            selectedBonds={selectedBonds}
-            fragments={fragments}
-          />
-        </FormWizard.TabContent>
+          <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
+            <TabStep2
+              smiles={smiles}
+              handleSelectedBonds={handleSelectedBonds}
+              selectedBonds={selectedBonds}
+              fragments={fragments}
+            />
+          </FormWizard.TabContent>
 
-        <FormWizard.TabContent title="Select a fragment" icon="ti-check">
-          <TabStep3 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} handleSelectedFragment={handleSelectedFragment} />
-          <p>Selected fragment: {selectedFragmentIndex} - {fragments[selectedFragmentIndex]}</p>
-        </FormWizard.TabContent>
+          <FormWizard.TabContent title="Select a fragment" icon="ti-check">
+            <TabStep3 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} handleSelectedFragment={handleSelectedFragment} />
+            <p>Selected fragment: {selectedFragmentIndex} - {fragments[selectedFragmentIndex]}</p>
+          </FormWizard.TabContent>
 
-        <FormWizard.TabContent title="Fill the fields" icon="ti-check">
-          <TabStep4
-            ref={formRef}
-            fragmentSmiles={fragments[selectedFragmentIndex]}
-            initialData={formData}
-            onFormDataChange={handleFormDataCallback}
-          />
-        </FormWizard.TabContent>
+          <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+            <TabStep4
+              ref={formRef}
+              fragmentSmiles={fragments[selectedFragmentIndex]}
+              initialData={formData}
+              onFormDataChange={handleFormDataCallback}
+            />
+          </FormWizard.TabContent>
 
-        <FormWizard.TabContent title="Validate" icon="ti-check">
-          <pre className="bg-slate-900 text-slate-400 text-left p-4 text-xs rounded-lg font-medium overflow-x-auto">
-            <code>{molBlock}</code>
-          </pre>
-        </FormWizard.TabContent>
+          <FormWizard.TabContent title="Validate" icon="ti-check">
+            <Box mb={2}>
+              <Typography variant="h6" >
+                Please review the generated molblock for the monomer before submission.
+              </Typography>
 
-      </FormWizard>
+              <Box mt={2}>
+                <TextField
+                  
+                  multiline
+                  rows={25}
+                  fullWidth
+                  variant="outlined"
+                  value={molBlock || 'No molblock generated.'}
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                      sx: {
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color: '#f8f8ff',
+                        backgroundColor: '#141821',
+                        '& textarea': {
+                          fontFamily: 'inherit',
+                          fontSize: 'inherit',
+                          color: 'inherit',
+                        },
+                      },
+                    },
+                    inputLabel: {
+                      sx: { color: 'text.secondary' },
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          </FormWizard.TabContent>
+
+        </FormWizard>
+      </Box>
+
+
       <style>{`
         @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
       `}</style>
+    </Box>
 
-
-    </div>
   );
 });
 
