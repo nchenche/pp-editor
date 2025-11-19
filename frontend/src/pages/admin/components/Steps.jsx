@@ -19,7 +19,6 @@ export const TabStep1 = memo(({ smiles, handleChangeSmiles }) => {
 });
 
 export const TabStep2 = memo(({ smiles, handleSelectedBonds, selectedBonds, fragments }) => {
-    log('rendering TabStep2', { background: 'orange' });
 
     const queryParams = {
         h_explicit_only: false,

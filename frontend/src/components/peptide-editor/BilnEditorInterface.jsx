@@ -1,13 +1,19 @@
 // ...existing imports...
 import React, { useState } from 'react';
 import {
-    Box, Paper, Typography, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, ButtonGroup, 
+    Box, Paper, Typography, Tooltip, Button, Dialog, DialogTitle, DialogContent,
+    DialogActions, IconButton, ButtonGroup, TextField, RadioGroup, FormControlLabel, Radio,
+    FormControl, FormLabel
 } from '@mui/material';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import UploadIcon from '@mui/icons-material/Upload';
+
+
+import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
+import { API_URL } from '../../config';
 
 import { SequenceEditorPanel } from './SequenceInput';
 import ChainsToolbar from './ChainComponent/ChainsToolbar';
@@ -50,6 +56,13 @@ export default function BilnEditorInterface({
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
+    // Upload sequence dialog state
+    const [uploadOpen, setUploadOpen] = useState(false);
+    const [uploadMode, setUploadMode] = useState('fasta'); // 'fasta' | 'helm'
+    const [uploadText, setUploadText] = useState('');
+    const [uploadError, setUploadError] = useState('');
+    const [uploadLoading, setUploadLoading] = useState(false);
+
     const btnSx = {
         textTransform: 'none',
         lineHeight: 1.1,
@@ -57,6 +70,52 @@ export default function BilnEditorInterface({
         px: 1,
         color: 'text.secondary',
         borderColor: 'divider',
+    };
+
+    const handleOpenUpload = () => {
+        setUploadOpen(true);
+        setUploadMode('fasta');
+        setUploadText('');
+        setUploadError('');
+    };
+
+    const handleCloseUpload = () => {
+        if (uploadLoading) return;
+        setUploadOpen(false);
+        setUploadText('');
+        setUploadError('');
+    };
+
+    const handleConfirmUpload = async () => {
+        console.log('Uploading sequence:', uploadMode, uploadText);
+        const text = uploadText.trim();
+        if (!text) {
+            setUploadError('Please enter a sequence.');
+            return;
+        }
+
+        setUploadError('');
+        setUploadLoading(true);
+
+        try {
+            let newBiln = '';
+
+            if (uploadMode === 'fasta') {
+                // Front-side validation and conversion
+                newBiln = parseFastaToBiln(text);
+            } else {
+                // HELM -> BILN via backend
+                newBiln = await convertHelmToBiln(text);
+            }
+
+            onChangeBiln(newBiln);
+            setUploadOpen(false);
+            setUploadText('');
+        } catch (e) {
+            setUploadError(e.message || 'Failed to process the sequence.');
+        } finally {
+            setUploadLoading(false);
+        }
     };
 
     return (
@@ -117,7 +176,7 @@ export default function BilnEditorInterface({
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
-                                    onClick={() => {}}
+                                    onClick={handleOpenUpload}
                                     startIcon={<UploadIcon fontSize="inherit" />}
                                     sx={btnSx}
                                 >
@@ -281,6 +340,75 @@ export default function BilnEditorInterface({
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Upload sequence dialog */}
+            <Dialog open={uploadOpen} onClose={handleCloseUpload} maxWidth="sm" fullWidth>
+                <DialogTitle>Upload Sequence</DialogTitle>
+                <DialogContent dividers>
+                    <FormControl component="fieldset" sx={{ mb: 2 }}>
+                        <FormLabel component="legend">Input format</FormLabel>
+                        <RadioGroup
+                            row
+                            value={uploadMode}
+                            onChange={(e) => {
+                                setUploadMode(e.target.value);
+                                setUploadError('');
+                            }}
+                        >
+                            <FormControlLabel value="fasta" control={<Radio />} label="FASTA" />
+                            <FormControlLabel value="helm" control={<Radio />} label="HELM" />
+                        </RadioGroup>
+                    </FormControl>
+
+                    <TextField
+                        label={uploadMode === 'fasta' ? 'FASTA sequences (max 5 lines, no headers)' : 'HELM sequence'}
+                        multiline
+                        minRows={6}
+                        fullWidth
+                        value={uploadText}
+                        onChange={(e) => {
+                            setUploadText(e.target.value);
+                            setUploadError('');
+                        }}
+                        slotProps={{
+                            input: {
+                                sx: {
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.8rem',
+                                },
+                            },
+                        }}
+                    />
+
+                    {uploadMode === 'fasta' && (
+                        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                            Rules:
+                            <br />• One sequence per line (up to 5 lines).
+                            <br />• Only standard one-letter amino acids (A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V).
+                            <br />• Each valid line becomes a chain; chains are separated by "." in BILN.
+                        </Typography>
+                    )}
+
+                    {uploadError && (
+                        <Typography variant="body2" sx={{ mt: 1, color: 'error.main' }}>
+                            {uploadError}
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseUpload} size="small" disabled={uploadLoading}>
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleConfirmUpload}
+                        size="small"
+                        variant="contained"
+                        disabled={uploadLoading}
+                    >
+                        {uploadLoading ? 'Processing…' : 'Apply'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 

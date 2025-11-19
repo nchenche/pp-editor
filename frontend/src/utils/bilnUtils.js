@@ -1,3 +1,6 @@
+import { API_URL } from '../config';
+
+
 /**
  * Decomposes a BILN string into tokens and separators.
  */
@@ -109,3 +112,73 @@ export const deriveSeqCount = (biln) => {
     if (!t) return 0;
     return t.split('.').filter(Boolean).length;
 };
+
+
+// Simple one-letter amino acid validation
+const VALID_AA = new Set([
+    'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I',
+    'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'
+]);
+
+export function parseFastaToBiln(input) {
+    // Split lines, ignore '>' headers and blank lines
+    const rawLines = input.split(/\r?\n/).map(l => l.trim());
+    const seqLines = rawLines.filter(l => l && !l.startsWith('>'));
+
+    if (seqLines.length === 0) {
+        throw new Error('No sequence lines found in FASTA input.');
+    }
+    if (seqLines.length > 5) {
+        throw new Error('Maximum of 5 sequences allowed (one per line).');
+    }
+
+    const bilnChains = seqLines.map((line, idx) => {
+        const chars = line.toUpperCase().replace(/\s+/g, '');
+        if (!chars) {
+            throw new Error(`Sequence line ${idx + 1} is empty.`);
+        }
+
+        for (let i = 0; i < chars.length; i++) {
+            const ch = chars[i];
+            if (!VALID_AA.has(ch)) {
+                throw new Error(`Invalid amino acid '${ch}' at position ${i + 1} of sequence ${idx + 1}.`);
+            }
+        }
+
+        // Convert to BILN chain: A-F-R-...
+        return chars.split('').join('-');
+    });
+
+    // Join chains with '.' separator
+    return bilnChains.join('.');
+}
+
+
+// Example HELM -> BILN server call (adjust URL to your backend)
+export async function convertHelmToBiln(helmString) {
+
+    const resp = await fetch(`${API_URL}/core/conversions/helm-to-biln`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sequence: helmString }),
+    });
+
+    if (!resp.ok) {
+        let msg = 'Failed to convert HELM to BILN.';
+        try {
+            const j = await resp.json();
+            if (j?.message) msg = j.message;
+        } catch {
+            // ignore parse error, keep generic message
+        }
+        throw new Error(msg);
+    }
+
+    const data = await resp.json();
+    // Backend returns: { status: "success", data: { biln: "A-A-A" }, meta: {...} }
+    const biln = data?.data?.biln;
+    if (!biln) {
+        throw new Error('Server did not return a BILN sequence.');
+    }
+    return biln;
+}
