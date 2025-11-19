@@ -263,7 +263,7 @@ const UIAddMonomers = memo(() => {
 
               <Box mt={2}>
                 <TextField
-                  
+
                   multiline
                   rows={25}
                   fullWidth
@@ -299,6 +299,12 @@ const UIAddMonomers = memo(() => {
 
       <style>{`
         @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
+        .wizard-card-footer{
+          display: flex;
+          justify-content: center;
+          margin-top: 10px;
+          gap: 20px;
+        }
       `}</style>
     </Box>
 
