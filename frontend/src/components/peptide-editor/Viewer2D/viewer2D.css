@@ -161,6 +161,12 @@ svg g.highlighted rect.hover-residue {
     fill: gray;
     fill-opacity: 0.05;
     stroke-linejoin: round;
+    pointer-events: auto;
+}
+
+/* Set pointer events to none to rect highlighted when linking mode */
+#svg-container.rgroups-emphasis svg g rect {
+    pointer-events: none;
 }
 
 svg g.r-group rect {
@@ -333,6 +339,8 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 #svg-container.linking-mode svg g.r-group.selected * {
     opacity: 1;
 }
+
+
 
 /* Make selected R-group overlay box prominent (dashFlow already defined below) */
 #svg-container.linking-mode svg g.r-group.selected rect {

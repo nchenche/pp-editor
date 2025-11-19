@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import '../../styles/SvgDepictionContainer.css';
+// import '../../styles/SvgDepictionContainer.css';
 
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import panzoom from 'panzoom';
