@@ -114,7 +114,7 @@ export const MoleculeDisplay = ({
     if (error && selectedBonds.length == 0) {
         return (
             <div>
-                <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+                <div className="w-full h-full border mx-auto mt-2 bg-white">
                 </div>
                 <p className="text-red-500 text-xs mt-2">No bonds selected</p>
             </div>
@@ -123,7 +123,7 @@ export const MoleculeDisplay = ({
     } else if (error) {
         return (
             <div>
-            <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+            <div className="w-full h-full border mx-auto mt-2 bg-white">
             </div>
             <p className="text-red-500 text-xs mt-2">{error}</p>
         </div>  
@@ -132,7 +132,7 @@ export const MoleculeDisplay = ({
 
     return (
         <div>
-            <div className="w-80 h-80 border mx-auto mt-2 bg-white">
+            <div className="w-full h-full border mx-auto mt-2 bg-white">
 
                 {data?.data && (
                     <div

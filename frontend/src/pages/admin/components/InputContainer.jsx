@@ -88,7 +88,7 @@ const InputContainer = ({ smiles, handleChangeSmiles }) => {
   return (
     <Box
       sx={{
-        border: 1,
+        // border: 1,
         borderColor: 'divider',
         borderRadius: 1,
         p: 2,
