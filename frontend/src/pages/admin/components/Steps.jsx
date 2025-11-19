@@ -67,7 +67,6 @@ export const TabStep2 = memo(({ smiles, handleSelectedBonds, selectedBonds, frag
 
 
 export const TabStep3 = memo(({ fragments, selectedFragmentIndex, handleSelectedFragment }) => {
-    log('rendering TabStep3', { background: 'green' });
 
     const queryParams = {
         h_explicit_only: true,
@@ -132,8 +131,6 @@ const createRGroupObject = (baseName, groupIndices) => {
 
 export const TabStep4 = memo(
     forwardRef(({ fragmentSmiles, initialData, onFormDataChange }, ref) => {
-        log('rendering TabStep4');
-
         if (!fragmentSmiles) return null;
 
         const groupIndices = useMemo(() => extractSmilesIndices(fragmentSmiles), [fragmentSmiles]);

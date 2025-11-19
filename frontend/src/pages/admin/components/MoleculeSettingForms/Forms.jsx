@@ -145,29 +145,30 @@ export const MolTypeForm = ({ sxOptions, control, error }) => {
     )
 }
 
-export const MolSubTypeForm = ({ sxOptions, control, error }) => {
+export const MolSubTypeForm = ({ sxOptions, control, error, options, disabled }) => {
     return (
         <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
-            <InputLabel id="select-subtype" error={!!error}>Select Subtype</InputLabel>
+            {/* <InputLabel id="select-subtype" error={!!error}>Select Subtype</InputLabel> */}
             <Controller
                 name="selectSubType"
                 control={control}
                 defaultValue=""
                 rules={{ required: 'Selection is required' }}
-                render={({
-                    field
-                }) => (
-                    <>
-                        <Select
-                            {...field}
-                            labelId="select-subtype"
-                            label="Select subtype"
-                            error={!!error}
-                        >
-                            <MenuItem value="natural">Natural</MenuItem>
-                            <MenuItem value="non-natural">Non natural</MenuItem>
-                        </Select>
-                    </>
+                render={({ field }) => (
+                    <TextField
+                        select
+                        label="Subtype"
+                        size="small"
+                        fullWidth
+                        {...field}
+                        error={!!error}
+                    >
+                        {options.map((opt) => (
+                            <MenuItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </MenuItem>
+                        ))}
+                    </TextField>
                 )}
             />
             {error && (

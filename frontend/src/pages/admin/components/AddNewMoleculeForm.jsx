@@ -22,7 +22,51 @@ import createPalette from "@mui/material/styles/createPalette";
 export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
 
     const sxOptions = { margin: 0.85, width: 180 };
-    const { control, formState: { errors }, } = formMethods;
+    const {
+        control,
+        formState: { errors },
+        watch,
+        setValue
+    } = formMethods;
+
+    // Watch the selected type to drive subtype logic
+    const selectedType = watch('selectType');
+
+    // Derive subtype options based on type
+    const subtypeOptions = useMemo(() => {
+        if (selectedType === 'cap') {
+            // When type is "cap", subtype must be "cap"
+            return [{ label: 'Cap', value: 'cap' }];
+        }
+        // Default options for amino-acid and others
+        return [
+            { label: 'Natural', value: 'natural' },
+            { label: 'Non-natural', value: 'non-natural' },
+        ];
+    }, [selectedType]);
+
+    // Keep selectSubType in sync when type changes to "cap"
+    useEffect(() => {
+        if (selectedType === 'cap') {
+            // When type is cap, force subtype to 'cap'
+            setValue('selectSubType', 'cap', {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+        } else if (selectedType) {
+            // For any non-cap type (e.g. amino-acid), default to 'natural'
+            setValue('selectSubType', 'natural', {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+        } else {
+            // No type selected yet -> keep it empty so required rule can fire later
+            setValue('selectSubType', '', {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+        }
+    }, [selectedType, setValue]);
 
     return (
         <>
@@ -71,6 +115,8 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
                         sxOptions={sxOptions}
                         control={control}
                         error={errors.selectSubType}
+                        options={subtypeOptions}
+                    // disabled={selectedType === 'cap'} // optional: make it read-only when cap
                     />
                 </Grid>
 
