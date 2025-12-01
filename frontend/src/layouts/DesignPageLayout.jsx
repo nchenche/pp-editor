@@ -88,7 +88,7 @@ export const DesignPageLayout2 = ({
                 lg:col-start-2 lg:col-end-3 lg:row-span-2 lg:order-none resize-x
             "
         >
-            <div className="border-2 border-yellow-400 rounded-lg p-4 shadow-sm flex-1 min-h-0 min-w-[480px]">
+            <div className="border-2 border-yellow-400 rounded-lg p-4 shadow-sm flex-1 min-h-0 mi-w-[480px]">
                 {viewerContainer}
             </div>
         </section>
@@ -209,7 +209,7 @@ export const DesignPageLayoutMUI = ({
                 minHeight: 0,
                 display: 'grid',
                 gridTemplateColumns,
-                gap: 0,
+                gap: 1,
                 px: 1,
                 py: 1,
                 overflow: 'hidden',
@@ -290,12 +290,13 @@ export const DesignPageLayoutMUI = ({
                         bottom: 0,
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '2px',
-                        bgcolor: dragging ? 'primary.main' : 'divider',
-                        borderRadius: 1,
+                        width: '4px',
+                        // bgcolor: dragging ? 'primary.main' : 'divider',
+                        bgcolor: 'divider',
+                        // borderRadius: 1,
                     },
-                    '&:hover::before': { bgcolor: 'text.disabled' },
-                    '&': { zIndex: 1 },
+                    '&:hover': { bgcolor: 'text.secondary' },
+                    // '&': { zIndex: 1 },
                 }}
             />
 

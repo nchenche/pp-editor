@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
@@ -40,6 +40,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
+
+
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -514,55 +516,126 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         )
         : null;
 
+
+    const [editorAreaHeight, setEditorAreaHeight] = useState(320);   // px
+    const [viewerSplitRatio, setViewerSplitRatio] = useState(0.5);   // 0..1
+    const mainAreaRef = useRef(null);
+    const viewerRowRef = useRef(null);
+
+    useLayoutEffect(() => {
+        if (!mainAreaRef.current) return;
+            const { height } = mainAreaRef.current.getBoundingClientRect();
+            // Keep at least 240px, but let it initially consume ~45% of the available column.
+            setEditorAreaHeight(Math.max(240, height * 0.50));
+    }, []);
+    const isDraggingRef = useRef({ type: null });
+    const startDrag = (type) => (e) => {
+        e.preventDefault();
+        isDraggingRef.current = { type };
+        window.addEventListener('mousemove', onDrag);
+        window.addEventListener('mouseup', stopDrag);
+    };
+    const onDrag = (e) => {
+        const { type } = isDraggingRef.current;
+        if (!type) return;
+
+        if (type === 'horizontal') {
+            if (!mainAreaRef.current) return;
+            const rect = mainAreaRef.current.getBoundingClientRect();
+            const next = Math.min(Math.max(e.clientY - rect.top, 140), rect.height - 140);
+            setEditorAreaHeight(next);
+        } else if (type === 'vertical') {
+            if (!viewerRowRef.current) return;
+            const rect = viewerRowRef.current.getBoundingClientRect();
+            const minWidth = 200; // same as each panel’s minWidth
+            const x = Math.min(Math.max(e.clientX - rect.left, minWidth), rect.width - minWidth);
+            setViewerSplitRatio(x / rect.width);
+        }
+    };
+    const stopDrag = () => {
+        isDraggingRef.current = { type: null };
+        window.removeEventListener('mousemove', onDrag);
+        window.removeEventListener('mouseup', stopDrag);
+    };
+
     return (
         <Box
-            sx={{
-                display: 'grid',
-                gridTemplateRows: 'auto 1fr',
-                gap: 2,
-                height: '100%',
-                minHeight: 0,
-                overflow: 'hidden',
-                position: 'relative', // anchor the local overlay
-            }}
+            ref={mainAreaRef}
+            sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
         >
-            {/* Top: Biln editor (no collapse) */}
-            <BilnEditorInterface
-                biln={bilnValue}
-                onChangeBiln={handleBilnChange}
-                hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                onUndo={handleUndoBiln}
-                onRedo={handleRedoBiln}
-                onClear={() => handleBilnChange('')}
-                // Chains section props
-                rowMonomerLists={rowMonomerLists}
-                activeSeqIdx={uiState.activeSeqIdx}
-                onSetActiveSeqIdx={onSetActiveSeqIdx}
-                linkMap={linkMap}
-                hoveredMonomer={hoveredMonomer}
-                handleDeleteMonomerItem={handleDeleteMonomerItem}
-                onDragStart={handleDragStart}
-                onDragEnd={handleOnDragEnd}
-                handleMonomerEnter={handleMonomerEnter}
-                handleMonomerLeave={handleMonomerLeave}
-                handleDeleteSequence={handleDeleteSequence}
-                constraintsMode={constraintsMode}
-                onToggleConstraintsMode={() => setConstraintsMode((m) => !m)}
-                constraintsBySeq={constraintsBySeq}
-                onEditConstraint={handleEditConstraint}
-                // Toolbar (link/cut) wiring
-                linkMode={viewer2DModes.linkMode}
-                bondsMode={viewer2DModes.bondsMode}
-                onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                canLink={canLink}
-                canUnlink={canCut}
-            />
+            {/* <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateRows: 'auto 1fr',
+                    gap: 2,
+                    height: '100%',
+                    minHeight: 0,
+                    overflow: 'hidden',
+                    position: 'relative', // anchor the local overlay
+                }}
+            > */}
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative', // anchor the local overlay
+                    gap: 1,
+                }}
+            >
+                <Box sx={{ height: editorAreaHeight, minHeight: 160, overflow: 'hidden' }}>
+                    {/* Top: Biln editor (no collapse) */}
+                    <BilnEditorInterface
+                        biln={bilnValue}
+                        onChangeBiln={handleBilnChange}
+                        hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        onUndo={handleUndoBiln}
+                        onRedo={handleRedoBiln}
+                        onClear={() => handleBilnChange('')}
+                        // Chains section props
+                        rowMonomerLists={rowMonomerLists}
+                        activeSeqIdx={uiState.activeSeqIdx}
+                        onSetActiveSeqIdx={onSetActiveSeqIdx}
+                        linkMap={linkMap}
+                        hoveredMonomer={hoveredMonomer}
+                        handleDeleteMonomerItem={handleDeleteMonomerItem}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleOnDragEnd}
+                        handleMonomerEnter={handleMonomerEnter}
+                        handleMonomerLeave={handleMonomerLeave}
+                        handleDeleteSequence={handleDeleteSequence}
+                        constraintsMode={constraintsMode}
+                        onToggleConstraintsMode={() => setConstraintsMode((m) => !m)}
+                        constraintsBySeq={constraintsBySeq}
+                        onEditConstraint={handleEditConstraint}
+                        // Toolbar (link/cut) wiring
+                        linkMode={viewer2DModes.linkMode}
+                        bondsMode={viewer2DModes.bondsMode}
+                        onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                        onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                        canLink={canLink}
+                        canUnlink={canCut}
+                    />
+                </Box>
 
-            {/* Sequences help dialog */}
-            {/* <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
+                <Box
+                    role="separator"
+                    aria-orientation="horizontal"
+                    onMouseDown={startDrag('horizontal')}
+                    sx={{
+                        height: 4,
+                        cursor: 'row-resize',
+                        bgcolor: 'divider',
+                        '&:hover': { bgcolor: 'text.secondary' },
+                    }}
+                />
+
+
+                {/* Sequences help dialog */}
+                {/* <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Working with sequences</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
                     <ul>
@@ -578,353 +651,396 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 </DialogActions>
             </Dialog> */}
 
-            {/* Local overlay for “replace monomer” selection */}
-            {replaceOverlay}
+                {/* Local overlay for “replace monomer” selection */}
+                {replaceOverlay}
 
-            {/* Middle: 2D and 3D viewers side-by-side */}
-            <Box sx={{ minHeight: 0 }}>
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', // always 50% / 50%
-                        gap: 1,
-                        height: '100%',
-                        minHeight: 0,
-                        minWidth: 0,
-                        alignItems: 'stretch',
-                    }}
-                >
-                    <Paper
-                        variant="outlined"
-                        sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                {/* Middle: 2D and 3D viewers side-by-side */}
+                <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
+                    {/* <Box
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', // always 50% / 50%
+                            gap: 1,
+                            height: '100%',
+                            minHeight: 0,
+                            minWidth: 0,
+                            alignItems: 'stretch',
+                        }}
+                    > */}
+
+                    <Box
+                        sx={{
+                            flexBasis: `${viewerSplitRatio * 100}%`,
+                            minWidth: 200,
+                            maxWidth: `calc(100% - 200px)`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            pr: 0.5,
+                        }}
                     >
-                        {/* Header row for 2D Viewer & Controls */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                2D Sketch
-                            </Typography>
-                            <ButtonGroup
-                                size="small"
-                                variant="outlined"
-                                sx={{ '& .MuiButton-root': toolbarBtnSx }}
-                            >
-                                <Tooltip title="Link" arrow placement='top'>
-                                    <span>
-                                        <Button
-                                            onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                                            color="inherit"
-                                            disabled={!svgDepiction || viewer2DModes.bondsMode}
-                                            aria-label="link-monomers"
-                                        >
-                                            <DeviceHubIcon fontSize="inherit" />
-                                        </Button>
-                                    </span>
-                                </Tooltip>
+                        {/* 2D viewer paper */}
+                        <Paper
+                            variant="outlined"
+                            sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                        >
+                            {/* Header row for 2D Viewer & Controls */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                    2D Sketch
+                                </Typography>
+                                <ButtonGroup
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                                >
+                                    <Tooltip title="Link" arrow placement='top'>
+                                        <span>
+                                            <Button
+                                                onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                                color="inherit"
+                                                disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                                aria-label="link-monomers"
+                                            >
+                                                <DeviceHubIcon fontSize="inherit" />
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
 
-                                <Tooltip title="Unlink" arrow placement='top'>
-                                    <span>
-                                        <Button
-                                            onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                                            color="inherit"
-                                            disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
-                                            aria-label="toggle-bonds"
-                                        >
-                                            <LinkOffIcon fontSize="inherit" />
-                                        </Button>
-                                    </span>
-                                </Tooltip>
+                                    <Tooltip title="Unlink" arrow placement='top'>
+                                        <span>
+                                            <Button
+                                                onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                                color="inherit"
+                                                disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                                aria-label="toggle-bonds"
+                                            >
+                                                <LinkOffIcon fontSize="inherit" />
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
 
-                                <Tooltip title="Reset View" arrow placement='top'>
-                                    <span>
+                                    <Tooltip title="Reset View" arrow placement='top'>
+                                        <span>
+                                            <Button
+                                                onClick={() => viewer2DRef.current?.resetView()}
+                                                color="inherit"
+                                                disabled={!svgDepiction}
+                                                aria-label="reset-view"
+                                            >
+                                                <RestartAltIcon fontSize="inherit" />
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
+                                </ButtonGroup>
+                            </Box>
+                            {/* Canvas area */}
+                            <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
+                                <Viewer2D
+                                    ref={viewer2DRef}
+                                    svgData={svgDepiction}
+                                    isShowingAtomIndices={isShowingAtomIndices}
+                                    handleShowingAtomIndices={setIsShowingAtomIndices}
+                                    hoveredMonomer={hoveredMonomer}
+                                    handleMonomerEnter={handleMonomerEnter}
+                                    handleMonomerLeave={handleMonomerLeave}
+                                    onLinkMonomers={handleMonomerLinking}
+                                    onBreakBond={handleBondBreaking}
+                                    error={depictionError}
+                                    loading={depictionLoading}
+                                    onModesChange={setViewer2DModes}
+                                />
+                            </Box>
+                        </Paper>
+                    </Box>
+
+                    <Box
+                        role="separator"
+                        aria-orientation="vertical"
+                        onMouseDown={startDrag('vertical')}
+                        sx={{
+                            width: 4,
+                            cursor: 'col-resize',
+                            bgcolor: 'divider',
+                            alignSelf: 'stretch',
+                            '&:hover': { bgcolor: 'text.secondary' },
+                        }}
+                    />
+
+                    <Box
+                        sx={{
+                            flex: 1,
+                            minWidth: 200,
+                            pl: 0.5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+
+                        {/* 3D viewer paper */}
+                        <Paper
+                            variant="outlined"
+                            sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+                        >
+                            {/* Header row for 3D Viewer & Controls */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                    3D Viewer
+                                </Typography>
+                                <ButtonGroup
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                                >
+                                    <Tooltip title="Representation" arrow placement='top'>
                                         <Button
-                                            onClick={() => viewer2DRef.current?.resetView()}
+                                            onClick={(e) => setRepMenuEl(e.currentTarget)}
                                             color="inherit"
-                                            disabled={!svgDepiction}
+                                            aria-haspopup="menu"
+                                            aria-controls={repMenuOpen ? 'rep-menu' : undefined}
+                                            aria-expanded={repMenuOpen ? 'true' : undefined}
+                                        >
+                                            <CategoryIcon fontSize="inherit" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Menu
+                                        id="rep-menu"
+                                        anchorEl={repMenuEl}
+                                        open={repMenuOpen}
+                                        onClose={() => setRepMenuEl(null)}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+
+                                        MenuListProps={{ dense: true }}
+                                    >
+                                        {/* Title */}
+                                        <MenuItem
+                                            disabled
+                                            sx={{
+                                                cursor: 'default',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                color: 'text.secondary',
+                                                '&.Mui-disabled': { opacity: 1 },
+                                            }}
+                                        >
+                                            Representation
+                                        </MenuItem>
+                                        <Divider sx={{ my: 0.5 }} />
+                                        {/* Compact items with subtle dividers */}
+                                        {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
+                                            const items = [
+                                                <MenuItem
+                                                    key={rep.id}
+                                                    onClick={() => {
+                                                        viewer3DRef.current?.setRepresentation?.(rep.id);
+                                                        setRepMenuEl(null);
+                                                    }}
+                                                    sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
+                                                >
+                                                    {rep.label}
+                                                </MenuItem>
+                                            ];
+                                            if (idx < arr.length - 1) {
+                                                items.push(
+                                                    <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                                );
+                                            }
+                                            return items;
+                                        })}
+                                    </Menu>
+
+                                    <Tooltip title="Color by" arrow placement='top'>
+                                        <Button
+                                            onClick={(e) => setColorMenuEl(e.currentTarget)}
+                                            color="inherit"
+                                            aria-haspopup="menu"
+                                            aria-controls={colorMenuOpen ? 'color-menu' : undefined}
+                                            aria-expanded={colorMenuOpen ? 'true' : undefined}
+                                        >
+                                            <PaletteIcon fontSize="inherit" />
+                                        </Button>
+                                    </Tooltip>
+                                    <Menu
+                                        id="color-menu"
+                                        anchorEl={colorMenuEl}
+                                        open={colorMenuOpen}
+                                        onClose={() => setColorMenuEl(null)}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        MenuListProps={{ dense: true }}
+                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+                                    >
+                                        {/* Title */}
+                                        <MenuItem
+                                            disabled
+                                            sx={{
+                                                cursor: 'default',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                color: 'text.secondary',
+                                                '&.Mui-disabled': { opacity: 1 },
+                                            }}
+                                        >
+                                            Color by
+                                        </MenuItem>
+                                        <Divider sx={{ my: 0.5 }} />
+                                        {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
+                                            const items = [
+                                                <MenuItem
+                                                    key={color.id}
+                                                    onClick={() => {
+                                                        viewer3DRef.current?.setColorScheme?.(color.id);
+                                                        setColorMenuEl(null);
+                                                    }}
+                                                    sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                                >
+                                                    {color.label}
+                                                </MenuItem>
+                                            ];
+                                            if (idx < arr.length - 1) {
+                                                items.push(
+                                                    <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                                );
+                                            }
+                                            return items;
+                                        })}
+                                    </Menu>
+
+                                    <Tooltip title="Reset 3D View" arrow placement='top'>
+                                        <Button
+                                            onClick={(e) => setReset3DEl(e.currentTarget)}
+                                            color="inherit"
+                                            aria-haspopup="menu"
+                                            aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
+                                            aria-expanded={reset3DOpen ? 'true' : undefined}
                                             aria-label="reset-view"
                                         >
                                             <RestartAltIcon fontSize="inherit" />
                                         </Button>
-                                    </span>
-                                </Tooltip>
-                            </ButtonGroup>
-                        </Box>
-                        {/* Canvas area */}
-                        <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
-                            <Viewer2D
-                                ref={viewer2DRef}
-                                svgData={svgDepiction}
-                                isShowingAtomIndices={isShowingAtomIndices}
-                                handleShowingAtomIndices={setIsShowingAtomIndices}
-                                hoveredMonomer={hoveredMonomer}
-                                handleMonomerEnter={handleMonomerEnter}
-                                handleMonomerLeave={handleMonomerLeave}
-                                onLinkMonomers={handleMonomerLinking}
-                                onBreakBond={handleBondBreaking}
-                                error={depictionError}
-                                loading={depictionLoading}
-                                onModesChange={setViewer2DModes}
-                            />
-                        </Box>
-                    </Paper>
+                                    </Tooltip>
 
-                    <Paper
-                        variant="outlined"
-                        sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-                    >
-                        {/* Header row for 3D Viewer & Controls */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                3D Viewer
-                            </Typography>
-                            <ButtonGroup
-                                size="small"
-                                variant="outlined"
-                                sx={{ '& .MuiButton-root': toolbarBtnSx }}
-                            >
-                                <Tooltip title="Representation" arrow placement='top'>
-                                    <Button
-                                        onClick={(e) => setRepMenuEl(e.currentTarget)}
-                                        color="inherit"
-                                        aria-haspopup="menu"
-                                        aria-controls={repMenuOpen ? 'rep-menu' : undefined}
-                                        aria-expanded={repMenuOpen ? 'true' : undefined}
+                                    <Menu
+                                        id="reset3D-menu"
+                                        anchorEl={reset3DEl}
+                                        open={reset3DOpen}
+                                        onClose={() => setReset3DEl(null)}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        MenuListProps={{ dense: true }}
+                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+
                                     >
-                                        <CategoryIcon fontSize="inherit" />
-                                    </Button>
-                                </Tooltip>
-                                <Menu
-                                    id="rep-menu"
-                                    anchorEl={repMenuEl}
-                                    open={repMenuOpen}
-                                    onClose={() => setRepMenuEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+                                        {/* Title */}
+                                        <MenuItem
+                                            disabled
+                                            sx={{
+                                                cursor: 'default',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                color: 'text.secondary',
+                                                '&.Mui-disabled': { opacity: 1 },
+                                            }}
+                                        >
+                                            Reset 3D View
+                                        </MenuItem>
+                                        <Divider sx={{ my: 0.5 }} />
+                                        {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
+                                            const items = [
+                                                <MenuItem
+                                                    key={reset.id}
+                                                    onClick={() => {
+                                                        if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
+                                                        else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
+                                                        else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
+                                                        setReset3DEl(null);
+                                                    }}
+                                                    sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                                >
+                                                    {reset.label}
+                                                </MenuItem>
+                                            ];
+                                            if (idx < arr.length - 1) {
+                                                items.push(
+                                                    <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                                );
+                                            }
+                                            return items;
+                                        })}
+                                    </Menu>
 
-                                    MenuListProps={{ dense: true }}
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
+                                </ButtonGroup>
+                            </Box>
+                            {/* Canvas area */}
+                            <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                                {structureLoading && (
+                                    <Box
                                         sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            bgcolor: 'rgba(255,255,255,0.6)',
+                                            zIndex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
                                         }}
                                     >
-                                        Representation
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {/* Compact items with subtle dividers */}
-                                    {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={rep.id}
-                                                onClick={() => {
-                                                    viewer3DRef.current?.setRepresentation?.(rep.id);
-                                                    setRepMenuEl(null);
-                                                }}
-                                                sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {rep.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
-
-                                <Tooltip title="Color by" arrow placement='top'>
-                                    <Button
-                                        onClick={(e) => setColorMenuEl(e.currentTarget)}
-                                        color="inherit"
-                                        aria-haspopup="menu"
-                                        aria-controls={colorMenuOpen ? 'color-menu' : undefined}
-                                        aria-expanded={colorMenuOpen ? 'true' : undefined}
-                                    >
-                                        <PaletteIcon fontSize="inherit" />
-                                    </Button>
-                                </Tooltip>
-                                <Menu
-                                    id="color-menu"
-                                    anchorEl={colorMenuEl}
-                                    open={colorMenuOpen}
-                                    onClose={() => setColorMenuEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    MenuListProps={{ dense: true }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
+                                        <CircularProgress size={48} />
+                                    </Box>
+                                )}
+                                {!structureLoading && !structureOutput?.pdb && (
+                                    <Box
                                         sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            bgcolor: 'background.paper',
+                                            zIndex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            px: 2,
+                                            textAlign: 'center',
                                         }}
                                     >
-                                        Color by
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={color.id}
-                                                onClick={() => {
-                                                    viewer3DRef.current?.setColorScheme?.(color.id);
-                                                    setColorMenuEl(null);
-                                                }}
-                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {color.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
+                                        {/* Show message about 3D generation status */}
+                                        <Typography
+                                            variant="body1"
+                                            sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
+                                        >
+                                            No data
+                                        </Typography>
+                                    </Box>
+                                )}
+                                <Viewer3D
+                                    ref={viewer3DRef}
+                                    pdbRawData={structureOutput?.pdb}
+                                    hoveredMonomer={hoveredMonomer}
+                                    handleMonomerHover={handleMonomerHover}
+                                    defaultRepresentation="ball-and-stick"
+                                    defaultColorScheme="residue-name"
+                                    height="100%"
+                                    width="100%"
+                                    error={generate3DError}
+                                    isGenerating3D={structureLoading}
+                                />
+                            </Box>
+                        </Paper>
+                    </Box>
 
-                                <Tooltip title="Reset 3D View" arrow placement='top'>
-                                    <Button
-                                        onClick={(e) => setReset3DEl(e.currentTarget)}
-                                        color="inherit"
-                                        aria-haspopup="menu"
-                                        aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
-                                        aria-expanded={reset3DOpen ? 'true' : undefined}
-                                        aria-label="reset-view"
-                                    >
-                                        <RestartAltIcon fontSize="inherit" />
-                                    </Button>
-                                </Tooltip>
-
-                                <Menu
-                                    id="reset3D-menu"
-                                    anchorEl={reset3DEl}
-                                    open={reset3DOpen}
-                                    onClose={() => setReset3DEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    MenuListProps={{ dense: true }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
-                                        sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
-                                        }}
-                                    >
-                                        Reset 3D View
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={reset.id}
-                                                onClick={() => {
-                                                    if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
-                                                    else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
-                                                    else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
-                                                    setReset3DEl(null);
-                                                }}
-                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {reset.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
-
-                            </ButtonGroup>
-                        </Box>
-                        {/* Canvas area */}
-                        <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                            {structureLoading && (
-                                <Box
-                                    sx={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        bgcolor: 'rgba(255,255,255,0.6)',
-                                        zIndex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    <CircularProgress size={48} />
-                                </Box>
-                            )}
-                            {!structureLoading && !structureOutput?.pdb && (
-                                <Box
-                                    sx={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        bgcolor: 'background.paper',
-                                        zIndex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        px: 2,
-                                        textAlign: 'center',
-                                    }}
-                                >
-                                    {/* Show message about 3D generation status */}
-                                    <Typography
-                                        variant="body1"
-                                        sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
-                                    >
-                                        No data
-                                    </Typography>
-                                </Box>
-                            )}
-                            <Viewer3D
-                                ref={viewer3DRef}
-                                pdbRawData={structureOutput?.pdb}
-                                hoveredMonomer={hoveredMonomer}
-                                handleMonomerHover={handleMonomerHover}
-                                defaultRepresentation="ball-and-stick"
-                                defaultColorScheme="residue-name"
-                                height="100%"
-                                width="100%"
-                                error={generate3DError}
-                                isGenerating3D={structureLoading}
-                            />
-                        </Box>
-                    </Paper>
+                    {/* </Box> */}
                 </Box>
-            </Box>
 
+
+
+            </Box>
         </Box>
+
     );
 };
 

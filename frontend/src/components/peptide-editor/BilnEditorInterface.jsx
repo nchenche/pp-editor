@@ -126,7 +126,8 @@ export default function BilnEditorInterface({
                 minHeight: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: { xs: '42vh', md: '36vh' },
+                // maxHeight: { xs: '42vh', md: '36vh' },
+                height: '100%',
                 overflow: 'hidden',
                 gap: 0.5, // tighter, consistent spacing
             }}
@@ -250,7 +251,7 @@ export default function BilnEditorInterface({
                 sx={{
                     mt: 2,
                     // cap the section height; <=2 chains fit, >2 will scroll
-                    maxHeight: 500,
+                    // maxHeight: 500,
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: 0,
@@ -279,7 +280,7 @@ export default function BilnEditorInterface({
                         onToggleConstraintsMode={onToggleConstraintsMode}
                     />
                 </Box>
-                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', pr: 0.5 }}>
+                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', pr: 0.5, mt: 0.5, pt: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
                         activeSeqIdx={activeSeqIdx}
