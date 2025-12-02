@@ -402,21 +402,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         loadData(committedBiln);
     }, [committedBiln, isActive]); // [committedBiln, isShowingAtomIndices] if you want atom indices to affect depiction
 
-
-    // 3D generation only when constraints length matches committed BILN token count
-    // useEffect(() => {
-    //     if (!isActive) return;
-    //     if (!committedBiln) {
-    //         // Clear 3D when sequence is empty
-    //         setStructureOutput({ pdb: '' });
-    //         return;
-    //     }
-    //     const ss = flattenSecstruct(constraintsBySeq);
-    //     const { tokenCount } = analyzeBiln(committedBiln);
-    //     if (ss.length !== tokenCount) return; // wait for constraints to reshape
-    //     triggerGenerate(committedBiln, ss);
-    // }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln, isActive]);
-
     useEffect(() => {
         if (!isActive) return;
         if (!committedBiln) {
@@ -451,17 +436,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     function handleBilnChange(newBiln) {
         setBilnValue(newBiln);
     }
-
-    // useEffect(() => {
-    //     const saved = localStorage.getItem('design-peptide-v1');
-    //     if (!saved) return;
-    //     try {
-    //         const { biln, constraints } = JSON.parse(saved);
-    //         if (typeof biln === 'string') setBilnValue(biln);
-    //         if (Array.isArray(constraints)) setConstraintsBySeq(constraints);
-    //     } catch { }
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, []);
 
     useEffect(() => {
         const payload = JSON.stringify({ biln: bilnValue, constraints: constraintsBySeq });
@@ -603,17 +577,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             ref={mainAreaRef}
             sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
         >
-            {/* <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateRows: 'auto 1fr',
-                    gap: 2,
-                    height: '100%',
-                    minHeight: 0,
-                    overflow: 'hidden',
-                    position: 'relative', // anchor the local overlay
-                }}
-            > */}
             <Box
                 sx={{
                     flex: 1,
