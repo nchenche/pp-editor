@@ -312,6 +312,7 @@ export const DesignPageLayoutMUI = ({
                     borderRadius: 1,
                     p: 1,
                     borderWidth: overlayActive ? 2 : 1,
+                    // bgcolor: '#a5aa52',
                     borderColor: (t) =>
                         overlayActive
                             ? (t.palette.mode === 'dark'

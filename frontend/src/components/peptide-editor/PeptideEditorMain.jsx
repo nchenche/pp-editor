@@ -17,7 +17,7 @@ import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
 
-import { Box, Grid2, Paper, Typography } from '@mui/material';
+import { Box, Grid2, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
 import { Collapse, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Button from '@mui/material/Button';
@@ -40,6 +40,8 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import BoltIcon from '@mui/icons-material/Bolt';
 
 
 
@@ -126,6 +128,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+    const [autoSync3D, setAutoSync3D] = useState(true);
 
     const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
@@ -263,6 +266,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             .join('')
     ), [ALLOWED_SS]);
 
+    const secstructString = useMemo(() => flattenSecstruct(constraintsBySeq), [constraintsBySeq, flattenSecstruct]);
+
+    const canGenerate3D = useMemo(() => {
+        if (!committedBiln) return false;
+        const { tokenCount } = analyzeBiln(committedBiln);
+        return tokenCount > 0 && secstructString.length === tokenCount;
+    }, [committedBiln, secstructString, analyzeBiln]);
+
     // Debounced generate3D trigger and last sent guard
     const lastGenRef = useRef({ biln: null, ss: null });
     const triggerGenerate = useCallback((biln, ss) => {
@@ -271,6 +282,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         lastGenRef.current = { biln, ss };
         generate3D(biln, ss);
     }, [generate3D]);
+
+
+    const handleAutoSyncChange = useCallback((_, checked) => setAutoSync3D(!!checked), []);
+    const handleManualGenerate3D = useCallback(() => {
+        if (!isActive || !canGenerate3D || !committedBiln) return;
+        triggerGenerate(committedBiln, secstructString);
+    }, [isActive, canGenerate3D, committedBiln, secstructString, triggerGenerate]);
+
 
     // keep constraints arrays shaped to sequences
     useEffect(() => {
@@ -385,18 +404,38 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
 
     // 3D generation only when constraints length matches committed BILN token count
+    // useEffect(() => {
+    //     if (!isActive) return;
+    //     if (!committedBiln) {
+    //         // Clear 3D when sequence is empty
+    //         setStructureOutput({ pdb: '' });
+    //         return;
+    //     }
+    //     const ss = flattenSecstruct(constraintsBySeq);
+    //     const { tokenCount } = analyzeBiln(committedBiln);
+    //     if (ss.length !== tokenCount) return; // wait for constraints to reshape
+    //     triggerGenerate(committedBiln, ss);
+    // }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln, isActive]);
+
     useEffect(() => {
         if (!isActive) return;
         if (!committedBiln) {
-            // Clear 3D when sequence is empty
             setStructureOutput({ pdb: '' });
             return;
         }
-        const ss = flattenSecstruct(constraintsBySeq);
-        const { tokenCount } = analyzeBiln(committedBiln);
-        if (ss.length !== tokenCount) return; // wait for constraints to reshape
-        triggerGenerate(committedBiln, ss);
-    }, [committedBiln, constraintsBySeq, flattenSecstruct, triggerGenerate, analyzeBiln, isActive]);
+        if (!autoSync3D) return;
+        if (!canGenerate3D) return;
+        triggerGenerate(committedBiln, secstructString);
+    }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString]);
+
+    const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
+    const generateBtnTooltip = autoSync3D
+        ? '3D view updates automatically while Sync is on.'
+        : !canGenerate3D
+            ? 'Ensure constraints cover every residue before generating.'
+            : structureLoading
+                ? 'Generation already in progress.'
+                : 'Generate updated 3D structure.';
 
 
     // Keep UI seq count in sync with committed BILN
@@ -437,12 +476,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         textTransform: 'none',
         lineHeight: 1.1,
         minHeight: 24,
-        minWidth: 34,         // tighter buttons for icon-only
+        minWidth: 32,         // tighter buttons for icon-only
         px: 0.5,
         color: 'text.secondary',
         borderColor: 'divider',
         '& .MuiSvgIcon-root': {
-            fontSize: 16,
+            // fontSize: 16,
             color: 'currentColor',
         },
         '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
@@ -516,7 +555,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         )
         : null;
 
-
     const [editorAreaHeight, setEditorAreaHeight] = useState(320);   // px
     const [viewerSplitRatio, setViewerSplitRatio] = useState(0.5);   // 0..1
     const mainAreaRef = useRef(null);
@@ -524,9 +562,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     useLayoutEffect(() => {
         if (!mainAreaRef.current) return;
-            const { height } = mainAreaRef.current.getBoundingClientRect();
-            // Keep at least 240px, but let it initially consume ~45% of the available column.
-            setEditorAreaHeight(Math.max(240, height * 0.50));
+        const { height } = mainAreaRef.current.getBoundingClientRect();
+        // Keep at least 240px, but let it initially consume ~45% of the available column.
+        setEditorAreaHeight(Math.max(240, height * 0.50));
     }, []);
     const isDraggingRef = useRef({ type: null });
     const startDrag = (type) => (e) => {
@@ -557,6 +595,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         window.removeEventListener('mousemove', onDrag);
         window.removeEventListener('mouseup', stopDrag);
     };
+
+
 
     return (
         <Box
@@ -690,7 +730,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 </Typography>
                                 <ButtonGroup
                                     size="small"
-                                    variant="outlined"
+                                    variant="text"
                                     sx={{ '& .MuiButton-root': toolbarBtnSx }}
                                 >
                                     <Tooltip title="Link" arrow placement='top'>
@@ -782,195 +822,278 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             sx={{ p: 1, height: '100%', minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                         >
                             {/* Header row for 3D Viewer & Controls */}
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                                    3D Viewer
-                                </Typography>
-                                <ButtonGroup
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flexWrap: 'wrap',
+                                    gap: 1,
+                                    mb: 1,
+                                }}
+                            >
+                                {/* Left: primary actions */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+                                    <Tooltip title={autoSync3D ? 'Updates automatically' : generateBtnTooltip} arrow placement="top">
+                                        <span>
+                                            <Button
+                                                variant={autoSync3D ? "outlined" : "contained"}
+                                                size="small"
+                                                color={autoSync3D ? "primary" : "primary"}
+                                                onClick={!autoSync3D ? handleManualGenerate3D : undefined}
+                                                disabled={!autoSync3D && manualGenerateDisabled} // Désactivé seulement si manuel et qu'il n'y a rien à générer
+                                                startIcon={autoSync3D ? <BoltIcon sx={{ animation: 'pulse 2s infinite' }} /> : <PlayArrowIcon />}
+                                                className={!autoSync3D ? "!bg-slate-800/90 hover:!bg-slate-800/80 !text-slate-50" : '!bg-slate-800/90 !cursor-default !text-slate-50 !btn-disabled'}
+                                                sx={{
+                                                    textTransform: 'none',
+                                                    paddingX: 1,
+                                                    fontWeight: 500,
+                                                    minWidth: 120,
+                                                    maxHeight: 26,
+                                                    '@keyframes pulse': {
+                                                        '0%': { color: 'inherit' },
+                                                        '50%': { color: 'yellow' },
+                                                        '100%': { color: 'inherit' },
+                                                    }
+                                                }}
+                                            >
+                                                {autoSync3D ? "Live Preview" : "Generate 3D"}
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
+
+                                    <Tooltip
+                                        title={autoSync3D ? 'Disable automatic updates' : 'Enable automatic updates'}
+                                        arrow
+                                        placement="top"
+                                    >
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    size="small"
+                                                    checked={autoSync3D}
+                                                    onChange={handleAutoSyncChange}
+                                                    inputProps={{ 'aria-label': 'toggle automatic 3D sync' }}
+                                                />
+                                            }
+                                            // On utilise "Title Case" pour le texte, plus doux que les majuscules
+                                            label="Auto sync"
+                                            sx={{
+                                                m: 0,
+                                                ml: 0.5,
+                                                color: autoSync3D ? 'primary.main' : 'text.secondary',
+                                                '& .MuiFormControlLabel-label': {
+                                                    fontSize: 13,
+                                                    fontWeight: autoSync3D ? 500 : 400,
+                                                    transition: 'all 0.3s ease'
+                                                },
+                                            }}
+                                        />
+                                    </Tooltip>
+                                </Box>
+
+                                {/* <Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center', mx: 0.5 }} /> */}
+
+                                {/* Right: canvas controls */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+                                    {/* Canvas container */}
+                                    <ButtonGroup
+                                        size="small"
+                                        variant="text"
+                                        sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                                    >
+                                        <Tooltip title="Representation" arrow placement='top'>
+                                            <Button
+                                                onClick={(e) => setRepMenuEl(e.currentTarget)}
+                                                color="inherit"
+                                                aria-haspopup="menu"
+                                                aria-controls={repMenuOpen ? 'rep-menu' : undefined}
+                                                aria-expanded={repMenuOpen ? 'true' : undefined}
+                                            >
+                                                <CategoryIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
+                                        <Tooltip title="Color by" arrow placement='top'>
+                                            <Button
+                                                onClick={(e) => setColorMenuEl(e.currentTarget)}
+                                                color="inherit"
+                                                aria-haspopup="menu"
+                                                aria-controls={colorMenuOpen ? 'color-menu' : undefined}
+                                                aria-expanded={colorMenuOpen ? 'true' : undefined}
+                                            >
+                                                <PaletteIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
+                                        <Tooltip title="Reset 3D View" arrow placement='top'>
+                                            <Button
+                                                onClick={(e) => setReset3DEl(e.currentTarget)}
+                                                color="inherit"
+                                                aria-haspopup="menu"
+                                                aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
+                                                aria-expanded={reset3DOpen ? 'true' : undefined}
+                                                aria-label="reset-view"
+                                            >
+                                                <RestartAltIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
+
+                                    </ButtonGroup>
+                                </Box>
+
+                                {/* MENUS */}
+                                {/* Representation menu */}
+                                <Menu
+                                    id="rep-menu"
+                                    anchorEl={repMenuEl}
+                                    open={repMenuOpen}
+                                    onClose={() => setRepMenuEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+
+                                    MenuListProps={{ dense: true }}
                                 >
-                                    <Tooltip title="Representation" arrow placement='top'>
-                                        <Button
-                                            onClick={(e) => setRepMenuEl(e.currentTarget)}
-                                            color="inherit"
-                                            aria-haspopup="menu"
-                                            aria-controls={repMenuOpen ? 'rep-menu' : undefined}
-                                            aria-expanded={repMenuOpen ? 'true' : undefined}
-                                        >
-                                            <CategoryIcon fontSize="inherit" />
-                                        </Button>
-                                    </Tooltip>
-                                    <Menu
-                                        id="rep-menu"
-                                        anchorEl={repMenuEl}
-                                        open={repMenuOpen}
-                                        onClose={() => setRepMenuEl(null)}
-                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-
-                                        MenuListProps={{ dense: true }}
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
                                     >
-                                        {/* Title */}
-                                        <MenuItem
-                                            disabled
-                                            sx={{
-                                                cursor: 'default',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                color: 'text.secondary',
-                                                '&.Mui-disabled': { opacity: 1 },
-                                            }}
-                                        >
-                                            Representation
-                                        </MenuItem>
-                                        <Divider sx={{ my: 0.5 }} />
-                                        {/* Compact items with subtle dividers */}
-                                        {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
-                                            const items = [
-                                                <MenuItem
-                                                    key={rep.id}
-                                                    onClick={() => {
-                                                        viewer3DRef.current?.setRepresentation?.(rep.id);
-                                                        setRepMenuEl(null);
-                                                    }}
-                                                    sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
-                                                >
-                                                    {rep.label}
-                                                </MenuItem>
-                                            ];
-                                            if (idx < arr.length - 1) {
-                                                items.push(
-                                                    <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                                );
-                                            }
-                                            return items;
-                                        })}
-                                    </Menu>
+                                        Representation
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {/* Compact items with subtle dividers */}
+                                    {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={rep.id}
+                                                onClick={() => {
+                                                    viewer3DRef.current?.setRepresentation?.(rep.id);
+                                                    setRepMenuEl(null);
+                                                }}
+                                                sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {rep.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </Menu>
 
-                                    <Tooltip title="Color by" arrow placement='top'>
-                                        <Button
-                                            onClick={(e) => setColorMenuEl(e.currentTarget)}
-                                            color="inherit"
-                                            aria-haspopup="menu"
-                                            aria-controls={colorMenuOpen ? 'color-menu' : undefined}
-                                            aria-expanded={colorMenuOpen ? 'true' : undefined}
-                                        >
-                                            <PaletteIcon fontSize="inherit" />
-                                        </Button>
-                                    </Tooltip>
-                                    <Menu
-                                        id="color-menu"
-                                        anchorEl={colorMenuEl}
-                                        open={colorMenuOpen}
-                                        onClose={() => setColorMenuEl(null)}
-                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                        MenuListProps={{ dense: true }}
-                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+                                {/* Color menu */}
+                                <Menu
+                                    id="color-menu"
+                                    anchorEl={colorMenuEl}
+                                    open={colorMenuOpen}
+                                    onClose={() => setColorMenuEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    MenuListProps={{ dense: true }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
+                                >
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
                                     >
-                                        {/* Title */}
-                                        <MenuItem
-                                            disabled
-                                            sx={{
-                                                cursor: 'default',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                color: 'text.secondary',
-                                                '&.Mui-disabled': { opacity: 1 },
-                                            }}
-                                        >
-                                            Color by
-                                        </MenuItem>
-                                        <Divider sx={{ my: 0.5 }} />
-                                        {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
-                                            const items = [
-                                                <MenuItem
-                                                    key={color.id}
-                                                    onClick={() => {
-                                                        viewer3DRef.current?.setColorScheme?.(color.id);
-                                                        setColorMenuEl(null);
-                                                    }}
-                                                    sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                                >
-                                                    {color.label}
-                                                </MenuItem>
-                                            ];
-                                            if (idx < arr.length - 1) {
-                                                items.push(
-                                                    <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                                );
-                                            }
-                                            return items;
-                                        })}
-                                    </Menu>
+                                        Color by
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={color.id}
+                                                onClick={() => {
+                                                    viewer3DRef.current?.setColorScheme?.(color.id);
+                                                    setColorMenuEl(null);
+                                                }}
+                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {color.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </Menu>
 
-                                    <Tooltip title="Reset 3D View" arrow placement='top'>
-                                        <Button
-                                            onClick={(e) => setReset3DEl(e.currentTarget)}
-                                            color="inherit"
-                                            aria-haspopup="menu"
-                                            aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
-                                            aria-expanded={reset3DOpen ? 'true' : undefined}
-                                            aria-label="reset-view"
-                                        >
-                                            <RestartAltIcon fontSize="inherit" />
-                                        </Button>
-                                    </Tooltip>
+                                {/* Reset 3D View menu */}
+                                <Menu
+                                    id="reset3D-menu"
+                                    anchorEl={reset3DEl}
+                                    open={reset3DOpen}
+                                    onClose={() => setReset3DEl(null)}
+                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                    MenuListProps={{ dense: true }}
+                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
 
-                                    <Menu
-                                        id="reset3D-menu"
-                                        anchorEl={reset3DEl}
-                                        open={reset3DOpen}
-                                        onClose={() => setReset3DEl(null)}
-                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                        MenuListProps={{ dense: true }}
-                                        sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-
+                                >
+                                    {/* Title */}
+                                    <MenuItem
+                                        disabled
+                                        sx={{
+                                            cursor: 'default',
+                                            fontSize: 14,
+                                            fontWeight: 600,
+                                            color: 'text.secondary',
+                                            '&.Mui-disabled': { opacity: 1 },
+                                        }}
                                     >
-                                        {/* Title */}
-                                        <MenuItem
-                                            disabled
-                                            sx={{
-                                                cursor: 'default',
-                                                fontSize: 14,
-                                                fontWeight: 600,
-                                                color: 'text.secondary',
-                                                '&.Mui-disabled': { opacity: 1 },
-                                            }}
-                                        >
-                                            Reset 3D View
-                                        </MenuItem>
-                                        <Divider sx={{ my: 0.5 }} />
-                                        {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
-                                            const items = [
-                                                <MenuItem
-                                                    key={reset.id}
-                                                    onClick={() => {
-                                                        if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
-                                                        else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
-                                                        else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
-                                                        setReset3DEl(null);
-                                                    }}
-                                                    sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                                >
-                                                    {reset.label}
-                                                </MenuItem>
-                                            ];
-                                            if (idx < arr.length - 1) {
-                                                items.push(
-                                                    <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                                );
-                                            }
-                                            return items;
-                                        })}
-                                    </Menu>
+                                        Reset 3D View
+                                    </MenuItem>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
+                                        const items = [
+                                            <MenuItem
+                                                key={reset.id}
+                                                onClick={() => {
+                                                    if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
+                                                    else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
+                                                    else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
+                                                    setReset3DEl(null);
+                                                }}
+                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
+                                            >
+                                                {reset.label}
+                                            </MenuItem>
+                                        ];
+                                        if (idx < arr.length - 1) {
+                                            items.push(
+                                                <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
+                                            );
+                                        }
+                                        return items;
+                                    })}
+                                </Menu>
 
-                                </ButtonGroup>
+
+
                             </Box>
+
                             {/* Canvas area */}
                             <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                                 {structureLoading && (
@@ -1033,13 +1156,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         </Paper>
                     </Box>
 
-                    {/* </Box> */}
                 </Box>
-
-
-
             </Box>
         </Box>
+
+
 
     );
 };
