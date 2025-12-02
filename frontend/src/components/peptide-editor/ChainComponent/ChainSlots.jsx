@@ -4,6 +4,7 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useOverlayPortal } from '../../common/OverlayPortalContext';
 import ChainContainer from './ChainContainer';
 import { MonomerSequence } from './MonomerSequence';
+import TemplateSequence from './TemplateSequence';
 
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
@@ -24,6 +25,10 @@ export const ChainSlots = ({
     constraintsMode = false,
     constraintsBySeq = [],
     onEditConstraint = () => { },
+    scaffoldTemplate = null,
+    scaffoldMappings = [],
+    onEditScaffoldMapping = () => { },
+    onOpenScaffoldMapping = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
@@ -39,108 +44,138 @@ export const ChainSlots = ({
     const chipHeight = 20; // px; for reference only
     const cellSize = 20; // px height for constraints cells
 
+    const templateMenuDisabled = !scaffoldTemplate;
+
+    const clearTemplate = () =>
+        onEditScaffoldMapping(seqIdx, { enabled: false, chainId: null, start: null, end: null, offset: 0 });
 
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
-            {rowMonomerLists.map((list, seqIdx) => (
-                <Box
-                    key={seqIdx}
-                    onClick={() => onSetActiveSeqIdx(seqIdx)}
-                    sx={{
-                        position: 'relative',
-                        zIndex: (t) => (overlayActive && seqIdx === activeSeqIdx) ? t.zIndex.modal + 2 : 'auto',
-                        transform: (overlayActive && seqIdx === activeSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
-                        boxShadow: (overlayActive && seqIdx === activeSeqIdx)
-                            ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
-                            : 'none',
-                        transition: 'transform 180ms ease, box-shadow 180ms ease',
-                        mb: 1,
-                    }}
-                >
-                    <ChainContainer
-                        onSequenceClear={makeDeleteHandler(seqIdx)}
-                        onConstraintsFill={(letter) => {
-                            const v = normSS(letter);
-                            for (let i = 0; i < list.length; i++) {
-                                onEditConstraint?.(seqIdx, i, v);
-                            }
-                        }}
-                        onConstraintsClear={() => {
-                            for (let i = 0; i < list.length; i++) {
-                                onEditConstraint?.(seqIdx, i, '-');
-                            }
-                        }}
-                        sequenceSlot={
-                            <Droppable
-                                droppableId={`${seqIdx}`}
-                                direction="horizontal"
-                                isDropDisabled={overlayActive}
-                            >
-                                {(provided) => (
-                                    <MonomerSequence
-                                        {...provided.droppableProps}
-                                        droppableRef={provided.innerRef}
-                                        monomers={list}
-                                        linkMap={linkMap}
-                                        isActive={seqIdx === activeSeqIdx}
-                                        hoveredMonomer={overlayActive ? null : hoveredMonomer}
-                                        onDelete={handleDeleteMonomerItem}
-                                        handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
-                                        handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
-                                        // onDeleteSequence={makeDeleteHandler(seqIdx)}
-                                        label={`Chain ${seqIdx + 1}`}
-                                        dndDisabled={overlayActive}
-                                    >
-                                        {provided.placeholder}
-                                    </MonomerSequence>
-                                )}
-                            </Droppable>
-                        }
-                        constraintsSlot={
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    gap: 0.5,
-                                    overflowX: 'auto',
-                                    overflowY: 'hidden',
-                                    py: 0.5,
-                                    px: 1,
-                                    border: 1,
-                                    borderColor: 'divider',
-                                    borderRadius: 1,
-                                    minHeight: 34,
-                                    alignItems: 'center',
-                                }}
-                            >
-                                {list.length === 0 ? (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
-                                        No residues. Add monomers to define constraints.
-                                    </Typography>
-                                ) : (
-                                    list.map((m, i) => {
-                                        const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
-                                        const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
-                                        return (
-                                            <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
-                                                <span>
-                                                    <ConstraintCell
-                                                        index={i}
-                                                        value={v}
-                                                        commitAt={(idx, ch) => onEditConstraint?.(seqIdx, idx, ch)}
-                                                        chipWidth={chipWidth}  // match monomer item width
-                                                        cellSize={cellSize}   // match monomer item height (square)
-                                                    />
-                                                </span>
-                                            </Tooltip>
-                                        );
-                                    })
-                                )}
-                            </Box>
-                        }
-                        templateSlot={undefined /* default template row in ChainContainer */}
+            {rowMonomerLists.map((list, seqIdx) => {
+
+                const mapping = scaffoldMappings[seqIdx] || {};
+                const templateMenuDisabled = !scaffoldTemplate;
+
+                const clearTemplate = () =>
+                    onEditScaffoldMapping(seqIdx, {
+                        enabled: false,
+                        chainId: null,
+                        start: null,
+                        end: null,
+                        offset: 0,
+                    });
+
+                const templateSlot = (
+                    <TemplateSequence
+                        mapping={mapping}
+                        scaffoldTemplate={scaffoldTemplate}
                     />
-                </Box>
-            ))}
+                );
+                return (
+                    <Box
+                        key={seqIdx}
+                        onClick={() => onSetActiveSeqIdx(seqIdx)}
+                        sx={{
+                            position: 'relative',
+                            zIndex: (t) => (overlayActive && seqIdx === activeSeqIdx) ? t.zIndex.modal + 2 : 'auto',
+                            transform: (overlayActive && seqIdx === activeSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
+                            boxShadow: (overlayActive && seqIdx === activeSeqIdx)
+                                ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
+                                : 'none',
+                            transition: 'transform 180ms ease, box-shadow 180ms ease',
+                            mb: 1,
+                        }}
+                    >
+                        <ChainContainer
+                            seqIdx={seqIdx}
+                            onSequenceClear={makeDeleteHandler(seqIdx)}
+                            onConstraintsFill={(letter) => {
+                                const v = normSS(letter);
+                                for (let i = 0; i < list.length; i++) {
+                                    onEditConstraint?.(seqIdx, i, v);
+                                }
+                            }}
+                            onConstraintsClear={() => {
+                                for (let i = 0; i < list.length; i++) {
+                                    onEditConstraint?.(seqIdx, i, '-');
+                                }
+                            }}
+                            sequenceSlot={
+                                <Droppable
+                                    droppableId={`${seqIdx}`}
+                                    direction="horizontal"
+                                    isDropDisabled={overlayActive}
+                                >
+                                    {(provided) => (
+                                        <MonomerSequence
+                                            {...provided.droppableProps}
+                                            droppableRef={provided.innerRef}
+                                            monomers={list}
+                                            linkMap={linkMap}
+                                            isActive={seqIdx === activeSeqIdx}
+                                            hoveredMonomer={overlayActive ? null : hoveredMonomer}
+                                            onDelete={handleDeleteMonomerItem}
+                                            handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
+                                            handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
+                                            // onDeleteSequence={makeDeleteHandler(seqIdx)}
+                                            label={`Chain ${seqIdx + 1}`}
+                                            dndDisabled={overlayActive}
+                                        >
+                                            {provided.placeholder}
+                                        </MonomerSequence>
+                                    )}
+                                </Droppable>
+                            }
+                            constraintsSlot={
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        gap: 0.5,
+                                        overflowX: 'auto',
+                                        overflowY: 'hidden',
+                                        py: 0.5,
+                                        px: 1,
+                                        border: 1,
+                                        borderColor: 'divider',
+                                        borderRadius: 1,
+                                        minHeight: 34,
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    {list.length === 0 ? (
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
+                                            No residues. Add monomers to define constraints.
+                                        </Typography>
+                                    ) : (
+                                        list.map((m, i) => {
+                                            const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
+                                            const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
+                                            return (
+                                                <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
+                                                    <span>
+                                                        <ConstraintCell
+                                                            index={i}
+                                                            value={v}
+                                                            commitAt={(idx, ch) => onEditConstraint?.(seqIdx, idx, ch)}
+                                                            chipWidth={chipWidth}  // match monomer item width
+                                                            cellSize={cellSize}   // match monomer item height (square)
+                                                        />
+                                                    </span>
+                                                </Tooltip>
+                                            );
+                                        })
+                                    )}
+                                </Box>
+                            }
+                            templateSlot={templateSlot}
+                            templateMenuDisabled={templateMenuDisabled}
+                            onTemplateMenu={() => onOpenScaffoldMapping(seqIdx)}
+                            onTemplateClear={clearTemplate}
+                            onTemplateHelp={() => { }}
+                        />
+                    </Box>
+                );
+            })}
         </DragDropContext>
     );
 };

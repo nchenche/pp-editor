@@ -6,12 +6,11 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 export default function ChainContainer({
-    // Row 1: sequence content (required)
+    seqIdx,
     sequenceSlot,
-    // Row 2: constraints content (optional, defaults to placeholder)
     constraintsSlot,
-    // Row 3: template content (optional, defaults provided)
     templateSlot,
+    templateMenuDisabled = false,
     // Layout
     labelColWidth = 180,
     gapY = 0.1,
@@ -54,6 +53,15 @@ export default function ChainContainer({
         closeConstraintsMenu();
     };
 
+    const [templateMenuEl, setTemplateMenuEl] = useState(null);
+    const openTemplateMenu = (e) => setTemplateMenuEl(e.currentTarget);
+    const closeTemplateMenu = () => setTemplateMenuEl(null);
+    const handleTemplateAction = (cb) => {
+        closeTemplateMenu();
+        cb?.();
+    };
+
+
     const iconRowSx = {
         display: 'flex',
         alignItems: 'center',
@@ -95,19 +103,25 @@ export default function ChainContainer({
                     </Typography>
                     <Box sx={iconRowSx}>
                         <Tooltip title="Menu" arrow>
-                            <IconButton size="small" onClick={onSequenceMenu} sx={iconBtnSx}>
-                                <MoreVertIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={onSequenceMenu} sx={iconBtnSx}>
+                                    <MoreVertIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip title="Clear" arrow>
-                            <IconButton size="small" onClick={onSequenceClear} sx={iconBtnSx}>
-                                <DeleteOutlineIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={onSequenceClear} sx={iconBtnSx}>
+                                    <DeleteOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip title="Help" arrow>
-                            <IconButton size="small" onClick={onSequenceHelp} sx={iconBtnSx}>
-                                <HelpOutlineIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={onSequenceHelp} sx={iconBtnSx}>
+                                    <HelpOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     </Box>
                 </Box>
@@ -129,19 +143,25 @@ export default function ChainContainer({
                     </Typography>
                     <Box sx={iconRowSx}>
                         <Tooltip title="Menu" arrow>
-                            <IconButton size="small" onClick={openConstraintsMenu} sx={iconBtnSx}>
-                                <MoreVertIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={openConstraintsMenu} sx={iconBtnSx}>
+                                    <MoreVertIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip title="Clear" arrow>
-                            <IconButton size="small" onClick={onConstraintsClear} sx={iconBtnSx}>
-                                <DeleteOutlineIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={onConstraintsClear} sx={iconBtnSx}>
+                                    <DeleteOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip title="Help" arrow>
-                            <IconButton size="small" onClick={onConstraintsHelp} sx={iconBtnSx}>
-                                <HelpOutlineIcon fontSize="inherit" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={onConstraintsHelp} sx={iconBtnSx}>
+                                    <HelpOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     </Box>
                 </Box>
@@ -154,7 +174,72 @@ export default function ChainContainer({
                 </Box>
             </Box>
 
-            {/* DSSP menu with presets */}
+
+            {/* Row 3: 3D template */}
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: `${labelColWidth}px 1fr`,
+                    alignItems: 'start',
+                    columnGap: 1,
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
+
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                        3D template
+                    </Typography>
+
+                    <Box sx={iconRowSx}>
+                        <Tooltip title="Menu" arrow>
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    onClick={openTemplateMenu}
+                                    sx={iconBtnSx}
+                                    disabled={templateMenuDisabled}
+                                >
+                                    <MoreVertIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        <Tooltip title="Clear" arrow>
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => handleTemplateAction(onTemplateClear)}
+                                    sx={iconBtnSx}
+                                    disabled={templateMenuDisabled}
+                                >
+                                    <DeleteOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        <Tooltip title="Help" arrow>
+                            <span>
+                                <IconButton size="small" onClick={onTemplateHelp} sx={iconBtnSx}>
+                                    <HelpOutlineIcon fontSize="inherit" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </Box>
+
+                </Box>
+
+                <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 1, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
+                    {templateSlot ?? (
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            No template configuration yet.
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
+
+
+
+            {/* DSSP menu */}
             <Menu
                 anchorEl={constraintsMenuEl}
                 open={Boolean(constraintsMenuEl)}
@@ -168,90 +253,24 @@ export default function ChainContainer({
                 <MenuItem onClick={() => applyPreset('-')}>All random (-)</MenuItem>
             </Menu>
 
-            {/* Row 3: 3D template */}
-            <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateColumns: `${labelColWidth}px 1fr`,
-                    alignItems: 'start',
-                    columnGap: 1,
-                }}
+            {/* 3D template menu */}
+            <Menu
+                anchorEl={templateMenuEl}
+                open={Boolean(templateMenuEl)}
+                onClose={closeTemplateMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                MenuListProps={{ dense: true }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                        3D template
-                    </Typography>
-                    <Box sx={iconRowSx}>
-                        <Tooltip title="Menu" arrow>
-                            <IconButton size="small" onClick={onTemplateMenu} sx={iconBtnSx}>
-                                <MoreVertIcon fontSize="inherit" />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Clear" arrow>
-                            <IconButton size="small" onClick={handleTemplateClear} sx={iconBtnSx}>
-                                <DeleteOutlineIcon fontSize="inherit" />
-                            </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Help" arrow>
-                            <IconButton size="small" onClick={onTemplateHelp} sx={iconBtnSx}>
-                                <HelpOutlineIcon fontSize="inherit" />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                </Box>
+                <MenuItem onClick={() => handleTemplateAction(onTemplateMenu)} disabled={templateMenuDisabled}>
+                    Configure 3D template…
+                </MenuItem>
+                <MenuItem onClick={() => handleTemplateAction(onTemplateClear)} disabled={templateMenuDisabled}>
+                    Clear mapping
+                </MenuItem>
+            </Menu>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    {templateSlot && (
-                        <>
-                            <Tooltip title="Upload PDB/CIF template" arrow>
-                                <IconButton
-                                    size="small"
-                                    color="inherit"
-                                    onClick={openPicker}
-                                    sx={{ color: 'text.secondary', border: 1, borderColor: 'divider' }}
-                                >
-                                    <CloudUploadIcon fontSize="inherit" />
-                                </IconButton>
-                            </Tooltip>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".pdb,.cif,.mmcif"
-                                hidden
-                                onChange={onPickFile}
-                            />
 
-                            {/* Placeholders for chain/range selection (wire later) */}
-                            <TextField
-                                size="small"
-                                label="Chain"
-                                placeholder="e.g. A"
-                                sx={{ width: 120 }}
-                            />
-                            <TextField
-                                size="small"
-                                label="Range (≤25)"
-                                placeholder="e.g. 5-20"
-                                sx={{ width: 160 }}
-                            />
-
-                            {templateName ? (
-                                <Chip
-                                    size="small"
-                                    label={`Template: ${templateName}`}
-                                    variant="outlined"
-                                    onDelete={() => setTemplateName('')}
-                                    sx={{ color: 'text.secondary', borderColor: 'divider' }}
-                                />
-                            ) : null}
-
-                            <Button size="small" variant="outlined" color="inherit">
-                                Preview
-                            </Button>
-                        </>
-                    )}
-                </Box>
-            </Box>
         </Box>
     );
 }

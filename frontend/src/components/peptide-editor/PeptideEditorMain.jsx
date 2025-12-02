@@ -571,6 +571,77 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     };
 
 
+    // Scaffold /template handling
+    const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
+    // shape suggestion:
+    // {
+    //   name: string,          // filename, e.g. "1crn.pdb"
+    //   text: string,          // raw PDB text
+    //   chains: string[] | null, // parsed chain IDs later (['A','B',...])
+    // }
+
+    // NEW: per-sequence mapping onto the global scaffold
+    const [scaffoldMappings, setScaffoldMappings] = useState([]);
+    // each mapping:
+    // {
+    //   enabled: boolean,
+    //   chainId: string | null,   // e.g. 'A'
+    //   start: number | null,     // PDB residue index (1-based or whatever you choose)
+    //   end: number | null,
+    //   offset: number,           // integer offset between template and designed seq
+    // }
+
+    const handleScaffoldUpload = useCallback(async (file) => {
+        if (!file) return;
+        const text = await file.text();
+        setScaffoldTemplate({
+            name: file.name,
+            text,
+            chains: null, // fill later when we parse the PDB
+        });
+    }, []);
+
+    const handleClearScaffold = useCallback(() => {
+        setScaffoldTemplate(null);
+    }, []);
+
+    // Add a handler to update a single mapping entry:
+    const handleEditScaffoldMapping = useCallback((seqIdx, patch) => {
+        setScaffoldMappings(prev => {
+            const next = prev.slice();
+            const current = next[seqIdx] || {
+                enabled: false,
+                chainId: null,
+                start: null,
+                end: null,
+                offset: 0,
+            };
+            next[seqIdx] = { ...current, ...patch };
+            return next;
+        });
+    }, []);
+
+    // Keep the scaffoldMappings array in sync with the number of sequences. 
+    useEffect(() => {
+        // keep scaffoldMappings length aligned with rowMonomerLists.length
+        setScaffoldMappings(prev => {
+            const targetLen = rowMonomerLists.length;
+            if (prev.length === targetLen) return prev;
+            const next = new Array(targetLen);
+            for (let i = 0; i < targetLen; i++) {
+                next[i] = prev[i] || {
+                    enabled: false,
+                    chainId: null,
+                    start: null,
+                    end: null,
+                    offset: 0,
+                };
+            }
+            return next;
+        });
+    }, [rowMonomerLists]);
+
+    console.log('Scaffold template:', scaffoldTemplate);
 
     return (
         <Box
@@ -621,6 +692,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
                         canLink={canLink}
                         canUnlink={canCut}
+                        // NEW: global scaffold props
+                        scaffoldTemplate={scaffoldTemplate}
+                        onUploadScaffold={handleScaffoldUpload}
+                        onClearScaffold={handleClearScaffold}
+                        // NEW: per-chain scaffold mapping
+                        scaffoldMappings={scaffoldMappings}
+                        onEditScaffoldMapping={handleEditScaffoldMapping}
                     />
                 </Box>
 
