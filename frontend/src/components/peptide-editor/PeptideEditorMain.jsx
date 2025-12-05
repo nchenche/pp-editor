@@ -2,10 +2,8 @@ import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImper
 import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
-import { SequenceInput, SequenceEditorPanel } from './SequenceInput';
 import BilnEditorInterface from './BilnEditorInterface';
-// import { MonomerTrack } from './MonomerTrack/MonomerTrack';
-import SequenceTrackToolbar from './ChainComponent/ChainsToolbar';
+
 
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
@@ -16,11 +14,17 @@ import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
 import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
-import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
+import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
 
-import { Box, Grid2, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
-import { Collapse, IconButton } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {
+    buildLinkMapFromBiln,
+    setMonomerSequences,
+    deriveSeqCount,
+    reconcileActiveSeqIdx,
+    analyzeBiln
+} from '../../../src/utils/bilnUtils';
+
+import { Box, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -32,19 +36,9 @@ import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
-import UndoIcon from '@mui/icons-material/Undo';
-import RedoIcon from '@mui/icons-material/Redo';
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import CircularProgress from '@mui/material/CircularProgress';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
-
-
+import CircularProgress from '@mui/material/CircularProgress';
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -95,25 +89,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
 
-    // Parse BILN to decide if it’s “committable” (no trailing sep, no open parenthesis)
-    const analyzeBiln = useCallback((biln) => {
-        const s = (biln || '').trim();
-        if (!s) return { committable: true, tokenCount: 0 };
-        // trailing separator or open paren/comma -> not committable
-        if (/[-.\(,]\s*$/.test(s)) return { committable: false, tokenCount: 0 };
-        // parentheses balance (simple, non-nested expected)
-        let depth = 0;
-        for (let i = 0; i < s.length; i++) {
-            const ch = s[i];
-            if (ch === '(') depth++;
-            else if (ch === ')') { depth--; if (depth < 0) return { committable: false, tokenCount: 0 }; }
-        }
-        if (depth !== 0) return { committable: false, tokenCount: 0 };
-        // count residues: remove paren content then split on '.' or '-' and count non-empty tokens
-        const noParen = s.replace(/\([^)]*\)/g, '');
-        const tokenCount = noParen.split(/[.-]+/).filter(Boolean).length;
-        return { committable: true, tokenCount };
-    }, []);
+
 
     // Only this “committed” BILN drives depiction/3D
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
@@ -274,7 +250,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!committedBiln) return false;
         const { tokenCount } = analyzeBiln(committedBiln);
         return tokenCount > 0 && secstructString.length === tokenCount;
-    }, [committedBiln, secstructString, analyzeBiln]);
+    }, [committedBiln, secstructString]);
 
     // Debounced generate3D trigger and last sent guard
     const lastGenRef = useRef({ biln: null, ss: null });
@@ -390,9 +366,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // Update committedBiln only when BILN is committable (prevents “separator-only” and open '(' churn)
     useEffect(() => {
         const { committable } = analyzeBiln(bilnValue);
-        if (!committable) return; // keep previous committedBiln
+        if (!committable) return;
         if (bilnValue !== committedBiln) setCommittedBiln(bilnValue);
-    }, [bilnValue, committedBiln, analyzeBiln]);
+    }, [bilnValue, committedBiln]);
 
     // Drive depiction only from committedBiln
     useEffect(() => {
@@ -584,46 +560,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         loading: scaffoldLoading,
         error: scaffoldError,
     } = useScaffoldTemplate();
-    const [scaffoldMappings, setScaffoldMappings] = useState([]);
 
 
-    // Add a handler to update a single mapping entry:
-    const handleEditScaffoldMapping = useCallback((seqIdx, patch) => {
-        setScaffoldMappings(prev => {
-            const next = prev.slice();
-            const current = next[seqIdx] || {
-                enabled: false,
-                chainId: null,
-                start: null,
-                end: null,
-                offset: 0,
-            };
-            next[seqIdx] = { ...current, ...patch };
-            return next;
-        });
-    }, []);
+    const { scaffoldMappings, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists);
 
-    // Keep the scaffoldMappings array in sync with the number of sequences. 
-    useEffect(() => {
-        // keep scaffoldMappings length aligned with rowMonomerLists.length
-        setScaffoldMappings(prev => {
-            const targetLen = rowMonomerLists.length;
-            if (prev.length === targetLen) return prev;
-            const next = new Array(targetLen);
-            for (let i = 0; i < targetLen; i++) {
-                next[i] = prev[i] || {
-                    enabled: false,
-                    chainId: null,
-                    start: null,
-                    end: null,
-                    offset: 0,
-                };
-            }
-            return next;
-        });
-    }, [rowMonomerLists]);
-
-    console.log('Scaffold template:', scaffoldTemplate);
+    // console.log('Scaffold template:', scaffoldTemplate);
 
     return (
         <Box

@@ -182,3 +182,25 @@ export async function convertHelmToBiln(helmString) {
     }
     return biln;
 }
+
+
+export function analyzeBiln(biln) {
+    const s = (biln || '').trim();
+    if (!s) return { committable: true, tokenCount: 0 };
+    if (/[-.\(,]\s*$/.test(s)) return { committable: false, tokenCount: 0 };
+
+    let depth = 0;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '(') depth++;
+        else if (ch === ')') {
+            depth--;
+            if (depth < 0) return { committable: false, tokenCount: 0 };
+        }
+    }
+    if (depth !== 0) return { committable: false, tokenCount: 0 };
+
+    const noParen = s.replace(/\([^)]*\)/g, '');
+    const tokenCount = noParen.split(/[.-]+/).filter(Boolean).length;
+    return { committable: true, tokenCount };
+}
