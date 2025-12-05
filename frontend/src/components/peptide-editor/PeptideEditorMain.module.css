@@ -1,0 +1,70 @@
+/* ResizableBar.module.css */
+.resizableBar {
+  /* Core dimensions and appearance */
+  height: 8px; /* Slightly thicker for better targetability */
+  cursor: row-resize;
+  background-color: var(--color-divider); /* Using a standard divider color */
+  
+  /* Centering the visual handle for aesthetics */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Ensure it is layered correctly */
+  z-index: 10;
+  
+  /* Smooth transition for hover/active effects */
+  transition: background-color 0.2s ease, height 0.2s ease;
+}
+
+/* ResizableBar.module.css */
+.grabberHandle {
+  width: 24px; /* A good width for a handle */
+  height: 4px; /* A thin visual element */
+  
+  /* The three-dot/stack look */
+  border-top: 1px solid var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-text-secondary);
+  opacity: 0.6; /* Subtle appearance */
+  
+  /* Ensure transitions apply to the handle as well */
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+/* ResizableBar.module.css */
+
+/* When the bar is hovered, make it pop */
+.resizableBar:hover {
+  background-color: var(--color-text-primary); /* A more attention-grabbing color */
+  /* Optional: Briefly increase height for a 'pop' effect */
+  /* height: 10px; */ 
+}
+
+/* Also update the handle's appearance on hover */
+.resizableBar:hover .grabberHandle {
+  opacity: 1; /* Make the handle fully visible */
+  border-top-color: var(--color-accent); /* Use an accent color */
+  border-bottom-color: var(--color-accent);
+}
+
+/* ResizableBar.module.css */
+.resizableBarActive {
+  /* Use a distinct primary/accent color to show engagement */
+  background-color: var(--color-primary-blue); 
+  
+  /* A slight increase in size while dragging */
+  height: 10px; 
+  
+  /* Remove the cursor change, as the cursor will already be active from the OS */
+  cursor: grabbing; 
+  
+  /* Optional: Add a subtle shadow */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); 
+}
+
+/* Make the handle match the active color */
+.resizableBarActive .grabberHandle {
+  opacity: 1;
+  border-top-color: var(--color-primary-blue);
+  border-bottom-color: var(--color-primary-blue);
+}
