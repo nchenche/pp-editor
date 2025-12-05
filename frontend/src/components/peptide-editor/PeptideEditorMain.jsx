@@ -15,6 +15,8 @@ import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
+import { usePersistDesign, useInitialDesignState } from '../../../src/hooks/usePersistDesign';
+
 
 import {
     buildLinkMapFromBiln,
@@ -79,17 +81,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const colorMenuOpen = Boolean(colorMenuEl);
     const reset3DOpen = Boolean(reset3DEl);
 
-    const persisted = useRef(readPersistedDesign()).current;
-    const initialBiln = persisted?.biln ?? initBiln;
+    const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
+
     const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
     const [phValue, setPhValue] = useState(7.4);
+
+    const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
+    const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
+    
 
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
-
-
 
     // Only this “committed” BILN drives depiction/3D
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
@@ -229,8 +233,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
-    const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
-    const [constraintsBySeq, setConstraintsBySeq] = useState(() => persisted?.constraints ?? []);  // ensure constraints length matches monomers length per sequence
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
     const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
@@ -417,11 +419,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setBilnValue(newBiln);
     }
 
-    useEffect(() => {
-        const payload = JSON.stringify({ biln: bilnValue, constraints: constraintsBySeq });
-        const id = setTimeout(() => localStorage.setItem('design-peptide-v1', payload), 200);
-        return () => clearTimeout(id);
-    }, [bilnValue, constraintsBySeq]);
+    // Persist design state
+    usePersistDesign({ biln: bilnValue, constraints: constraintsBySeq });
 
 
     // Compact, subtle button style for the 2D toolbar
