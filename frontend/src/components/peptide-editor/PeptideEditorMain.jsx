@@ -426,27 +426,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Compact, subtle button style for the 2D toolbar
     // Compact, subtle button style for the 2D/3D toolbars (icon-only)
-    const toolbarBtnSx = {
+    const TOOLBAR_BTN_SX = Object.freeze({
         textTransform: 'none',
         lineHeight: 1.1,
         minHeight: 24,
-        minWidth: 32,         // tighter buttons for icon-only
+        minWidth: 32,
         px: 0.5,
         color: 'text.secondary',
         borderColor: 'divider',
-        '& .MuiSvgIcon-root': {
-            // fontSize: 16,
-            color: 'currentColor',
-        },
+        '& .MuiSvgIcon-root': { color: 'currentColor' },
         '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-        '&.Mui-disabled': {
-            color: 'text.disabled',
-            borderColor: 'divider',
-        },
-        '&.Mui-disabled .MuiSvgIcon-root': {
-            color: 'text.disabled',
-        },
-    };
+        '&.Mui-disabled': { color: 'text.disabled', borderColor: 'divider' },
+        '&.Mui-disabled .MuiSvgIcon-root': { color: 'text.disabled' },
+    });
+    const BUTTON_GROUP_SX = Object.freeze({ '& .MuiButton-root': TOOLBAR_BTN_SX });
 
     // Portal root provided by DesignPageLayoutMUI (right panel)
     const { rootRef, overlayActive, setOverlayActive } = useOverlayPortal();
@@ -695,7 +688,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 <ButtonGroup
                                     size="small"
                                     variant="text"
-                                    sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                                    sx={BUTTON_GROUP_SX}
                                 >
                                     <Tooltip title="Link" arrow placement='top'>
                                         <span>
@@ -864,7 +857,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     <ButtonGroup
                                         size="small"
                                         variant="text"
-                                        sx={{ '& .MuiButton-root': toolbarBtnSx }}
+                                        sx={BUTTON_GROUP_SX}
                                     >
                                         <Tooltip title="Representation" arrow placement='top'>
                                             <Button
