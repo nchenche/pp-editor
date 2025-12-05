@@ -87,6 +87,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const persisted = useRef(readPersistedDesign()).current;
     const initialBiln = persisted?.biln ?? initBiln;
     const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
+    const [phValue, setPhValue] = useState(7.4);
 
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
@@ -376,6 +377,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             sequence: newBiln,
             mode: 'rdkit',
             'show-atom-indices': isShowingAtomIndices,
+            'is_protonated': true,
+            'ph_value': phValue
         }
 
         // const query = `?sequence=${newBiln}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;

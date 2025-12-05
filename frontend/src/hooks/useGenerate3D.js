@@ -46,7 +46,7 @@ export function useGenerate3D() {
         setLoading(true);
         try {
             const response = await fetch(
-                `${API_BASE_URL}/api/core/molecules/generate_3d?without_ss=${withoutSS}`,
+                `${API_BASE_URL}/api/core/molecules/generate_3d?without_ss=${withoutSS}&no_hydrogens=false&is_protonated=true&ph_value=7.4`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
