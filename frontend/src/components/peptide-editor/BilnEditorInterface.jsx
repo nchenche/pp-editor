@@ -4,12 +4,23 @@ import {
     Box,
     Paper,
     Typography,
-    Tooltip, Button, Dialog, DialogTitle, DialogContent,
-    DialogActions, IconButton, ButtonGroup, TextField, RadioGroup, FormControlLabel, Radio,
-    FormControl, FormLabel, Switch, MenuItem
+    Tooltip,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    IconButton,
+    ButtonGroup,
+    TextField,
+    RadioGroup,
+    FormControlLabel,
+    Radio,
+    FormControl,
+    FormLabel,
+    Switch,
+    MenuItem,
 } from '@mui/material';
-
-
 
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
@@ -19,9 +30,12 @@ import UploadIcon from '@mui/icons-material/Upload';
 import Chip from '@mui/material/Chip';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
-
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
+
+import { useSequenceUploadDialog } from '../../hooks/useSequenceUploadDialog';
+import { useScaffoldDialog } from '../../hooks/useScaffoldDialog';
+import { useMappingDialog } from '../../hooks/useMappingDialog';
 
 import { SequenceEditorPanel } from './SequenceInput';
 import ChainsToolbar from './ChainComponent/ChainsToolbar';
@@ -60,23 +74,56 @@ export default function BilnEditorInterface({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
-    // NEW: global scaffold integration
+    // Scaffold integration
     scaffoldTemplate = null,
-    onUploadScaffold = () => { },
+    onUploadScaffoldFile = () => { },
+    onFetchScaffoldById = () => { },
     onClearScaffold = () => { },
-    // NEW: per-chain scaffold mapping
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
-    // Upload sequence dialog state
-    const [uploadOpen, setUploadOpen] = useState(false);
-    const [uploadMode, setUploadMode] = useState('fasta'); // 'fasta' | 'helm'
-    const [uploadText, setUploadText] = useState('');
-    const [uploadError, setUploadError] = useState('');
-    const [uploadLoading, setUploadLoading] = useState(false);
+
+    const {
+        open: uploadOpen,
+        mode: uploadMode,
+        setMode: setUploadMode,
+        text: uploadText,
+        setText: setUploadText,
+        error: uploadError,
+        setError: setUploadError,
+        loading: uploadLoading,
+        handleOpen: handleOpenUpload,
+        handleClose: handleCloseUpload,
+        handleConfirm: handleConfirmUpload,
+    } = useSequenceUploadDialog({ onApplyBiln: onChangeBiln, });
+
+    // Scaffold dialog hook
+    const {
+        scaffoldDialogOpen,
+        scaffoldMode,
+        setScaffoldMode,
+        pdbIdInput,
+        setPdbIdInput,
+        fileInputRef,
+        openScaffoldDialog,
+        closeScaffoldDialog,
+        handleScaffoldFileChange,
+        handleConfirmPdbId,
+    } = useScaffoldDialog({
+        onUploadScaffoldFile,
+        onFetchScaffoldById,
+    });
+
+    // Mapping dialog hook
+    const {
+        mappingDialogOpen,
+        mappingDialogSeqIdx,
+        openMappingDialog,
+        closeMappingDialog,
+    } = useMappingDialog();
 
     const btnSx = {
         textTransform: 'none',
@@ -85,80 +132,6 @@ export default function BilnEditorInterface({
         px: 1,
         color: 'text.secondary',
         borderColor: 'divider',
-    };
-
-    const handleOpenUpload = () => {
-        setUploadOpen(true);
-        setUploadMode('fasta');
-        setUploadText('');
-        setUploadError('');
-    };
-
-    const handleCloseUpload = () => {
-        if (uploadLoading) return;
-        setUploadOpen(false);
-        setUploadText('');
-        setUploadError('');
-    };
-
-    const handleConfirmUpload = async () => {
-        console.log('Uploading sequence:', uploadMode, uploadText);
-        const text = uploadText.trim();
-        if (!text) {
-            setUploadError('Please enter a sequence.');
-            return;
-        }
-
-        setUploadError('');
-        setUploadLoading(true);
-
-        try {
-            let newBiln = '';
-
-            if (uploadMode === 'fasta') {
-                // Front-side validation and conversion
-                newBiln = parseFastaToBiln(text);
-            } else {
-                // HELM -> BILN via backend
-                newBiln = await convertHelmToBiln(text);
-            }
-
-            onChangeBiln(newBiln);
-            setUploadOpen(false);
-            setUploadText('');
-        } catch (e) {
-            setUploadError(e.message || 'Failed to process the sequence.');
-        } finally {
-            setUploadLoading(false);
-        }
-    };
-
-    const fileInputRef = useRef(null);
-
-    const handleClickScaffoldUpload = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleScaffoldFileChange = (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            onUploadScaffold(file);
-        }
-        // reset so selecting the same file again still fires change
-        e.target.value = '';
-    };
-
-    const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
-    const [mappingDialogSeqIdx, setMappingDialogSeqIdx] = useState(null);
-
-    const openMappingDialog = (seqIdx) => {
-        if (!scaffoldTemplate) return;
-        setMappingDialogSeqIdx(seqIdx);
-        setMappingDialogOpen(true);
-    };
-    const closeMappingDialog = () => {
-        setMappingDialogSeqIdx(null);
-        setMappingDialogOpen(false);
     };
 
     return (
@@ -197,24 +170,24 @@ export default function BilnEditorInterface({
                 {/* Right-side toolbar: Undo / Redo / Clear (neutral, outlined) */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
 
-                    {/* Hidden file input for scaffold upload */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdb,.ent,.cif,.mmcif"
-                        style={{ display: 'none' }}
-                        onChange={handleScaffoldFileChange}
-                    />
-
                     {/* Scaffold upload + status */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Tooltip title="Upload a PDB file to use as global scaffold template" arrow>
+                        {/* Hidden file input used when in "file" mode */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdb,.ent,.cif,.mmcif"
+                            style={{ display: 'none' }}
+                            onChange={handleScaffoldFileChange}
+                        />
+
+                        <Tooltip title="Upload a PDB file or fetch by PDB ID to use as global scaffold template" arrow>
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
-                                    onClick={handleClickScaffoldUpload}
+                                    onClick={openScaffoldDialog}
                                     startIcon={<UploadIcon fontSize="inherit" />}
                                     sx={btnSx}
                                 >
@@ -512,113 +485,180 @@ export default function BilnEditorInterface({
                 </DialogActions>
             </Dialog>
 
-            {/* Scaffold mapping dialog */}
-            {mappingDialogOpen && mappingDialogSeqIdx != null && (
-                <Dialog open onClose={closeMappingDialog} maxWidth="sm" fullWidth>
-                    <DialogTitle>3D Template · Chain {mappingDialogSeqIdx + 1}</DialogTitle>
-                    <DialogContent dividers>
-                        {!scaffoldTemplate ? (
-                            <Typography color="text.secondary">
-                                Upload a scaffold before configuring per-chain mappings.
-                            </Typography>
-                        ) : (() => {
-                            const seq = rowMonomerLists[mappingDialogSeqIdx] || [];
+            {/* Template mapping dialog */}
+            <Dialog
+                open={mappingDialogOpen && mappingDialogSeqIdx != null}
+                onClose={closeMappingDialog}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>
+                    Configure 3D template · Chain {mappingDialogSeqIdx != null ? mappingDialogSeqIdx + 1 : ''}
+                </DialogTitle>
+                <DialogContent dividers>
+                    {mappingDialogSeqIdx == null ? null : !scaffoldTemplate ? (
+                        <Typography variant="body2" color="text.secondary">
+                            Upload or fetch a scaffold before configuring per-chain mappings.
+                        </Typography>
+                    ) : (
+                        (() => {
                             const mapping = scaffoldMappings[mappingDialogSeqIdx] || {};
-                            const enabled = !!mapping.enabled;
-                            const chainId = mapping.chainId || '';
-                            const start = mapping.start ?? '';
-                            const end = mapping.end ?? '';
-                            const offset = mapping.offset ?? 0;
+                            const enabled = Boolean(mapping.enabled);
+                            const chains = scaffoldTemplate.chainData ?? [];
+                            const selectedChainId = mapping.chainId ?? '';
+                            const update = (patch) =>
+                                onEditScaffoldMapping(mappingDialogSeqIdx, patch);
 
                             return (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <Typography variant="body2" color="text.secondary">
-                                        Map up to 40 designed residues to the uploaded scaffold.
+                                        Define how this designed chain threads onto the scaffold.
                                     </Typography>
+
                                     <FormControlLabel
                                         control={
                                             <Switch
                                                 size="small"
                                                 checked={enabled}
-                                                onChange={(e) =>
-                                                    onEditScaffoldMapping(mappingDialogSeqIdx, { enabled: e.target.checked })
-                                                }
+                                                onChange={(e) => update({ enabled: e.target.checked })}
                                             />
                                         }
-                                        label="Enable template for this chain"
+                                        label="Enable template mapping for this chain"
                                     />
+
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                                         <TextField
                                             select
                                             size="small"
                                             label="PDB chain"
-                                            value={chainId}
-                                            onChange={(e) =>
-                                                onEditScaffoldMapping(mappingDialogSeqIdx, { chainId: e.target.value || null })
-                                            }
+                                            value={selectedChainId}
+                                            onChange={(e) => update({ chainId: e.target.value || null })}
                                             disabled={!enabled}
-                                            sx={{ minWidth: 120 }}
+                                            sx={{ minWidth: 140 }}
                                         >
                                             <MenuItem value="">
                                                 <em>Auto</em>
                                             </MenuItem>
-                                            {(scaffoldTemplate.chains || ['A', 'B', 'C']).map((c) => (
-                                                <MenuItem key={c} value={c}>{c}</MenuItem>
-                                            ))}
+                                            {(chains.length ? chains : scaffoldTemplate.chains || []).map((chain) => {
+                                                const id = typeof chain === 'string' ? chain : chain.id;
+                                                return (
+                                                    <MenuItem key={id} value={id}>
+                                                        {id}
+                                                    </MenuItem>
+                                                );
+                                            })}
                                         </TextField>
+
                                         <TextField
                                             size="small"
                                             label="Start residue"
                                             type="number"
-                                            value={start}
+                                            value={mapping.start ?? ''}
                                             onChange={(e) =>
-                                                onEditScaffoldMapping(mappingDialogSeqIdx, {
-                                                    start: e.target.value ? Number(e.target.value) : null,
-                                                })
+                                                update({ start: e.target.value ? Number(e.target.value) : null })
                                             }
                                             disabled={!enabled}
                                             sx={{ width: 140 }}
                                         />
+
                                         <TextField
                                             size="small"
                                             label="End residue"
                                             type="number"
-                                            value={end}
+                                            value={mapping.end ?? ''}
                                             onChange={(e) =>
-                                                onEditScaffoldMapping(mappingDialogSeqIdx, {
-                                                    end: e.target.value ? Number(e.target.value) : null,
-                                                })
+                                                update({ end: e.target.value ? Number(e.target.value) : null })
                                             }
                                             disabled={!enabled}
                                             sx={{ width: 140 }}
                                         />
+
                                         <TextField
                                             size="small"
                                             label="Offset"
                                             type="number"
-                                            value={offset}
-                                            onChange={(e) =>
-                                                onEditScaffoldMapping(mappingDialogSeqIdx, {
-                                                    offset: e.target.value ? Number(e.target.value) : 0,
-                                                })
-                                            }
+                                            value={mapping.offset ?? 0}
+                                            onChange={(e) => update({ offset: Number(e.target.value) || 0 })}
                                             disabled={!enabled}
                                             sx={{ width: 120 }}
                                         />
                                     </Box>
-                                    <Typography variant="caption" color="text.disabled">
-                                        Designed length: {seq.length} residues (max 40 mappable)
+
+                                    <Typography variant="caption" color="text.secondary">
+                                        Designed length:{' '}
+                                        {rowMonomerLists[mappingDialogSeqIdx]?.length ?? 0} residues.
                                     </Typography>
                                 </Box>
                             );
-                        })()}
-                    </DialogContent>
-                    <DialogActions>
-                        <Button size="small" onClick={closeMappingDialog}>Close</Button>
-                    </DialogActions>
-                </Dialog>
-            )}
+                        })()
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button size="small" onClick={closeMappingDialog}>
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
+            {/* Scaffold upload / fetch dialog */}
+            <Dialog open={scaffoldDialogOpen} onClose={closeScaffoldDialog} maxWidth="xs" fullWidth>
+                <DialogTitle>Select scaffold source</DialogTitle>
+                <DialogContent dividers>
+                    <RadioGroup
+                        row
+                        value={scaffoldMode}
+                        onChange={(e) => setScaffoldMode(e.target.value)}
+                        sx={{ mb: 2 }}
+                    >
+                        <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
+                        <FormControlLabel value="pdbId" control={<Radio size="small" />} label="PDB ID" />
+                    </RadioGroup>
+
+                    {scaffoldMode === 'file' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Choose a local PDB/mmCIF file to use as global scaffold template.
+                            </Typography>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<UploadIcon fontSize="inherit" />}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                Select file…
+                            </Button>
+                        </Box>
+                    ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Enter a 4-letter PDB ID (e.g. 1CRN, 4HHB).
+                            </Typography>
+                            <TextField
+                                size="small"
+                                label="PDB ID"
+                                value={pdbIdInput}
+                                onChange={(e) => setPdbIdInput(e.target.value.toUpperCase())}
+                                slotProps={{ htmlInput: { maxLength: 4, style: { textTransform: 'uppercase', fontFamily: 'monospace' } } }}
+                            />
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button size="small" onClick={closeScaffoldDialog}>
+                        Cancel
+                    </Button>
+                    {scaffoldMode === 'pdbId' && (
+                        <Button
+                            size="small"
+                            variant="contained"
+                            onClick={handleConfirmPdbId}
+                            disabled={!pdbIdInput.trim()}
+                        >
+                            Fetch
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
         </Paper>
     );
 }

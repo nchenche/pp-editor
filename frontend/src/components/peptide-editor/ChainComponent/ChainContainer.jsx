@@ -263,7 +263,7 @@ export default function ChainContainer({
                 MenuListProps={{ dense: true }}
             >
                 <MenuItem onClick={() => handleTemplateAction(onTemplateMenu)} disabled={templateMenuDisabled}>
-                    Configure 3D template…
+                    Configure 3D template ...
                 </MenuItem>
                 <MenuItem onClick={() => handleTemplateAction(onTemplateClear)} disabled={templateMenuDisabled}>
                     Clear mapping

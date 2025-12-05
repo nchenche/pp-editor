@@ -15,6 +15,7 @@ import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
 import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
+import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { buildLinkMapFromBiln, setMonomerSequences, deriveSeqCount, reconcileActiveSeqIdx } from '../../../src/utils/bilnUtils';
 
 import { Box, Grid2, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
@@ -575,38 +576,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
 
     // Scaffold /template handling
-    const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
-    // shape suggestion:
-    // {
-    //   name: string,          // filename, e.g. "1crn.pdb"
-    //   text: string,          // raw PDB text
-    //   chains: string[] | null, // parsed chain IDs later (['A','B',...])
-    // }
-
-    // NEW: per-sequence mapping onto the global scaffold
+    const {
+        scaffoldTemplate,
+        uploadScaffoldFile,
+        fetchScaffoldById,
+        handleClearScaffold,
+        loading: scaffoldLoading,
+        error: scaffoldError,
+    } = useScaffoldTemplate();
     const [scaffoldMappings, setScaffoldMappings] = useState([]);
-    // each mapping:
-    // {
-    //   enabled: boolean,
-    //   chainId: string | null,   // e.g. 'A'
-    //   start: number | null,     // PDB residue index (1-based or whatever you choose)
-    //   end: number | null,
-    //   offset: number,           // integer offset between template and designed seq
-    // }
 
-    const handleScaffoldUpload = useCallback(async (file) => {
-        if (!file) return;
-        const text = await file.text();
-        setScaffoldTemplate({
-            name: file.name,
-            text,
-            chains: null, // fill later when we parse the PDB
-        });
-    }, []);
-
-    const handleClearScaffold = useCallback(() => {
-        setScaffoldTemplate(null);
-    }, []);
 
     // Add a handler to update a single mapping entry:
     const handleEditScaffoldMapping = useCallback((seqIdx, patch) => {
@@ -695,11 +674,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
                         canLink={canLink}
                         canUnlink={canCut}
-                        // NEW: global scaffold props
+                        // Global scaffold props
                         scaffoldTemplate={scaffoldTemplate}
-                        onUploadScaffold={handleScaffoldUpload}
+                        onUploadScaffoldFile={uploadScaffoldFile}
+                        onFetchScaffoldById={fetchScaffoldById}
                         onClearScaffold={handleClearScaffold}
-                        // NEW: per-chain scaffold mapping
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={handleEditScaffoldMapping}
                     />
