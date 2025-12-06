@@ -9,6 +9,9 @@ import TemplateSequence from './TemplateSequence';
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
 
+const CELL_WIDTH = 32;
+const CELL_HEIGHT = 20;
+const GRID_GAP = 0.5;
 
 export const ChainSlots = ({
     rowMonomerLists,
@@ -67,8 +70,11 @@ export const ChainSlots = ({
 
                 const templateSlot = (
                     <TemplateSequence
-                        mapping={mapping}
+                        mapping={scaffoldMappings?.[seqIdx]}
                         scaffoldTemplate={scaffoldTemplate}
+                        maxResidueCount={list.length}
+                        sequenceIndex={seqIdx}
+                        onEditMapping={onEditScaffoldMapping}
                     />
                 );
                 return (
@@ -130,7 +136,7 @@ export const ChainSlots = ({
                                 <Box
                                     sx={{
                                         display: 'flex',
-                                        gap: 0.5,
+                                        gap: GRID_GAP,
                                         overflowX: 'auto',
                                         overflowY: 'hidden',
                                         py: 0.5,
@@ -138,10 +144,11 @@ export const ChainSlots = ({
                                         border: 1,
                                         borderColor: 'divider',
                                         borderRadius: 1,
-                                        minHeight: 34,
+                                        minHeight: CELL_HEIGHT,
                                         alignItems: 'center',
                                     }}
                                 >
+
                                     {list.length === 0 ? (
                                         <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
                                             No residues. Add monomers to define constraints.
@@ -151,6 +158,7 @@ export const ChainSlots = ({
                                             const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
                                             const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
                                             return (
+
                                                 <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
                                                     <span>
                                                         <ConstraintCell

@@ -363,7 +363,7 @@ export default function BilnEditorInterface({
                         constraintsMode={constraintsMode}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={onEditConstraint}
-                        // NEW: scaffold mapping
+                        // Scaffold mapping
                         scaffoldTemplate={scaffoldTemplate}
                         scaffoldMappings={scaffoldMappings}
                         onOpenScaffoldMapping={openMappingDialog}
@@ -554,6 +554,7 @@ export default function BilnEditorInterface({
                                             label="Start residue"
                                             type="number"
                                             value={mapping.start ?? ''}
+                                            slotProps={{ htmlInput: { min: 1 } }}
                                             onChange={(e) =>
                                                 update({ start: e.target.value ? Number(e.target.value) : null })
                                             }
@@ -578,6 +579,7 @@ export default function BilnEditorInterface({
                                             label="Offset"
                                             type="number"
                                             value={mapping.offset ?? 0}
+                                            slotProps={{ htmlInput: { min: 0 } }}
                                             onChange={(e) => update({ offset: Number(e.target.value) || 0 })}
                                             disabled={!enabled}
                                             sx={{ width: 120 }}
@@ -638,6 +640,12 @@ export default function BilnEditorInterface({
                                 label="PDB ID"
                                 value={pdbIdInput}
                                 onChange={(e) => setPdbIdInput(e.target.value.toUpperCase())}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        handleConfirmPdbId();
+                                    }
+                                }}
                                 slotProps={{ htmlInput: { maxLength: 4, style: { textTransform: 'uppercase', fontFamily: 'monospace' } } }}
                             />
                         </Box>
@@ -652,7 +660,7 @@ export default function BilnEditorInterface({
                             size="small"
                             variant="contained"
                             onClick={handleConfirmPdbId}
-                            disabled={!pdbIdInput.trim()}
+                            disabled={!(pdbIdInput.trim().length === 4)}
                         >
                             Fetch
                         </Button>

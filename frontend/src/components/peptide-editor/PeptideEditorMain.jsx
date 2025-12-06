@@ -554,7 +554,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     } = useScaffoldTemplate();
 
 
-    const { scaffoldMappings, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists);
+    const { scaffoldMappings, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
 
     // console.log('Scaffold template:', scaffoldTemplate);
 
@@ -652,17 +652,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
-                    {/* <Box
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', // always 50% / 50%
-                            gap: 1,
-                            height: '100%',
-                            minHeight: 0,
-                            minWidth: 0,
-                            alignItems: 'stretch',
-                        }}
-                    > */}
 
                     <Box
                         sx={{
