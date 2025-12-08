@@ -7,6 +7,8 @@ const emptyMapping = {
     end: null,
     offset: 0,
     manualMasks: [],
+    source: null,
+    pdbPath: null
 };
 
 export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
@@ -30,7 +32,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                     return {
                         mapping: {
                             ...emptyMapping,
-                            ...mapping,
+                            // ...mapping,
                             manualMasks: sanitizeManualMasks(mapping?.manualMasks),
                             sequence: '',
                             templateResidues: [],
@@ -50,6 +52,9 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 const manualSet = buildMaskSet(mapping.manualMasks, slice.residues.length);
                 const maskedResidues = slice.residues.map((code, i) => (manualSet.has(i) ? 'X' : code));
                 const sequence = mapping.enabled ? formatSequence(mapping.offset, maskedResidues) : '';
+                const pdbPath = scaffoldTemplate?.pdbPath || null;
+                const name = scaffoldTemplate?.name || null;
+                const source = scaffoldTemplate?.source || null;
 
                 return {
                     mapping: {
@@ -58,6 +63,9 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                         manualMasks: Array.from(manualSet).sort((a, b) => a - b),
                         sequence,
                         templateResidues: slice.residues,
+                        source,
+                        pdbPath,
+                        name,
                     },
                     derivedStart: slice.startNumber ?? null,
                     derivedEnd: slice.endNumber ?? null,
@@ -70,6 +78,11 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     const scaffoldMappings = useMemo(
         () => computedEntries.map((entry) => entry.mapping),
         [computedEntries],
+    );
+
+    const anyScaffoldEnabled = useMemo(
+        () => scaffoldMappings.some(m => m?.enabled),
+        [scaffoldMappings],
     );
 
     const derivedRanges = useMemo(
@@ -156,7 +169,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         });
     }, []);
 
-    return { scaffoldMappings, handleEditScaffoldMapping };
+    return { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping };
 }
 
 function normalizePatch(patch, current) {
@@ -216,13 +229,13 @@ function resolveTemplateSlice({ template, mapping, designedLength }) {
         return { residues: [], startNumber: null, endNumber: null, chainId: null };
     }
 
-    const startNumber = mapping.start != null ? Number(mapping.start) : residues[0]?.number ?? 1;
+    const startNumber = mapping.start != null ? Number(mapping.start) : residues[0]?.resid ?? 1;
     const targetEnd =
         mapping.end != null
             ? Number(mapping.end)
             : designedLength != null
-              ? startNumber + Math.max(designedLength - 1, 0)
-              : residues[residues.length - 1].number;
+                ? startNumber + Math.max(designedLength - 1, 0)
+                : residues[residues.length - 1].resid;
 
     const startIdx = resolveIndex(residues, startNumber) ?? 0;
     const endIdx =
@@ -265,8 +278,9 @@ function normalizeResidues(chain) {
     if (Array.isArray(chain.residues) && chain.residues.length) {
         return chain.residues
             .map((res, idx) => ({
-                code: normalizeResidueCode(res?.resName ?? res?.name ?? res?.label ?? res?.code ?? res?.type),
+                code: normalizeResidueCode(res?.resname ?? res?.name ?? res?.label ?? res?.code ?? res?.type),
                 number:
+                    res?.resid ??
                     res?.resSeq ??
                     res?.seqNumber ??
                     res?.sequenceNumber ??
@@ -303,7 +317,7 @@ function normalizeResidueCode(raw) {
 
 function resolveIndex(residues, targetNumber) {
     if (targetNumber == null) return null;
-    const exact = residues.findIndex((res) => res.number === targetNumber);
+    const exact = residues.findIndex((res) => res.resid === targetNumber);
     if (exact >= 0) return exact;
     const fallback = targetNumber - 1;
     if (fallback >= 0 && fallback < residues.length) return fallback;

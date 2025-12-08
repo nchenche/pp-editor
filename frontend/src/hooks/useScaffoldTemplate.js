@@ -10,12 +10,36 @@ export function useScaffoldTemplate() {
     const parsePdbResponse = useCallback((name, text, meta) => {
         // meta is the JSON from your Flask route: { status, data: { chains: [...] } }
         const chains = meta?.data?.chains ?? [];
+        const source = meta?.data?.source || null; // e.g., 'pdb_id' or 'file_upload'
+        const pdbPath = meta?.data?.pdb_path || null;
+        const doc_id = meta?.data?._id || null;
+        console.log(chains);
         setScaffoldTemplate({
+            id: doc_id,
             name,
             text, // may be null/unknown for pdb_id case if backend does not return it
             chains: chains.map((c) => c.id),
             chainData: chains,
+            source: source,
+            pdbPath: pdbPath,
         });
+    }, []);
+
+
+    const deleteTemplateOnServer = useCallback(async (templateId) => {
+        if (!templateId) return;
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/api/structures/delete_pdb_template?template_id=${encodeURIComponent(templateId)}`,
+                { method: 'DELETE' },
+            );
+            const payload = await res.json().catch(() => null);
+            if (!res.ok || payload?.status !== 'success') {
+                throw new Error(payload?.message || `Failed to delete template ${templateId}`);
+            }
+        } catch (err) {
+            console.warn('[scaffold] delete failed', err);
+        }
     }, []);
 
     const uploadScaffoldFile = useCallback(async (file) => {
@@ -24,7 +48,7 @@ export function useScaffoldTemplate() {
         setError(null);
 
         try {
-            const text = await file.text();
+            const text = null; // await file.text();
 
             const form = new FormData();
             form.append('file', file); // backend expects `file` in form-data
@@ -38,10 +62,13 @@ export function useScaffoldTemplate() {
 
             if (!res.ok || !meta || meta.status !== 'success') {
                 setScaffoldTemplate({
+                    id: null,
                     name: file.name,
                     text,
                     chains: null,
                     chainData: null,
+                    source: null,
+                    pdbPath: null,
                 });
                 setError(meta?.message || `Failed to parse PDB (status ${res.status})`);
                 return;
@@ -74,10 +101,13 @@ export function useScaffoldTemplate() {
 
             if (!res.ok || !meta || meta.status !== 'success') {
                 setScaffoldTemplate({
+                    id: null,
                     name: pdbId.toUpperCase(),
                     text: null,
                     chains: null,
                     chainData: null,
+                    source: null,
+                    pdbPath: null,
                 });
                 setError(meta?.message || `Failed to fetch PDB ${pdbId} (status ${res.status})`);
                 return;
@@ -92,10 +122,14 @@ export function useScaffoldTemplate() {
         }
     }, [parsePdbResponse]);
 
-    const handleClearScaffold = useCallback(() => {
+    const handleClearScaffold = useCallback(async () => {
+        const templateId = scaffoldTemplate?.id ?? null;
+        if (templateId) {
+            await deleteTemplateOnServer(templateId);
+        }
         setScaffoldTemplate(null);
         setError(null);
-    }, []);
+    }, [deleteTemplateOnServer, scaffoldTemplate]);
 
     return {
         scaffoldTemplate,

@@ -71,7 +71,6 @@ export const ChainSlots = ({
                 const templateSlot = (
                     <TemplateSequence
                         mapping={scaffoldMappings?.[seqIdx]}
-                        scaffoldTemplate={scaffoldTemplate}
                         maxResidueCount={list.length}
                         sequenceIndex={seqIdx}
                         onEditMapping={onEditScaffoldMapping}

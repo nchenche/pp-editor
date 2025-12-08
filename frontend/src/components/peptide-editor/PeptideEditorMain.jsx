@@ -3,11 +3,10 @@ import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
 
 import BilnEditorInterface from './BilnEditorInterface';
-
-
 import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
 import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
+import { ReplaceOverlay } from './ReplaceOverlay';
 
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
@@ -16,7 +15,7 @@ import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
 import { usePersistDesign, useInitialDesignState } from '../../../src/hooks/usePersistDesign';
-
+import { useSplitLayout } from '../../../src/hooks/useSplitLayout';
 
 import {
     buildLinkMapFromBiln,
@@ -82,13 +81,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const reset3DOpen = Boolean(reset3DEl);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
-
     const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
     const [phValue, setPhValue] = useState(7.4);
 
     const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
-    
 
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
@@ -110,10 +107,61 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
-    const [autoSync3D, setAutoSync3D] = useState(true);
 
     const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
+
+    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
+    const [hoveredMonomer, setHoveredMonomer] = useState('');
+    const [isDragging, setIsDragging] = useState(false);
+    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
+    const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
+
+    const {
+        addMonomerToBiln,
+        handleDeleteMonomerItem,
+        handleMonomerLinking,
+        handleBondBreaking,
+        handleOnDragEnd,
+        handleDragStart,
+        handleDeleteSequence,
+        replaceMonomerInBiln,
+    } = useBilnHandlers({
+        bilnValue,
+        setBilnValue,
+        monomers,
+        rowMonomerLists,
+        linkMap,
+        uiState,
+        setUiState,
+        setIsDragging,
+        setHoveredMonomer
+    });
+
+    const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+
+    // Scaffold /template handling
+    const {
+        scaffoldTemplate,
+        uploadScaffoldFile,
+        fetchScaffoldById,
+        handleClearScaffold,
+        loading: scaffoldLoading,
+        error: scaffoldError,
+    } = useScaffoldTemplate();
+
+    const { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const [autoSync3DRaw, setAutoSync3DRaw] = useState(true);
+    const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
+
+    // Debug scaffold mappings in json format
+    useEffect(() => {
+        console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
+    }, [scaffoldMappings]);
+
+    console.log('Scaffold template:', scaffoldTemplate);
+
+
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
     const beginReplaceSelection = useCallback((mode, sourceMonomer) => {
@@ -202,36 +250,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [bilnValue, smiles, helm, structureOutput, onOutputChange]);
 
-    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
-    const [hoveredMonomer, setHoveredMonomer] = useState('');
-    const [isDragging, setIsDragging] = useState(false);
-    const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
-    // const rowMonomerLists = useMemo(() => setMonomerSequences(bilnValue, monomers), [monomers]);
-    const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
-
-
-    const {
-        addMonomerToBiln,
-        handleDeleteMonomerItem,
-        handleMonomerLinking,
-        handleBondBreaking,
-        handleOnDragEnd,
-        handleDragStart,
-        handleDeleteSequence,
-        replaceMonomerInBiln,
-    } = useBilnHandlers({
-        bilnValue,
-        setBilnValue,
-        monomers,
-        rowMonomerLists,
-        linkMap,
-        uiState,
-        setUiState,
-        setIsDragging,
-        setHoveredMonomer
-    });
-
-    const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
@@ -264,7 +282,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [generate3D]);
 
 
-    const handleAutoSyncChange = useCallback((_, checked) => setAutoSync3D(!!checked), []);
+    const handleAutoSyncChange = useCallback(
+        (_, checked) => {
+            // If any scaffold mapping is enabled, force manual mode
+            if (anyScaffoldEnabled && checked) return;
+            setAutoSync3DRaw(!!checked);
+        },
+        [anyScaffoldEnabled],
+    );
+
     const handleManualGenerate3D = useCallback(() => {
         if (!isActive || !canGenerate3D || !committedBiln) return;
         triggerGenerate(committedBiln, secstructString);
@@ -364,7 +390,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         fetchDepiction(params);
     }
 
-
     // Update committedBiln only when BILN is committable (prevents “separator-only” and open '(' churn)
     useEffect(() => {
         const { committable } = analyzeBiln(bilnValue);
@@ -396,14 +421,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString]);
 
     const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
-    const generateBtnTooltip = autoSync3D
-        ? '3D view updates automatically while Sync is on.'
-        : !canGenerate3D
-            ? 'Ensure constraints cover every residue before generating.'
-            : structureLoading
-                ? 'Generation already in progress.'
-                : 'Generate updated 3D structure.';
-
+    const generateBtnTooltip = anyScaffoldEnabled
+        ? 'Scaffold mapping is enabled: use "Generate 3D" to update the conformer.'
+        : autoSync3D
+            ? '3D view updates automatically while Sync is on.'
+            : !canGenerate3D
+                ? 'Ensure constraints cover every residue before generating.'
+                : structureLoading
+                    ? 'Generation already in progress.'
+                    : 'Generate updated 3D structure.';
 
     // Keep UI seq count in sync with committed BILN
     useEffect(() => {
@@ -440,123 +466,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     });
     const BUTTON_GROUP_SX = Object.freeze({ '& .MuiButton-root': TOOLBAR_BTN_SX });
 
-    // Portal root provided by DesignPageLayoutMUI (right panel)
-    const { rootRef, overlayActive, setOverlayActive } = useOverlayPortal();
-
-    // Keep layout highlight in sync with overlay visibility
-    useEffect(() => {
-        setOverlayActive?.(replaceSelect.open);
-        return () => setOverlayActive?.(false);
-    }, [replaceSelect.open, overlayActive, setOverlayActive]);
-
-    const replaceOverlay = replaceSelect.open && rootRef?.current
-        ? createPortal(
-            <Box
-                role="dialog"
-                aria-modal="true"
-                aria-label="Select a replacement monomer"
-                onClick={cancelReplaceSelection}
-                sx={{
-                    position: 'absolute',
-                    top: -0,
-                    // transform: 'translateZ(10px)', // fix for MUI modal + portal + z-index bug
-                    inset: 0,
-                    zIndex: (t) => t.zIndex.modal,  // t.zIndex.modal
-                    bgcolor: 'rgba(0,0,0,0.44)',
-                    backdropFilter: 'blur(4px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <Paper
-                    elevation={3}
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{
-                        p: 2,
-                        maxWidth: 460,
-                        width: '100%',
-                        textAlign: 'center',
-                        border: 1,
-                        borderColor: 'divider',
-                        transform: 'translateY(-100%)', // shift up by 100% of its height
-                    }}
-                >
-                    <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-                        Replacement selection active
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        {replaceSelect.sourceMonomer
-                            ? `Choose a monomer from the Monomer Library to replace ${replaceSelect.sourceMonomer.pdbName} (idx ${replaceSelect.sourceMonomer['res-idx']}).`
-                            : 'Choose a monomer from the Monomer Library.'}
-                    </Typography>
-                    <Box sx={{ mt: 1.25, display: 'flex', justifyContent: 'center', gap: 1 }}>
-                        <Button variant="outlined" size="small" onClick={cancelReplaceSelection}>
-                            Cancel
-                        </Button>
-                    </Box>
-                </Paper>
-            </Box>,
-            rootRef.current
-        )
-        : null;
-
-    const [editorAreaHeight, setEditorAreaHeight] = useState(320);   // px
-    const [viewerSplitRatio, setViewerSplitRatio] = useState(0.5);   // 0..1
-    const mainAreaRef = useRef(null);
-    const viewerRowRef = useRef(null);
-
-    useLayoutEffect(() => {
-        if (!mainAreaRef.current) return;
-        const { height } = mainAreaRef.current.getBoundingClientRect();
-        // Keep at least 240px, but let it initially consume ~45% of the available column.
-        setEditorAreaHeight(Math.max(240, height * 0.50));
-    }, []);
-    const isDraggingRef = useRef({ type: null });
-    const startDrag = (type) => (e) => {
-        e.preventDefault();
-        isDraggingRef.current = { type };
-        window.addEventListener('mousemove', onDrag);
-        window.addEventListener('mouseup', stopDrag);
-    };
-    const onDrag = (e) => {
-        const { type } = isDraggingRef.current;
-        if (!type) return;
-
-        if (type === 'horizontal') {
-            if (!mainAreaRef.current) return;
-            const rect = mainAreaRef.current.getBoundingClientRect();
-            const next = Math.min(Math.max(e.clientY - rect.top, 140), rect.height - 140);
-            setEditorAreaHeight(next);
-        } else if (type === 'vertical') {
-            if (!viewerRowRef.current) return;
-            const rect = viewerRowRef.current.getBoundingClientRect();
-            const minWidth = 200; // same as each panel’s minWidth
-            const x = Math.min(Math.max(e.clientX - rect.left, minWidth), rect.width - minWidth);
-            setViewerSplitRatio(x / rect.width);
-        }
-    };
-    const stopDrag = () => {
-        isDraggingRef.current = { type: null };
-        window.removeEventListener('mousemove', onDrag);
-        window.removeEventListener('mouseup', stopDrag);
-    };
-
-
-    // Scaffold /template handling
+    // Split layout for editor/viewers ; draggable divider
     const {
-        scaffoldTemplate,
-        uploadScaffoldFile,
-        fetchScaffoldById,
-        handleClearScaffold,
-        loading: scaffoldLoading,
-        error: scaffoldError,
-    } = useScaffoldTemplate();
+        editorAreaHeight,
+        viewerSplitRatio,
+        mainAreaRef,
+        viewerRowRef,
+        startDrag,
+    } = useSplitLayout({
+        initialEditorHeight: 320,
+        minEditorHeight: 240,
+        minViewerPanelWidth: 200,
+        initialViewerSplitRatio: 0.5,
+    });
 
-
-    const { scaffoldMappings, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
-
-    // console.log('Scaffold template:', scaffoldTemplate);
 
     return (
         <Box
@@ -648,7 +571,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             </Dialog> */}
 
                 {/* Local overlay for “replace monomer” selection */}
-                {replaceOverlay}
+                <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
 
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
@@ -808,7 +731,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     </Tooltip>
 
                                     <Tooltip
-                                        title={autoSync3D ? 'Disable automatic updates' : 'Enable automatic updates'}
+                                        title={
+                                            anyScaffoldEnabled
+                                                ? 'Auto sync is disabled while a scaffold mapping is active.'
+                                                : autoSync3D
+                                                    ? 'Disable automatic updates'
+                                                    : 'Enable automatic updates'
+                                        }
                                         arrow
                                         placement="top"
                                     >
@@ -819,9 +748,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     checked={autoSync3D}
                                                     onChange={handleAutoSyncChange}
                                                     inputProps={{ 'aria-label': 'toggle automatic 3D sync' }}
+                                                    disabled={anyScaffoldEnabled}
                                                 />
                                             }
-                                            // On utilise "Title Case" pour le texte, plus doux que les majuscules
                                             label="Auto sync"
                                             sx={{
                                                 m: 0,

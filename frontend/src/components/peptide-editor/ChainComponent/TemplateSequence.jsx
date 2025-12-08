@@ -85,12 +85,11 @@ const TemplateResidue = ({ code, isGap, showControls, masked, onToggle }) => (
 
 export default function TemplateSequence({
     mapping,
-    scaffoldTemplate,
     maxResidueCount = null,
     sequenceIndex = null,
     onEditMapping,
 }) {
-    if (!scaffoldTemplate) {
+    if (!mapping || !mapping.templateResidues) {
         return (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Upload a scaffold to enable mappings.
