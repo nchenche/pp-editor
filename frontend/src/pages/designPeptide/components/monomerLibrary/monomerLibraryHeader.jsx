@@ -339,7 +339,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                     optionDisabled={(opt) => noSeq && opt.value !== LINKING_MODES.newSeq}
                 />
                 <CompactSelect
-                    label="Sequence"
+                    label="Chain"
                     value={seqIdx ?? -1}
                     onChange={setSeq}
                     options={seqOptions}
