@@ -186,15 +186,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         return {
             template_id: scaffoldTemplate?.id ?? null,
-            mappings: enabled.map(
-                ({ pdbPath, chainId, start, end, offset, manualMasks }) => ({
-                    chain_id: chainId,
-                    start,
-                    end,
-                    offset,
-                    manual_masks: manualMasks ?? [],
-                }),
-            ),
+            mappings: enabled.map((m) => ({
+                enabled: m.enabled,
+                chain_id: m.chainId,
+                start: m.start,
+                end: m.end,
+                offset: m.offset,
+                manual_masks: m.manualMasks ?? [],
+            })),
         };
     }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
 
@@ -297,26 +296,47 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [committedBiln, secstructString]);
 
     // Debounced generate3D trigger and last sent guard
-    const lastGenRef = useRef({ biln: null, ss: null });
+    const lastGenRef = useRef({
+        biln: null,
+        ss: null,
+        useTemplate: null,
+        mappingSig: null,
+    });
 
     const triggerGenerate = useCallback(
         (biln, ss) => {
             const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
+
+            // Include scaffold mapping params in the cache key so mapping-only changes
+            // still trigger a new conformer generation.
+            const mappingSig =
+                useTemplate && scaffoldMappingPayload
+                    ? JSON.stringify(scaffoldMappingPayload)
+                    : null;
+
             const prev = lastGenRef.current;
 
-            if (prev.biln === biln && prev.ss === ss && prev.useTemplate === useTemplate) {
+            if (
+                prev.biln === biln &&
+                prev.ss === ss &&
+                prev.useTemplate === useTemplate &&
+                prev.mappingSig === mappingSig
+            ) {
+                // Nothing relevant changed: same BILN, same SS, same mapping config
                 return;
             }
-            lastGenRef.current = { biln, ss, useTemplate };
+
+            // Store new key
+            lastGenRef.current = { biln, ss, useTemplate, mappingSig };
 
             if (useTemplate) {
-                console.log('Generating 3D with scaffold template...');
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
                 generate3D(biln, ss, {
-                    endpoint: '/api/core/molecules/generate_3d_from_template',
+                    endpoint: '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
                     extraBody: {
                         biln,
-                        scaffold_mapping: scaffoldMappingPayload,
+                        template_id: scaffoldMappingPayload.template_id,
+                        scaffold_mappings: scaffoldMappingPayload.mappings,
                     },
                 });
             } else {

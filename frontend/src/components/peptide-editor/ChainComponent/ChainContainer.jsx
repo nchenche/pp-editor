@@ -12,7 +12,7 @@ export default function ChainContainer({
     templateSlot,
     templateMenuDisabled = false,
     // Layout
-    labelColWidth = 180,
+    labelColWidth = 200,
     gapY = 0.1,
     // Header actions (optional – design only for now)
     onSequenceMenu = () => { },
@@ -139,7 +139,7 @@ export default function ChainContainer({
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
                     <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                        DSSP constraints
+                        Secondary Structure
                     </Typography>
                     <Box sx={iconRowSx}>
                         <Tooltip title="Menu" arrow>
@@ -187,7 +187,7 @@ export default function ChainContainer({
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
 
                     <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                        3D template
+                        3D Template
                     </Typography>
 
                     <Box sx={iconRowSx}>
