@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, memo, useEffect } from "react";
 import {
     Box, Typography, IconButton, InputBase, ToggleButtonGroup, ToggleButton,
     Popover, Slider, Divider, useTheme,
-    MenuItem, Stack, Tooltip, Menu, ButtonBase
+    MenuItem, Stack, Tooltip, Menu, ButtonBase, Collapse
 } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
@@ -15,7 +15,6 @@ import { alpha } from '@mui/material/styles';
 export const LINKING_MODES = {
     append: 'append',      // C-ter
     prepend: 'prepend',    // N-ter
-    // insert: 'insert',      // pick residue
     newSeq: 'new-sequence' // new sequence
 };
 export const LINK_CHOICES = {
@@ -203,6 +202,8 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
     const theme = useTheme();
     const [popoverAnchor, setPopoverAnchor] = useState(null);
 
+    const [linkingOpen, setLinkingOpen] = useState(true);
+
     // Keep mode/link as local state
     const [modeState, setModeState] = useState(defaultLinkingSnapshot?.mode ?? LINKING_MODES.append);
     const [linkState, setLinkState] = useState(defaultLinkingSnapshot?.link ?? LINK_CHOICES.peptide);
@@ -292,25 +293,72 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
             </Box> */}
 
             <Box mt={2}>
-                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 0.6 }}>
-                    Search and filters
+                {/* Optional label, only visible from small screens up */}
+                <Typography
+                    variant="overline"
+                    sx={{
+                        color: 'text.secondary',
+                        letterSpacing: 0.6,
+                        mb: 0.25,
+                        display: { xs: 'none', sm: 'block' },
+                    }}
+                >
+                    Search &amp; filters
                 </Typography>
 
                 {/* SECTION 1 — Search + Filters */}
-                <Box sx={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", mt: 0.5 }}>
-
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: { xs: 1, sm: 1.5 },
+                        mt: 0.5,
+                    }}
+                >
                     {/* Search bar (dense) */}
-                    <Box display="flex" alignItems="center" sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1, px: 1, py: 0.25, minHeight: 34, bgcolor: 'transparent' }} component="form" onSubmit={e => e.preventDefault()}>
-                        <SearchIcon fontSize="small" sx={{ color: "grey.600", mr: 0.75 }} />
-                        <InputBase placeholder="Search monomers…" value={searchValue} onChange={e => onSearchChange(e.target.value)} sx={{ fontSize: 14, width: "100%" }} inputProps={{ "aria-label": "search monomers" }} />
+                    <Box
+                        component="form"
+                        onSubmit={e => e.preventDefault()}
+                        display="flex"
+                        alignItems="center"
+                        sx={{
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 1,
+                            px: 1,
+                            py: 0.25,
+                            minHeight: 34,
+                            bgcolor: 'transparent',
+                            flex: '1 1 180px',      // grow but keep a reasonable minimum
+                            minWidth: 160,          // never shrink below this
+                            maxWidth: '100%',
+                        }}
+                    >
+                        <SearchIcon fontSize="small" sx={{ color: 'grey.600', mr: 0.75 }} />
+                        <InputBase
+                            placeholder="Search monomers…"
+                            value={searchValue}
+                            onChange={e => onSearchChange(e.target.value)}
+                            sx={{ fontSize: 14, width: '100%' }}
+                            inputProps={{ 'aria-label': 'search monomers' }}
+                        />
                     </Box>
 
                     {/* Quick filter toggles + advanced */}
-                    <Box display="flex" justifyContent="flex-end">
-                        <QuickFilterBar value={quickFilter} onChange={onQuickFilterChange} onShowAdvanced={e => setPopoverAnchor(e.currentTarget)} />
+                    <Box
+                        display="flex"
+                        justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
+                        sx={{
+                            flex: { xs: '1 1 100%', sm: '0 0 auto' }, // wrap below on very small widths
+                        }}
+                    >
+                        <QuickFilterBar
+                            value={quickFilter}
+                            onChange={onQuickFilterChange}
+                            onShowAdvanced={e => setPopoverAnchor(e.currentTarget)}
+                        />
                     </Box>
                 </Box>
-
             </Box>
 
 
@@ -318,45 +366,94 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
 
             <Divider sx={{ my: 1.25 }} />
 
-            {/* SECTION TITLE — Linking process mode with help */}
-            <Stack direction="row" alignItems="center" gap={0.5} sx={{ mb: 0.5 }}>
-                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 0.6 }}>
-                    Linking process mode
-                </Typography>
-                <Tooltip arrow title={<Box><Typography variant="subtitle2" sx={{ mb: 0.5 }}>What happens when you click “+”</Typography><Typography variant="body2">Choose how the library monomer is placed (append, prepend, insert, or new sequence). “Link via” picks R‑groups (Peptide auto R1/R2, or R3→R1/R2/R3).</Typography></Box>}>
-                    <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                </Tooltip>
+            {/* SECTION TITLE — Linking process mode with help (collapsible) */}
+            <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 0.5, cursor: 'pointer' }}
+                onClick={() => setLinkingOpen(prev => !prev)}
+            >
+                <Stack direction="row" alignItems="center" gap={0.5}>
+                    <Typography
+                        variant="overline"
+                        sx={{ color: 'text.secondary', letterSpacing: 0.6 }}
+                    >
+                        Linking process mode
+                    </Typography>
+                    <Tooltip
+                        arrow
+                        title={
+                            <Box sx={{ maxWidth: 260, lineHeight: 1.35 }}>
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{ mb: 0.75, fontWeight: 600 }}
+                                >
+                                    What happens when you click “+”
+                                </Typography>
+
+                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                    Choose how the library monomer is placed:
+                                    <br />
+                                    <strong>append</strong>, <strong>prepend</strong>, or{' '}
+                                    <strong>new chain</strong>.
+                                </Typography>
+                            </Box>
+                        }
+                    >
+                        <InfoOutlinedIcon
+                            fontSize="small"
+                            sx={{ color: 'text.secondary' }}
+                        />
+                    </Tooltip>
+                </Stack>
+
+                <IconButton
+                    size="small"
+                    edge="end"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setLinkingOpen(prev => !prev);
+                    }}
+                    sx={{
+                        ml: 0.5,
+                        transform: linkingOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 120ms ease-out',
+                    }}
+                >
+                    <ExpandMoreIcon fontSize="small" />
+                </IconButton>
             </Stack>
 
             {/* SECTION 2 — One-line compact selectors (wrap if needed) */}
-            <Stack direction="row" alignItems="center" gap={1} flex="1 1 auto" flexWrap="wrap">
-                <CompactSelect
-                    label="Mode"
-                    value={modeState}
-                    onChange={setMode}
-                    options={modeOptions}
-                    minWidth={120}
-                    optionDisabled={(opt) => noSeq && opt.value !== LINKING_MODES.newSeq}
-                />
-                <CompactSelect
-                    label="Chain"
-                    value={seqIdx ?? -1}
-                    onChange={setSeq}
-                    options={seqOptions}
-                    minWidth={70}
-                    disabled={noSeq}
-                    placeholder="—"
-                />
-                {/* <CompactSelect
-                    label="Link via"
-                    value={linkState}
-                    onChange={setLink}
-                    options={linkOptions}
-                    minWidth={140}
-                    icon={<LinkOutlinedIcon fontSize="small" />}
-                /> */}
-            </Stack>
-
+            <Collapse in={linkingOpen} timeout="auto" unmountOnExit={false}>
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    gap={1}
+                    flex="1 1 auto"
+                    flexWrap="wrap"
+                    sx={{ mt: 0.5 }}
+                >
+                    <CompactSelect
+                        label="Mode"
+                        value={modeState}
+                        onChange={setMode}
+                        options={modeOptions}
+                        minWidth={120}
+                        optionDisabled={(opt) => noSeq && opt.value !== LINKING_MODES.newSeq}
+                    />
+                    <CompactSelect
+                        label="Chain"
+                        value={seqIdx ?? -1}
+                        onChange={setSeq}
+                        options={seqOptions}
+                        minWidth={70}
+                        disabled={noSeq}
+                        placeholder="—"
+                    />
+                </Stack>
+            </Collapse>
             {/* Advanced filter popover */}
             <AdvancedFilterPopover anchorEl={popoverAnchor} open={!!popoverAnchor} onClose={() => setPopoverAnchor(null)} range={range || [50, 800]} onRangeChange={onRangeChange || (() => { })} />
         </Box>
