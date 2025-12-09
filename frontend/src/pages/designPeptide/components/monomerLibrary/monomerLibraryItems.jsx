@@ -97,7 +97,7 @@ const SIZE = {
 const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm' }) => {
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
-    
+
     return (
         <Card
             variant="outlined"
@@ -195,24 +195,44 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
             </Box>
 
             {/* PDB code (bold) and name (ellipsis) */}
-            <CardContent sx={{ p: 0.75, textAlign: "center", pb: "6px !important", ml: tag ? `${sz.sidebarW}px` : 0 }}>
-                <Typography
-                    variant="caption"
-                    fontWeight="bold"
-                    color="text.primary"
-                    sx={{ display: "block", fontSize: sz.titleFs, lineHeight: 1.15, mb: 0.25 }}
-                    noWrap
-                >
-                    {monomer.pdbName}
-                </Typography>
-                <Tooltip title={`${monomer.m_name} (${monomer.symbol})`} placement="bottom" arrow disableInteractive>
+            <Tooltip
+                arrow
+                placement="bottom"
+                disableInteractive
+                title={
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr",
+                            columnGap: 1,
+                            rowGap: 0.5,
+                            fontSize: 12,
+                        }}
+                    >
+                        <strong>Name:</strong> {monomer.m_name}
+                        <strong>BILN symbol:</strong> {monomer.symbol}
+                        <strong>PDB code:</strong> {monomer.pdbName}
+                    </Box>
+                }
+            >
+                <CardContent sx={{ p: 0.75, textAlign: "center", pb: "6px !important", ml: tag ? `${sz.sidebarW}px` : 0 }}>
+                    <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        color="text.primary"
+                        sx={{ display: "block", fontSize: sz.titleFs, lineHeight: 1.15, mb: 0.25 }}
+                        noWrap
+                    >
+                        {monomer.symbol}
+                    </Typography>
+
                     <Typography
                         variant="caption"
                         color="text.secondary"
                         sx={{
                             display: "block",
                             fontSize: sz.nameFs,
-                            lineHeight: 1.1,
+                            lineHeight: 1.05,
                             textOverflow: "ellipsis",
                             overflow: "hidden",
                             whiteSpace: "nowrap",
@@ -220,11 +240,12 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                         }}
                         noWrap
                     >
-                        {monomer.m_name}
+                        {monomer.pdbName}
                     </Typography>
-                </Tooltip>
-            </CardContent>
-        </Card>
+
+                </CardContent>
+            </Tooltip>
+        </Card >
     );
 });
 
@@ -237,7 +258,7 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                     key={monomer._id}
                     monomer={monomer}
                     onMonomerAdd={handleAddingMonomer}
-                    onInfo={() => console.log("More info for", monomer.symbol)}
+                    onInfo={() => console.log("More info for", monomer.m_name)}
                     itemSize={itemSize}
                 />
             ))}

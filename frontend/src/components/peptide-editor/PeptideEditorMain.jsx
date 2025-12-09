@@ -140,6 +140,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
+
+    // Flatten constraints to secstruct (keep '-' for "no constraint")
+    const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
+    const flattenSecstruct = useCallback((cbs) => (
+        (cbs || [])
+            .flat()
+            .map(c => {
+                const ch = (c || '-').toString().toUpperCase();
+                return ALLOWED_SS.has(ch) ? ch : '-';
+            })
+            .join('')
+    ), [ALLOWED_SS]);
+
+    const secstructString = useMemo(() => flattenSecstruct(constraintsBySeq), [constraintsBySeq, flattenSecstruct]);
+
     // Scaffold /template handling
     const {
         scaffoldTemplate,
@@ -159,7 +174,32 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
     }, [scaffoldMappings]);
 
-    console.log('Scaffold template:', scaffoldTemplate);
+    // Build scaffold_mapping payload for backend when any scaffold is enabled
+    const scaffoldMappingPayload = useMemo(() => {
+        if (!anyScaffoldEnabled) return null;
+        // send only enabled mappings, stripped of heavy fields
+        const enabled = scaffoldMappings
+            .map((m, idx) => ({ ...m, seqIdx: idx }))
+            .filter((m) => m.enabled);
+
+        if (!enabled.length) return null;
+
+        return {
+            template_id: scaffoldTemplate?.id ?? null,
+            mappings: enabled.map(
+                ({ pdbPath, chainId, start, end, offset, manualMasks }) => ({
+                    chain_id: chainId,
+                    start,
+                    end,
+                    offset,
+                    manual_masks: manualMasks ?? [],
+                }),
+            ),
+        };
+    }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
+
+
+    // console.log('Scaffold template:', scaffoldTemplate);
 
 
 
@@ -250,22 +290,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [bilnValue, smiles, helm, structureOutput, onOutputChange]);
 
-
-
-    // Flatten constraints to secstruct (keep '-' for "no constraint")
-    const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
-    const flattenSecstruct = useCallback((cbs) => (
-        (cbs || [])
-            .flat()
-            .map(c => {
-                const ch = (c || '-').toString().toUpperCase();
-                return ALLOWED_SS.has(ch) ? ch : '-';
-            })
-            .join('')
-    ), [ALLOWED_SS]);
-
-    const secstructString = useMemo(() => flattenSecstruct(constraintsBySeq), [constraintsBySeq, flattenSecstruct]);
-
     const canGenerate3D = useMemo(() => {
         if (!committedBiln) return false;
         const { tokenCount } = analyzeBiln(committedBiln);
@@ -274,12 +298,33 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Debounced generate3D trigger and last sent guard
     const lastGenRef = useRef({ biln: null, ss: null });
-    const triggerGenerate = useCallback((biln, ss) => {
-        const prev = lastGenRef.current;
-        if (prev.biln === biln && prev.ss === ss) return;
-        lastGenRef.current = { biln, ss };
-        generate3D(biln, ss);
-    }, [generate3D]);
+
+    const triggerGenerate = useCallback(
+        (biln, ss) => {
+            const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
+            const prev = lastGenRef.current;
+
+            if (prev.biln === biln && prev.ss === ss && prev.useTemplate === useTemplate) {
+                return;
+            }
+            lastGenRef.current = { biln, ss, useTemplate };
+
+            if (useTemplate) {
+                console.log('Generating 3D with scaffold template...');
+                console.log('Scaffold mapping payload:', scaffoldMappingPayload);
+                generate3D(biln, ss, {
+                    endpoint: '/api/core/molecules/generate_3d_from_template',
+                    extraBody: {
+                        biln,
+                        scaffold_mapping: scaffoldMappingPayload,
+                    },
+                });
+            } else {
+                generate3D(biln, ss);
+            }
+        },
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload],
+    );
 
 
     const handleAutoSyncChange = useCallback(
