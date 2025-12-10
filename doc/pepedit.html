@@ -1,0 +1,107 @@
+<document>
+
+  <p>PEP-EDIT stands for the rapid on-line 1D (SMILES), 2D (SDF/MOL2) and 3D (PDB) preparation/generation of peptides inluding standard and non standard amino acids or groups. These can be used for further investigation of the peptides, including 3D modeling using AlphaFold3 (REF), or conformational sampling using molecular dynamics (REFS). The 3D conformations can be generated from scratch, or imposing structural constraints. It can also be used to edit the structures of peptides, modifying/substituting their amino-acids while preserving the input 3D conformation. Protonation is controlled depending on the pH. </p>
+
+<h3> Concepts:</h3>
+
+
+ PEP-EDIT elaborates upon the "Boehringer Ingelheim Line Notation" (BILN) system (REF), as implemented in the pyPept libray (REF). BILN comes with two main features:
+ <ul>
+ <li> a library of monomers (e.g. amino-acids) that can be connected to others. </li>
+ <li> a syntax to describe how monomers are connected to others. </li>
+ </ul>
+ 
+The combination of the two makes it possible to describe complex peptides using a human readable notation. This section is a short introduction to the BILN format. For more details, please refer to (REF).
+
+<h4> The monomer library. </h4>
+
+The library contains monomers that can be combined to build a peptide. In PEP-EDIT, the monomers are classified in different categories:
+<ul>
+  <li> Natural amino acids that correspond to the usual 20 L-amino acids.  </li>
+  <li> Non natural amino acids that encompass the D-amino acids and unusual amino acids such as the sarcosin, or the alpha-amino iso butyric acid, but also N-methylated amino acids and exotic amino acids such as the N-epsilon-tert-Boc-L-lysine, and many others.  </li>
+  <li> Caps: these correspond to special groups that can only be added as extremities of the main chain or side chains (see below). </li>
+</ul>
+
+<ul>
+<li> Each monomer in the library has a label that can be used to combine it with other. For instance P for proline, am for amide, DOU for the D-ornithine, etc.</li>
+<li> Each monomer has identified connecting groups or R-groups. By default all amino acids have two R-groups, the first (R1) consisting of the N-terminal backbone nitrogen and the second (R2) the C-terminal carbonyl carbon. Extras connecting groups (R3, R4, ...) consist for instance of the sulfur atoms of the cysteine side chains that can form disulfide bonds. In practice, the number of R-groups is currently limited to 4. </li>
+<li> Caps are monomers that have only one R-group, and can only positionned at extremities. </li>
+</ul>
+
+Currently, PEP-EDIT comes with a library of 20 standard amino acids, 255 non standard amino acids and 53 caps. <em>Furthermore, it is possible to extend the library on-line (see below).</em>
+
+<h4>Complex peptides as a monomer assembly:</h4>
+
+<ul>
+ <li> Describing the way monomers are connected can be done in the following form: P(1,2).E(1,1)(2,2).K(2,1) for the peptide PEK.
+ <ul> <li> Monomers are associated with their connecting information and are separated by '.'. Pairs within parentheses describe the connections.
+  <li> In P(1,2) the "1" stands for connection 1 and the "2" denotes a connection using R2 (the carbonyl). </li>
+  <li>In  E(1,1)(2,2), (1,1) stand for connection 1 using R1 (the nitrogen), and (2,2) stands for connection 2 using R2 (the carbonyl). <li> Finally, in K(2,1), connection 2 is closed using the lysine R1 (the nitrogen).</li>
+ </ul></li>
+</ul>
+
+<ul>
+ <li> The description of the connectivity related to the amino-bonds can be simplified suing the "-" sign. For instance:</li>
+ <ul>
+  <li> P-E-P-T-I-D-E means a peptide of sequence PEPTIDE. </li>
+  <li> P-E-P-T-I-D-E.A-N-D_Orn-T-H-E-R means two disconnected peptides, the first of sequence PEPTIDE and the second of sequence AN-DOU-THER, where D_Orn stands for the D-ornithine.</li>
+ </ul></li>
+ <li> Consequently, if a monomer label contains a '-' then its name must be enclsed by brackets. For instance if a nomomer is named 2-Cl-TYR, then it must be specified as [2-Cl-TYR] in the biln sequence: A-[2-Cl-TYR]-A </li>
+</ul>
+
+<ul>
+ <li> Taking advantage of the simplified notation, more complex peptides can be noted in a simple manner.
+ <ul>
+  <li> P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3): in this example, the syntax defines a bond labelled 1 between the R-group number 3 of the cysteine (the sulfur) of the first pepidic chain of sequence PEPTCIDE and that of the cysteine of the second peptidic chain of sequence AGVIC. </li>
+  <li> A concrete example: semaglutide: H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)
+  <li> ACE (ac) can be added to the N-extremity or a peptide or NH2 (am) to its C-extremity.  E.g.: ac-K-L-am for the KL peptide both acetylated and amidated.
+ </ul>
+
+</ul>
+
+<h3>The PEP-EDIT user interface for complex peptide generation</h3>
+
+The service is composed of two tabs. The first one "Design peptide" is related to the interactive generation of 1D/2D/3D representations of a peptide specified using the BILN syntax. The other one is related to the library of monomers available to build peptides, and defining new monomers to add to the library.
+
+<h4> The BILN editor </h4>
+
+<h5> Editing a BILN sequence </h5>
+The main entry point to generate a peptide consists of the text field defining the BILN sequence (upper left of the interface). It can be filled manually entering a BILN sequence or by clicking the monomers of the library depicted on the right part of the interface. This library section comes with tools to search the monomers, depending on their class (CAPS, NATURAL or NON-NATURAL) or using a text search to identify relevant monomers. For instance, entering "cys" will filter the monomer library to present only monomers having the "cys" text in their names, resulting in presenting 9 monomers, including for instance the D-cysteine, the homocysteine or the selenocysteine. Once a monomer of interest identified, it is possible to directly use its BILN name in the BILN sequence text field or to add it to one sequence by clicking the "+" sign on the top left of the monomer. Depending on the "Mode" selected, the monomer will be added either at the end (Append), the beginning (Prepend) or will be used to start a new peptidic entity entitled New chain in PEP-EDIT. All these operations support an undo redo mechanism (icons on the top of the editor).
+
+Note that the definition of the BILN sequence is associated with the synchronous 2D and 3D depictions of the peptidic chains. In some cases, the generation of the 3D conformation can take some time. To keep the process as interactive as possible, it is possible to disable the automatic updating the 3D depiction.
+
+<h5> Linking two chains </h5>
+
+It is possible to link monomers directly for the BILN text field, or graphically, clicking the "link" button. Once clicked on, the 2D depiction will show the groups that are available to generate a bond. In the example below, clicking the SH groups of two cysteines will result in the formation on a disulfide bond. It is possible to unlink two monomers clinkg the unlink button and double clicking the bond to disrupt. Note that this is only effective to unlink groups that do not correspond to amine bonds, i.e. involve R-groups other than 1 and 2. Also note that the linking mechanism comes with no control about if the link creation is meaningful.
+
+<h5> Imposing 3D conformation constraints </h5>
+
+It is possible to impose conformationnal constraints to the 3D generator. The area in the middle of the BILN editor interface contains a summary of the chains entered in the BILN sequence text field. For sake of clarity, the amino acids are here denoted using a 3 letter code that may differ from thei BILN names. 
+<ul>
+  <li> <b>Secondary structure:</b> Each amino acid of each chain can be associated with a local conformation, one of H (helical), E (extended) or C (coil), '-' meaning no constraint. Once specified, the constraints are passed to the 3D generator and propagated to the 3D coordinates. Note that the constraints are applied based on interatomic distance, not phi psi angle values, to preserve the compatibility with exotic amino acids, making teh helical and extended conformation approximate only. For more exact backbonbe constraints, it is preferable to use a 3D template.</li>
+  <li> <b>3D template:</b> It is possible to impose a backbone conformation by loading a PDB file. The PDB file can be a user file or it can be fetched directly from the PDB by specifying its PDB identifier (e.g. 1uao). The rules to apply the constraints are as follows:
+    <ul>
+      <li>The backbone coordinates of the first residue of the template are mapped onto the first residue of the first chain, then the second, then the third, etc. It is possible to change the mapping by using the "Configure 3D template" option in the "3D template menu" (accessible clicking on the 3 vertical dots icon).</li>
+      <li>If several chains are present, the same process is applied to each. It can thus be necessary to adjust/clear the mapping for some chains. </li>
+      <li>To avoid unnecessary delays due to the 3D refresh of the peptide, the 3D syncrhonization is disabled. It is necessary to ask for its generation by clicking the "Generate 3D" button.
+      
+    </ul>
+  </li>
+</ul>
+
+<h5> Output </h5>
+
+The outuput section gives access to the 1D (SMILES, HELM, BILN), 2D (SDF) and 3D (SDF, PDB) representations of the peptide. Note that contrarily to the 2D sketch of the BILN editor section, where hydrogens other than that of the main chain are only implicit, the protonation is here set for pH 7.4.
+
+<h4> The Monomer editor </h4>
+
+In order to preserve its ability to evolve, PEP-EDIT also comes with a possibility to add new monomers to the library, in a moderated manner.
+The process includes 5 steps:
+<ol>
+  <li> The monomer should be described as a smiles. Protonation details are not required at this stage. Alternatively, a CHEMBL identifier can be specified to automatically search the SMILES</li>
+  <li> In a second step, the user has to identify wich are the R-groups. To this aim, the user has to select one or more bonds to be broken.</li>
+  <li> The molecule is then displayed as two fragments or more, and the user has to select the fragment that will correspond to the monomer after linking.</li> 
+  <li> This done, the user must detail the name of the monomer, its BILN label, the 3 lettre code for the PDB format. If it is an amino acid, a natural analog can be given. </li>
+  <li> A FINIR </li>
+</ol>
+</document>
