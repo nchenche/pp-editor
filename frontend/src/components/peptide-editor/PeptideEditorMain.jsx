@@ -70,9 +70,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [isEditorOpen, setIsEditorOpen] = useState(true);
-    // const [seqHelpOpen, setSeqHelpOpen] = useState(false);
-
     const [repMenuEl, setRepMenuEl] = useState(null);
     const [colorMenuEl, setColorMenuEl] = useState(null);
     const [reset3DEl, setReset3DEl] = useState(null);
@@ -80,8 +77,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const colorMenuOpen = Boolean(colorMenuEl);
     const reset3DOpen = Boolean(reset3DEl);
 
-    // const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
-    // const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
         value: bilnValue,
@@ -91,9 +86,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         undo: handleUndoBiln,
         redo: handleRedoBiln,
     } = useBilnHistory(initialBiln, 20);
+    const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
     const [phValue, setPhValue] = useState(7.4);
-
     const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
@@ -101,17 +96,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
-
-    // Only this “committed” BILN drives depiction/3D
-    const [committedBiln, setCommittedBiln] = useState(initialBiln);
-
-    // --- BILN history (undo up to 10) ---
-    const MAX_HISTORY = 20;
-    const [bilnHistory, setBilnHistory] = useState([initialBiln]);
-    const [bilnFuture, setBilnFuture] = useState([]);
-    const didInitHistoryRef = useRef(false);
-    const isUndoingRef = useRef(false);
-    const isRedoingRef = useRef(false);
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);
@@ -121,7 +105,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
 
-    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(true);
+    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [hoveredMonomer, setHoveredMonomer] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
@@ -209,53 +193,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return () => window.removeEventListener('keydown', onKey);
     }, [replaceSelect.open, cancelReplaceSelection]);
 
-    // // Track bilnValue changes into history unless undo/redo is in progress
-    // useEffect(() => {
-    //     // Initialize history on first render
-    //     if (!didInitHistoryRef.current) {
-    //         didInitHistoryRef.current = true;
-    //         setBilnHistory([bilnValue]);
-    //         return;
-    //     }
-    //     // Skip if change is due to undo/redo
-    //     if (isUndoingRef.current || isRedoingRef.current) {
-    //         isUndoingRef.current = false;
-    //         isRedoingRef.current = false;
-    //         return;
-    //     }
-    //     // Normal edit: push to history
-    //     setBilnHistory(prev => {
-    //         if (prev[prev.length - 1] === bilnValue) return prev;
-    //         const next = [...prev, bilnValue];
-    //         return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
-    //     });
-    //     setBilnFuture([]); // Any new user edit invalidates the redo stack
-    // }, [bilnValue]);
-
-    // const canUndo = bilnHistory.length > 1;
-    // const canRedo = bilnFuture.length > 0;
-    // const handleUndoBiln = () => {
-    //     if (!canUndo) return;
-    //     const current = bilnHistory[bilnHistory.length - 1];
-    //     const prev = bilnHistory[bilnHistory.length - 2];
-    //     setBilnHistory(bilnHistory.slice(0, -1));
-    //     setBilnFuture(f => [current, ...f]);
-    //     isUndoingRef.current = true;
-    //     setBilnValue(prev);
-    // };
-
-    // const handleRedoBiln = () => {
-    //     if (!canRedo) return;
-    //     const [next, ...rest] = bilnFuture;
-    //     setBilnFuture(rest);
-    //     setBilnHistory(h => {
-    //         const merged = [...h, next];
-    //         return merged.length > MAX_HISTORY ? merged.slice(merged.length - MAX_HISTORY) : merged;
-    //     });
-    //     isRedoingRef.current = true;
-    //     setBilnValue(next);
-    // };
-
     // Lift state up: output data
     useEffect(() => {
         if (onOutputChange) {
@@ -301,7 +238,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             ) {
                 return;
             }
-
             // If using template endpoint, block generation on overlapping ranges
             if (useTemplate && hasTemplateOverlap()) {
                 setTemplateOverlapOpen(true);
@@ -309,7 +245,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
 
             lastGenRef.current = { biln, ss, useTemplate, mappingSig };
-
             if (useTemplate) {
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
                 generate3D(biln, ss, {
@@ -326,7 +261,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         },
         [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap],
     );
-
 
     const handleAutoSyncChange = useCallback(
         (_, checked) => {
@@ -491,6 +425,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setBilnValue(newBiln);
     }
 
+    const clearData = useCallback(() => {
+        setBilnValue('');
+        setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
+        setStructureOutput({ pdb: '' });
+        setTemplateOverlapOpen(false);
+        handleClearScaffold();
+    }, [setBilnValue, setDepictionData, setStructureOutput, setTemplateOverlapOpen, handleClearScaffold]);
+
     // Persist design state
     usePersistDesign({ biln: bilnValue, constraints: constraintsBySeq });
 
@@ -552,7 +494,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         canRedo={canRedo}
                         onUndo={handleUndoBiln}
                         onRedo={handleRedoBiln}
-                        onClear={() => handleBilnChange('')}
+                        onClear={clearData}
                         // Chains section props
                         rowMonomerLists={rowMonomerLists}
                         activeSeqIdx={uiState.activeSeqIdx}
