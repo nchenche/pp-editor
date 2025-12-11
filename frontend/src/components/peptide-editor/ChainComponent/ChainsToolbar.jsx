@@ -55,7 +55,7 @@ export default function ChainsToolbar({
             </ButtonGroup>
 
             {/* Bonds: Link / Unlink */}
-            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
+            {/* <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                 <Tooltip title="Link residues (2D sketch)" arrow>
                     <Button
                         onClick={onToggleConstraintsMode}
@@ -67,7 +67,7 @@ export default function ChainsToolbar({
                         Constraints
                     </Button>
                 </Tooltip>
-            </ButtonGroup>
+            </ButtonGroup> */}
         </Box>
     );
 }
