@@ -151,7 +151,6 @@ export default function TemplateSequence({
         }
         return templateResidues.length;
     }, [maxResidueCount, templateResidues.length]);
-    console.log('aaSlots', aaSlots);
 
     // Total visual cells = N-ter offset + all AA slots + optional C-ter caps.
     // const totalSlots = offsetCount + aaSlots + trailingCapCount;
@@ -163,8 +162,6 @@ export default function TemplateSequence({
         // const aaEnd = offsetCount + aaSlots; // exclusive
         const aaEnd = aaSlots - trailingCapCount; // exclusive
         const capStart = aaEnd;
-
-        console.log({ totalSlots, offsetCount, aaStart, aaEnd, capStart });
 
         return Array.from({ length: totalSlots }, (_, slotIdx) => {
             // 1) Leading offset cells (N-ter cap mapped as pure offset X's)

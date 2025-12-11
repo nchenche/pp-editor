@@ -76,7 +76,22 @@ export function useGenerate3D() {
                 }
                 const json = await response.json();
                 if (reqIdRef.current !== myReqId) return;
-                setResult(json.data);
+                console.log(json)
+
+                const data = json?.data || {};
+
+                // Special case: template endpoint returned no PDB
+                if (
+                    endpoint.includes('generate_3d_from_template') &&
+                    (! data || !data.pdb || !String(data.pdb).trim())
+                ) {
+                    setError('Failed to generate a 3D conformer from the selected template.');
+                    setResult({ pdb: '' });
+                    setLoading(false);
+                    return;
+                }
+
+                setResult(data);
                 setError(null);
             } catch (e) {
                 if (e?.name === 'AbortError') return;

@@ -128,9 +128,6 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
             .filter((m) => m.enabled);
 
         if (!enabled.length) return null;
-
-        console.log('Scaffold mapping payload enabled mappings:', enabled);
-
         return {
             template_id: scaffoldTemplate?.id ?? null,
             mappings: enabled.map((m) => ({

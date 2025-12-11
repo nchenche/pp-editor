@@ -1038,15 +1038,74 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             textAlign: 'center',
                                         }}
                                     >
-                                        {/* Show message about 3D generation status */}
-                                        <Typography
-                                            variant="body1"
-                                            sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
-                                        >
-                                            {/* No data
-                                            <br /> */}
-                                            {generate3DError ? `${generate3DError}` : 'No data to display.'}
-                                        </Typography>
+                                        {(() => {
+                                            const err = generate3DError;
+                                            const isTemplateFail =
+                                                typeof err === 'string' &&
+                                                err.includes('Failed to generate a 3D conformer from the selected template.');
+
+                                            if (!err) {
+                                                // No error, just no data
+                                                return (
+                                                    <Typography
+                                                        variant="body1"
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            fontSize: '1.1rem',
+                                                            lineHeight: 1.75,
+                                                            fontWeight: 400,
+                                                        }}
+                                                    >
+                                                        No data to display.
+                                                    </Typography>
+                                                );
+                                            }
+
+                                            if (isTemplateFail) {
+                                                // Template-based generation failed, show warning style + hint
+                                                return (
+                                                    <Box>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: 'warning.main',
+                                                                fontSize: '1.1rem',
+                                                                lineHeight: 1.75,
+                                                                fontWeight: 500,
+                                                            }}
+                                                        >
+                                                            {err}
+                                                        </Typography>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                mt: 0.75,
+                                                                color: 'text.secondary',
+                                                                fontSize: '0.9rem',
+                                                            }}
+                                                        >
+                                                            Please try to relax your constraints and run the generation again.
+                                                        </Typography>
+                                                    </Box>
+                                                );
+                                            }
+
+                                            // Any other error: show in alarming color
+                                            return (
+                                                <Typography
+                                                    variant="body1"
+                                                    sx={{
+                                                        color: 'error.main',
+                                                        fontSize: '1.1rem',
+                                                        lineHeight: 1.6,
+                                                        fontWeight: 500,
+                                                        whiteSpace: 'pre-wrap',
+                                                    }}
+                                                >
+                                                    {`${err}`}
+                                                </Typography>
+                                            );
+                                        })()}
                                     </Box>
                                 )}
                                 <Viewer3D
