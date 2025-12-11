@@ -314,7 +314,7 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                             }}
                         >
                             {monomersToLink.length === 0 ? (
-                                'Link monomers — Click an R‑group to start'
+                                'Link monomers — Click a R‑group to start'
                             ) : (
                                 <>
                                     1 selected — Click another R‑group to create a non‑peptidic bond (Esc to cancel)

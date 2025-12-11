@@ -111,11 +111,11 @@ const Viewer3DInner = ({
                     </Overlay>
                 )} */}
 
-                {combinedError && (
+                {/* {combinedError && (
                     <Overlay bg="rgba(255, 200, 200, 0.7)">
                         <span className="text-red-700">Error: {String(combinedError)}</span>
                     </Overlay>
-                )}
+                )} */}
             </div>
         </div>
     );

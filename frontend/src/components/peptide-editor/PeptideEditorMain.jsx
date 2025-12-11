@@ -228,9 +228,30 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     ? JSON.stringify(scaffoldMappingPayload)
                     : null;
 
+            // If we just cleared data, skip this auto-trigger once
+            if (skipNextGenerateRef.current) {
+                skipNextGenerateRef.current = false;
+                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+                return;
+            }
+
+            // Normalize BILN: if it's effectively empty, do not generate
+            const normalizedBiln = (biln || '')
+                .trim()
+                .replace(/^[.\-]+|[.\-]+$/g, '')
+                .replace(/\.+/g, '.')
+                .replace(/\-+/g, '-');
+
+            if (!normalizedBiln) {
+                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+                return;
+            }
+
             const prev = lastGenRef.current;
+            const hasPdb = !!structureOutput?.pdb;
 
             if (
+                hasPdb &&
                 prev.biln === biln &&
                 prev.ss === ss &&
                 prev.useTemplate === useTemplate &&
@@ -238,17 +259,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             ) {
                 return;
             }
-            // If using template endpoint, block generation on overlapping ranges
+
             if (useTemplate && hasTemplateOverlap()) {
                 setTemplateOverlapOpen(true);
                 return;
             }
 
             lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+
             if (useTemplate) {
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
                 generate3D(biln, ss, {
-                    endpoint: '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
+                    endpoint:
+                        '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
                     extraBody: {
                         biln,
                         template_id: scaffoldMappingPayload.template_id,
@@ -259,7 +282,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 generate3D(biln, ss);
             }
         },
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, structureOutput],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -425,7 +448,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setBilnValue(newBiln);
     }
 
+    const skipNextGenerateRef = useRef(false); // to skip auto-generate after clear action
     const clearData = useCallback(() => {
+        skipNextGenerateRef.current = true;
         setBilnValue('');
         setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
         setStructureOutput({ pdb: '' });
@@ -974,8 +999,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     })}
                                 </Menu>
 
-
-
                             </Box>
 
                             {/* Canvas area */}
@@ -1020,7 +1043,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             variant="body1"
                                             sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
                                         >
-                                            No data
+                                            {/* No data
+                                            <br /> */}
+                                            {generate3DError ? `${generate3DError}` : 'No data to display.'}
                                         </Typography>
                                     </Box>
                                 )}
