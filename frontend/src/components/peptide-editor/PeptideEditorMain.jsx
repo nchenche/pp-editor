@@ -164,46 +164,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         error: scaffoldError,
     } = useScaffoldTemplate();
 
-    const { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
     const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
     const [autoSync3DRaw, setAutoSync3DRaw] = useState(true);
     const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
-
-
-
-    // Debug scaffold mappings in json format
-    // useEffect(() => {
-    // console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
-    // }, [scaffoldMappings]);
-
-    // Build scaffold_mapping payload for backend when any scaffold is enabled
-    const scaffoldMappingPayload = useMemo(() => {
-        if (!anyScaffoldEnabled) return null;
-        // send only enabled mappings, stripped of heavy fields
-        const enabled = scaffoldMappings
-            .map((m, idx) => ({ ...m, seqIdx: idx }))
-            .filter((m) => m.enabled);
-
-        if (!enabled.length) return null;
-
-        console.log('Scaffold mapping payload enabled mappings:', enabled);
-
-        return {
-            template_id: scaffoldTemplate?.id ?? null,
-            mappings: enabled.map((m) => ({
-                enabled: m.enabled,
-                chain_id: m.chainId,
-                start: m.start,
-                end: m.end,
-                offset: m.offset,
-                manual_masks: m.manualMasks ?? [],
-            })),
-        };
-    }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
-
-
-    // console.log('Scaffold template:', scaffoldTemplate);
-
 
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });

@@ -109,7 +109,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
             }),
         [rawMappings, scaffoldTemplate, rowMonomerLists, designAaLengths],
     );
-    
+
     const scaffoldMappings = useMemo(
         () => computedEntries.map((entry) => entry.mapping),
         [computedEntries],
@@ -119,6 +119,30 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         () => scaffoldMappings.some((m) => m?.enabled),
         [scaffoldMappings],
     );
+
+    const scaffoldMappingPayload = useMemo(() => {
+        if (!anyScaffoldEnabled) return null;
+        // send only enabled mappings, stripped of heavy fields
+        const enabled = scaffoldMappings
+            .map((m, idx) => ({ ...m, seqIdx: idx }))
+            .filter((m) => m.enabled);
+
+        if (!enabled.length) return null;
+
+        console.log('Scaffold mapping payload enabled mappings:', enabled);
+
+        return {
+            template_id: scaffoldTemplate?.id ?? null,
+            mappings: enabled.map((m) => ({
+                enabled: m.enabled,
+                chain_id: m.chainId,
+                start: m.start,
+                end: m.end,
+                offset: m.offset,
+                manual_masks: m.manualMasks ?? [],
+            })),
+        };
+    }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
 
     // AUTO-RANGE allocation now uses AA-only lengths (caps excluded)
     const autoRanges = useMemo(() => {
@@ -332,7 +356,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         return false;
     }, [scaffoldMappings]);
 
-    return { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping, hasTemplateOverlap };
+    return { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap };
 }
 
 function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
