@@ -445,14 +445,51 @@ export function useBilnHandlers({
     }, [bilnValue, setBilnValue, linkMap]);
 
     const handleDeleteSequence = (index) => {
-        // Parse current sequences
-        const trimmed = (bilnValue || "").replace(/^[.-]+|[.-]+$/g, "");
-        const segments = trimmed ? trimmed.split(".") : [];
-        const newSegments = segments.filter((_, i) => i !== index);
-        const newBiln = newSegments.join(".");
+        // Normalize and split BILN into segments and per-segment tokens
+        const normalized = (bilnValue || '')
+            .trim()
+            .replace(/^[.\-]+|[.\-]+$/g, '')
+            .replace(/\.+/g, '.')
+            .replace(/\-+/g, '-');
+        const rawSegments = normalized ? normalized.split('.') : [];
+        const segments = rawSegments.map(seg => (seg ? seg.split('-') : []).filter(Boolean));
+
+        if (segments.length === 0) return;
+        if (index < 0 || index >= segments.length) return;
+
+        // 1) Collect connection IDs present in ALL tokens of the segment being removed
+        const linkIdSet = new Set();
+        for (const tok of segments[index]) {
+            const ids = Array.from(tok.matchAll(/\((\d+),\d+\)/g)).map((m) => m[1]);
+            ids.forEach((id) => linkIdSet.add(id));
+        }
+
+        // 2) Remove the entire segment
+        segments.splice(index, 1);
+
+        // 3) Remove matching links from all remaining tokens
+        if (linkIdSet.size > 0) {
+            for (let si = 0; si < segments.length; si++) {
+                for (let ti = 0; ti < segments[si].length; ti++) {
+                    let tok = segments[si][ti];
+                    linkIdSet.forEach((id) => {
+                        tok = tok.replace(new RegExp(`\\(${id},\\d+\\)`, 'g'), '');
+                    });
+                    segments[si][ti] = tok;
+                }
+            }
+        }
+
+        // 4) Rebuild BILN
+        const newBiln = segments.length === 0
+            ? ''
+            : segments.map(seg => seg.join('-')).join('.');
+
         setBilnValue(newBiln);
+
+        // 5) Update uiState focus to a valid sequence (keep same index if possible)
         setUiState(prev => {
-            const newSeqCount = newSegments.length;
+            const newSeqCount = segments.length;
             let nextIdx = null;
             if (newSeqCount > 0) {
                 nextIdx = Math.min(index, newSeqCount - 1);

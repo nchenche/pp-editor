@@ -13,7 +13,6 @@ export function useScaffoldTemplate() {
         const source = meta?.data?.source || null; // e.g., 'pdb_id' or 'file_upload'
         const pdbPath = meta?.data?.pdb_path || null;
         const doc_id = meta?.data?._id || null;
-        console.log(chains);
         setScaffoldTemplate({
             id: doc_id,
             name,
@@ -83,7 +82,7 @@ export function useScaffoldTemplate() {
     }, [parsePdbResponse]);
 
     const fetchScaffoldById = useCallback(async (pdbId) => {
-        console.log('fetchScaffoldById', pdbId);
+        // console.log('fetchScaffoldById', pdbId);
         if (!pdbId) return;
         setLoading(true);
         setError(null);

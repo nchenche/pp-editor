@@ -25,8 +25,7 @@ import {
     analyzeBiln
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
-import Button from '@mui/material/Button';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'; import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
@@ -111,7 +110,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
 
-    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
+    const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(true);
     const [hoveredMonomer, setHoveredMonomer] = useState('');
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
@@ -165,14 +164,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         error: scaffoldError,
     } = useScaffoldTemplate();
 
-    const { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
     const [autoSync3DRaw, setAutoSync3DRaw] = useState(true);
     const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
 
+
+
     // Debug scaffold mappings in json format
-    useEffect(() => {
-        console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
-    }, [scaffoldMappings]);
+    // useEffect(() => {
+    // console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
+    // }, [scaffoldMappings]);
 
     // Build scaffold_mapping payload for backend when any scaffold is enabled
     const scaffoldMappingPayload = useMemo(() => {
@@ -183,6 +185,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             .filter((m) => m.enabled);
 
         if (!enabled.length) return null;
+
+        console.log('Scaffold mapping payload enabled mappings:', enabled);
 
         return {
             template_id: scaffoldTemplate?.id ?? null,
@@ -307,8 +311,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         (biln, ss) => {
             const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
 
-            // Include scaffold mapping params in the cache key so mapping-only changes
-            // still trigger a new conformer generation.
             const mappingSig =
                 useTemplate && scaffoldMappingPayload
                     ? JSON.stringify(scaffoldMappingPayload)
@@ -322,11 +324,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 prev.useTemplate === useTemplate &&
                 prev.mappingSig === mappingSig
             ) {
-                // Nothing relevant changed: same BILN, same SS, same mapping config
                 return;
             }
 
-            // Store new key
+            // If using template endpoint, block generation on overlapping ranges
+            if (useTemplate && hasTemplateOverlap()) {
+                setTemplateOverlapOpen(true);
+                return;
+            }
+
             lastGenRef.current = { biln, ss, useTemplate, mappingSig };
 
             if (useTemplate) {
@@ -343,7 +349,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 generate3D(biln, ss);
             }
         },
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap],
     );
 
 
@@ -634,6 +640,28 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
                 </DialogActions>
             </Dialog> */}
+
+                {/* Overlapping scaffold mappings warning */}
+                <Dialog
+                    open={templateOverlapOpen}
+                    onClose={() => setTemplateOverlapOpen(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle>Scaffold mappings overlap</DialogTitle>
+                    <DialogContent dividers>
+                        <Typography variant="body2">
+                            At least two designed chains map to overlapping residue ranges on the same
+                            scaffold chain. Please adjust the start/end residues so that each chain
+                            uses a non-overlapping region before generating a 3D conformer.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button size="small" onClick={() => setTemplateOverlapOpen(false)}>
+                            OK
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />

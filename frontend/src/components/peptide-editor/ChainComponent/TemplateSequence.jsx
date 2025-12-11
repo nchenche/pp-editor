@@ -4,84 +4,108 @@ import { Box, Typography, Tooltip, IconButton, TextField } from '@mui/material';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
-
 const CELL_WIDTH = 32;
 const CELL_HEIGHT = 20;
 const GRID_GAP = 0.5;
 
-const TemplateResidue = ({ code, isGap, showControls, masked, onToggle }) => (
-    <Box
-        sx={{
-            width: CELL_WIDTH,
-            minWidth: CELL_WIDTH,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            // formatting the hover effect
-            '&:hover .template-mask-btn': { 
-                opacity: 1, 
-                pointerEvents: 'auto' 
-            },
-        }}
-    >
-        {showControls && (
-            <Tooltip title={masked ? 'Unmask residue' : 'Mask residue'}>
-                <Box
-                    component="span"
-                    className="template-mask-btn"
-                    sx={{
-                        position: 'absolute',
-                        top: -18,
-                        opacity: 0, 
-                        transition: 'opacity 120ms ease',
-                        // prevents invisible clicks
-                        pointerEvents: 'none', 
-                        // ensures the icon sits on top of the row above it
-                        zIndex: 1 
-                    }}
-                >
-                    <IconButton
-                        size="small"
-                        onClick={onToggle}
-                        sx={{ width: 8, height: 8, color: 'text.secondary' }}
-                    >
-                        {masked ? (
-                            <VisibilityOutlinedIcon sx={{ width: 14, height: 14 }} />
-                        ) : (
-                            <VisibilityOffOutlinedIcon sx={{ width: 14, height: 14 }} />
-                        )}
-                    </IconButton>
-                </Box>
-            </Tooltip>
-        )}
+const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle }) => {
+    const isOffsetOrMasked = kind === 'offset' || masked;
+
+    return (
         <Box
             sx={{
-                width: '100%',
-                height: CELL_HEIGHT,
-                borderRadius: 4,
+                width: CELL_WIDTH,
+                minWidth: CELL_WIDTH,
+                position: 'relative',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 400,
-                textTransform: 'uppercase',
-                border: '1px solid',
-                borderColor: (theme) =>
-                    isGap ? theme.palette.warning.light : theme.palette.primary.light,
-                bgcolor: (theme) =>
-                    isGap
-                        ? theme.palette.warning.light + '22'
-                        : theme.palette.primary.light + '18',
-                color: (theme) =>
-                    isGap ? theme.palette.warning.dark : theme.palette.primary.dark,
+                '&:hover .template-mask-btn': {
+                    opacity: 1,
+                    pointerEvents: 'auto',
+                },
             }}
         >
-            {code}
+            {showControls && (
+                <Tooltip title={masked ? 'Unmask residue' : 'Mask residue'}>
+                    <Box
+                        component="span"
+                        className="template-mask-btn"
+                        sx={{
+                            position: 'absolute',
+                            top: -18,
+                            opacity: 0,
+                            transition: 'opacity 120ms ease',
+                            pointerEvents: 'none',
+                            zIndex: 1,
+                        }}
+                    >
+                        <IconButton
+                            size="small"
+                            onClick={onToggle}
+                            sx={{ width: 8, height: 8, color: 'text.secondary' }}
+                        >
+                            {masked ? (
+                                <VisibilityOutlinedIcon sx={{ width: 14, height: 14 }} />
+                            ) : (
+                                <VisibilityOffOutlinedIcon sx={{ width: 14, height: 14 }} />
+                            )}
+                        </IconButton>
+                    </Box>
+                </Tooltip>
+            )}
+            <Box
+                sx={{
+                    width: '100%',
+                    height: CELL_HEIGHT + 4,
+                    borderRadius: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 0.1,
+                    textTransform: 'uppercase',
+                    border: '1px solid',
+                    borderColor: (theme) =>
+                        isOffsetOrMasked
+                            ? theme.palette.warning.light
+                            : theme.palette.primary.light,
+                    bgcolor: (theme) =>
+                        isOffsetOrMasked
+                            ? theme.palette.warning.light + '22'
+                            : theme.palette.primary.light + '18',
+                    color: (theme) =>
+                        isOffsetOrMasked
+                            ? theme.palette.warning.dark
+                            : theme.palette.primary.dark,
+                }}
+            >
+                <Box
+                    sx={{
+                        userSelect: 'none',
+                        fontSize: 10,
+                        fontWeight: 500,
+                        lineHeight: 1.1,
+                    }}
+                >
+                    {code}
+                </Box>
+                {resid != null && (
+                    <Box
+                        sx={{
+                            userSelect: 'none',
+                            fontSize: 9,
+                            lineHeight: 1.05,
+                            color: 'text.secondary',
+                        }}
+                    >
+                        {resid}
+                    </Box>
+                )}
+            </Box>
         </Box>
-    </Box>
-);
-
+    );
+};
 
 export default function TemplateSequence({
     mapping,
@@ -106,39 +130,68 @@ export default function TemplateSequence({
     }
 
     const offsetCount = Math.max(0, Number(mapping.offset) || 0);
-    const templateResidues = mapping.templateResidues || [];
+    const trailingCapCount = Math.max(0, Number(mapping.trailingCapCount) || 0);
+
+    const templateResidues = Array.isArray(mapping.templateResidues)
+        ? mapping.templateResidues
+        : [];
+
     const manualMaskSet = useMemo(
         () => new Set(mapping.manualMasks || []),
         [mapping.manualMasks],
     );
 
     const totalSlots = useMemo(() => {
-        const natural = offsetCount + templateResidues.length;
+        const natural = offsetCount + templateResidues.length + trailingCapCount;
         const desired =
             typeof maxResidueCount === 'number' ? maxResidueCount : natural;
         return Math.max(desired, offsetCount);
-    }, [offsetCount, templateResidues.length, maxResidueCount]);
-
+    }, [offsetCount, templateResidues.length, trailingCapCount, maxResidueCount]);
 
     const cells = useMemo(() => {
         return Array.from({ length: totalSlots }, (_, slotIdx) => {
             if (slotIdx < offsetCount) {
-                return { code: 'X', kind: 'offset' };
+                // Leading offset cells are always unmapped X and non-editable
+                return { code: 'X', kind: 'offset', masked: true };
             }
+
             const templateIdx = slotIdx - offsetCount;
             const residue = templateResidues[templateIdx];
-            if (!residue) {
-                return { code: 'X', kind: 'pad' };
+
+            if (residue) {
+                const masked = manualMaskSet.has(templateIdx);
+                const baseCode = residue.code || 'X';
+
+                return {
+                    code: masked ? '-' : baseCode,
+                    resid: residue.resid,
+                    kind: 'template',
+                    templateIdx,
+                    masked,
+                };
             }
-            const masked = manualMaskSet.has(templateIdx);
-            return {
-                code: masked ? 'X' : residue,
-                kind: 'template',
-                templateIdx,
-                masked,
-            };
+
+            // Past the last template residue: trailing cap cells (fixed masked X)
+            const afterTemplatesStart = offsetCount + templateResidues.length;
+            const isTrailingCap =
+                slotIdx >= afterTemplatesStart &&
+                slotIdx < afterTemplatesStart + trailingCapCount;
+
+            if (isTrailingCap) {
+                return {
+                    code: 'X',
+                    resid: null,
+                    kind: 'cterm-cap',
+                    templateIdx: null,
+                    masked: true,
+                    locked: true,
+                };
+            }
+
+            // Any extra padding cells, if totalSlots > natural
+            return { code: '-', kind: 'pad', masked: false };
         });
-    }, [totalSlots, offsetCount, templateResidues, manualMaskSet]);
+    }, [totalSlots, offsetCount, templateResidues, manualMaskSet, trailingCapCount]);
 
     const canEdit = typeof sequenceIndex === 'number' && !!onEditMapping;
 
@@ -181,15 +234,26 @@ export default function TemplateSequence({
             }}
         >
             {cells.map((cell, idx) => {
-                const showControls = canEdit && cell.kind === 'template' && cell.templateIdx != null;
+                const showControls =
+                    canEdit &&
+                    cell.kind === 'template' &&
+                    cell.templateIdx != null &&
+                    !cell.locked;
+
                 return (
                     <TemplateResidue
                         key={`template-residue-${idx}`}
                         code={cell.code}
+                        resid={cell.resid}
                         isGap={cell.code === 'X'}
+                        kind={cell.kind}
                         showControls={showControls}
                         masked={cell.masked}
-                        onToggle={() => toggleResidueMask(cell.templateIdx)}
+                        onToggle={() =>
+                            cell.templateIdx != null
+                                ? toggleResidueMask(cell.templateIdx)
+                                : undefined
+                        }
                     />
                 );
             })}

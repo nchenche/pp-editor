@@ -76,7 +76,6 @@ export function useGenerate3D() {
                 }
                 const json = await response.json();
                 if (reqIdRef.current !== myReqId) return;
-                console.log('3D generation result:', json); // Debug log
                 setResult(json.data);
                 setError(null);
             } catch (e) {
