@@ -16,6 +16,7 @@ import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
 import { usePersistDesign, useInitialDesignState } from '../../../src/hooks/usePersistDesign';
 import { useSplitLayout } from '../../../src/hooks/useSplitLayout';
+import { useBilnHistory } from '../../../src/hooks/useBilnHistory';
 
 import {
     buildLinkMapFromBiln,
@@ -79,8 +80,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const colorMenuOpen = Boolean(colorMenuEl);
     const reset3DOpen = Boolean(reset3DEl);
 
+    // const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
+    // const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
-    const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
+    const {
+        value: bilnValue,
+        setValue: setBilnValue,
+        canUndo,
+        canRedo,
+        undo: handleUndoBiln,
+        redo: handleRedoBiln,
+    } = useBilnHistory(initialBiln, 20);
+
     const [phValue, setPhValue] = useState(7.4);
 
     const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
@@ -198,52 +209,52 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return () => window.removeEventListener('keydown', onKey);
     }, [replaceSelect.open, cancelReplaceSelection]);
 
-    // Track bilnValue changes into history unless undo/redo is in progress
-    useEffect(() => {
-        // Initialize history on first render
-        if (!didInitHistoryRef.current) {
-            didInitHistoryRef.current = true;
-            setBilnHistory([bilnValue]);
-            return;
-        }
-        // Skip if change is due to undo/redo
-        if (isUndoingRef.current || isRedoingRef.current) {
-            isUndoingRef.current = false;
-            isRedoingRef.current = false;
-            return;
-        }
-        // Normal edit: push to history
-        setBilnHistory(prev => {
-            if (prev[prev.length - 1] === bilnValue) return prev;
-            const next = [...prev, bilnValue];
-            return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
-        });
-        setBilnFuture([]); // Any new user edit invalidates the redo stack
-    }, [bilnValue]);
+    // // Track bilnValue changes into history unless undo/redo is in progress
+    // useEffect(() => {
+    //     // Initialize history on first render
+    //     if (!didInitHistoryRef.current) {
+    //         didInitHistoryRef.current = true;
+    //         setBilnHistory([bilnValue]);
+    //         return;
+    //     }
+    //     // Skip if change is due to undo/redo
+    //     if (isUndoingRef.current || isRedoingRef.current) {
+    //         isUndoingRef.current = false;
+    //         isRedoingRef.current = false;
+    //         return;
+    //     }
+    //     // Normal edit: push to history
+    //     setBilnHistory(prev => {
+    //         if (prev[prev.length - 1] === bilnValue) return prev;
+    //         const next = [...prev, bilnValue];
+    //         return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+    //     });
+    //     setBilnFuture([]); // Any new user edit invalidates the redo stack
+    // }, [bilnValue]);
 
-    const canUndo = bilnHistory.length > 1;
-    const canRedo = bilnFuture.length > 0;
-    const handleUndoBiln = () => {
-        if (!canUndo) return;
-        const current = bilnHistory[bilnHistory.length - 1];
-        const prev = bilnHistory[bilnHistory.length - 2];
-        setBilnHistory(bilnHistory.slice(0, -1));
-        setBilnFuture(f => [current, ...f]);
-        isUndoingRef.current = true;
-        setBilnValue(prev);
-    };
+    // const canUndo = bilnHistory.length > 1;
+    // const canRedo = bilnFuture.length > 0;
+    // const handleUndoBiln = () => {
+    //     if (!canUndo) return;
+    //     const current = bilnHistory[bilnHistory.length - 1];
+    //     const prev = bilnHistory[bilnHistory.length - 2];
+    //     setBilnHistory(bilnHistory.slice(0, -1));
+    //     setBilnFuture(f => [current, ...f]);
+    //     isUndoingRef.current = true;
+    //     setBilnValue(prev);
+    // };
 
-    const handleRedoBiln = () => {
-        if (!canRedo) return;
-        const [next, ...rest] = bilnFuture;
-        setBilnFuture(rest);
-        setBilnHistory(h => {
-            const merged = [...h, next];
-            return merged.length > MAX_HISTORY ? merged.slice(merged.length - MAX_HISTORY) : merged;
-        });
-        isRedoingRef.current = true;
-        setBilnValue(next);
-    };
+    // const handleRedoBiln = () => {
+    //     if (!canRedo) return;
+    //     const [next, ...rest] = bilnFuture;
+    //     setBilnFuture(rest);
+    //     setBilnHistory(h => {
+    //         const merged = [...h, next];
+    //         return merged.length > MAX_HISTORY ? merged.slice(merged.length - MAX_HISTORY) : merged;
+    //     });
+    //     isRedoingRef.current = true;
+    //     setBilnValue(next);
+    // };
 
     // Lift state up: output data
     useEffect(() => {
