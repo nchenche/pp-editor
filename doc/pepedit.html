@@ -19,21 +19,24 @@
   
   <h4> The monomer library. </h4>
   
-  The library contains monomers that can be combined to build a peptide. In PEP-EDIT, the monomers are classified in different categories:
+  The library contains monomers that can be combined to build a peptide. In PEP-EDIT, the monomers are categorized using different categories:
   <ul>
     <li> Natural amino acids that correspond to the usual 20 L-amino acids.  </li>
     <li> Non natural amino acids that encompass the D-amino acids and unusual amino acids such as the sarcosin, or the alpha-amino iso butyric acid, but also N-methylated amino acids and exotic amino acids such as the N-epsilon-tert-Boc-L-lysine, and many others.  </li>
     <li> Caps: these correspond to special groups that can only be added as extremities of the main chain or side chains (see below). </li>
   </ul>
-  
+
   <ul>
-    <li> Each monomer in the library has a label that can be used to combine it with other. For instance P for proline, am for amide, DOU for the D-ornithine, etc.</li>
+    <li> Each monomer in the library has a BILN label that can be used to combine it with other as a BILN sequence. For instance P for proline, am for amide, DOU for the D-ornithine, etc.</li>
     <li> Each monomer has identified connecting groups or R-groups. By default all amino acids have two R-groups, the first (R1) consisting of the N-terminal backbone nitrogen and the second (R2) the C-terminal carbonyl carbon. Extras connecting groups (R3, R4, ...) consist for instance of the sulfur atoms of the cysteine side chains that can form disulfide bonds. In practice, the number of R-groups is currently limited to 4. </li>
     <li> Caps are monomers that have only one R-group, and can only positionned at extremities. </li>
   </ul>
-  
+
+
+  <img src="images/Monomer5.png" alt="" width="20%" height="20%" id="hp"/>
+  Of note: in PEP-EDIT, each monomer has different labels: its full name, its BILN name (the only valid in a BILN sequence) and a 3 letter code for the 3D representation in the PDB format.
   Currently, PEP-EDIT comes with a library of 20 standard amino acids, 255 non standard amino acids and 53 caps. <em>Furthermore, it is possible to extend the library on-line (see below).</em>
-  
+
   <h4>Complex peptides as a monomer assembly:</h4>
   
   <ul>
@@ -83,12 +86,11 @@
   
   <h5> Editing a BILN sequence </h5>
   
-  <img src="images/MonomerSelection.png" alt="" width="30%" height="30%" id="hp"/>
   <p>
-    The main entry point to generate a peptide consists of the text field defining the BILN sequence (upper left of the interface). It can be filled manually entering a BILN sequence or by clicking the monomers of the library depicted on the right part of the interface. This library section comes with tools to search the monomers, depending on their class (CAPS, NATURAL or NON-NATURAL) or using a text search to identify relevant monomers. For instance, entering "cys" will filter the monomer library to present only monomers having the "cys" text in their names, resulting in presenting 9 monomers, including for instance the D-cysteine, the homocysteine or the selenocysteine.
+    The main entry point to generate a peptide consists of the text field defining the BILN sequence (upper left of the interface). It can be filled manually entering a BILN sequence or by clicking the monomers of the library depicted on the right part of the interface. This library section comes with tools to search the monomers, depending on their class (CAPS, NATURAL or NON-NATURAL) or using a text search to identify relevant monomers. For instance, entering "cys" will filter the monomer library to present only monomers having the "cys" text in their names, resulting in presenting 9 monomers, including for instance the D-cysteine, the homocysteine or the selenocysteine. 
   </p>
-  <img src="images/Monomer4.png" alt="" width="20%" height="20%" id="hp"/>
   
+  <img src="images/MonomerSelection.png" alt="" width="30%" height="30%" id="hp"/>
   <p>
     Once a monomer of interest identified, it is possible to directly use its BILN name in the BILN sequence text field or to add it to one sequence by clicking the "+" sign on the top left of the monomer. Depending on the "Mode" selected, the monomer will be added either at the end (Append), the beginning (Prepend) or will be used to start a new peptidic entity entitled New chain in PEP-EDIT. All these operations support an undo redo mechanism (icons on the top of the editor).
     
@@ -97,6 +99,7 @@
   Note that the definition of the BILN sequence is associated with the synchronous 2D and 3D depictions of the peptidic chains. In some cases, the generation of the 3D conformation can take some time. To keep the process as interactive as possible, it is possible to disable the automatic updating the 3D depiction.
   </p>
   <h5> Linking two chains </h5>
+  <img src="images/Linking-Unlinking.png" alt="" width="20%" height="20%" id="hp"/>
   
   It is possible to link monomers directly for the BILN text field, or graphically, clicking the "link" button. Once clicked on, the 2D depiction will show the groups that are available to generate a bond. In the example below, clicking the SH groups of two cysteines will result in the formation on a disulfide bond. It is possible to unlink two monomers clinkg the unlink button and double clicking the bond to disrupt. Note that this is only effective to unlink groups that do not correspond to amine bonds, i.e. involve R-groups other than 1 and 2. Also note that the linking mechanism comes with no control about if the link creation is meaningful.
   
