@@ -76,10 +76,8 @@ export function useGenerate3D() {
                 }
                 const json = await response.json();
                 if (reqIdRef.current !== myReqId) return;
-                console.log(json)
 
                 const data = json?.data || {};
-
                 // Special case: template endpoint returned no PDB
                 if (
                     endpoint.includes('generate_3d_from_template') &&

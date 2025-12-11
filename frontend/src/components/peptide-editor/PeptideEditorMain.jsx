@@ -566,23 +566,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 />
 
 
-                {/* Sequences help dialog */}
-                {/* <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Working with sequences</DialogTitle>
-                <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <ul>
-                        <li><strong>Append</strong> adds monomers at the end of the active sequence.</li>
-                        <li><strong>Prepend</strong> adds monomers at the start of the active sequence.</li>
-                        <li><strong>New chain</strong> creates a new chain and adds monomers there.</li>
-                        <li>Use <strong>Link</strong> to connect residues and <strong>Cut</strong> to break bonds in the 2D sketch.</li>
-                        <li><strong>Target sequence</strong> selects which sequence receives new monomers from the library.</li>
-                    </ul>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
-                </DialogActions>
-            </Dialog> */}
-
                 {/* Overlapping scaffold mappings warning */}
                 <Dialog
                     open={templateOverlapOpen}

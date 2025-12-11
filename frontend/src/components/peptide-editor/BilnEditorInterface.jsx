@@ -224,7 +224,7 @@ export default function BilnEditorInterface({
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
-                                    onClick={() => onChangeBiln('P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)')}
+                                    onClick={() => onChangeBiln('G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G')}
                                     startIcon={<HelpOutlineIcon fontSize="inherit" />}
                                     sx={btnSx}
                                 >
@@ -328,7 +328,7 @@ export default function BilnEditorInterface({
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                             Chains
                         </Typography>
-                        <Tooltip title="Sequences help" arrow>
+                        <Tooltip title="Chains help" arrow>
                             <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
                                 <HelpOutlineIcon fontSize="inherit" />
                             </IconButton>
@@ -377,10 +377,10 @@ export default function BilnEditorInterface({
             <Dialog open={bilnHelpOpen} onClose={() => setBilnHelpOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>BILN format basics</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <p>Use BILN to describe peptide sequences with simple tokens:</p>
+                    <p>Use BILN to describe peptide chains with simple tokens:</p>
                     <ul>
                         <li>Residues are separated by hyphens “-”. Example: A-G-S</li>
-                        <li>Multiple sequences are separated by dots “.”. Example: A-G.S-S</li>
+                        <li>Multiple chains are separated by dots “.”. Example: A-G.S-S</li>
                         <li>Residue codes use library symbols (e.g., A, R, Lys, Pra).</li>
                         <li>Optional annotations may appear in parentheses for advanced linking.</li>
                     </ul>
@@ -401,13 +401,13 @@ export default function BilnEditorInterface({
 
             {/* Sequences help dialog */}
             <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Working with sequences</DialogTitle>
+                <DialogTitle>Working with chains</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
                     <ul>
                         <li>Append adds monomers at the end; Prepend at the start; New creates a new chain.</li>
                         <li>Use Link to connect residues and Cut to break bonds in the 2D sketch.</li>
-                        <li>Choose the active sequence to receive new monomers from the library.</li>
-                        <li>Per-residue DSSP letters can guide 3D generation (H/E/C…).</li>
+                        <li>Choose the active chain to receive new monomers from the library.</li>
+                        <li>Per-residue secondary structure letters (H/E/C) can guide 3D generation.</li>
                         <li>Optionally provide a 3D template from a PDB/mmCIF file.</li>
                     </ul>
                 </DialogContent>

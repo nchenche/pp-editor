@@ -316,7 +316,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     }, [scaffoldTemplate]);
 
     const hasTemplateOverlap = useCallback(() => {
-        console.log('Checking template overlap for mappings:', scaffoldMappings);
+        // console.log('Checking template overlap for mappings:', scaffoldMappings);
         if (!Array.isArray(scaffoldMappings) || !scaffoldMappings.length) return false;
 
         const byChain = new Map();
