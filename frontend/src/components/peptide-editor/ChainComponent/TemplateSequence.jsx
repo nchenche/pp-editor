@@ -140,58 +140,85 @@ export default function TemplateSequence({
         () => new Set(mapping.manualMasks || []),
         [mapping.manualMasks],
     );
+    
 
-    const totalSlots = useMemo(() => {
-        const natural = offsetCount + templateResidues.length + trailingCapCount;
-        const desired =
-            typeof maxResidueCount === 'number' ? maxResidueCount : natural;
-        return Math.max(desired, offsetCount);
-    }, [offsetCount, templateResidues.length, trailingCapCount, maxResidueCount]);
+    // Number of AA positions in this chain (excluding caps).
+    // If parent passes it via maxResidueCount, we use that;
+    // otherwise fall back to the number of mapped residues.
+    const aaSlots = useMemo(() => {
+        if (typeof maxResidueCount === 'number' && maxResidueCount > 0) {
+            return maxResidueCount;
+        }
+        return templateResidues.length;
+    }, [maxResidueCount, templateResidues.length]);
+    console.log('aaSlots', aaSlots);
+
+    // Total visual cells = N-ter offset + all AA slots + optional C-ter caps.
+    // const totalSlots = offsetCount + aaSlots + trailingCapCount;
+    const totalSlots = aaSlots;
+
 
     const cells = useMemo(() => {
+        const aaStart = offsetCount;
+        // const aaEnd = offsetCount + aaSlots; // exclusive
+        const aaEnd = aaSlots - trailingCapCount; // exclusive
+        const capStart = aaEnd;
+
+        console.log({ totalSlots, offsetCount, aaStart, aaEnd, capStart });
+
         return Array.from({ length: totalSlots }, (_, slotIdx) => {
+            // 1) Leading offset cells (N-ter cap mapped as pure offset X's)
             if (slotIdx < offsetCount) {
-                // Leading offset cells are always unmapped X and non-editable
-                return { code: 'X', kind: 'offset', masked: true };
+                return { code: 'X', resid: null, kind: 'offset', masked: true };
             }
 
-            const templateIdx = slotIdx - offsetCount;
-            const residue = templateResidues[templateIdx];
+            // 2) AA region: mapped residues first, then unmapped '-'
+            if (slotIdx >= aaStart && slotIdx < aaEnd) {
+                const aaIdx = slotIdx - aaStart;
 
-            if (residue) {
-                const masked = manualMaskSet.has(templateIdx);
-                const baseCode = residue.code || 'X';
+                if (aaIdx < templateResidues.length) {
+                    const residue = templateResidues[aaIdx];
+                    const masked = manualMaskSet.has(aaIdx);
+                    const baseCode = residue.code || 'X';
 
+                    return {
+                        code: masked ? '-' : baseCode,
+                        resid: residue.resid,
+                        kind: 'template',
+                        templateIdx: aaIdx,
+                        masked,
+                    };
+                }
+
+                // AA beyond available template residues → unmapped
                 return {
-                    code: masked ? '-' : baseCode,
-                    resid: residue.resid,
-                    kind: 'template',
-                    templateIdx,
-                    masked,
-                };
-            }
-
-            // Past the last template residue: trailing cap cells (fixed masked X)
-            const afterTemplatesStart = offsetCount + templateResidues.length;
-            const isTrailingCap =
-                slotIdx >= afterTemplatesStart &&
-                slotIdx < afterTemplatesStart + trailingCapCount;
-
-            if (isTrailingCap) {
-                return {
-                    code: 'X',
+                    code: '-',
                     resid: null,
-                    kind: 'cterm-cap',
+                    kind: 'unmapped',
                     templateIdx: null,
-                    masked: true,
-                    locked: true,
+                    masked: false,
                 };
             }
 
-            // Any extra padding cells, if totalSlots > natural
-            return { code: '-', kind: 'pad', masked: false };
+            // 3) C-terminal cap cells (fixed X at the very end, non-editable)
+            if (slotIdx >= capStart) {
+                const rel = slotIdx - capStart;
+                if (rel < trailingCapCount) {
+                    return {
+                        code: 'X',
+                        resid: null,
+                        kind: 'cterm-cap',
+                        templateIdx: null,
+                        masked: true,
+                        locked: true,
+                    };
+                }
+            }
+
+            // Fallback (should not normally hit)
+            return { code: '-', resid: null, kind: 'pad', masked: false };
         });
-    }, [totalSlots, offsetCount, templateResidues, manualMaskSet, trailingCapCount]);
+    }, [totalSlots, offsetCount, aaSlots, templateResidues, manualMaskSet, trailingCapCount]);
 
     const canEdit = typeof sequenceIndex === 'number' && !!onEditMapping;
 

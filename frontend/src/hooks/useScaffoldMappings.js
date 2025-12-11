@@ -60,12 +60,20 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                     designedLength: aaLen,
                 });
 
-                const manualSet = buildMaskSet(mapping.manualMasks, slice.residues.length);
+                // Only expose as many template residues as there are AA monomers
+                const effectiveLen =
+                    aaLen != null && aaLen > 0
+                        ? Math.min(aaLen, slice.residues.length)
+                        : slice.residues.length;
+
+                const effectiveResidues = slice.residues.slice(0, effectiveLen);
+
+                const manualSet = buildMaskSet(mapping.manualMasks, effectiveLen);
 
                 // masked residues still use '-' in the sequence string, but we keep
                 // the full residue objects in templateResidues for the UI
-                const maskedResidues = slice.residues.map((res, i) =>
-                    manualSet.has(i) ? { ...res, resn: '-', code: res.code } : res
+                const maskedResidues = effectiveResidues.map((res, i) =>
+                    manualSet.has(i) ? { ...res, resn: '-', code: res.code } : res,
                 );
 
                 const trailingCapCount = hasCTerCap ? 1 : 0;
@@ -88,11 +96,11 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                         ...mapping,
                         manualMasks: Array.from(manualSet).sort((a, b) => a - b),
                         sequence,
-                        templateResidues: slice.residues,
+                        templateResidues: effectiveResidues,  // <-- only AA-length slice
                         source,
                         pdbPath,
                         name,
-                        trailingCapCount, // NEW: used by TemplateSequence
+                        trailingCapCount,
                     },
                     derivedStart: slice.startNumber ?? null,
                     derivedEnd: slice.endNumber ?? null,
@@ -101,7 +109,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
             }),
         [rawMappings, scaffoldTemplate, rowMonomerLists, designAaLengths],
     );
-
+    
     const scaffoldMappings = useMemo(
         () => computedEntries.map((entry) => entry.mapping),
         [computedEntries],
@@ -139,7 +147,11 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
 
     // Prefill start/end/chainId/enabled for uninitialized mappings
     useEffect(() => {
-        if (!scaffoldTemplate) return;
+        if (!scaffoldTemplate) {
+            // reset all mappings
+            setRawMappings((prev) => prev.map(() => ({ ...emptyMapping })));
+            return;
+        };
         if (!autoRanges.length) return;
 
         setRawMappings((prev) => {
@@ -192,61 +204,59 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         });
     }, [rowMonomerLists]);
 
-    useEffect(() => {
-        if (!scaffoldTemplate) return;
+    // Auto-adjust start/end to fit designed AA length when template or lengths change
+    // useEffect(() => {
+    //     if (!scaffoldTemplate) return;
 
-        setRawMappings((prev) => {
-            let mutated = false;
+    //     setRawMappings((prev) => {
+    //         let mutated = false;
 
-            const next = prev.map((mapping = emptyMapping, idx) => {
-                const aaLen = designAaLengths[idx] ?? 0;
-                if (!aaLen) return mapping;
+    //         const next = prev.map((mapping = emptyMapping, idx) => {
+    //             const aaLen = designAaLengths[idx] ?? 0;
+    //             if (!aaLen) return mapping;
 
-                const current = { ...emptyMapping, ...mapping };
-                if (!current.enabled) return mapping;
-                if (current.start == null) return mapping;
+    //             const current = { ...emptyMapping, ...mapping };
+    //             if (!current.enabled) return mapping;
+    //             if (current.start == null) return mapping;
 
-                const chain = resolveChain(scaffoldTemplate, current.chainId);
-                const residues = normalizeResidues(chain);
-                if (!residues.length) return mapping;
+    //             const chain = resolveChain(scaffoldTemplate, current.chainId);
+    //             const residues = normalizeResidues(chain);
+    //             if (!residues.length) return mapping;
 
-                const minResid = residues[0].resid;
-                const maxResid = residues[residues.length - 1].resid;
+    //             const minResid = residues[0].resid;
+    //             const maxResid = residues[residues.length - 1].resid;
 
-                let start = Number(current.start);
-                if (!Number.isFinite(start)) return mapping;
+    //             let start = Number(current.start);
+    //             if (!Number.isFinite(start)) return mapping;
 
-                // Clamp start to chain range
-                if (start < minResid) start = minResid;
-                if (start > maxResid) start = maxResid;
+    //             // Clamp start to chain range
+    //             if (start < minResid) start = minResid;
+    //             if (start > maxResid) start = maxResid;
 
-                let desiredEnd = start + aaLen - 1;
-                if (desiredEnd > maxResid) desiredEnd = maxResid;
-                if (desiredEnd < start) desiredEnd = start;
+    //             let desiredEnd = start + aaLen - 1;
+    //             if (desiredEnd > maxResid) desiredEnd = maxResid;
+    //             if (desiredEnd < start) desiredEnd = start;
 
-                if (current.start === start && current.end === desiredEnd) {
-                    return mapping; // nothing to change
-                }
+    //             if (current.start === start && current.end === desiredEnd) {
+    //                 return mapping; // nothing to change
+    //             }
 
-                mutated = true;
-                return {
-                    ...current,
-                    start,
-                    end: desiredEnd,
-                };
-            });
+    //             mutated = true;
+    //             return {
+    //                 ...current,
+    //                 start,
+    //                 end: desiredEnd,
+    //             };
+    //         });
 
-            return mutated ? next : prev;
-        });
-    }, [designAaLengths, scaffoldTemplate]);
+    //         return mutated ? next : prev;
+    //     });
+    // }, [designAaLengths, scaffoldTemplate]);
 
     const handleEditScaffoldMapping = useCallback((seqIdx, patch) => {
         setRawMappings((prev) => {
-            const next = prev.slice();
+            let next = prev.slice();
             const current = { ...emptyMapping, ...(next[seqIdx] || {}) };
-
-            // AA length for this designed chain (caps excluded)
-            const aaLen = designAaLengths[seqIdx] ?? 0;
 
             // Determine which chain we are editing (patch overrides current)
             const effectiveChainId = patch?.chainId ?? current.chainId ?? null;
@@ -254,34 +264,12 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
             // Compute resid bounds for that chain, if possible
             let minResid = null;
             let maxResid = null;
-            let forbiddenRanges = [];
-            if (scaffoldTemplate) {
+            if (scaffoldTemplate && effectiveChainId != null) {
                 const chain = resolveChain(scaffoldTemplate, effectiveChainId);
                 const residues = normalizeResidues(chain);
                 if (residues.length) {
                     minResid = residues[0].resid;
                     maxResid = residues[residues.length - 1].resid;
-                }
-
-                // Collect all other enabled ranges on the same template chain
-                if (effectiveChainId != null) {
-                    forbiddenRanges = prev
-                        .map((m, i) => ({ m, i }))
-                        .filter(({ m, i }) => {
-                            if (!m || i === seqIdx) return false;
-                            if (!m.enabled) return false;
-                            if ((m.chainId ?? null) !== effectiveChainId) return false;
-                            if (m.start == null || m.end == null) return false;
-                            const s = Number(m.start);
-                            const e = Number(m.end);
-                            if (!Number.isFinite(s) || !Number.isFinite(e)) return false;
-                            return true;
-                        })
-                        .map(({ m }) => {
-                            const s = Number(m.start);
-                            const e = Number(m.end);
-                            return [Math.min(s, e), Math.max(s, e)];
-                        });
                 }
             }
 
@@ -290,13 +278,21 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 current,
                 minResid,
                 maxResid,
-                forbiddenRanges,
-                aaLen,          // NEW
             );
             next[seqIdx] = { ...current, ...normalizedPatch };
+
+            // After applying this patch, re-pack all mappings on this template chain
+            if (scaffoldTemplate && effectiveChainId != null) {
+                next = repackChainMappings(
+                    next,
+                    effectiveChainId,
+                    scaffoldTemplate,
+                );
+            }
+
             return next;
         });
-    }, [scaffoldTemplate, designAaLengths]);
+    }, [scaffoldTemplate]);
 
     const hasTemplateOverlap = useCallback(() => {
         console.log('Checking template overlap for mappings:', scaffoldMappings);
@@ -339,6 +335,58 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     return { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping, hasTemplateOverlap };
 }
 
+function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
+    const next = rawMappings.map((m) => ({ ...emptyMapping, ...m }));
+
+    const chain = resolveChain(scaffoldTemplate, chainId);
+    const residues = normalizeResidues(chain);
+    if (!residues.length) return rawMappings;
+
+    const minResid = residues[0].resid;
+    const maxResid = residues[residues.length - 1].resid;
+
+    // Collect enabled mappings on this template chain, keep original seqIdx order
+    const group = next
+        .map((m, idx) => ({ m, idx }))
+        .filter(({ m }) => m.enabled && (m.chainId ?? null) === chainId && m.start != null && m.end != null);
+
+    if (group.length === 0) return rawMappings;
+
+    // Sort by seqIdx (design chain order)
+    group.sort((a, b) => a.idx - b.idx);
+
+    let prevEnd = null;
+
+    for (const { m, idx } of group) {
+        let start = Number(m.start);
+        let end = Number(m.end);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+
+        let spanLen = Math.max(1, end - start + 1);
+
+        if (prevEnd == null) {
+            // First mapping: clamp requested start into [minResid, maxResid]
+            if (start < minResid) start = minResid;
+        } else {
+            // Subsequent mappings start at least after previous end
+            start = Math.max(start, prevEnd + 1, minResid);
+        }
+        if (start > maxResid) start = maxResid;
+
+        end = start + spanLen - 1;
+        if (end > maxResid) end = maxResid;
+        if (end < start) end = start;
+
+        next[idx] = {
+            ...next[idx],
+            start,
+            end,
+        };
+        prevEnd = end;
+    }
+    return next;
+}
+
 function countAaMonomers(monList) {
     if (!Array.isArray(monList)) return 0;
     return monList.filter((m) => m?.m_type === 'aa').length;
@@ -369,8 +417,6 @@ function normalizePatch(
     current,
     minResid = null,
     maxResid = null,
-    forbiddenRanges = [],
-    chainAaLength = null,
 ) {
     if (!patch) return {};
     const merged = { ...patch };
@@ -387,46 +433,26 @@ function normalizePatch(
         Object.prototype.hasOwnProperty.call(patch, 'enabled') &&
         patch.enabled === false &&
         current.enabled;
-    const enablingNow =
-        Object.prototype.hasOwnProperty.call(patch, 'enabled') &&
-        patch.enabled === true &&
-        !current.enabled;
 
     if (startChanged || endChanged || disablingNow) {
         merged.manualMasks = [];
     }
 
-    // Base numeric values
-    let start = merged.start != null ? Number(merged.start) : current.start;
-    let end = merged.end != null ? Number(merged.end) : current.end;
+    // Base numeric values; allow explicit null to clear start/end
+    let start =
+        Object.prototype.hasOwnProperty.call(patch, 'start')
+            ? patch.start
+            : current.start;
+    let end =
+        Object.prototype.hasOwnProperty.call(patch, 'end')
+            ? patch.end
+            : current.end;
 
-    const L = chainAaLength && chainAaLength > 0 ? chainAaLength : null;
+    start = start != null ? Number(start) : null;
+    end = end != null ? Number(end) : null;
 
-    // If user edited start/end and we know AA length, keep mapped span length == L
-    if (L != null && (startChanged || endChanged)) {
-        if (startChanged && !endChanged) {
-            // Anchor on new start
-            if (!Number.isFinite(start)) start = current.start;
-            if (start != null) {
-                end = start + L - 1;
-            }
-        } else if (endChanged && !startChanged) {
-            // Anchor on new end
-            if (!Number.isFinite(end)) end = current.end;
-            if (end != null) {
-                start = end - (L - 1);
-            }
-        } else {
-            // Both changed: trust start, derive end
-            if (!Number.isFinite(start)) start = current.start;
-            if (start != null) {
-                end = start + L - 1;
-            }
-        }
-    }
-
-    if (!Number.isFinite(start)) start = current.start;
-    if (!Number.isFinite(end)) end = current.end;
+    if (start != null && !Number.isFinite(start)) start = current.start ?? null;
+    if (end != null && !Number.isFinite(end)) end = current.end ?? null;
 
     // Clamp to template chain resid range if known
     if (minResid != null) {
@@ -438,60 +464,13 @@ function normalizePatch(
         if (end != null && end > maxResid) end = maxResid;
     }
 
-    // Ensure end is not before start
+    // Ensure end is not before start (at least 1 residue wide if both defined)
     if (start != null && (end == null || end < start)) {
-        if (L != null) {
-            end = start + L - 1;
-        } else if (maxResid != null) {
-            end = Math.min(start + 1, maxResid);
-        } else {
-            end = start + 1;
-        }
+        end = start;
     }
 
-    // If we know AA length, enforce ideal end again after clamping
-    if (L != null && start != null) {
-        const idealEnd = start + L - 1;
-        if (maxResid != null) {
-            end = Math.min(idealEnd, maxResid);
-        } else {
-            end = idealEnd;
-        }
-    }
-
-    // Enforce non-overlapping ranges for this template chain
-    const overlapsForbidden =
-        start != null &&
-        end != null &&
-        forbiddenRanges.some(([fs, fe]) => Math.max(start, fs) <= Math.min(end, fe));
-
-    if (overlapsForbidden) {
-        if (!enablingNow && current.start != null && current.end != null) {
-            // For normal edits, fall back to previous valid range
-            start = current.start;
-            end = current.end;
-        } else if (forbiddenRanges.length) {
-            // Place range after the last forbidden block
-            const maxForbiddenEnd = Math.max(...forbiddenRanges.map((r) => r[1]));
-            let newStart = Math.max(maxForbiddenEnd + 1, minResid ?? maxForbiddenEnd + 1);
-
-            if (maxResid != null && newStart > maxResid) {
-                // No room left: keep previous (may be invalid)
-                newStart = current.start ?? minResid;
-            }
-
-            start = newStart;
-            if (L != null) {
-                const idealEnd = newStart + L - 1;
-                end = maxResid != null ? Math.min(idealEnd, maxResid) : idealEnd;
-            } else {
-                end = maxResid != null ? Math.min(newStart + 1, maxResid) : newStart + 1;
-            }
-        }
-    }
-
-    if (start != null) merged.start = start;
-    if (end != null) merged.end = end;
+    if (start !== undefined) merged.start = start;
+    if (end !== undefined) merged.end = end;
 
     return merged;
 }
