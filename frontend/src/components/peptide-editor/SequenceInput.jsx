@@ -18,7 +18,7 @@ export function SequenceInput({
   onChangeValue,
   error,
   helperText,
-  maxMonomers = 40, // NEW
+  maxMonomers = 40,
   ...props
 }) {
   const monomerCount = useMemo(() => countMonomersFromBiln(value), [value]);
@@ -27,24 +27,28 @@ export function SequenceInput({
     [monomerCount, maxMonomers],
   );
 
+  // CHANGED: show either error/help OR counter (not both)
   const composedHelper = useMemo(() => {
+    if (error) {
+      return (
+        <Typography variant="caption" sx={{ color: 'error.main' }}>
+          {helperText || error}
+        </Typography>
+      );
+    }
+
     return (
-      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}>
-        <Typography variant="caption" sx={{ color: error ? 'error.main' : 'text.secondary' }}>
-          {helperText || ' '}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            color: monomerCount >= maxMonomers ? 'warning.main' : 'text.secondary',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {counterText}
-        </Typography>
-      </Box>
+      <Typography
+        variant="caption"
+        sx={{
+          color: monomerCount >= maxMonomers ? 'warning.main' : 'text.secondary',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {counterText}
+      </Typography>
     );
-  }, [helperText, error, counterText, monomerCount, maxMonomers]);
+  }, [error, helperText, counterText, monomerCount, maxMonomers]);
 
   return (
     <TextField
@@ -57,7 +61,7 @@ export function SequenceInput({
       autoComplete="off"
       spellCheck={false}
       error={!!error}
-      helperText={composedHelper} // CHANGED
+      helperText={composedHelper}
       slotProps={{
         inputProps: {
           inputMode: 'text',
@@ -69,7 +73,6 @@ export function SequenceInput({
     />
   );
 }
-
 
 export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
   const [bilnText, setBilnText] = useState(biln || '');
@@ -83,10 +86,9 @@ export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
     const prevCount = countMonomersFromBiln(bilnText);
     const nextCount = countMonomersFromBiln(val);
 
-    // Prevent changes that would ADD monomers past the limit
     if (nextCount > maxMonomers && nextCount > prevCount) {
       setError(`Maximum length reached (${maxMonomers} monomers). Remove a monomer to add a new one.`);
-      return; // <-- value won't update, so user can't "enter" extra monomers
+      return;
     }
 
     setError('');
@@ -101,14 +103,13 @@ export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
           value={bilnText}
           onChangeValue={handleBilnChange}
           error={error}
-          helperText={error ? error : ''}
+          helperText={error}
           maxMonomers={maxMonomers}
         />
       </Stack>
     </Box>
   );
 }
-
 
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, keymap, Decoration, ViewPlugin, ViewUpdate } from '@codemirror/view';
