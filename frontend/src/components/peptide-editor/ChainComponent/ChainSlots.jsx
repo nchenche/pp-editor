@@ -157,7 +157,26 @@ export const ChainSlots = ({
                                             const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
                                             return (
 
-                                                <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
+                                                <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} arrow
+                                                    title={
+                                                        <Box>
+                                                            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                                                                Residue {i + 1} Constraint
+                                                            </Typography>
+                                                            <Typography variant="body2">
+                                                                Set secondary structure constraint for this residue:
+                                                            </Typography>
+                                                            <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: '1.2em' }}>
+                                                                <li><strong>H</strong>: Alpha-helix</li>
+                                                                <li><strong>E</strong>: Beta-sheet</li>
+                                                                <li><strong>-</strong>: No constraint (coil)</li>
+                                                            </ul>
+                                                            <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                                                Use keyboard to edit: type H, E, -; Backspace/Delete to clear; Arrow keys to navigate.
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+                                                >
                                                     <span>
                                                         <ConstraintCell
                                                             index={i}

@@ -404,7 +404,7 @@ export default function BilnEditorInterface({
                         <li>Append adds monomers at the end; Prepend at the start; New creates a new chain.</li>
                         <li>Use Link to connect residues and Cut to break bonds in the 2D sketch.</li>
                         <li>Choose the active chain to receive new monomers from the library.</li>
-                        <li>Per-residue secondary structure letters (H/E/C) can guide 3D generation.</li>
+                        <li>Per-residue secondary structure letters (H/E/-) can guide 3D generation.</li>
                         <li>Optionally provide a 3D template from a PDB/mmCIF file.</li>
                     </ul>
                 </DialogContent>
