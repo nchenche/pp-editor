@@ -533,9 +533,6 @@ export default function BilnEditorInterface({
                                             disabled={!enabled}
                                             sx={{ minWidth: 140 }}
                                         >
-                                            <MenuItem value="">
-                                                <em>Auto</em>
-                                            </MenuItem>
                                             {(chains.length ? chains : scaffoldTemplate.chains || []).map((chain) => {
                                                 const id = typeof chain === 'string' ? chain : chain.id;
                                                 return (

@@ -253,7 +253,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
                 generate3D(biln, null, {
                     endpoint:
-                        '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
+                        '/api/core/molecules/generate_3d_from_template',
                     extraBody: {
                         biln,
                         template_id: scaffoldMappingPayload.template_id,
