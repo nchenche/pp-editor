@@ -46,7 +46,7 @@ import Alert from '@mui/material/Alert';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
-const MAX_MONOMERS = 10;
+const MAX_MONOMERS = 40;
 
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
@@ -112,16 +112,33 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 `Remove one or more monomers before adding new ones.`,
         });
     }, []);
-    
-    const trySetBilnValue = useCallback((nextBiln) => {
-        const { tokenCount } = analyzeBiln(nextBiln || '');
-        if (tokenCount > MAX_MONOMERS) {
-            openLimitDialog(tokenCount);
-            return false;
-        }
-        setBilnValue(nextBiln);
-        return true;
-    }, [setBilnValue, openLimitDialog]);
+
+    const trySetBilnValue = useCallback(
+        (nextBilnOrUpdater) => {
+            // Support both:
+            //  - setBilnValue("A-G")
+            //  - setBilnValue(prev => prev + "-A")  (used by drag/drop handlers)
+            const nextBiln =
+                typeof nextBilnOrUpdater === 'function'
+                    ? nextBilnOrUpdater(bilnValue)
+                    : nextBilnOrUpdater;
+
+            if (typeof nextBiln !== 'string') {
+                console.warn('trySetBilnValue: expected string BILN but got:', nextBiln);
+                return false;
+            }
+
+            const { tokenCount } = analyzeBiln(nextBiln);
+            if (tokenCount > MAX_MONOMERS) {
+                openLimitDialog(tokenCount);
+                return false;
+            }
+
+            setBilnValue(nextBiln);
+            return true;
+        },
+        [bilnValue, setBilnValue, openLimitDialog],
+    );
 
     const {
         addMonomerToBiln,
@@ -513,11 +530,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         initialViewerSplitRatio: 0.5,
     });
 
-
-    // useeffect debuf for constraintsBySeq changes
-    useEffect(() => {
-        console.log('constraintsBySeq changed:', JSON.stringify(constraintsBySeq, null, 2));
-    }, [constraintsBySeq]);
 
     return (
         <Box
