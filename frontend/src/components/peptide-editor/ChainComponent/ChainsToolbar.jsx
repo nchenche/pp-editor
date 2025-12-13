@@ -13,8 +13,6 @@ export default function ChainsToolbar({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
-    constraintsMode = false,
-    onToggleConstraintsMode = () => { },
 }) {
 
     const btnSx = {

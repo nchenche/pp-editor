@@ -63,7 +63,6 @@ export default function BilnEditorInterface({
     handleMonomerEnter,
     handleMonomerLeave,
     handleDeleteSequence,
-    constraintsMode = false,
     onToggleConstraintsMode = () => { },
     constraintsBySeq = [],
     onEditConstraint = () => { },
@@ -342,8 +341,7 @@ export default function BilnEditorInterface({
                         onToggleCutMode={onToggleCutMode}
                         canLink={canLink}
                         canUnlink={canUnlink}
-                        constraintsMode={constraintsMode}
-                        onToggleConstraintsMode={onToggleConstraintsMode}
+
                     />
                 </Box>
 
@@ -360,7 +358,6 @@ export default function BilnEditorInterface({
                         handleMonomerEnter={handleMonomerEnter}
                         handleMonomerLeave={handleMonomerLeave}
                         handleDeleteSequence={handleDeleteSequence}
-                        constraintsMode={constraintsMode}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={onEditConstraint}
                         // Scaffold mapping

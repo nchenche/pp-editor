@@ -46,23 +46,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 
 
-// Read persisted editor state once (sync) to avoid flicker on mount/route switch
-function readPersistedDesign() {
-    if (typeof window === 'undefined') return null;
-    try {
-        const raw = localStorage.getItem('design-peptide-v1');
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        return {
-            biln: typeof parsed.biln === 'string' ? parsed.biln : null,
-            constraints: Array.isArray(parsed.constraints) ? parsed.constraints : null,
-        };
-    } catch {
-        return null;
-    }
-}
-
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
     // console.log('PeptideEditorMain rendered');
@@ -89,7 +72,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
     const [phValue, setPhValue] = useState(7.4);
-    const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
     const svgDepiction = depictionData?.svg || '';
@@ -269,7 +251,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
             if (useTemplate) {
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
-                generate3D(biln, ss, {
+                generate3D(biln, null, {
                     endpoint:
                         '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
                     extraBody: {
@@ -279,10 +261,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     },
                 });
             } else {
-                generate3D(biln, ss);
+                generate3D(biln, constraintsBySeq);
             }
         },
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, structureOutput],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, structureOutput, constraintsBySeq],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -494,6 +476,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     });
 
 
+    // useeffect debuf for constraintsBySeq changes
+    useEffect(() => {
+        console.log('constraintsBySeq changed:', JSON.stringify(constraintsBySeq, null, 2));
+    }, [constraintsBySeq]);
+
     return (
         <Box
             ref={mainAreaRef}
@@ -532,8 +519,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         handleMonomerEnter={handleMonomerEnter}
                         handleMonomerLeave={handleMonomerLeave}
                         handleDeleteSequence={handleDeleteSequence}
-                        constraintsMode={constraintsMode}
-                        onToggleConstraintsMode={() => setConstraintsMode((m) => !m)}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={handleEditConstraint}
                         // Toolbar (link/cut) wiring

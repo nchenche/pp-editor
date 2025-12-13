@@ -4,10 +4,6 @@ import { useMolstarPlugin } from '../../../hooks/useMolstarPlugin';
 import { useMolstarStructure } from '../../../hooks/useMolstarStructure';
 import { useMolstarSelection } from '../../../hooks/useMolstarSelection';
 
-import { RepresentationSelector } from "./molstar/RepresentationSelector";
-import { ColorSchemeSelector } from "./molstar/ColorSchemeSelector";
-
-import { CircularProgress } from '@mui/material';
 
 const Viewer3DInner = ({
     pdbFile,

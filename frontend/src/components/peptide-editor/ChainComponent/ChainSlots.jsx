@@ -25,7 +25,6 @@ export const ChainSlots = ({
     handleMonomerEnter,
     handleMonomerLeave,
     handleDeleteSequence,
-    constraintsMode = false,
     constraintsBySeq = [],
     onEditConstraint = () => { },
     scaffoldTemplate = null,
