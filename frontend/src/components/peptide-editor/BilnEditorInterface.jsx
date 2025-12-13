@@ -44,6 +44,8 @@ import { ChainSlots } from './ChainComponent/ChainSlots';
 // ...existing code...
 export default function BilnEditorInterface({
     biln,
+    maxMonomers = 40,
+    isAtMonomerLimit = false,
     onChangeBiln,
     hoveredResidueIdx,
     canUndo,
@@ -83,7 +85,6 @@ export default function BilnEditorInterface({
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
-
 
     const {
         open: uploadOpen,
@@ -217,14 +218,18 @@ export default function BilnEditorInterface({
 
                     {/* Load example */}
                     <ButtonGroup size="small" variant="outlined">
-                        <Tooltip title="Load example BILN" arrow>
+                        <Tooltip
+                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Load example BILN'}
+                            title={'Load example BILN'}
+                            arrow
+                        >
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
                                     onClick={() => onChangeBiln('G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G')}
-                                    startIcon={<HelpOutlineIcon fontSize="inherit" />}
+                                    // disabled={isAtMonomerLimit}
                                     sx={btnSx}
                                 >
                                     Load Example
@@ -235,14 +240,18 @@ export default function BilnEditorInterface({
 
                     {/* Upload sequence */}
                     <ButtonGroup size="small" variant="outlined">
-                        <Tooltip title="Upload sequence" arrow>
+                        <Tooltip
+                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Upload sequence'}
+                            title={'Upload sequence'}
+                            arrow
+                        >
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
                                     onClick={handleOpenUpload}
-                                    startIcon={<UploadIcon fontSize="inherit" />}
+                                    disabled={isAtMonomerLimit}
                                     sx={btnSx}
                                 >
                                     Upload Sequence
@@ -307,7 +316,8 @@ export default function BilnEditorInterface({
                 <SequenceEditorPanel
                     biln={biln}
                     onChangeBiln={onChangeBiln}
-                    hoveredResidueIdx={hoveredResidueIdx}
+                    // hoveredResidueIdx={hoveredResidueIdx}
+                    maxMonomers={maxMonomers}
                 />
             </Box>
 

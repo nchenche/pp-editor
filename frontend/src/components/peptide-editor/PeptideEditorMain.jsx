@@ -26,7 +26,8 @@ import {
     analyzeBiln
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'; import Button from '@mui/material/Button';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
@@ -40,10 +41,12 @@ import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
+const MAX_MONOMERS = 10;
 
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
@@ -71,6 +74,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     } = useBilnHistory(initialBiln, 20);
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
+
     const [phValue, setPhValue] = useState(7.4);
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
@@ -93,6 +97,32 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
 
+    const [limitDialog, setLimitDialog] = useState({ open: false, message: '' });
+    const { tokenCount: currentTokenCount } = useMemo(
+        () => analyzeBiln(bilnValue || ''),
+        [bilnValue],
+    );
+    const isAtMonomerLimit = currentTokenCount >= MAX_MONOMERS;
+
+    const openLimitDialog = useCallback((tokenCount) => {
+        setLimitDialog({
+            open: true,
+            message:
+                `Maximum sequence length reached (${Math.min(tokenCount, MAX_MONOMERS)}/${MAX_MONOMERS}). ` +
+                `Remove one or more monomers before adding new ones.`,
+        });
+    }, []);
+    
+    const trySetBilnValue = useCallback((nextBiln) => {
+        const { tokenCount } = analyzeBiln(nextBiln || '');
+        if (tokenCount > MAX_MONOMERS) {
+            openLimitDialog(tokenCount);
+            return false;
+        }
+        setBilnValue(nextBiln);
+        return true;
+    }, [setBilnValue, openLimitDialog]);
+
     const {
         addMonomerToBiln,
         handleDeleteMonomerItem,
@@ -104,7 +134,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         replaceMonomerInBiln,
     } = useBilnHandlers({
         bilnValue,
-        setBilnValue,
+        setBilnValue: trySetBilnValue,
         monomers,
         rowMonomerLists,
         linkMap,
@@ -113,8 +143,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setIsDragging,
         setHoveredMonomer
     });
-
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+
+
 
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
@@ -350,17 +381,24 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Expose a minimal API to parent
     useImperativeHandle(ref, () => ({
-        addMonomer: (monomer, options) => addMonomerToBiln(monomer, {
-            mode: options?.mode,
-            link: options?.link,
-            activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
-            insert: options?.insert,
-        }),
+        addMonomer: (monomer, options) => {
+            // Hard block additions when already at the limit
+            if (isAtMonomerLimit) {
+                openLimitDialog(currentTokenCount);
+                return false;
+            }
+            return addMonomerToBiln(monomer, {
+                mode: options?.mode,
+                link: options?.link,
+                activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
+                insert: options?.insert,
+            });
+        },
         replaceMonomer: (m, opts) => replaceMonomerInBiln(m, opts),
         endReplaceSelection: () => { cancelReplaceSelection(); },
-        setBiln: (biln) => setBilnValue(biln),
+        setBiln: (biln) => trySetBilnValue(biln),
         getBiln: () => bilnValue,
-    }), [addMonomerToBiln, uiState, bilnValue]);
+    }), [addMonomerToBiln, replaceMonomerInBiln, uiState, bilnValue, isAtMonomerLimit, currentTokenCount, openLimitDialog, cancelReplaceSelection, trySetBilnValue]);
 
     function loadData(newBiln) {
         const params = {
@@ -427,7 +465,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [committedBiln, setUiState]);
 
     function handleBilnChange(newBiln) {
-        setBilnValue(newBiln);
+        trySetBilnValue(newBiln);
     }
 
     const skipNextGenerateRef = useRef(false); // to skip auto-generate after clear action
@@ -500,6 +538,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     {/* Top: Biln editor (no collapse) */}
                     <BilnEditorInterface
                         biln={bilnValue}
+                        maxMonomers={MAX_MONOMERS}
+                        isAtMonomerLimit={isAtMonomerLimit}
                         onChangeBiln={handleBilnChange}
                         hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
                         canUndo={canUndo}
@@ -1094,6 +1134,28 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 </Box>
             </Box>
+
+            {/* Snackbar alert when BILN exceeds the maximum allowed length */}
+            {/* NEW: modal alert */}
+            <Dialog
+                open={limitDialog.open}
+                onClose={() => setLimitDialog({ open: false, message: '' })}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Monomer limit reached</DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body2" color="text.secondary">
+                        {limitDialog.message}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button size="small" onClick={() => setLimitDialog({ open: false, message: '' })}>
+                        OK
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
         </Box>
 
 

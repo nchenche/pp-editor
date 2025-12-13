@@ -1,10 +1,51 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { Box, Accordion, AccordionSummary, AccordionDetails, Typography, Stack, TextField, Button, Switch, FormControlLabel } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
-import ClearIcon from '@mui/icons-material/Clear';
 
-export function SequenceInput({ value, onChangeValue, error, helperText, ...props }) {
+import { Box, Stack, TextField, Typography } from '@mui/material';
+
+
+function countMonomersFromBiln(biln) {
+  // Simple token count: chains split by '.', residues split by '-'
+  // (If you have a shared analyzeBiln utility, prefer using it here.)
+  return (biln || '')
+    .split('.')
+    .flatMap((seg) => seg.split('-'))
+    .map((t) => t.trim())
+    .filter(Boolean).length;
+}
+
+export function SequenceInput({
+  value,
+  onChangeValue,
+  error,
+  helperText,
+  maxMonomers = 40, // NEW
+  ...props
+}) {
+  const monomerCount = useMemo(() => countMonomersFromBiln(value), [value]);
+  const counterText = useMemo(
+    () => `${monomerCount}/${maxMonomers} monomers`,
+    [monomerCount, maxMonomers],
+  );
+
+  const composedHelper = useMemo(() => {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="caption" sx={{ color: error ? 'error.main' : 'text.secondary' }}>
+          {helperText || ' '}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: monomerCount >= maxMonomers ? 'warning.main' : 'text.secondary',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {counterText}
+        </Typography>
+      </Box>
+    );
+  }, [helperText, error, counterText, monomerCount, maxMonomers]);
+
   return (
     <TextField
       label="Enter BILN sequence"
@@ -16,36 +57,21 @@ export function SequenceInput({ value, onChangeValue, error, helperText, ...prop
       autoComplete="off"
       spellCheck={false}
       error={!!error}
-      helperText={helperText}
-      multiline
-      minRows={1}
-      maxRows={6}
+      helperText={composedHelper} // CHANGED
       slotProps={{
         inputProps: {
-          inputMode: "text",
-          pattern: "[A-Za-z0-9\\-\\.\\(\\),\\s]*", // Accepts newlines/spaces for easier pasting
-          ...props.inputProps, // Allow further extension if needed
-        }
+          inputMode: 'text',
+          pattern: '[A-Za-z0-9\\-\\.\\(\\),\\s]*',
+          ...props.inputProps,
+        },
       }}
       {...props}
     />
   );
 }
 
-export const InputSearch = ({ value, onChangeValue }) => (
-  <div className='p-2 w-2/4 mx-auto'>
-    <TextField
-      id="outlined-required"
-      label="Search monomers"
-      fullWidth
-      value={value}
-      onChange={onChangeValue}
-    />
-  </div>
-);
 
-
-export function SequenceEditorPanel({ biln, onChangeBiln, hoveredResidueIdx }) {
+export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
   const [bilnText, setBilnText] = useState(biln || '');
   const [error, setError] = useState('');
 
@@ -54,48 +80,34 @@ export function SequenceEditorPanel({ biln, onChangeBiln, hoveredResidueIdx }) {
   }, [biln]);
 
   const handleBilnChange = (val) => {
+    const prevCount = countMonomersFromBiln(bilnText);
+    const nextCount = countMonomersFromBiln(val);
+
+    // Prevent changes that would ADD monomers past the limit
+    if (nextCount > maxMonomers && nextCount > prevCount) {
+      setError(`Maximum length reached (${maxMonomers} monomers). Remove a monomer to add a new one.`);
+      return; // <-- value won't update, so user can't "enter" extra monomers
+    }
+
     setError('');
     setBilnText(val);
     onChangeBiln?.(val);
   };
 
-  // // --- DEBUG: fake hovered residue index ---
-  // // Simple approach: always highlight residue 0 (first)
-  // // const debugHoveredIdx = 0;
-
-  // // Slightly better: cycle through residues with a button
-  // const [debugHoveredIdx, setDebugHoveredIdx] = useState(0);
-  // const residueCount = useMemo(() => {
-  //   if (!biln) return 0;
-  //   return biln
-  //     .split('.')         // segments
-  //     .flatMap(seg => seg ? seg.split('-') : [])
-  //     .filter(Boolean).length;
-  // }, [biln]);
-
-  // const nextResidue = useCallback(() => {
-  //   if (residueCount === 0) return;
-  //   setDebugHoveredIdx(i => (i + 1) % residueCount);
-  // }, [residueCount]);
-  const helper = useMemo(() => (error ? error : ''), [error]);
-
   return (
     <Box sx={{ position: 'sticky', top: 0, zIndex: 1 }}>
       <Stack spacing={1}>
-        <TextField
-          label="Enter BILN sequence"
-          size="small"
-          fullWidth
+        <SequenceInput
           value={bilnText}
-          onChange={(e) => handleBilnChange(e.target.value)}
-          helperText={helper}
-          error={!!error}
+          onChangeValue={handleBilnChange}
+          error={error}
+          helperText={error ? error : ''}
+          maxMonomers={maxMonomers}
         />
       </Stack>
     </Box>
   );
 }
-
 
 
 import { EditorState, Compartment } from '@codemirror/state';
