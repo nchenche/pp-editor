@@ -85,7 +85,7 @@ export const ChainSlots = ({
                             transform: (overlayActive && seqIdx === activeSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
                             boxShadow: (overlayActive && seqIdx === activeSeqIdx)
                                 ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
-                                : 'none',
+                                : '2',
                             transition: 'transform 180ms ease, box-shadow 180ms ease',
                             mb: 1,
                         }}
@@ -135,8 +135,8 @@ export const ChainSlots = ({
                                     sx={{
                                         display: 'flex',
                                         gap: GRID_GAP,
-                                        overflowX: 'auto',
-                                        overflowY: 'hidden',
+                                        // overflowX: 'auto',
+                                        // overflowY: 'hidden',
                                         py: 0.5,
                                         px: 1,
                                         border: 1,
