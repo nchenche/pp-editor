@@ -7,8 +7,11 @@ import NavBar from './components/layout/Navbar';
 import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
-import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
-import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
+import Documentation from './pages/Documentation';
+
+
+// import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
+// import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
 
 import { Box } from '@mui/material';
 
@@ -30,13 +33,17 @@ const dataLinks = [
   //     to: '/peptide',
   //     text: 'Design a peptide'
   // },
-  {
-    to: '/monomers',
-    text: 'Monomer library'
-  },
+  // {
+  //   to: '/monomers',
+  //   text: 'Monomer library'
+  // },
   {
     to: '/admin-monomers',
     text: 'Add new monomer'
+  },
+  {
+    to: '/documentation',
+    text: 'Documentation'
   }
 ]
 
@@ -64,7 +71,7 @@ function AppRoutes() {
 
       {/* Other routes render normally */}
       <Routes>
-        <Route path="/" element={<></>} />
+        {/* <Route path="/" element={<></>} />
         <Route
           path="/admin-monomers"
           element={
@@ -78,6 +85,14 @@ function AppRoutes() {
           element={
             <Box sx={{ flex: 1, minHeight: 0, display: 'flex', backgroundColor: 'background.default' }}>
               <MonomerLibraryContainer />
+            </Box>
+          }
+        /> */}
+        <Route
+          path="/documentation"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex'}}>
+              <Documentation />
             </Box>
           }
         />
