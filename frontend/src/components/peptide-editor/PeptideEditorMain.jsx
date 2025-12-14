@@ -16,6 +16,7 @@ import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
 import { usePersistDesign, useInitialDesignState } from '../../../src/hooks/usePersistDesign';
 import { useSplitLayout } from '../../../src/hooks/useSplitLayout';
+import { useBilnHistory } from '../../../src/hooks/useBilnHistory';
 
 import {
     buildLinkMapFromBiln,
@@ -25,7 +26,7 @@ import {
     analyzeBiln
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -40,28 +41,13 @@ import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
+const MAX_MONOMERS = 40;
 
-
-// Read persisted editor state once (sync) to avoid flicker on mount/route switch
-function readPersistedDesign() {
-    if (typeof window === 'undefined') return null;
-    try {
-        const raw = localStorage.getItem('design-peptide-v1');
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        return {
-            biln: typeof parsed.biln === 'string' ? parsed.biln : null,
-            constraints: Array.isArray(parsed.constraints) ? parsed.constraints : null,
-        };
-    } catch {
-        return null;
-    }
-}
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
@@ -69,9 +55,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
-
-    const [isEditorOpen, setIsEditorOpen] = useState(true);
-    // const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
     const [repMenuEl, setRepMenuEl] = useState(null);
     const [colorMenuEl, setColorMenuEl] = useState(null);
@@ -81,27 +64,24 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const reset3DOpen = Boolean(reset3DEl);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
-    const [bilnValue, setBilnValue] = useState(() => initialBiln);  // hydrate from storage first
-    const [phValue, setPhValue] = useState(7.4);
+    const {
+        value: bilnValue,
+        setValue: setBilnValue,
+        canUndo,
+        canRedo,
+        undo: handleUndoBiln,
+        redo: handleRedoBiln,
+    } = useBilnHistory(initialBiln, 20);
+    const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
-    const [constraintsMode, setConstraintsMode] = useState(false);  // constraintsBySeq: Array< Array<char> > matching rowMonomerLists layout    
+
+    const [phValue, setPhValue] = useState(7.4);
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
     const svgDepiction = depictionData?.svg || '';
     const monomers = depictionData?.monomers || [];
     const smiles = depictionData?.smiles || '';
     const helm = depictionData?.helm || '';
-
-    // Only this “committed” BILN drives depiction/3D
-    const [committedBiln, setCommittedBiln] = useState(initialBiln);
-
-    // --- BILN history (undo up to 10) ---
-    const MAX_HISTORY = 20;
-    const [bilnHistory, setBilnHistory] = useState([initialBiln]);
-    const [bilnFuture, setBilnFuture] = useState([]);
-    const didInitHistoryRef = useRef(false);
-    const isUndoingRef = useRef(false);
-    const isRedoingRef = useRef(false);
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);
@@ -117,6 +97,49 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
 
+    const [limitDialog, setLimitDialog] = useState({ open: false, message: '' });
+    const { tokenCount: currentTokenCount } = useMemo(
+        () => analyzeBiln(bilnValue || ''),
+        [bilnValue],
+    );
+    const isAtMonomerLimit = currentTokenCount >= MAX_MONOMERS;
+
+    const openLimitDialog = useCallback((tokenCount) => {
+        setLimitDialog({
+            open: true,
+            message:
+                `Maximum sequence length reached (${Math.min(tokenCount, MAX_MONOMERS)}/${MAX_MONOMERS}). ` +
+                `Remove one or more monomers before adding new ones.`,
+        });
+    }, []);
+
+    const trySetBilnValue = useCallback(
+        (nextBilnOrUpdater) => {
+            // Support both:
+            //  - setBilnValue("A-G")
+            //  - setBilnValue(prev => prev + "-A")  (used by drag/drop handlers)
+            const nextBiln =
+                typeof nextBilnOrUpdater === 'function'
+                    ? nextBilnOrUpdater(bilnValue)
+                    : nextBilnOrUpdater;
+
+            if (typeof nextBiln !== 'string') {
+                console.warn('trySetBilnValue: expected string BILN but got:', nextBiln);
+                return false;
+            }
+
+            const { tokenCount } = analyzeBiln(nextBiln);
+            if (tokenCount > MAX_MONOMERS) {
+                openLimitDialog(tokenCount);
+                return false;
+            }
+
+            setBilnValue(nextBiln);
+            return true;
+        },
+        [bilnValue, setBilnValue, openLimitDialog],
+    );
+
     const {
         addMonomerToBiln,
         handleDeleteMonomerItem,
@@ -128,7 +151,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         replaceMonomerInBiln,
     } = useBilnHandlers({
         bilnValue,
-        setBilnValue,
+        setBilnValue: trySetBilnValue,
         monomers,
         rowMonomerLists,
         linkMap,
@@ -137,8 +160,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setIsDragging,
         setHoveredMonomer
     });
-
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+
+
 
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
@@ -165,41 +189,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         error: scaffoldError,
     } = useScaffoldTemplate();
 
-    const { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
     const [autoSync3DRaw, setAutoSync3DRaw] = useState(true);
     const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
-
-    // Debug scaffold mappings in json format
-    useEffect(() => {
-        console.log('Scaffold mappings updated:', JSON.stringify(scaffoldMappings, null, 2));
-    }, [scaffoldMappings]);
-
-    // Build scaffold_mapping payload for backend when any scaffold is enabled
-    const scaffoldMappingPayload = useMemo(() => {
-        if (!anyScaffoldEnabled) return null;
-        // send only enabled mappings, stripped of heavy fields
-        const enabled = scaffoldMappings
-            .map((m, idx) => ({ ...m, seqIdx: idx }))
-            .filter((m) => m.enabled);
-
-        if (!enabled.length) return null;
-
-        return {
-            template_id: scaffoldTemplate?.id ?? null,
-            mappings: enabled.map((m) => ({
-                enabled: m.enabled,
-                chain_id: m.chainId,
-                start: m.start,
-                end: m.end,
-                offset: m.offset,
-                manual_masks: m.manualMasks ?? [],
-            })),
-        };
-    }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
-
-
-    // console.log('Scaffold template:', scaffoldTemplate);
-
 
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
@@ -229,53 +222,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [replaceSelect.open, cancelReplaceSelection]);
-
-    // Track bilnValue changes into history unless undo/redo is in progress
-    useEffect(() => {
-        // Initialize history on first render
-        if (!didInitHistoryRef.current) {
-            didInitHistoryRef.current = true;
-            setBilnHistory([bilnValue]);
-            return;
-        }
-        // Skip if change is due to undo/redo
-        if (isUndoingRef.current || isRedoingRef.current) {
-            isUndoingRef.current = false;
-            isRedoingRef.current = false;
-            return;
-        }
-        // Normal edit: push to history
-        setBilnHistory(prev => {
-            if (prev[prev.length - 1] === bilnValue) return prev;
-            const next = [...prev, bilnValue];
-            return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
-        });
-        setBilnFuture([]); // Any new user edit invalidates the redo stack
-    }, [bilnValue]);
-
-    const canUndo = bilnHistory.length > 1;
-    const canRedo = bilnFuture.length > 0;
-    const handleUndoBiln = () => {
-        if (!canUndo) return;
-        const current = bilnHistory[bilnHistory.length - 1];
-        const prev = bilnHistory[bilnHistory.length - 2];
-        setBilnHistory(bilnHistory.slice(0, -1));
-        setBilnFuture(f => [current, ...f]);
-        isUndoingRef.current = true;
-        setBilnValue(prev);
-    };
-
-    const handleRedoBiln = () => {
-        if (!canRedo) return;
-        const [next, ...rest] = bilnFuture;
-        setBilnFuture(rest);
-        setBilnHistory(h => {
-            const merged = [...h, next];
-            return merged.length > MAX_HISTORY ? merged.slice(merged.length - MAX_HISTORY) : merged;
-        });
-        isRedoingRef.current = true;
-        setBilnValue(next);
-    };
 
     // Lift state up: output data
     useEffect(() => {
@@ -307,32 +253,55 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         (biln, ss) => {
             const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
 
-            // Include scaffold mapping params in the cache key so mapping-only changes
-            // still trigger a new conformer generation.
             const mappingSig =
                 useTemplate && scaffoldMappingPayload
                     ? JSON.stringify(scaffoldMappingPayload)
                     : null;
 
+            // If we just cleared data, skip this auto-trigger once
+            if (skipNextGenerateRef.current) {
+                skipNextGenerateRef.current = false;
+                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+                return;
+            }
+
+            // Normalize BILN: if it's effectively empty, do not generate
+            const normalizedBiln = (biln || '')
+                .trim()
+                .replace(/^[.\-]+|[.\-]+$/g, '')
+                .replace(/\.+/g, '.')
+                .replace(/\-+/g, '-');
+
+            if (!normalizedBiln) {
+                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+                return;
+            }
+
             const prev = lastGenRef.current;
+            const hasPdb = !!structureOutput?.pdb;
 
             if (
+                hasPdb &&
                 prev.biln === biln &&
                 prev.ss === ss &&
                 prev.useTemplate === useTemplate &&
                 prev.mappingSig === mappingSig
             ) {
-                // Nothing relevant changed: same BILN, same SS, same mapping config
                 return;
             }
 
-            // Store new key
+            if (useTemplate && hasTemplateOverlap()) {
+                setTemplateOverlapOpen(true);
+                return;
+            }
+
             lastGenRef.current = { biln, ss, useTemplate, mappingSig };
 
             if (useTemplate) {
                 console.log('Scaffold mapping payload:', scaffoldMappingPayload);
-                generate3D(biln, ss, {
-                    endpoint: '/api/core/molecules/generate_3d_from_template?no_hydrogens=false&is_protonated=true&ph_value=7.4',
+                generate3D(biln, null, {
+                    endpoint:
+                        '/api/core/molecules/generate_3d_from_template',
                     extraBody: {
                         biln,
                         template_id: scaffoldMappingPayload.template_id,
@@ -340,12 +309,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     },
                 });
             } else {
-                generate3D(biln, ss);
+                generate3D(biln, constraintsBySeq);
             }
         },
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, structureOutput, constraintsBySeq],
     );
-
 
     const handleAutoSyncChange = useCallback(
         (_, checked) => {
@@ -430,17 +398,24 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Expose a minimal API to parent
     useImperativeHandle(ref, () => ({
-        addMonomer: (monomer, options) => addMonomerToBiln(monomer, {
-            mode: options?.mode,
-            link: options?.link,
-            activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
-            insert: options?.insert,
-        }),
+        addMonomer: (monomer, options) => {
+            // Hard block additions when already at the limit
+            if (isAtMonomerLimit) {
+                openLimitDialog(currentTokenCount);
+                return false;
+            }
+            return addMonomerToBiln(monomer, {
+                mode: options?.mode,
+                link: options?.link,
+                activeSequenceIdx: options?.activeSequenceIdx ?? uiState.activeSeqIdx,
+                insert: options?.insert,
+            });
+        },
         replaceMonomer: (m, opts) => replaceMonomerInBiln(m, opts),
         endReplaceSelection: () => { cancelReplaceSelection(); },
-        setBiln: (biln) => setBilnValue(biln),
+        setBiln: (biln) => trySetBilnValue(biln),
         getBiln: () => bilnValue,
-    }), [addMonomerToBiln, uiState, bilnValue]);
+    }), [addMonomerToBiln, replaceMonomerInBiln, uiState, bilnValue, isAtMonomerLimit, currentTokenCount, openLimitDialog, cancelReplaceSelection, trySetBilnValue]);
 
     function loadData(newBiln) {
         const params = {
@@ -507,8 +482,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [committedBiln, setUiState]);
 
     function handleBilnChange(newBiln) {
-        setBilnValue(newBiln);
+        trySetBilnValue(newBiln);
     }
+
+    const skipNextGenerateRef = useRef(false); // to skip auto-generate after clear action
+    const clearData = useCallback(() => {
+        skipNextGenerateRef.current = true;
+        setBilnValue('');
+        setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
+        setStructureOutput({ pdb: '' });
+        setTemplateOverlapOpen(false);
+        handleClearScaffold();
+    }, [setBilnValue, setDepictionData, setStructureOutput, setTemplateOverlapOpen, handleClearScaffold]);
 
     // Persist design state
     usePersistDesign({ biln: bilnValue, constraints: constraintsBySeq });
@@ -565,13 +550,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     {/* Top: Biln editor (no collapse) */}
                     <BilnEditorInterface
                         biln={bilnValue}
+                        maxMonomers={MAX_MONOMERS}
+                        isAtMonomerLimit={isAtMonomerLimit}
                         onChangeBiln={handleBilnChange}
                         hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
                         canUndo={canUndo}
                         canRedo={canRedo}
                         onUndo={handleUndoBiln}
                         onRedo={handleRedoBiln}
-                        onClear={() => handleBilnChange('')}
+                        onClear={clearData}
                         // Chains section props
                         rowMonomerLists={rowMonomerLists}
                         activeSeqIdx={uiState.activeSeqIdx}
@@ -584,8 +571,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         handleMonomerEnter={handleMonomerEnter}
                         handleMonomerLeave={handleMonomerLeave}
                         handleDeleteSequence={handleDeleteSequence}
-                        constraintsMode={constraintsMode}
-                        onToggleConstraintsMode={() => setConstraintsMode((m) => !m)}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={handleEditConstraint}
                         // Toolbar (link/cut) wiring
@@ -618,22 +603,27 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 />
 
 
-                {/* Sequences help dialog */}
-                {/* <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Working with sequences</DialogTitle>
-                <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <ul>
-                        <li><strong>Append</strong> adds monomers at the end of the active sequence.</li>
-                        <li><strong>Prepend</strong> adds monomers at the start of the active sequence.</li>
-                        <li><strong>New chain</strong> creates a new chain and adds monomers there.</li>
-                        <li>Use <strong>Link</strong> to connect residues and <strong>Cut</strong> to break bonds in the 2D sketch.</li>
-                        <li><strong>Target sequence</strong> selects which sequence receives new monomers from the library.</li>
-                    </ul>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
-                </DialogActions>
-            </Dialog> */}
+                {/* Overlapping scaffold mappings warning */}
+                <Dialog
+                    open={templateOverlapOpen}
+                    onClose={() => setTemplateOverlapOpen(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle>Scaffold mappings overlap</DialogTitle>
+                    <DialogContent dividers>
+                        <Typography variant="body2">
+                            At least two designed chains map to overlapping residue ranges on the same
+                            scaffold chain. Please adjust the start/end residues so that each chain
+                            uses a non-overlapping region before generating a 3D conformer.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button size="small" onClick={() => setTemplateOverlapOpen(false)}>
+                            OK
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
@@ -1029,8 +1019,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     })}
                                 </Menu>
 
-
-
                             </Box>
 
                             {/* Canvas area */}
@@ -1070,13 +1058,74 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             textAlign: 'center',
                                         }}
                                     >
-                                        {/* Show message about 3D generation status */}
-                                        <Typography
-                                            variant="body1"
-                                            sx={{ color: 'text.secondary', fontSize: '1.25rem', lineHeight: 1.75, fontWeight: 400 }}
-                                        >
-                                            No data
-                                        </Typography>
+                                        {(() => {
+                                            const err = generate3DError;
+                                            const isTemplateFail =
+                                                typeof err === 'string' &&
+                                                err.includes('Failed to generate a 3D conformer from the selected template.');
+
+                                            if (!err) {
+                                                // No error, just no data
+                                                return (
+                                                    <Typography
+                                                        variant="body1"
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            fontSize: '1.1rem',
+                                                            lineHeight: 1.75,
+                                                            fontWeight: 400,
+                                                        }}
+                                                    >
+                                                        No data to display.
+                                                    </Typography>
+                                                );
+                                            }
+
+                                            if (isTemplateFail) {
+                                                // Template-based generation failed, show warning style + hint
+                                                return (
+                                                    <Box>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: 'warning.main',
+                                                                fontSize: '1.1rem',
+                                                                lineHeight: 1.75,
+                                                                fontWeight: 500,
+                                                            }}
+                                                        >
+                                                            {err}
+                                                        </Typography>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                mt: 0.75,
+                                                                color: 'text.secondary',
+                                                                fontSize: '0.9rem',
+                                                            }}
+                                                        >
+                                                            Please try to relax your constraints and run the generation again.
+                                                        </Typography>
+                                                    </Box>
+                                                );
+                                            }
+
+                                            // Any other error: show in alarming color
+                                            return (
+                                                <Typography
+                                                    variant="body1"
+                                                    sx={{
+                                                        color: 'error.main',
+                                                        fontSize: '1.1rem',
+                                                        lineHeight: 1.6,
+                                                        fontWeight: 500,
+                                                        whiteSpace: 'pre-wrap',
+                                                    }}
+                                                >
+                                                    {`${err}`}
+                                                </Typography>
+                                            );
+                                        })()}
                                     </Box>
                                 )}
                                 <Viewer3D
@@ -1097,6 +1146,28 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 </Box>
             </Box>
+
+            {/* Snackbar alert when BILN exceeds the maximum allowed length */}
+            {/* NEW: modal alert */}
+            <Dialog
+                open={limitDialog.open}
+                onClose={() => setLimitDialog({ open: false, message: '' })}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Monomer limit reached</DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body2" color="text.secondary">
+                        {limitDialog.message}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button size="small" onClick={() => setLimitDialog({ open: false, message: '' })}>
+                        OK
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
         </Box>
 
 

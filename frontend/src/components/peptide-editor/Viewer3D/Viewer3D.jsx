@@ -4,10 +4,6 @@ import { useMolstarPlugin } from '../../../hooks/useMolstarPlugin';
 import { useMolstarStructure } from '../../../hooks/useMolstarStructure';
 import { useMolstarSelection } from '../../../hooks/useMolstarSelection';
 
-import { RepresentationSelector } from "./molstar/RepresentationSelector";
-import { ColorSchemeSelector } from "./molstar/ColorSchemeSelector";
-
-import { CircularProgress } from '@mui/material';
 
 const Viewer3DInner = ({
     pdbFile,
@@ -111,11 +107,11 @@ const Viewer3DInner = ({
                     </Overlay>
                 )} */}
 
-                {combinedError && (
+                {/* {combinedError && (
                     <Overlay bg="rgba(255, 200, 200, 0.7)">
                         <span className="text-red-700">Error: {String(combinedError)}</span>
                     </Overlay>
-                )}
+                )} */}
             </div>
         </div>
     );

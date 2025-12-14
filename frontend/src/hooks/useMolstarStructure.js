@@ -94,6 +94,19 @@ export function useMolstarStructure(pluginRef, {
         //     { tag: 'current-representation' }
         // );
         await applyStyle(plugin);
+        // await plugin.builders.structure.representation.addRepresentation(
+        //     structureSO,
+        //     {
+        //         type: 'label',
+        //         typeParams: {
+        //             sizeFactor: 0.6,
+        //             tether: false,
+        //             level: 'element',
+        //         },
+        //     },
+        //     { tag: 'atom-labels' },
+        // );
+
     }, [pluginRef]);
 
     // Loader: PDB raw data string

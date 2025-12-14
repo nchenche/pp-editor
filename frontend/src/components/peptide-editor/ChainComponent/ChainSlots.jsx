@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { Box, TextField, Tooltip, Typography } from '@mui/material';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useOverlayPortal } from '../../common/OverlayPortalContext';
@@ -25,7 +25,6 @@ export const ChainSlots = ({
     handleMonomerEnter,
     handleMonomerLeave,
     handleDeleteSequence,
-    constraintsMode = false,
     constraintsBySeq = [],
     onEditConstraint = () => { },
     scaffoldTemplate = null,
@@ -47,7 +46,16 @@ export const ChainSlots = ({
     const chipHeight = 20; // px; for reference only
     const cellSize = 20; // px height for constraints cells
 
-    const templateMenuDisabled = !scaffoldTemplate;
+    const hasConstraintsBySeq = useMemo(() => {
+        return (constraintsBySeq || []).map((row) =>
+            (row || []).some((ch) => String(ch || '-').toUpperCase() !== '-'),
+        );
+    }, [constraintsBySeq]);
+
+    const anyTemplateEnabled = useMemo(() => {
+        return (scaffoldMappings || []).some((m) => m?.enabled === true);
+    }, [scaffoldMappings]);
+
 
     const clearTemplate = () =>
         onEditScaffoldMapping(seqIdx, { enabled: false, chainId: null, start: null, end: null, offset: 0 });
@@ -57,7 +65,20 @@ export const ChainSlots = ({
             {rowMonomerLists.map((list, seqIdx) => {
 
                 const mapping = scaffoldMappings[seqIdx] || {};
-                const templateMenuDisabled = !scaffoldTemplate;
+                const isTemplateEnabled = mapping?.enabled === true;
+
+                const hasConstraints = !!hasConstraintsBySeq[seqIdx];
+
+
+                // Mutual exclusion rule (per chain):
+                // - If ANY template is enabled (any chain), constraints are disabled everywhere.
+                const constraintsDisabled = anyTemplateEnabled;
+
+                // - Only block template due to constraints when NO template is enabled anywhere.
+                //   (avoids deadlock where constraints exist but become impossible to clear)
+                const templateDisabled = !isTemplateEnabled && hasConstraints && !anyTemplateEnabled;
+
+                const templateMenuDisabled = !scaffoldTemplate || templateDisabled;
 
                 const clearTemplate = () =>
                     onEditScaffoldMapping(seqIdx, {
@@ -69,13 +90,93 @@ export const ChainSlots = ({
                     });
 
                 const templateSlot = (
-                    <TemplateSequence
-                        mapping={scaffoldMappings?.[seqIdx]}
-                        maxResidueCount={list.length}
-                        sequenceIndex={seqIdx}
-                        onEditMapping={onEditScaffoldMapping}
-                    />
+                    <Box
+                        sx={{
+                            opacity: templateDisabled ? 0.55 : 1,
+                            pointerEvents: templateDisabled ? 'none' : 'auto',
+                            width: 'fit-content',
+                        }}
+                    >
+                        <TemplateSequence
+                            mapping={mapping}
+                            maxResidueCount={list.length}
+                            sequenceIndex={seqIdx}
+                            onEditMapping={onEditScaffoldMapping}
+                        />
+                    </Box>
                 );
+
+                const constraintsSlot = (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            gap: GRID_GAP,
+                            py: 0.5,
+                            px: 1,
+                            border: 1,
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            minHeight: CELL_HEIGHT,
+                            alignItems: 'center',
+
+                            opacity: constraintsDisabled ? 0.55 : 1,
+                            pointerEvents: constraintsDisabled ? 'none' : 'auto',
+                        }}
+                    >
+                        {constraintsDisabled ? (
+                            <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
+                                Secondary structure is disabled while template mapping is enabled for any chain.
+                            </Typography>
+                        ) : list.length === 0 ? (
+                            <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
+                                No residues. Add monomers to define constraints.
+                            </Typography>
+                        ) : (
+                            list.map((m, i) => {
+                                const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
+                                const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
+                                return (
+                                    <Tooltip
+                                        key={(m.uid || m._id || m['res-idx'] || i) + '-cell'}
+                                        arrow
+                                        title={
+                                            <Box>
+                                                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                                                    Residue {i + 1} Constraint
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Set secondary structure constraint for this residue:
+                                                </Typography>
+                                                <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: '1.2em' }}>
+                                                    <li><strong>H</strong>: Alpha-helix</li>
+                                                    <li><strong>E</strong>: Beta-sheet</li>
+                                                    <li><strong>-</strong>: No constraint (coil)</li>
+                                                </ul>
+                                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                                    Use keyboard to edit: type H, E, -; Backspace/Delete to clear; Arrow keys to navigate.
+                                                </Typography>
+                                            </Box>
+                                        }
+                                    >
+                                        <span>
+                                            <ConstraintCell
+                                                index={i}
+                                                value={v}
+                                                commitAt={(idx, ch) => {
+                                                    if (constraintsDisabled) return;
+                                                    onEditConstraint?.(seqIdx, idx, ch);
+                                                }}
+                                                chipWidth={chipWidth}
+                                                cellSize={cellSize}
+                                            />
+                                        </span>
+                                    </Tooltip>
+                                );
+                            })
+                        )}
+                    </Box>
+                );
+
                 return (
                     <Box
                         key={seqIdx}
@@ -86,7 +187,7 @@ export const ChainSlots = ({
                             transform: (overlayActive && seqIdx === activeSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
                             boxShadow: (overlayActive && seqIdx === activeSeqIdx)
                                 ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
-                                : 'none',
+                                : '2',
                             transition: 'transform 180ms ease, box-shadow 180ms ease',
                             mb: 1,
                         }}
@@ -95,12 +196,14 @@ export const ChainSlots = ({
                             seqIdx={seqIdx}
                             onSequenceClear={makeDeleteHandler(seqIdx)}
                             onConstraintsFill={(letter) => {
+                                if (constraintsDisabled) return;
                                 const v = normSS(letter);
                                 for (let i = 0; i < list.length; i++) {
                                     onEditConstraint?.(seqIdx, i, v);
                                 }
                             }}
                             onConstraintsClear={() => {
+                                if (constraintsDisabled) return;
                                 for (let i = 0; i < list.length; i++) {
                                     onEditConstraint?.(seqIdx, i, '-');
                                 }
@@ -122,7 +225,6 @@ export const ChainSlots = ({
                                             onDelete={handleDeleteMonomerItem}
                                             handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
                                             handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
-                                            // onDeleteSequence={makeDeleteHandler(seqIdx)}
                                             label={`Chain ${seqIdx + 1}`}
                                             dndDisabled={overlayActive}
                                         >
@@ -131,52 +233,24 @@ export const ChainSlots = ({
                                     )}
                                 </Droppable>
                             }
-                            constraintsSlot={
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        gap: GRID_GAP,
-                                        overflowX: 'auto',
-                                        overflowY: 'hidden',
-                                        py: 0.5,
-                                        px: 1,
-                                        border: 1,
-                                        borderColor: 'divider',
-                                        borderRadius: 1,
-                                        minHeight: CELL_HEIGHT,
-                                        alignItems: 'center',
-                                    }}
-                                >
-
-                                    {list.length === 0 ? (
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
-                                            No residues. Add monomers to define constraints.
-                                        </Typography>
-                                    ) : (
-                                        list.map((m, i) => {
-                                            const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
-                                            const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
-                                            return (
-
-                                                <Tooltip key={(m.uid || m._id || m['res-idx'] || i) + '-cell'} title="H/E/C (one letter)" arrow>
-                                                    <span>
-                                                        <ConstraintCell
-                                                            index={i}
-                                                            value={v}
-                                                            commitAt={(idx, ch) => onEditConstraint?.(seqIdx, idx, ch)}
-                                                            chipWidth={chipWidth}  // match monomer item width
-                                                            cellSize={cellSize}   // match monomer item height (square)
-                                                        />
-                                                    </span>
-                                                </Tooltip>
-                                            );
-                                        })
-                                    )}
-                                </Box>
+                            constraintsSlot={constraintsSlot}
+                            templateSlot={
+                                templateDisabled ? (
+                                    <Tooltip
+                                        arrow
+                                        title="Template mapping is disabled while secondary-structure constraints are active. Clear constraints to enable template mapping."
+                                    >
+                                        <Box>{templateSlot}</Box>
+                                    </Tooltip>
+                                ) : (
+                                    templateSlot
+                                )
                             }
-                            templateSlot={templateSlot}
                             templateMenuDisabled={templateMenuDisabled}
-                            onTemplateMenu={() => onOpenScaffoldMapping(seqIdx)}
+                            onTemplateMenu={() => {
+                                if (templateMenuDisabled) return;
+                                onOpenScaffoldMapping(seqIdx);
+                            }}
                             onTemplateClear={clearTemplate}
                             onTemplateHelp={() => { }}
                         />

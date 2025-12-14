@@ -8,11 +8,18 @@ const emptyMapping = {
     offset: 0,
     manualMasks: [],
     source: null,
-    pdbPath: null
+    pdbPath: null,
+    disabledByUser: false,
 };
 
 export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     const [rawMappings, setRawMappings] = useState([]);
+
+    // AA-only lengths for each designed chain (caps excluded)
+    const designAaLengths = useMemo(
+        () => rowMonomerLists.map(countAaMonomers),
+        [rowMonomerLists],
+    );
 
     useEffect(() => {
         setRawMappings((prev) => {
@@ -28,14 +35,19 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     const computedEntries = useMemo(
         () =>
             rawMappings.map((mapping, idx) => {
+                const monList = rowMonomerLists[idx] || [];
+                const { hasNTerCap, hasCTerCap } = detectCaps(monList);
+                const aaLen = designAaLengths[idx] ?? null;
+
                 if (!scaffoldTemplate) {
                     return {
                         mapping: {
                             ...emptyMapping,
-                            // ...mapping,
+                            ...mapping,
                             manualMasks: sanitizeManualMasks(mapping?.manualMasks),
                             sequence: '',
                             templateResidues: [],
+                            trailingCapCount: hasCTerCap ? 1 : 0,
                         },
                         derivedStart: null,
                         derivedEnd: null,
@@ -46,12 +58,35 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 const slice = resolveTemplateSlice({
                     template: scaffoldTemplate,
                     mapping,
-                    designedLength: rowMonomerLists[idx]?.length ?? null,
+                    designedLength: aaLen,
                 });
 
-                const manualSet = buildMaskSet(mapping.manualMasks, slice.residues.length);
-                const maskedResidues = slice.residues.map((code, i) => (manualSet.has(i) ? 'X' : code));
-                const sequence = mapping.enabled ? formatSequence(mapping.offset, maskedResidues) : '';
+                // Only expose as many template residues as there are AA monomers
+                const effectiveLen =
+                    aaLen != null && aaLen > 0
+                        ? Math.min(aaLen, slice.residues.length)
+                        : slice.residues.length;
+
+                const effectiveResidues = slice.residues.slice(0, effectiveLen);
+
+                const manualSet = buildMaskSet(mapping.manualMasks, effectiveLen);
+
+                // masked residues still use '-' in the sequence string, but we keep
+                // the full residue objects in templateResidues for the UI
+                const maskedResidues = effectiveResidues.map((res, i) =>
+                    manualSet.has(i) ? { ...res, resn: '-', code: res.code } : res,
+                );
+
+                const trailingCapCount = hasCTerCap ? 1 : 0;
+
+                const sequence = mapping.enabled
+                    ? formatSequence(
+                        mapping.offset,
+                        maskedResidues.map((r) => r.resn || r.code),
+                        trailingCapCount,
+                    )
+                    : '';
+
                 const pdbPath = scaffoldTemplate?.pdbPath || null;
                 const name = scaffoldTemplate?.name || null;
                 const source = scaffoldTemplate?.source || null;
@@ -62,17 +97,18 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                         ...mapping,
                         manualMasks: Array.from(manualSet).sort((a, b) => a - b),
                         sequence,
-                        templateResidues: slice.residues,
+                        templateResidues: effectiveResidues,  // <-- only AA-length slice
                         source,
                         pdbPath,
                         name,
+                        trailingCapCount,
                     },
                     derivedStart: slice.startNumber ?? null,
                     derivedEnd: slice.endNumber ?? null,
                     derivedChainId: slice.chainId ?? null,
                 };
             }),
-        [rawMappings, scaffoldTemplate, rowMonomerLists],
+        [rawMappings, scaffoldTemplate, rowMonomerLists, designAaLengths],
     );
 
     const scaffoldMappings = useMemo(
@@ -81,123 +117,391 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     );
 
     const anyScaffoldEnabled = useMemo(
-        () => scaffoldMappings.some(m => m?.enabled),
+        () => scaffoldMappings.some((m) => m?.enabled),
         [scaffoldMappings],
     );
 
-    const derivedRanges = useMemo(
-        () =>
-            computedEntries.map((entry) => ({
-                start: entry.derivedStart,
-                end: entry.derivedEnd,
+    const scaffoldMappingPayload = useMemo(() => {
+        if (!anyScaffoldEnabled) return null;
+        // send only enabled mappings, stripped of heavy fields
+        const enabled = scaffoldMappings
+            .map((m, idx) => ({ ...m, seqIdx: idx }))
+            .filter((m) => m.enabled);
+
+        if (!enabled.length) return null;
+        return {
+            template_id: scaffoldTemplate?.id ?? null,
+            mappings: enabled.map((m) => ({
+                enabled: m.enabled,
+                chain_id: m.chainId,
+                start: m.start,
+                end: m.end,
+                offset: m.offset,
+                manual_masks: m.manualMasks ?? [],
             })),
-        [computedEntries],
-    );
+        };
+    }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
 
-    const derivedChainIds = useMemo(
-        () => computedEntries.map((entry) => entry.derivedChainId ?? null),
-        [computedEntries],
-    );
+    // AUTO-RANGE allocation now uses AA-only lengths (caps excluded)
+    const autoRanges = useMemo(() => {
+        if (!scaffoldTemplate) return rowMonomerLists.map(() => null);
 
+        const firstChain = resolveChain(scaffoldTemplate, null);
+        const residues = normalizeResidues(firstChain);
+        if (!residues.length) return rowMonomerLists.map(() => null);
+
+        let nextResid = residues[0]?.resid ?? 1;
+        const maxResid = residues[residues.length - 1]?.resid ?? nextResid;
+        const chainId = normalizeChainId(firstChain) ?? null;
+
+        return rowMonomerLists.map((_, idx) => {
+            const len = designAaLengths[idx] ?? 0; // AA count only
+            if (len <= 0 || nextResid > maxResid) return null;
+
+            const start = nextResid;
+            let end = start + len - 1;
+            if (end > maxResid) end = maxResid;
+
+            nextResid = end + 1;
+            return { start, end, chainId };
+        });
+    }, [scaffoldTemplate, rowMonomerLists, designAaLengths]);
+
+    // Prefill start/end/chainId/enabled for uninitialized mappings
     useEffect(() => {
-        if (!scaffoldTemplate) return;
-        if (!derivedRanges.length) return;
+        if (!scaffoldTemplate) {
+            // reset all mappings
+            setRawMappings((prev) => prev.map(() => ({ ...emptyMapping })));
+            return;
+        };
+        if (!autoRanges.length) return;
 
         setRawMappings((prev) => {
             let mutated = false;
+
             const next = prev.map((mapping = emptyMapping, idx) => {
-                const derived = derivedRanges[idx];
-                const suggestedChainId = derivedChainIds[idx];
-                if (!derived?.start && !suggestedChainId) return mapping;
+                const auto = autoRanges[idx];
+                if (!auto) return mapping;
 
-                let candidate = mapping;
+                const candidate = { ...emptyMapping, ...mapping };
 
-                const shouldAutoEnable =
-                    !candidate.enabled && candidate.start == null && candidate.end == null;
+                const isUninitialized =
+                    candidate.start == null &&
+                    candidate.end == null &&
+                    !candidate.enabled &&
+                    !candidate.chainId;
 
-                if (shouldAutoEnable && derived.start != null && derived.end != null) {
-                    candidate = candidate === mapping ? { ...candidate } : candidate;
-                    candidate.enabled = true;
-                    candidate.start = derived.start;
-                    candidate.end = derived.end;
-                    if (!candidate.chainId && suggestedChainId) {
-                        candidate.chainId = suggestedChainId;
-                    }
-                    mutated = true;
-                    return candidate;
-                }
+                if (!isUninitialized || candidate.disabledByUser) return mapping;
 
-                let changed = false;
-
-                if (!candidate.chainId && suggestedChainId) {
-                    candidate = candidate === mapping ? { ...candidate } : candidate;
-                    candidate.chainId = suggestedChainId;
-                    changed = true;
-                }
-
-                if (candidate.start == null && derived.start != null) {
-                    candidate = candidate === mapping ? { ...candidate } : candidate;
-                    candidate.start = derived.start;
-                    changed = true;
-                }
-
-                if (candidate.end == null && derived.end != null) {
-                    candidate = candidate === mapping ? { ...candidate } : candidate;
-                    candidate.end = derived.end;
-                    changed = true;
-                }
-
-                if (changed) {
-                    mutated = true;
-                    return candidate;
-                }
-
-                return mapping;
+                mutated = true;
+                return {
+                    ...candidate,
+                    enabled: true,
+                    chainId: auto.chainId,
+                    start: auto.start,
+                    end: auto.end,
+                };
             });
 
             return mutated ? next : prev;
         });
-    }, [derivedRanges, derivedChainIds, scaffoldTemplate]);
+    }, [autoRanges, scaffoldTemplate]);
 
-    const handleEditScaffoldMapping = useCallback((seqIdx, patch) => {
+    // AUTO N-terminal offset for N-cap: if first monomer is a cap and offset is 0 → offset = 1
+    useEffect(() => {
         setRawMappings((prev) => {
-            const next = prev.slice();
-            const current = { ...emptyMapping, ...(next[seqIdx] || {}) };
-            const normalizedPatch = normalizePatch(patch, current);
-            next[seqIdx] = { ...current, ...normalizedPatch };
-            return next;
-        });
-    }, []);
+            let mutated = false;
+            const next = prev.map((mapping = emptyMapping, idx) => {
+                const monList = rowMonomerLists[idx] || [];
+                const { hasNTerCap } = detectCaps(monList);
+                const current = { ...emptyMapping, ...mapping };
 
-    return { scaffoldMappings, anyScaffoldEnabled, handleEditScaffoldMapping };
+                if (!current.enabled || current.disabledByUser) return mapping;
+                if (!hasNTerCap) return mapping;
+                if ((current.offset ?? 0) !== 0) return mapping; // user already set offset
+
+                mutated = true;
+                return { ...current, offset: 1 };
+            });
+            return mutated ? next : prev;
+        });
+    }, [rowMonomerLists]);
+
+    const handleEditScaffoldMapping = useCallback(
+        (seqIdx, patch) => {
+            setRawMappings((prev) => {
+                let next = prev.slice();
+                const current = { ...emptyMapping, ...(next[seqIdx] || {}) };
+
+                const enablingNow =
+                    patch &&
+                    Object.prototype.hasOwnProperty.call(patch, 'enabled') &&
+                    patch.enabled === true &&
+                    !current.enabled;
+
+                // Track explicit user disabling/enabling
+                let patchWithDisableFlag = patch;
+                if (patch && Object.prototype.hasOwnProperty.call(patch, 'enabled')) {
+                    if (patch.enabled === false) {
+                        patchWithDisableFlag = { ...patch, disabledByUser: true };
+                    } else if (patch.enabled === true) {
+                        patchWithDisableFlag = { ...patch, disabledByUser: false };
+                    }
+                }
+
+                // If enabling a chain that has no chainId/start/end yet, immediately prefill it.
+                // This avoids the "Auto" (null chain) situation.
+                if (enablingNow && scaffoldTemplate) {
+                    const wasUninitialized =
+                        current.start == null &&
+                        current.end == null &&
+                        !current.chainId;
+
+                    // Default chain id = first template chain
+                    const firstChain = resolveChain(scaffoldTemplate, null);
+                    const defaultChainId = normalizeChainId(firstChain) || null;
+
+                    if (wasUninitialized) {
+                        const auto = autoRanges[seqIdx] || null;
+
+                        patchWithDisableFlag = {
+                            ...patchWithDisableFlag,
+                            chainId: auto?.chainId ?? defaultChainId,
+                            start: auto?.start ?? current.start ?? null,
+                            end: auto?.end ?? current.end ?? null,
+                        };
+                    } else if (
+                        (patchWithDisableFlag?.chainId ?? current.chainId) == null &&
+                        defaultChainId
+                    ) {
+                        // Even if start/end exist, never leave chainId null when enabled
+                        patchWithDisableFlag = {
+                            ...patchWithDisableFlag,
+                            chainId: defaultChainId,
+                        };
+                    }
+                }
+
+                // Determine which chain we are editing (patch overrides current)
+                const effectiveChainId = patchWithDisableFlag?.chainId ?? current.chainId ?? null;
+
+                // Compute resid bounds for that chain, if possible
+                let minResid = null;
+                let maxResid = null;
+                if (scaffoldTemplate && effectiveChainId != null) {
+                    const chain = resolveChain(scaffoldTemplate, effectiveChainId);
+                    const residues = normalizeResidues(chain);
+                    if (residues.length) {
+                        minResid = residues[0].resid;
+                        maxResid = residues[residues.length - 1].resid;
+                    }
+                }
+
+                const normalizedPatch = normalizePatch(
+                    patchWithDisableFlag,
+                    current,
+                    minResid,
+                    maxResid,
+                );
+                next[seqIdx] = { ...current, ...normalizedPatch };
+
+                // After applying this patch, re-pack all mappings on this template chain
+                if (scaffoldTemplate && effectiveChainId != null) {
+                    next = repackChainMappings(next, effectiveChainId, scaffoldTemplate);
+                }
+
+                return next;
+            });
+        },
+        [scaffoldTemplate, autoRanges],
+    );
+
+    const hasTemplateOverlap = useCallback(() => {
+        // console.log('Checking template overlap for mappings:', scaffoldMappings);
+        if (!Array.isArray(scaffoldMappings) || !scaffoldMappings.length) return false;
+
+        const byChain = new Map();
+
+        scaffoldMappings.forEach((m, seqIdx) => {
+            if (!m?.enabled) return;
+            if (m.chainId == null) return;
+            if (m.start == null || m.end == null) return;
+
+            const startNum = Number(m.start);
+            const endNum = Number(m.end);
+            if (!Number.isFinite(startNum) || !Number.isFinite(endNum)) return;
+
+            const s = Math.min(startNum, endNum);
+            const e = Math.max(startNum, endNum);
+
+            const arr = byChain.get(m.chainId) || [];
+            arr.push({ seqIdx, start: s, end: e });
+            byChain.set(m.chainId, arr);
+        });
+
+        for (const [, ranges] of byChain.entries()) {
+            if (ranges.length < 2) continue;
+            ranges.sort((a, b) => a.start - b.start);
+            let prev = ranges[0];
+            for (let i = 1; i < ranges.length; i++) {
+                const cur = ranges[i];
+                if (cur.start <= prev.end) {
+                    return true; // overlap detected on this chain
+                }
+                prev = cur;
+            }
+        }
+        return false;
+    }, [scaffoldMappings]);
+
+    return { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap };
 }
 
-function normalizePatch(patch, current) {
+function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
+    const next = rawMappings.map((m) => ({ ...emptyMapping, ...m }));
+
+    const chain = resolveChain(scaffoldTemplate, chainId);
+    const residues = normalizeResidues(chain);
+    if (!residues.length) return rawMappings;
+
+    const minResid = residues[0].resid;
+    const maxResid = residues[residues.length - 1].resid;
+
+    // Collect enabled mappings on this template chain, keep original seqIdx order
+    const group = next
+        .map((m, idx) => ({ m, idx }))
+        .filter(({ m }) => m.enabled && (m.chainId ?? null) === chainId && m.start != null && m.end != null);
+
+    if (group.length === 0) return rawMappings;
+
+    // Sort by seqIdx (design chain order)
+    group.sort((a, b) => a.idx - b.idx);
+
+    let prevEnd = null;
+
+    for (const { m, idx } of group) {
+        let start = Number(m.start);
+        let end = Number(m.end);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+
+        let spanLen = Math.max(1, end - start + 1);
+
+        if (prevEnd == null) {
+            // First mapping: clamp requested start into [minResid, maxResid]
+            if (start < minResid) start = minResid;
+        } else {
+            // Subsequent mappings start at least after previous end
+            start = Math.max(start, prevEnd + 1, minResid);
+        }
+        if (start > maxResid) start = maxResid;
+
+        end = start + spanLen - 1;
+        if (end > maxResid) end = maxResid;
+        if (end < start) end = start;
+
+        next[idx] = {
+            ...next[idx],
+            start,
+            end,
+        };
+        prevEnd = end;
+    }
+    return next;
+}
+
+function countAaMonomers(monList) {
+    if (!Array.isArray(monList)) return 0;
+    return monList.filter((m) => m?.m_type === 'aa').length;
+}
+
+function detectCaps(monList) {
+    const arr = Array.isArray(monList) ? monList : [];
+    if (!arr.length) return { hasNTerCap: false, hasCTerCap: false };
+
+    const first = arr[0];
+    const last = arr[arr.length - 1];
+    const hasNTerCap = first?.m_type === 'cap';
+    const hasCTerCap = last?.m_type === 'cap';
+
+    return { hasNTerCap, hasCTerCap };
+}
+
+function formatSequence(offset, residues, trailingCapCount = 0) {
+    const prefix = Array.from({ length: Math.max(0, Number(offset) || 0) }, () => 'X');
+    const suffix = Array.from({ length: Math.max(0, trailingCapCount || 0) }, () => 'X');
+    // replace any '-' i residues with 'X' in the sequence string
+    const cleanedResidues = residues.map((r) => (r === '-' ? 'X' : r));
+    return [...prefix, ...cleanedResidues, ...suffix].join('-');
+}
+
+function normalizePatch(
+    patch,
+    current,
+    minResid = null,
+    maxResid = null,
+) {
     if (!patch) return {};
     const merged = { ...patch };
 
-    if ('manualMasks' in merged) {
-        merged.manualMasks = sanitizeManualMasks(merged.manualMasks);
-    }
+    const startChanged =
+        Object.prototype.hasOwnProperty.call(patch, 'start') && patch.start !== current.start;
+    const endChanged =
+        Object.prototype.hasOwnProperty.call(patch, 'end') && patch.end !== current.end;
+    const disablingNow =
+        Object.prototype.hasOwnProperty.call(patch, 'enabled') &&
+        patch.enabled === false &&
+        current.enabled;
 
-    const startChanged = Object.prototype.hasOwnProperty.call(patch, 'start') && patch.start !== current.start;
-    const endChanged = Object.prototype.hasOwnProperty.call(patch, 'end') && patch.end !== current.end;
-    const enabledChanged =
-        Object.prototype.hasOwnProperty.call(patch, 'enabled') && patch.enabled === false && current.enabled;
-
-    if (startChanged || endChanged || enabledChanged) {
+    if (startChanged || endChanged || disablingNow) {
         merged.manualMasks = [];
     }
 
-    const start = merged.start != null ? Number(merged.start) : current.start;
-    const end = merged.end != null ? Number(merged.end) : current.end;
+    // ...existing code...
+    let start =
+        Object.prototype.hasOwnProperty.call(patch, 'start')
+            ? patch.start
+            : current.start;
+    let end =
+        Object.prototype.hasOwnProperty.call(patch, 'end')
+            ? patch.end
+            : current.end;
 
-    if (start != null) merged.start = start;
-    if (end != null) merged.end = end;
+    start = start != null ? Number(start) : null;
+    end = end != null ? Number(end) : null;
 
-    if (start != null && (merged.end == null || merged.end <= start)) {
-        merged.end = start + 1;
+    if (start != null && !Number.isFinite(start)) start = current.start ?? null;
+    if (end != null && !Number.isFinite(end)) end = current.end ?? null;
+
+    // Clamp start/end to template chain resid range if known
+    if (minResid != null) {
+        if (start != null && start < minResid) start = minResid;
+        if (end != null && end < minResid) end = minResid;
     }
+    if (maxResid != null) {
+        if (start != null && start > maxResid) start = maxResid;
+        if (end != null && end > maxResid) end = maxResid;
+    }
+
+    // NEW: if only start changed, preserve the previous span length (prevents end "growing")
+    if (startChanged && !endChanged) {
+        const cs = Number(current.start);
+        const ce = Number(current.end);
+        if (Number.isFinite(cs) && Number.isFinite(ce)) {
+            const span = Math.max(1, ce - cs + 1);
+            if (start != null) {
+                end = start + span - 1;
+                if (maxResid != null && end > maxResid) end = maxResid;
+            }
+        }
+    }
+
+    // Ensure end is not before start
+    if (start != null && (end == null || end < start)) {
+        end = start;
+    }
+
+    merged.start = start;
+    merged.end = end;
 
     return merged;
 }
@@ -217,46 +521,71 @@ function buildMaskSet(list, maxLen) {
     return set;
 }
 
-function formatSequence(offset, residues) {
-    const prefix = Array.from({ length: Math.max(0, Number(offset) || 0) }, () => 'X');
-    return [...prefix, ...residues].join('-');
-}
 
 function resolveTemplateSlice({ template, mapping, designedLength }) {
     const chain = resolveChain(template, mapping.chainId);
-    const residues = normalizeResidues(chain);
+    const residues = normalizeResidues(chain);  // [{ code: 'THR', resid: 16, resn: 'T' }, ...]
     if (!residues.length) {
         return { residues: [], startNumber: null, endNumber: null, chainId: null };
     }
 
-    const startNumber = mapping.start != null ? Number(mapping.start) : residues[0]?.resid ?? 1;
-    const targetEnd =
-        mapping.end != null
-            ? Number(mapping.end)
-            : designedLength != null
-                ? startNumber + Math.max(designedLength - 1, 0)
-                : residues[residues.length - 1].resid;
+    const firstResid = residues[0].resid;
+    const lastResid = residues[residues.length - 1].resid;
+
+    // Use mapping.start if provided, otherwise start at the first real resid
+    let startNumber =
+        mapping.start != null ? Number(mapping.start) : firstResid;
+    if (!Number.isFinite(startNumber)) startNumber = firstResid;
+
+    // Clamp start to valid template range
+    if (startNumber < firstResid) startNumber = firstResid;
+    if (startNumber > lastResid) startNumber = lastResid;
+
+    // Compute target end (mapping.end or inferred from designed length)
+    let targetEnd;
+    if (mapping.end != null) {
+        targetEnd = Number(mapping.end);
+    } else if (designedLength != null) {
+        targetEnd = startNumber + Math.max(designedLength - 1, 0);
+    } else {
+        targetEnd = lastResid;
+    }
+    if (!Number.isFinite(targetEnd)) targetEnd = lastResid;
+
+    // Clamp end inside [startNumber, lastResid]
+    if (targetEnd < startNumber) targetEnd = startNumber;
+    if (targetEnd > lastResid) targetEnd = lastResid;
 
     const startIdx = resolveIndex(residues, startNumber) ?? 0;
-    const endIdx =
-        resolveIndex(residues, targetEnd) ??
-        Math.min(residues.length - 1, startIdx + Math.max((designedLength ?? residues.length) - 1, 0));
+    const endIdx = resolveIndex(residues, targetEnd) ?? startIdx;
 
     if (endIdx < startIdx) {
-        return { residues: [], startNumber: null, endNumber: null, chainId: normalizeChainId(chain) ?? null };
+        return {
+            residues: [],
+            startNumber: null,
+            endNumber: null,
+            chainId: normalizeChainId(chain) ?? null,
+        };
     }
 
     const slice = residues.slice(startIdx, endIdx + 1);
     return {
-        residues: slice.map((res) => res.code),
-        startNumber: slice[0]?.number ?? null,
-        endNumber: slice[slice.length - 1]?.number ?? null,
+        residues: slice,
+        startNumber: slice[0]?.resid ?? null,
+        endNumber: slice[slice.length - 1]?.resid ?? null,
         chainId: normalizeChainId(chain) ?? null,
     };
 }
 
 function resolveChain(template, chainId) {
-    const chains = Array.isArray(template?.chainData) ? template.chainData : [];
+    // Support both legacy `chainData` and new `chains` from the backend
+    const chains =
+        (Array.isArray(template?.chainData) && template.chainData.length
+            ? template.chainData
+            : Array.isArray(template?.chains)
+                ? template.chains
+                : []);
+
     if (!chains.length) return null;
     if (!chainId) return chains[0];
     return chains.find((chain) => normalizeChainId(chain) === chainId) ?? chains[0];
@@ -279,7 +608,7 @@ function normalizeResidues(chain) {
         return chain.residues
             .map((res, idx) => ({
                 code: normalizeResidueCode(res?.resname ?? res?.name ?? res?.label ?? res?.code ?? res?.type),
-                number:
+                resid:
                     res?.resid ??
                     res?.resSeq ??
                     res?.seqNumber ??
@@ -287,6 +616,7 @@ function normalizeResidues(chain) {
                     res?.index ??
                     res?.idx ??
                     idx + 1,
+                resn: res?.resn,
             }))
             .filter((res) => !!res.code);
     }
@@ -294,14 +624,14 @@ function normalizeResidues(chain) {
         const tokens = chain.sequence.split(/[\s,.-]+/).filter(Boolean);
         return tokens.map((token, idx) => ({
             code: normalizeResidueCode(token),
-            number: idx + 1,
+            resid: idx + 1,
         }));
     }
     if (Array.isArray(chain.sequence)) {
         return chain.sequence
             .map((token, idx) => ({
                 code: normalizeResidueCode(token),
-                number: idx + 1,
+                resid: idx + 1,
             }))
             .filter((res) => !!res.code);
     }
@@ -315,11 +645,18 @@ function normalizeResidueCode(raw) {
     return code.length === 1 ? code : code.slice(0, 3);
 }
 
-function resolveIndex(residues, targetNumber) {
-    if (targetNumber == null) return null;
-    const exact = residues.findIndex((res) => res.resid === targetNumber);
-    if (exact >= 0) return exact;
-    const fallback = targetNumber - 1;
-    if (fallback >= 0 && fallback < residues.length) return fallback;
-    return null;
+function resolveIndex(residues, targetResid) {
+    if (targetResid == null) return null;
+
+    // Exact match first
+    let idx = residues.findIndex((res) => res.resid === targetResid);
+    if (idx >= 0) return idx;
+
+    // If numbering has gaps, pick the closest lower-or-equal residue
+    for (let i = residues.length - 1; i >= 0; i--) {
+        if (residues[i].resid <= targetResid) return i;
+    }
+
+    // Fallback to first residue
+    return 0;
 }

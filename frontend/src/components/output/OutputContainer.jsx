@@ -49,11 +49,11 @@ const MenuProps = {
 export const OutputContainer = ({ outputData = {}, ...props }) => {
     const OUTPUT_FIELDS = useMemo(
         () => ([
-            { key: 'biln', label: 'BILN', filename: 'pepedit_biln.txt', mime: 'text/plain' },
-            { key: 'helm', label: 'HELM', filename: 'pepedit_helm.txt', mime: 'text/plain' },
-            { key: 'smiles', label: 'SMILES', filename: 'pepedit_smiles.txt', mime: 'text/plain' },
+            { key: 'biln', label: 'BILN', filename: 'pep-edit_biln.txt', mime: 'text/plain' },
+            { key: 'helm', label: 'HELM', filename: 'pep-edit_helm.txt', mime: 'text/plain' },
+            { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
             // If structure3D is PDB text, keep .pdb; adjust if it’s something else.
-            { key: 'structure3D', label: '3D Structure', filename: 'pepedit_structure.pdb', mime: 'chemical/x-pdb' },
+            { key: 'structure3D', label: '3D Structure', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
         ]),
         []
     );

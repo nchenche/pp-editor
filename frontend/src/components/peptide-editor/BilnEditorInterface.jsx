@@ -44,6 +44,8 @@ import { ChainSlots } from './ChainComponent/ChainSlots';
 // ...existing code...
 export default function BilnEditorInterface({
     biln,
+    maxMonomers = 40,
+    isAtMonomerLimit = false,
     onChangeBiln,
     hoveredResidueIdx,
     canUndo,
@@ -63,7 +65,6 @@ export default function BilnEditorInterface({
     handleMonomerEnter,
     handleMonomerLeave,
     handleDeleteSequence,
-    constraintsMode = false,
     onToggleConstraintsMode = () => { },
     constraintsBySeq = [],
     onEditConstraint = () => { },
@@ -84,7 +85,6 @@ export default function BilnEditorInterface({
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
-
 
     const {
         open: uploadOpen,
@@ -218,14 +218,18 @@ export default function BilnEditorInterface({
 
                     {/* Load example */}
                     <ButtonGroup size="small" variant="outlined">
-                        <Tooltip title="Load example BILN" arrow>
+                        <Tooltip
+                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Load example BILN'}
+                            title={'Load example BILN'}
+                            arrow
+                        >
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
-                                    onClick={() => onChangeBiln('P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)')}
-                                    startIcon={<HelpOutlineIcon fontSize="inherit" />}
+                                    onClick={() => onChangeBiln('G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G')}
+                                    // disabled={isAtMonomerLimit}
                                     sx={btnSx}
                                 >
                                     Load Example
@@ -236,14 +240,18 @@ export default function BilnEditorInterface({
 
                     {/* Upload sequence */}
                     <ButtonGroup size="small" variant="outlined">
-                        <Tooltip title="Upload sequence" arrow>
+                        <Tooltip
+                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Upload sequence'}
+                            title={'Upload sequence'}
+                            arrow
+                        >
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
                                     onClick={handleOpenUpload}
-                                    startIcon={<UploadIcon fontSize="inherit" />}
+                                    disabled={isAtMonomerLimit}
                                     sx={btnSx}
                                 >
                                     Upload Sequence
@@ -308,7 +316,8 @@ export default function BilnEditorInterface({
                 <SequenceEditorPanel
                     biln={biln}
                     onChangeBiln={onChangeBiln}
-                    hoveredResidueIdx={hoveredResidueIdx}
+                    // hoveredResidueIdx={hoveredResidueIdx}
+                    maxMonomers={maxMonomers}
                 />
             </Box>
 
@@ -328,7 +337,7 @@ export default function BilnEditorInterface({
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                             Chains
                         </Typography>
-                        <Tooltip title="Sequences help" arrow>
+                        <Tooltip title="Chains help" arrow>
                             <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
                                 <HelpOutlineIcon fontSize="inherit" />
                             </IconButton>
@@ -342,8 +351,7 @@ export default function BilnEditorInterface({
                         onToggleCutMode={onToggleCutMode}
                         canLink={canLink}
                         canUnlink={canUnlink}
-                        constraintsMode={constraintsMode}
-                        onToggleConstraintsMode={onToggleConstraintsMode}
+
                     />
                 </Box>
 
@@ -360,7 +368,6 @@ export default function BilnEditorInterface({
                         handleMonomerEnter={handleMonomerEnter}
                         handleMonomerLeave={handleMonomerLeave}
                         handleDeleteSequence={handleDeleteSequence}
-                        constraintsMode={constraintsMode}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={onEditConstraint}
                         // Scaffold mapping
@@ -377,10 +384,10 @@ export default function BilnEditorInterface({
             <Dialog open={bilnHelpOpen} onClose={() => setBilnHelpOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>BILN format basics</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <p>Use BILN to describe peptide sequences with simple tokens:</p>
+                    <p>Use BILN to describe peptide chains with simple tokens:</p>
                     <ul>
                         <li>Residues are separated by hyphens “-”. Example: A-G-S</li>
-                        <li>Multiple sequences are separated by dots “.”. Example: A-G.S-S</li>
+                        <li>Multiple chains are separated by dots “.”. Example: A-G.S-S</li>
                         <li>Residue codes use library symbols (e.g., A, R, Lys, Pra).</li>
                         <li>Optional annotations may appear in parentheses for advanced linking.</li>
                     </ul>
@@ -401,13 +408,13 @@ export default function BilnEditorInterface({
 
             {/* Sequences help dialog */}
             <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Working with sequences</DialogTitle>
+                <DialogTitle>Working with chains</DialogTitle>
                 <DialogContent dividers sx={{ typography: 'body2' }}>
                     <ul>
                         <li>Append adds monomers at the end; Prepend at the start; New creates a new chain.</li>
                         <li>Use Link to connect residues and Cut to break bonds in the 2D sketch.</li>
-                        <li>Choose the active sequence to receive new monomers from the library.</li>
-                        <li>Per-residue DSSP letters can guide 3D generation (H/E/C…).</li>
+                        <li>Choose the active chain to receive new monomers from the library.</li>
+                        <li>Per-residue secondary structure letters (H/E/-) can guide 3D generation.</li>
                         <li>Optionally provide a 3D template from a PDB/mmCIF file.</li>
                     </ul>
                 </DialogContent>
@@ -536,9 +543,6 @@ export default function BilnEditorInterface({
                                             disabled={!enabled}
                                             sx={{ minWidth: 140 }}
                                         >
-                                            <MenuItem value="">
-                                                <em>Auto</em>
-                                            </MenuItem>
                                             {(chains.length ? chains : scaffoldTemplate.chains || []).map((chain) => {
                                                 const id = typeof chain === 'string' ? chain : chain.id;
                                                 return (

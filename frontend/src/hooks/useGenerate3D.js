@@ -13,9 +13,11 @@ export function useGenerate3D() {
     const generate3D = useCallback(
         async (bilnValue, ssConstraints, options = {}) => {
             const {
-                endpoint = '/api/core/molecules/generate_3d',
+                endpoint = '/api/core/molecules/generate_conformer',
                 extraBody = null,
             } = options;
+
+            const hasConstraints = ssConstraints !== null && Array.isArray(ssConstraints) && ssConstraints.length > 0;
 
             // If sequence is empty, clear and bail fast
             if (!bilnValue || !bilnValue.trim()) {
@@ -34,31 +36,25 @@ export function useGenerate3D() {
             const controller = new AbortController();
             ctrlRef.current = controller;
 
-            const hasConstraints = typeof ssConstraints === 'string' && ssConstraints.length > 0;
-            const allDash = hasConstraints && /^-+$/.test(ssConstraints);
-            const withoutSS = hasConstraints ? (allDash ? 'true' : 'false') : 'false';
-
+            // set up body from extraBody and defaults
             const body = extraBody && typeof extraBody === 'object'
                 ? { ...extraBody }
                 : {};
 
             // default body for plain generation
-            if (!body.sequence && !body.biln) {
-                body.sequence = bilnValue;
+            if (!body.biln) {
+                body.biln = bilnValue;
             }
 
-            if (hasConstraints && !allDash) {
-                // keep old key for legacy endpoint
-                if (endpoint.endsWith('generate_3d')) {
-                    body.secstruct = ssConstraints;
-                }
-                // for template endpoint you can also add secstruct if needed later
+            if (hasConstraints) {
+                const isCoiled = ssConstraints.every(seq => seq.every(ch => ch === '-'));
+                body.ss_constraints = isCoiled ? null : ssConstraints;
             }
 
             const myReqId = ++reqIdRef.current;
             setLoading(true);
             try {
-                const url = `${API_BASE_URL}${endpoint}?without_ss=${withoutSS}&no_hydrogens=false&is_protonated=true&ph_value=7.4`;
+                const url = `${API_BASE_URL}${endpoint}?no_hydrogens=false&is_protonated=true&ph_value=7.4`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -76,8 +72,20 @@ export function useGenerate3D() {
                 }
                 const json = await response.json();
                 if (reqIdRef.current !== myReqId) return;
-                console.log('3D generation result:', json); // Debug log
-                setResult(json.data);
+
+                const data = json?.data || {};
+                // Special case: template endpoint returned no PDB
+                if (
+                    endpoint.includes('generate_3d_from_template') &&
+                    (! data || !data.pdb || !String(data.pdb).trim())
+                ) {
+                    setError('Failed to generate a 3D conformer from the selected template.');
+                    setResult({ pdb: '' });
+                    setLoading(false);
+                    return;
+                }
+
+                setResult(data);
                 setError(null);
             } catch (e) {
                 if (e?.name === 'AbortError') return;
