@@ -71,7 +71,7 @@ function AppRoutes() {
 
       {/* Other routes render normally */}
       <Routes>
-        {/* <Route path="/" element={<></>} />
+        <Route path="/" element={<></>} />
         <Route
           path="/admin-monomers"
           element={
@@ -87,11 +87,11 @@ function AppRoutes() {
               <MonomerLibraryContainer />
             </Box>
           }
-        /> */}
+        />
         <Route
           path="/documentation"
           element={
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex'}}>
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
               <Documentation />
             </Box>
           }
