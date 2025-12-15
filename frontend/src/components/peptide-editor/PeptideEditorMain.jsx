@@ -159,8 +159,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
 
-
-
     // Flatten constraints to secstruct (keep '-' for "no constraint")
     const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
     const flattenSecstruct = useCallback((cbs) => (
@@ -425,6 +423,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         // IMPORTANT: keep committedBiln in sync when user clears
         if (!bilnValue || !bilnValue.trim()) {
             if (committedBiln !== '') setCommittedBiln('');
+
+            // Key fix: allow re-generating if user pastes the same sequence again
+            lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+
             return;
         }
 
