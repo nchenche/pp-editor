@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
     Box,
     Paper,
@@ -13,12 +13,18 @@ import {
     ButtonGroup,
     Snackbar,
     Alert,
-    ListItemIcon
+    ListItemIcon,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import CheckIcon from '@mui/icons-material/Check';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { alpha } from '@mui/material/styles';
 
 
@@ -69,8 +75,11 @@ function normalizeOutputValue(value) {
     }
 }
 
-
 export const OutputContainer = ({ outputData = {}, ...props }) => {
+    // UI toggles (style/UX)
+    const [wrapLines, setWrapLines] = useState(true);
+    const [expandAll, setExpandAll] = useState(false);
+
     // Default visible: all with a value or all if none are present yet
     const defaultVisible = useMemo(() => {
         const withData = OUTPUT_FIELDS
@@ -80,7 +89,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
             })
             .map(f => f.key);
         return withData.length ? withData : OUTPUT_FIELDS.map(f => f.key);
-    }, [OUTPUT_FIELDS, outputData]);
+    }, [outputData]);
 
     const userChangedVisibleRef = useRef(false);
     const [visible, setVisible] = useState(() => defaultVisible);
@@ -90,8 +99,33 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         setVisible(defaultVisible);
     }, [defaultVisible]);
 
-    const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
+    const visibleFields = useMemo(
+        () => OUTPUT_FIELDS.filter(f => visible.includes(f.key)),
+        [visible],
+    );
 
+    // --- NEW: controlled expansion state ---
+    const [expandedKeys, setExpandedKeys] = useState(() => new Set());
+
+    const toggleExpandedKey = useCallback((key) => (_e, isExpanded) => {
+        setExpandedKeys(prev => {
+            const next = new Set(prev);
+            if (isExpanded) next.add(key);
+            else next.delete(key);
+            return next;
+        });
+    }, []);
+
+    // When "Expand" is ON, open all visible panels; when OFF, collapse all.
+    useEffect(() => {
+        if (expandAll) {
+            setExpandedKeys(new Set(visibleFields.map(f => f.key)));
+        } else {
+            setExpandedKeys(new Set());
+        }
+    }, [expandAll, visibleFields]);
+
+    const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
     const handleCloseSnack = () => setSnack(s => ({ ...s, open: false }));
 
     const handleCopy = async (raw, label) => {
@@ -139,144 +173,226 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         downloadBlob(combined, 'outputs.txt', 'text/plain');
     };
 
-    const visibleFields = OUTPUT_FIELDS.filter(f => visible.includes(f.key));
-
     return (
         <Paper
             variant="outlined"
             sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
             {...props}
         >
-            {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                    Output formats
-                </Typography>
+            {/* Header (sticky) */}
+            <Box
+                sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 2,
+                    bgcolor: 'background.paper',
+                    pb: 1,
+                }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+                            Output formats
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                            Showing {visibleFields.length}/{OUTPUT_FIELDS.length}
+                        </Typography>
+                    </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                    {/* Visible outputs selector (multi) */}
-                    <Select
-                        multiple
-                        value={visible}
-                        onChange={(e) => {
-                            userChangedVisibleRef.current = true;
-                            setVisible(e.target.value);
-                        }}
-                        input={<OutlinedInput size="small" />}
-                        renderValue={(selected) => (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 320, overflow: 'hidden' }}>
-                                {selected.map((key) => {
-                                    const f = OUTPUT_FIELDS.find(o => o.key === key);
-                                    return (
-                                        <Chip
-                                            key={key}
-                                            label={f?.label || key}
-                                            size="small"
-                                            variant="outlined"
-                                            color="primary"
-                                        />
-                                    );
-                                })}
-                            </Box>
-                        )}
-                        size="small"
-                        sx={{ minWidth: 220 }}
-                        MenuProps={MenuProps}
-                    >
-                        {OUTPUT_FIELDS.map((f) => {
-                            const isSelected = visible.includes(f.key);
-                            return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                        {/* Visible outputs selector (multi) */}
+                        <Select
+                            multiple
+                            value={visible}
+                            onChange={(e) => {
+                                userChangedVisibleRef.current = true;
+                                setVisible(e.target.value);
+                            }}
+                            input={<OutlinedInput size="small" />}
+                            renderValue={(selected) => (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 360, overflow: 'hidden' }}>
+                                    {selected.map((key) => {
+                                        const f = OUTPUT_FIELDS.find(o => o.key === key);
+                                        return (
+                                            <Chip
+                                                key={key}
+                                                label={f?.label || key}
+                                                size="small"
+                                                variant="outlined"
+                                                color="primary"
+                                            />
+                                        );
+                                    })}
+                                </Box>
+                            )}
+                            size="small"
+                            sx={{ minWidth: 240 }}
+                            MenuProps={MenuProps}
+                        >
+                            {OUTPUT_FIELDS.map((f) => {
+                                const isSelected = visible.includes(f.key);
+                                return (
+                                    <MenuItem
+                                        key={f.key}
+                                        value={f.key}
+                                        selected={isSelected}
+                                        sx={{ gap: 1 }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 22, color: 'primary.main', opacity: isSelected ? 1 : 0 }}>
+                                            <CheckIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        {f.label}
+                                    </MenuItem>
+                                );
+                            })}
+                        </Select>
 
-                                <MenuItem
-                                    key={f.key}
-                                    value={f.key}
-                                    selected={isSelected}
-                                    sx={{ gap: 1 }}
-                                >
-                                    <ListItemIcon sx={{ minWidth: 22, color: 'primary.main', opacity: isSelected ? 1 : 0 }}>
-                                        <CheckIcon fontSize="small" />
-                                    </ListItemIcon>
-                                    {f.label}
-                                </MenuItem>
-                            );
-                        })}
-                    </Select>
+                        {/* Small toggles */}
+                        <FormControlLabel
+                            sx={{ ml: 0, mr: 0 }}
+                            control={
+                                <Switch
+                                    size="small"
+                                    checked={wrapLines}
+                                    onChange={(_, v) => setWrapLines(v)}
+                                />
+                            }
+                            label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Wrap</Typography>}
+                        />
 
-                    {/* Download all */}
-                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { minWidth: 34, px: 0.5 } }}>
-                        <Tooltip title="Download all" arrow placement="top">
-                            <IconButton color="inherit" onClick={handleDownloadAll} sx={{ border: 1, borderColor: 'divider' }}>
-                                <DownloadForOfflineIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </ButtonGroup>
+                        <FormControlLabel
+                            sx={{ ml: 0, mr: 0 }}
+                            control={
+                                <Switch
+                                    size="small"
+                                    checked={expandAll}
+                                    onChange={(_, v) => setExpandAll(v)}
+                                />
+                            }
+                            label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Expand</Typography>}
+                        />
+
+                        {/* Download all */}
+                        <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { minWidth: 34, px: 0.5 } }}>
+                            <Tooltip title="Download all" arrow placement="top">
+                                <IconButton color="inherit" onClick={handleDownloadAll} sx={{ border: 1, borderColor: 'divider' }}>
+                                    <DownloadForOfflineIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </ButtonGroup>
+                    </Box>
                 </Box>
+
+                <Divider />
             </Box>
 
-            <Divider sx={{ mb: 1 }} />
-
             {/* Body */}
-            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', pt: 1 }}>
                 {visibleFields.length === 0 ? (
                     <Box sx={{ p: 2, color: 'text.secondary' }}>No outputs selected.</Box>
                 ) : (
-                    visibleFields.map((f, idx) => {
+                    visibleFields.map((f) => {
                         const value = normalizeOutputValue(outputData?.[f.key]);
                         const hasValue = !!value;
 
                         return (
-                            <Box key={f.key} component="section" sx={{ mt: 3, mb: idx < visibleFields.length - 1 ? 3 : 0 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                                    <Typography variant="subtitle2">{f.label}</Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Tooltip title="Copy" arrow placement="top">
-                                            <span>
-                                                <IconButton
+                            <Accordion
+                                key={f.key}
+                                disableGutters
+                                elevation={0}
+                                expanded={expandAll || expandedKeys.has(f.key)}
+                                onChange={expandAll ? undefined : toggleExpandedKey(f.key)}
+                                sx={{
+                                    border: 1,
+                                    borderColor: 'divider',
+                                    borderRadius: 1,
+                                    mb: 1,
+                                    '&:before': { display: 'none' },
+                                }}
+                            >
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                                            <Typography variant="subtitle2" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {f.label}
+                                            </Typography>
+                                            {!hasValue && (
+                                                <Chip
+                                                    label="Empty"
                                                     size="small"
-                                                    color="inherit"
-                                                    onClick={() => handleCopy(value, f.label)}
-                                                    disabled={!hasValue}
-                                                    sx={{ border: 1, borderColor: 'divider' }}
-                                                >
-                                                    <ContentCopyIcon fontSize="inherit" />
-                                                </IconButton>
-                                            </span>
-                                        </Tooltip>
-                                        <Tooltip title="Download" arrow placement="top">
-                                            <span>
-                                                <IconButton
-                                                    size="small"
-                                                    color="inherit"
-                                                    onClick={() => handleDownload(f.key)}
-                                                    disabled={!hasValue}
-                                                    sx={{ border: 1, borderColor: 'divider' }}
-                                                >
-                                                    <DownloadIcon fontSize="inherit" />
-                                                </IconButton>
-                                            </span>
-                                        </Tooltip>
-                                    </Box>
-                                </Box>
+                                                    variant="outlined"
+                                                    sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                                                />
+                                            )}
+                                        </Box>
 
-                                <Paper
-                                    variant="outlined"
-                                    sx={{ p: 1, bgcolor: 'background.paper', overflow: 'auto' }}
-                                >
-                                    <Typography
-                                        component="pre"
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            <Tooltip title="Copy" arrow placement="top">
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="inherit"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCopy(value, f.label);
+                                                        }}
+                                                        disabled={!hasValue}
+                                                        sx={{ border: 1, borderColor: 'divider' }}
+                                                    >
+                                                        <ContentCopyIcon fontSize="inherit" />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+                                            <Tooltip title="Download" arrow placement="top">
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="inherit"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDownload(f.key);
+                                                        }}
+                                                        disabled={!hasValue}
+                                                        sx={{ border: 1, borderColor: 'divider' }}
+                                                    >
+                                                        <DownloadIcon fontSize="inherit" />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+                                        </Box>
+                                    </Box>
+                                </AccordionSummary>
+
+                                <AccordionDetails sx={{ pt: 0 }}>
+                                    <Paper
+                                        variant="outlined"
                                         sx={{
-                                            m: 0,
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word',
-                                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                                            fontSize: 13,
-                                            color: hasValue ? 'text.primary' : 'text.disabled',
+                                            p: 1,
+                                            bgcolor: (t) => alpha(t.palette.action.hover, 0.25),
+                                            overflow: 'auto',
                                         }}
                                     >
-                                        {hasValue ? value : 'No output available.'}
-                                    </Typography>
-                                </Paper>
-                            </Box>
+                                        <Typography
+                                            component="pre"
+                                            sx={{
+                                                m: 0,
+                                                maxWidth: '100%',
+                                                whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
+                                                // Key fix for “wrap” with long tokens (HELM/SMILES/etc.)
+                                                overflowWrap: wrapLines ? 'anywhere' : 'normal',
+                                                wordBreak: wrapLines ? 'break-word' : 'normal',
+                                                fontFamily:
+                                                    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                                                fontSize: 13,
+                                                lineHeight: 1.45,
+                                                color: hasValue ? 'text.primary' : 'text.disabled',
+                                            }}
+                                        >
+                                            {hasValue ? value : 'No output available.'}
+                                        </Typography>
+                                    </Paper>
+                                </AccordionDetails>
+                            </Accordion>
                         );
                     })
                 )}
