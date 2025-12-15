@@ -41,8 +41,6 @@ import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
-import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
@@ -74,14 +72,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     } = useBilnHistory(initialBiln, 20);
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
-
     const [phValue, setPhValue] = useState(7.4);
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
-    const svgDepiction = depictionData?.svg || '';
-    const monomers = depictionData?.monomers || [];
-    const smiles = depictionData?.smiles || '';
-    const helm = depictionData?.helm || '';
+    const EMPTY_ARRAY = Object.freeze([]);
+    const { svg: svgDepiction = '', smiles = '', helm = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
+    const structurePDB = structureOutput?.pdb || structureOutput?.PDB || '';
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);
@@ -230,10 +226,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 biln: bilnValue,
                 helm: helm,
                 smiles: smiles,
-                structure3D: structureOutput?.pdb || '',
+                structure3D: structurePDB || '',
+                sdf: structureOutput?.SDF || structureOutput?.sdf || '',
+                mol2: structureOutput?.MOL2 || structureOutput?.mol2 || '',
+                inchi: structureOutput?.InChI || structureOutput?.inchi || '',
+                inchiKey: structureOutput?.InChIKey || structureOutput?.inchiKey || '',
             });
         }
-    }, [bilnValue, smiles, helm, structureOutput, onOutputChange]);
+    }, [bilnValue, helm, smiles, structurePDB, structureOutput, onOutputChange]);
 
     const canGenerate3D = useMemo(() => {
         if (!committedBiln) return false;
@@ -278,7 +278,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
 
             const prev = lastGenRef.current;
-            const hasPdb = !!structureOutput?.pdb;
+            const hasPdb = !!structurePDB;
 
             if (
                 hasPdb &&
@@ -1041,7 +1041,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         <CircularProgress size={48} />
                                     </Box>
                                 )}
-                                {!structureLoading && !structureOutput?.pdb && (
+                                {!structureLoading && !structurePDB && (
                                     <Box
                                         sx={{
                                             position: 'absolute',
@@ -1130,7 +1130,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 )}
                                 <Viewer3D
                                     ref={viewer3DRef}
-                                    pdbRawData={structureOutput?.pdb}
+                                    pdbRawData={structurePDB}
                                     hoveredMonomer={hoveredMonomer}
                                     handleMonomerHover={handleMonomerHover}
                                     defaultRepresentation="ball-and-stick"

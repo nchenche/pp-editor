@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Box,
     Paper,
@@ -45,33 +45,58 @@ const MenuProps = {
     },
 };
 
+const OUTPUT_FIELDS = Object.freeze([
+    { key: 'biln', label: 'BILN', filename: 'pep-edit_biln.txt', mime: 'text/plain' },
+    { key: 'helm', label: 'HELM', filename: 'pep-edit_helm.txt', mime: 'text/plain' },
+    { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
+    { key: 'inchi', label: 'InChI', filename: 'pep-edit_inchi.txt', mime: 'text/plain' },
+    { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
+    { key: 'structure3D', label: '3D Structure', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
+    { key: 'sdf', label: 'SDF', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
+    { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
+
+]);
+
+function normalizeOutputValue(value) {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+    if (value instanceof Error) return value.stack || value.message || String(value);
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
 
 export const OutputContainer = ({ outputData = {}, ...props }) => {
-    const OUTPUT_FIELDS = useMemo(
-        () => ([
-            { key: 'biln', label: 'BILN', filename: 'pep-edit_biln.txt', mime: 'text/plain' },
-            { key: 'helm', label: 'HELM', filename: 'pep-edit_helm.txt', mime: 'text/plain' },
-            { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
-            // If structure3D is PDB text, keep .pdb; adjust if it’s something else.
-            { key: 'structure3D', label: '3D Structure', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
-        ]),
-        []
-    );
-
     // Default visible: all with a value or all if none are present yet
     const defaultVisible = useMemo(() => {
-        const withData = OUTPUT_FIELDS.filter(f => !!outputData?.[f.key]).map(f => f.key);
+        const withData = OUTPUT_FIELDS
+            .filter(f => {
+                const v = normalizeOutputValue(outputData?.[f.key]);
+                return !!v;
+            })
+            .map(f => f.key);
         return withData.length ? withData : OUTPUT_FIELDS.map(f => f.key);
     }, [OUTPUT_FIELDS, outputData]);
 
+    const userChangedVisibleRef = useRef(false);
+    const [visible, setVisible] = useState(() => defaultVisible);
 
-    const [visible, setVisible] = useState(defaultVisible);  // defaultVisible, ['smiles', 'biln']
+    useEffect(() => {
+        if (userChangedVisibleRef.current) return;
+        setVisible(defaultVisible);
+    }, [defaultVisible]);
+
     const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
 
     const handleCloseSnack = () => setSnack(s => ({ ...s, open: false }));
 
-    const handleCopy = async (text, label) => {
+    const handleCopy = async (raw, label) => {
         try {
+            const text = normalizeOutputValue(raw);
             if (!text) throw new Error('No content to copy.');
             await navigator.clipboard.writeText(text);
             setSnack({ open: true, msg: `${label} copied`, severity: 'success' });
@@ -97,7 +122,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
     const handleDownload = (key) => {
         const entry = OUTPUT_FIELDS.find(f => f.key === key);
         if (!entry) return;
-        const content = outputData?.[key] || '';
+        const content = normalizeOutputValue(outputData?.[key]);
         downloadBlob(content, entry.filename, entry.mime);
     };
 
@@ -106,7 +131,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         const combined = OUTPUT_FIELDS
             .filter(f => visible.includes(f.key))
             .map(f => {
-                const val = outputData?.[f.key] || '';
+                const val = normalizeOutputValue(outputData?.[f.key]);
                 const dashed = '-'.repeat(f.label.length + 4);
                 return `## ${f.label}\n${dashed}\n${val || '(No output)'}\n`;
             })
@@ -133,7 +158,10 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                     <Select
                         multiple
                         value={visible}
-                        onChange={(e) => setVisible(e.target.value)}
+                        onChange={(e) => {
+                            userChangedVisibleRef.current = true;
+                            setVisible(e.target.value);
+                        }}
                         input={<OutlinedInput size="small" />}
                         renderValue={(selected) => (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 320, overflow: 'hidden' }}>
@@ -193,7 +221,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                     <Box sx={{ p: 2, color: 'text.secondary' }}>No outputs selected.</Box>
                 ) : (
                     visibleFields.map((f, idx) => {
-                        const value = outputData?.[f.key];
+                        const value = normalizeOutputValue(outputData?.[f.key]);
                         const hasValue = !!value;
 
                         return (
