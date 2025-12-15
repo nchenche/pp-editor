@@ -281,7 +281,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             const hasPdb = !!structurePDB;
 
             if (
-                hasPdb &&
+                // hasPdb &&
                 prev.biln === biln &&
                 prev.ss === ss &&
                 prev.useTemplate === useTemplate &&
@@ -1062,7 +1062,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             const err = generate3DError;
                                             const isTemplateFail =
                                                 typeof err === 'string' &&
-                                                err.includes('Failed to generate a 3D conformer from the selected template.');
+                                                err.includes('constraints');
 
                                             if (!err) {
                                                 // No error, just no data

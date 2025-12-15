@@ -98,6 +98,22 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
 
+    const detailsTooltip = (
+        <Box
+            sx={{
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                columnGap: 1,
+                rowGap: 0.5,
+                fontSize: 12,
+            }}
+        >
+            <strong>Name:</strong> {monomer.m_name}
+            <strong>BILN symbol:</strong> {monomer.symbol}
+            <strong>PDB code:</strong> {monomer.pdbName}
+        </Box>
+    );
+
     return (
         <Card
             variant="outlined"
@@ -122,16 +138,19 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
 
             {/* Top bar: actions */}
             <CardActions
+                disableSpacing={false}
                 sx={{
                     p: 0,
                     pb: 0,
+                    px: 0.5,
                     position: "absolute",
                     top: 0,
                     left: 0,
                     width: "100%",
                     zIndex: 3,
                     display: "flex",
-                    justifyContent: "space-around",
+                    justifyContent: "space-between",
+                    gap: 0.5,
                     background: "rgba(30,41,59,0.97)",
                     borderTopLeftRadius: 8,
                     borderTopRightRadius: 8,
@@ -148,13 +167,19 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                         <AddCircleIcon fontSize="inherit" />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="View details" placement="top" arrow>
+
+                <Tooltip
+                    arrow
+                    placement="top"
+                    disableInteractive
+                    title={detailsTooltip}
+                >
                     <IconButton
                         size="small"
                         color="info"
                         onClick={onInfo}
                         sx={{ p: 0.6, color: "grey.400" }}
-                        className='hover:text-slate-200'
+                        className="hover:text-slate-200"
                     >
                         <InfoOutlinedIcon fontSize="small" />
                     </IconButton>
@@ -195,56 +220,34 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
             </Box>
 
             {/* PDB code (bold) and name (ellipsis) */}
-            <Tooltip
-                arrow
-                placement="bottom"
-                disableInteractive
-                title={
-                    <Box
-                        sx={{
-                            display: "grid",
-                            gridTemplateColumns: "auto 1fr",
-                            columnGap: 1,
-                            rowGap: 0.5,
-                            fontSize: 12,
-                        }}
-                    >
-                        <strong>Name:</strong> {monomer.m_name}
-                        <strong>BILN symbol:</strong> {monomer.symbol}
-                        <strong>PDB code:</strong> {monomer.pdbName}
-                    </Box>
-                }
-            >
-                <CardContent sx={{ p: 0.75, textAlign: "center", pb: "6px !important", ml: tag ? `${sz.sidebarW}px` : 0 }}>
-                    <Typography
-                        variant="caption"
-                        fontWeight="bold"
-                        color="text.primary"
-                        sx={{ display: "block", fontSize: sz.titleFs, lineHeight: 1.15, mb: 0.25 }}
-                        noWrap
-                    >
-                        {monomer.symbol}
-                    </Typography>
+            <CardContent sx={{ p: 0.75, textAlign: "center", pb: "6px !important", ml: tag ? `${sz.sidebarW}px` : 0 }}>
+                <Typography
+                    variant="caption"
+                    fontWeight="bold"
+                    color="text.primary"
+                    sx={{ display: "block", fontSize: sz.titleFs, lineHeight: 1.15, mb: 0.25 }}
+                    noWrap
+                >
+                    {monomer.symbol}
+                </Typography>
 
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                            display: "block",
-                            fontSize: sz.nameFs,
-                            lineHeight: 1.05,
-                            textOverflow: "ellipsis",
-                            overflow: "hidden",
-                            whiteSpace: "nowrap",
-                            maxWidth: "100%",
-                        }}
-                        noWrap
-                    >
-                        {monomer.pdbName}
-                    </Typography>
-
-                </CardContent>
-            </Tooltip>
+                <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                        display: "block",
+                        fontSize: sz.nameFs,
+                        lineHeight: 1.05,
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                    }}
+                    noWrap
+                >
+                    {monomer.pdbName}
+                </Typography>
+            </CardContent>
         </Card >
     );
 });
