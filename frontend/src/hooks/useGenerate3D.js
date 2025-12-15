@@ -44,6 +44,7 @@ export function useGenerate3D() {
             // default body for plain generation
             if (!body.biln) {
                 body.biln = bilnValue;
+                // body.embed_params = { use_random_coords: true, timeout: 80};
             }
 
             if (hasConstraints) {

@@ -159,8 +159,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
 
 
-
-
     // Flatten constraints to secstruct (keep '-' for "no constraint")
     const ALLOWED_SS = useMemo(() => new Set(['H', 'E', 'C', 'T', '-']), []);
     const flattenSecstruct = useCallback((cbs) => (
@@ -235,6 +233,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [bilnValue, helm, smiles, structurePDB, structureOutput, onOutputChange]);
 
+
     const canGenerate3D = useMemo(() => {
         if (!committedBiln) return false;
         const { tokenCount } = analyzeBiln(committedBiln);
@@ -252,18 +251,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const triggerGenerate = useCallback(
         (biln, ss) => {
             const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
-
             const mappingSig =
                 useTemplate && scaffoldMappingPayload
                     ? JSON.stringify(scaffoldMappingPayload)
                     : null;
-
-            // If we just cleared data, skip this auto-trigger once
-            if (skipNextGenerateRef.current) {
-                skipNextGenerateRef.current = false;
-                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
-                return;
-            }
 
             // Normalize BILN: if it's effectively empty, do not generate
             const normalizedBiln = (biln || '')
@@ -278,10 +269,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
 
             const prev = lastGenRef.current;
-            const hasPdb = !!structurePDB;
 
             if (
-                hasPdb &&
                 prev.biln === biln &&
                 prev.ss === ss &&
                 prev.useTemplate === useTemplate &&
@@ -298,10 +287,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             lastGenRef.current = { biln, ss, useTemplate, mappingSig };
 
             if (useTemplate) {
-                console.log('Scaffold mapping payload:', scaffoldMappingPayload);
                 generate3D(biln, null, {
-                    endpoint:
-                        '/api/core/molecules/generate_3d_from_template',
+                    endpoint: '/api/core/molecules/generate_3d_from_template',
                     extraBody: {
                         biln,
                         template_id: scaffoldMappingPayload.template_id,
@@ -312,7 +299,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 generate3D(biln, constraintsBySeq);
             }
         },
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, structureOutput, constraintsBySeq],
+        // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -432,6 +420,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Update committedBiln only when BILN is committable (prevents “separator-only” and open '(' churn)
     useEffect(() => {
+        // IMPORTANT: keep committedBiln in sync when user clears
+        if (!bilnValue || !bilnValue.trim()) {
+            if (committedBiln !== '') setCommittedBiln('');
+
+            // Key fix: allow re-generating if user pastes the same sequence again
+            lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+
+            return;
+        }
+
         const { committable } = analyzeBiln(bilnValue);
         if (!committable) return;
         if (bilnValue !== committedBiln) setCommittedBiln(bilnValue);
@@ -487,13 +485,32 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const skipNextGenerateRef = useRef(false); // to skip auto-generate after clear action
     const clearData = useCallback(() => {
-        skipNextGenerateRef.current = true;
+        // Reset UI state expectations
+        setAutoSync3DRaw(true);          // requested behavior: reset auto-sync to true
+        setTemplateOverlapOpen(false);
+
+        // Clear editor + derived committed state
         setBilnValue('');
+        setCommittedBiln('');
+
+        // Clear outputs
         setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
         setStructureOutput({ pdb: '' });
-        setTemplateOverlapOpen(false);
+
+        // Reset “last generated” guard so next paste triggers generation normally
+        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+
+        // Clear scaffold (also makes autoSync3D = true again because anyScaffoldEnabled becomes false)
         handleClearScaffold();
-    }, [setBilnValue, setDepictionData, setStructureOutput, setTemplateOverlapOpen, handleClearScaffold]);
+    }, [
+        setAutoSync3DRaw,
+        setTemplateOverlapOpen,
+        setBilnValue,
+        setCommittedBiln,
+        setDepictionData,
+        setStructureOutput,
+        handleClearScaffold,
+    ]);
 
     // Persist design state
     usePersistDesign({ biln: bilnValue, constraints: constraintsBySeq });
@@ -1062,7 +1079,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             const err = generate3DError;
                                             const isTemplateFail =
                                                 typeof err === 'string' &&
-                                                err.includes('Failed to generate a 3D conformer from the selected template.');
+                                                err.includes('constraints');
 
                                             if (!err) {
                                                 // No error, just no data
