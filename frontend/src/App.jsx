@@ -8,19 +8,16 @@ import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import Documentation from './pages/Documentation';
+import './App.css'
+
+import { Box } from '@mui/material';
 
 
 // import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
 // import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
-
-import { Box } from '@mui/material';
-
 // import About from './pages/About';
-
-import './App.css'
-
-import FilterableMonomerLibrary from './components/core/Monomers';
-import PeptideEditor from './components/core/Peptide';
+// import FilterableMonomerLibrary from './components/core/Monomers';
+// import PeptideEditor from './components/core/Peptide';
 
 // import VisNetwork from './components/graph/Test2';
 
