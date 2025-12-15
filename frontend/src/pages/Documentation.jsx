@@ -590,6 +590,7 @@ const Documentation = () => {
                             >
                                 Figure. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
                                 topology of Microcin J25 during conformer generation.
+                                Left: 3D conformation generated without contraints. Right:3D conformation generated using the PDB entry 1Q71 as template.
                             </Typography>
                         </Box>
 
