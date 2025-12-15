@@ -71,7 +71,6 @@ function AppRoutes() {
       </div>
          */}
 
-        
       {/* Other routes render normally */}
       <Routes>
         <Route path="/" element={<></>} />
