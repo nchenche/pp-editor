@@ -62,14 +62,13 @@ function AppRoutes() {
         flexDirection: 'column',
       }}
     >
-        {/* Persist Design page; only hide/show */}
-        {/*
+        {/* Persist Design page; only hide/show */}        
       <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
         <main className="flex-grow min-h-0 h-full">
           <Home isActive={isDesignActive} />
         </main>
       </div>
-         */}
+        
 
       {/* Other routes render normally */}
       <Routes>
