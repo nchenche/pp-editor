@@ -57,7 +57,7 @@ const OUTPUT_FIELDS = Object.freeze([
     { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
     { key: 'inchi', label: 'InChI', filename: 'pep-edit_inchi.txt', mime: 'text/plain' },
     { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
-    { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
+    { key: 'structure3D', label: '3D Structure', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
     { key: 'sdf', label: 'SDF', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
     { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
 
@@ -173,30 +173,6 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         downloadBlob(combined, 'outputs.txt', 'text/plain');
     };
 
-    const renderVisibleSummary = useCallback((selectedKeys) => {
-        const labels = (selectedKeys || [])
-            .map((k) => OUTPUT_FIELDS.find(f => f.key === k)?.label || k);
-
-        let text = 'Select outputs';
-        if (labels.length === 1) text = labels[0];
-        else if (labels.length === 2) text = `${labels[0]}, ${labels[1]}`;
-        else if (labels.length > 2) text = `${labels[0]}, ${labels[1]} +${labels.length - 2}`;
-
-        return (
-            <Typography
-                variant="body2"
-                sx={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    maxWidth: { xs: '100%', sm: 320 },
-                }}
-            >
-                {text}
-            </Typography>
-        );
-    }, []);
-
     return (
         <Paper
             variant="outlined"
@@ -213,17 +189,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                     pb: 1,
                 }}
             >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: { xs: 'stretch', sm: 'center' },
-                        justifyContent: 'space-between',
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        gap: 1,
-                        mb: 1,
-                        minWidth: 0,
-                    }}
-                >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Box sx={{ minWidth: 0 }}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
                             Output formats
@@ -233,16 +199,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                         </Typography>
                     </Box>
 
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-                            flexWrap: 'wrap',
-                            gap: 1,
-                            minWidth: 0,
-                        }}
-                    >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                         {/* Visible outputs selector (multi) */}
                         <Select
                             multiple
@@ -252,12 +209,24 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                                 setVisible(e.target.value);
                             }}
                             input={<OutlinedInput size="small" />}
-                            renderValue={renderVisibleSummary}
+                            renderValue={(selected) => (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 360, overflow: 'hidden' }}>
+                                    {selected.map((key) => {
+                                        const f = OUTPUT_FIELDS.find(o => o.key === key);
+                                        return (
+                                            <Chip
+                                                key={key}
+                                                label={f?.label || key}
+                                                size="small"
+                                                variant="outlined"
+                                                color="primary"
+                                            />
+                                        );
+                                    })}
+                                </Box>
+                            )}
                             size="small"
-                            sx={{
-                                minWidth: { xs: '100%', sm: 260 },
-                                flex: { xs: '1 1 100%', sm: '0 0 auto' },
-                            }}
+                            sx={{ minWidth: 240 }}
                             MenuProps={MenuProps}
                         >
                             {OUTPUT_FIELDS.map((f) => {
@@ -278,6 +247,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                             })}
                         </Select>
 
+                        {/* Small toggles */}
                         <FormControlLabel
                             sx={{ ml: 0, mr: 0 }}
                             control={
@@ -302,6 +272,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                             label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Expand</Typography>}
                         />
 
+                        {/* Download all */}
                         <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { minWidth: 34, px: 0.5 } }}>
                             <Tooltip title="Download all" arrow placement="top">
                                 <IconButton color="inherit" onClick={handleDownloadAll} sx={{ border: 1, borderColor: 'divider' }}>

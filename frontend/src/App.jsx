@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Route, Routes, Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -18,7 +19,6 @@ import { Box } from '@mui/material';
 // import About from './pages/About';
 // import FilterableMonomerLibrary from './components/core/Monomers';
 // import PeptideEditor from './components/core/Peptide';
-
 // import VisNetwork from './components/graph/Test2';
 
 const dataLinks = [
@@ -26,14 +26,6 @@ const dataLinks = [
     to: '/',
     text: 'Design peptide'
   },
-  // {
-  //     to: '/peptide',
-  //     text: 'Design a peptide'
-  // },
-  // {
-  //   to: '/monomers',
-  //   text: 'Monomer library'
-  // },
   {
     to: '/admin-monomers',
     text: 'Add new monomer'
@@ -46,9 +38,8 @@ const dataLinks = [
 
 
 function AppRoutes() {
-  const location = useLocation();
-  const isDesignActive = location.pathname === '/';
-
+  // const location = useLocation();
+  // const isDesignActive = location.pathname === '/';
 
   return (
     <Box
@@ -59,17 +50,17 @@ function AppRoutes() {
         flexDirection: 'column',
       }}
     >
-        {/* Persist Design page; only hide/show */}        
-      <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
+      {/* Persist Design page; only hide/show */}
+      {/* <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
         <main className="flex-grow min-h-0 h-full">
           <Home isActive={isDesignActive} />
         </main>
-      </div>
-        
+      </div> */}
+
 
       {/* Other routes render normally */}
       <Routes>
-        <Route path="/" element={<></>} />
+        <Route path="/" element={<Home isActive={true} />} />
         <Route
           path="/admin-monomers"
           element={

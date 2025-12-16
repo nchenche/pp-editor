@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 
-
 function NavLink({ to, children }) {
     return (
         <li>
@@ -21,8 +20,7 @@ function NavLink({ to, children }) {
     );
 }
 
-
-function NavBar( {dataLinks} ) {
+function NavBar({ dataLinks }) {
     return (
         <>
             <nav className='text-gray-300 text-sm font-normal mt-4'>

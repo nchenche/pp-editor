@@ -29,26 +29,30 @@ export default function ChainsToolbar({
             {/* Bonds: Link / Unlink */}
             <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                 <Tooltip title="Link residues (2D sketch)" arrow>
-                    <Button
-                        onClick={onToggleLinkMode}
-                        color="inherit"
-                        variant={linkMode ? 'contained' : 'outlined'}
-                        disabled={!canLink}
-                        startIcon={<DeviceHubIcon fontSize="inherit" />}
-                    >
-                        Link
-                    </Button>
+                    <span>
+                        <Button
+                            onClick={onToggleLinkMode}
+                            color="inherit"
+                            variant={linkMode ? 'contained' : 'outlined'}
+                            disabled={!canLink}
+                            startIcon={<DeviceHubIcon fontSize="inherit" />}
+                        >
+                            Link
+                        </Button>
+                    </span>
                 </Tooltip>
                 <Tooltip title="Unlink bonds (2D sketch)" arrow>
-                    <Button
-                        onClick={onToggleCutMode}
-                        color="inherit"
-                        variant={bondsMode ? 'contained' : 'outlined'}
-                        disabled={!canUnlink}
-                        startIcon={<LinkOffIcon fontSize="inherit" />}                        
-                    >
-                        Unlink
-                    </Button>
+                    <span>
+                        <Button
+                            onClick={onToggleCutMode}
+                            color="inherit"
+                            variant={bondsMode ? 'contained' : 'outlined'}
+                            disabled={!canUnlink}
+                            startIcon={<LinkOffIcon fontSize="inherit" />}
+                        >
+                            Unlink
+                        </Button>
+                    </span>
                 </Tooltip>
             </ButtonGroup>
 

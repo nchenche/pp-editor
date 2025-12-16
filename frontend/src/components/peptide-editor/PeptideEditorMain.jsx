@@ -815,13 +815,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     >
                                         <FormControlLabel
                                             control={
-                                                <Switch
-                                                    size="small"
-                                                    checked={autoSync3D}
-                                                    onChange={handleAutoSyncChange}
-                                                    inputProps={{ 'aria-label': 'toggle automatic 3D sync' }}
-                                                    disabled={anyScaffoldEnabled}
-                                                />
+                                                <span>
+                                                    <Switch
+                                                        size="small"
+                                                        checked={autoSync3D}
+                                                        onChange={handleAutoSyncChange}
+                                                        inputProps={{ 'aria-label': 'toggle automatic 3D sync' }}
+                                                        disabled={anyScaffoldEnabled}
+                                                    />
+                                                </span>
                                             }
                                             label="Auto sync"
                                             sx={{
