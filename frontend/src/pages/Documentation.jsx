@@ -94,7 +94,7 @@ const Documentation = () => {
                         <Typography variant="body1" component="p">
                             PEP-EDIT is a web application for the rapid online preparation and generation of peptide
                             representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF). It supports
-                            standard and non-standard amino acids, caps and peptidomimetics, including linear, cyclic and
+                            standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
                             branched peptides.
                         </Typography>
 
@@ -112,6 +112,17 @@ const Documentation = () => {
                                 Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.
                             </li>
                             <li>Control protonation of exported molecules using a pH model (default: pH 7.4).</li>
+                            <li>The monomer library is evolutive in a collaborative/moderated mode.</li>
+                            <li>In addition to the standard web instance, a n.eko instance of the service is available at {" "}
+                            <MUILink
+                                    href="https://neko.rpbs.univ-paris-diderot.fr"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                 https://neko.rpbs.univ-paris-diderot.fr. 
+                            </MUILink>
+                                {" "}This enables collaborative peptide design and/or didactic use of PEP-EDIT. 
+                            </li>
                         </ul>
                     </section>
 
@@ -141,7 +152,14 @@ const Documentation = () => {
                                 </MUILink>
                             </li>
                             <li>
-                                BILN paper (concepts and rules used here).
+                                BILN paper (concepts and rules used here):{" "}
+                                <MUILink
+                                    href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703
+                                </MUILink>    
                             </li>
                         </ul>
 
@@ -239,18 +257,18 @@ const Documentation = () => {
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
-                                src="/assets/documentation/Monomer5.png"
+                                src="/assets/documentation/Monomer6.png"
                                 alt="Monomer detail view with identified R-groups"
                                 className="max-w-xs w-full mx-auto rounded-xl shadow"
                                 onClick={() =>
                                     openLightbox(
-                                        "/assets/documentation/Monomer5.png",
+                                        "/assets/documentation/Monomer6.png",
                                         "Monomer detail view with identified R-groups"
                                     )
                                 }
                             />
                             <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 1. Example monomer with labeled R-groups.
+                                Figure 1. Example monomer with labeled R-groups (R1, R2). Also note that each monomer is associated with three labels: its name, the BILN symbol to use in the BILN sequence and a 3 letter identifier used in the PDB representation.
                             </Typography>
                         </Box>
 
@@ -267,7 +285,7 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            Recommended convention (for readability): for amino acids (amide-bond monomers), use <strong>R1 for backbone N</strong>
+                            Recommended convention (for readability): for amino acids (amide-bond monomers), use <strong>R1 for backbone N </strong>
                             and <strong>R2 for backbone carbonyl C</strong>. Additional attachment points should be <code>R3</code>, <code>R4</code>, etc.
                         </Typography>
                     </section>
@@ -283,12 +301,12 @@ const Documentation = () => {
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
-                                src="/assets/documentation/PEP-EDIT-Interface.png"
+                                src="/assets/documentation/PEP-EDIT-Interface-v2.png"
                                 alt="Overview of the PEP-EDIT interface"
                                 className="w-full max-w-2xl mx-auto rounded-xl shadow"
                                 onClick={() =>
                                     openLightbox(
-                                        "/assets/documentation/PEP-EDIT-Interface.png",
+                                        "/assets/documentation/PEP-EDIT-Interface-v2.png",
                                         "Overview of the PEP-EDIT interface"
                                     )
                                 }
@@ -308,6 +326,7 @@ const Documentation = () => {
                             <li><strong>2D viewer</strong> (interactive SVG)</li>
                             <li><strong>3D viewer</strong> (conformer visualization)</li>
                             <li><strong>Monomer library</strong> (search/filter/add)</li>
+                            <li><strong>Output files</strong> (1D/2D/3D - BILN/HELM/SMILES/InChi/InChiKey/PDB/SDF/MOL2)</li>
                         </ol>
                     </section>
 
@@ -321,7 +340,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>) or by inserting
-                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain).
+                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are porposed ease the identification of the monomer. 
                         </Typography>
 
                         <Box component="figure" className="my-4">
@@ -341,6 +360,16 @@ const Documentation = () => {
                                 Figure 3. Monomer search and selection.
                             </Typography>
                         </Box>
+                        <Typography variant="body1" component="p">
+                            Several "Chains" can be defined independently using the "New Chain" Mode, to ease the generation of complex peptides branched or bonded non linearly.
+                        </Typography>
+
+                        <ol className="list-decimal ml-6 mb-3">
+                            <li><strong>BILN sequence</strong> Each chain is separated by a "." in the BILN sequence.</li>
+                            <li><strong>3D constraints</strong> Each chain is associated with a specific BILN sequence, Secondary structure and 3D Template constraint in the 3D constraint section.</li>
+                            <li><strong>2D viewer</strong> Each chain has a 2D depiction.</li>
+                            <li><strong>3D viewer</strong> Each chain has a 3D conformation.</li>
+                        </ol>
                     </section>
 
                     <Divider sx={{ my: 4 }} />
@@ -396,6 +425,7 @@ const Documentation = () => {
                         <ul className="list-disc ml-6 mb-3">
                             <li><strong>Secondary structure presets</strong> (H / E / -) applied to the peptide backbone.</li>
                             <li><strong>3D template constraints</strong> from a PDB structure (user-uploaded or fetched by PDB ID).</li>
+                            <li>Secondary structure presets and 3D template constraints are mutually exclusive.</li>
                         </ul>
 
                         <Typography variant="body1" component="p">
@@ -406,7 +436,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             3D templates apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
-                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates.
+                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them. 
                         </Typography>
                     </section>
 
@@ -467,7 +497,8 @@ const Documentation = () => {
                             </li>
                             <li>
                                 PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
-                                (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior (details to be confirmed with Alexis).
+                                (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
+                            neutral phenol, neutral imide and neutral amide at physiological pH. 
                             </li>
                         </ul>
                     </section>
@@ -481,9 +512,9 @@ const Documentation = () => {
                         </Typography>
 
                         <ul className="list-disc ml-6 mb-3">
-                            <li><strong>1D:</strong> BILN, SMILES, (and HELM when available).</li>
+                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available).</li>
                             <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines).</li>
-                            <li><strong>3D:</strong> PDB / SDF (starting conformers for modeling / MD).</li>
+                            <li><strong>3D:</strong> PDB / SDF / MOL2 (starting conformers for modeling / MD).</li>
                         </ul>
 
                         <Typography variant="body1" component="p">
