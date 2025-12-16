@@ -57,7 +57,8 @@ const OUTPUT_FIELDS = Object.freeze([
     { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
     { key: 'inchi', label: 'InChI', filename: 'pep-edit_inchi.txt', mime: 'text/plain' },
     { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
-    { key: 'structure3D', label: '3D Structure', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
+    { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
+    { key: 'xyz', label: 'XYZ', filename: 'pep-edit_structure.xyz', mime: 'chemical/x-xyz' },
     { key: 'sdf', label: 'SDF', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
     { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
 
@@ -173,13 +174,26 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         downloadBlob(combined, 'outputs.txt', 'text/plain');
     };
 
+    // Compact, non-messy render for multi-select (no stacked chips)
+    const renderVisibleSummary = useCallback((selectedKeys) => {
+        const keys = Array.isArray(selectedKeys) ? selectedKeys : [];
+        if (keys.length === 0) return 'Select outputs';
+
+        const labels = keys
+            .map((k) => OUTPUT_FIELDS.find(f => f.key === k)?.label || k)
+            .filter(Boolean);
+
+        if (labels.length <= 2) return labels.join(', ');
+        return `${labels[0]}, ${labels[1]} +${labels.length - 2}`;
+    }, []);
+
     return (
         <Paper
             variant="outlined"
             sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
             {...props}
         >
-            {/* Header (sticky) */}
+            {/* Header (sticky + responsive) */}
             <Box
                 sx={{
                     position: 'sticky',
@@ -189,9 +203,30 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                     pb: 1,
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: { xs: 'stretch', md: 'center' },
+                        justifyContent: 'flex-start',          // was space-between (caused huge gap on wide panels)
+                        flexDirection: { xs: 'column', md: 'row' }, // switch to row a bit later (md) to avoid overlap
+                        gap: 1,
+                        mb: 1,
+                        minWidth: 0,
+                    }}
+                >
+                    {/* Title block: allowed to shrink and wrap */}
+                    <Box sx={{ minWidth: 0, flex: '0 1 auto' }}>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{
+                                color: 'text.secondary',
+                                lineHeight: 1.2,
+                                pr: 1,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: { xs: 'normal' },
+                            }}
+                        >
                             Output formats
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -199,8 +234,18 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                         </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                        {/* Visible outputs selector (multi) */}
+                    {/* Controls: stay together, wrap as a block */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            minWidth: 0,
+                            flex: '1 1 auto',
+                        }}
+                    >
                         <Select
                             multiple
                             value={visible}
@@ -209,35 +254,25 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                                 setVisible(e.target.value);
                             }}
                             input={<OutlinedInput size="small" />}
-                            renderValue={(selected) => (
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 360, overflow: 'hidden' }}>
-                                    {selected.map((key) => {
-                                        const f = OUTPUT_FIELDS.find(o => o.key === key);
-                                        return (
-                                            <Chip
-                                                key={key}
-                                                label={f?.label || key}
-                                                size="small"
-                                                variant="outlined"
-                                                color="primary"
-                                            />
-                                        );
-                                    })}
-                                </Box>
-                            )}
+                            renderValue={renderVisibleSummary}
                             size="small"
-                            sx={{ minWidth: 240 }}
+                            sx={{
+                                // shrink on small widths; don't dominate the header on medium widths
+                                flex: '1 1 150px',
+                                minWidth: { xs: '100%', sm: 150, md: 150 },
+                                maxWidth: { xs: '100%', md: 200 },
+                                '& .MuiSelect-select': {
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                },
+                            }}
                             MenuProps={MenuProps}
                         >
                             {OUTPUT_FIELDS.map((f) => {
                                 const isSelected = visible.includes(f.key);
                                 return (
-                                    <MenuItem
-                                        key={f.key}
-                                        value={f.key}
-                                        selected={isSelected}
-                                        sx={{ gap: 1 }}
-                                    >
+                                    <MenuItem key={f.key} value={f.key} selected={isSelected} sx={{ gap: 1 }}>
                                         <ListItemIcon sx={{ minWidth: 22, color: 'primary.main', opacity: isSelected ? 1 : 0 }}>
                                             <CheckIcon fontSize="small" />
                                         </ListItemIcon>
@@ -247,39 +282,52 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                             })}
                         </Select>
 
-                        {/* Small toggles */}
-                        <FormControlLabel
-                            sx={{ ml: 0, mr: 0 }}
-                            control={
-                                <Switch
-                                    size="small"
-                                    checked={wrapLines}
-                                    onChange={(_, v) => setWrapLines(v)}
-                                />
-                            }
-                            label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Wrap</Typography>}
-                        />
+                        {/* Keep switches + download together */}
+                        <Box
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                flexWrap: 'nowrap',
+                                gap: 1,
+                                flex: '0 0 auto',
+                            }}
+                        >
+                            <FormControlLabel
+                                sx={{ ml: 0, mr: 0, '& .MuiFormControlLabel-label': { whiteSpace: 'nowrap' } }}
+                                control={
+                                    <Switch
+                                        size="small"
+                                        checked={wrapLines}
+                                        onChange={(_, v) => setWrapLines(v)}
+                                    />
+                                }
+                                label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Wrap</Typography>}
+                            />
 
-                        <FormControlLabel
-                            sx={{ ml: 0, mr: 0 }}
-                            control={
-                                <Switch
-                                    size="small"
-                                    checked={expandAll}
-                                    onChange={(_, v) => setExpandAll(v)}
-                                />
-                            }
-                            label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Expand</Typography>}
-                        />
+                            <FormControlLabel
+                                sx={{ ml: 0, mr: 0, '& .MuiFormControlLabel-label': { whiteSpace: 'nowrap' } }}
+                                control={
+                                    <Switch
+                                        size="small"
+                                        checked={expandAll}
+                                        onChange={(_, v) => setExpandAll(v)}
+                                    />
+                                }
+                                label={<Typography variant="caption" sx={{ color: 'text.secondary' }}>Expand</Typography>}
+                            />
 
-                        {/* Download all */}
-                        <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { minWidth: 34, px: 0.5 } }}>
-                            <Tooltip title="Download all" arrow placement="top">
-                                <IconButton color="inherit" onClick={handleDownloadAll} sx={{ border: 1, borderColor: 'divider' }}>
-                                    <DownloadForOfflineIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </ButtonGroup>
+                            <ButtonGroup
+                                size="small"
+                                variant="outlined"
+                                sx={{ '& .MuiButton-root': { minWidth: 34, px: 0.5 } }}
+                            >
+                                <Tooltip title="Download all" arrow placement="top">
+                                    <IconButton color="inherit" onClick={handleDownloadAll} sx={{ border: 1, borderColor: 'divider' }}>
+                                        <DownloadForOfflineIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </ButtonGroup>
+                        </Box>
                     </Box>
                 </Box>
 
