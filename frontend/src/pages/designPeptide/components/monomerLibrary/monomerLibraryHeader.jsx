@@ -82,9 +82,9 @@ function QuickFilterBar({ value, onChange, onShowAdvanced }) {
                 <ToggleButton value="natural">Natural</ToggleButton>
                 <ToggleButton value="nonNatural">Non‑Natural</ToggleButton>
             </ToggleButtonGroup>
-            <IconButton onClick={onShowAdvanced} size="small">
+            {/* <IconButton onClick={onShowAdvanced} size="small">
                 <FilterAltIcon fontSize="small" />
-            </IconButton>
+            </IconButton> */}
         </Box>
     );
 }
@@ -455,7 +455,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 </Stack>
             </Collapse>
             {/* Advanced filter popover */}
-            <AdvancedFilterPopover anchorEl={popoverAnchor} open={!!popoverAnchor} onClose={() => setPopoverAnchor(null)} range={range || [50, 800]} onRangeChange={onRangeChange || (() => { })} />
+            {/* <AdvancedFilterPopover anchorEl={popoverAnchor} open={!!popoverAnchor} onClose={() => setPopoverAnchor(null)} range={range || [50, 800]} onRangeChange={onRangeChange || (() => { })} /> */}
         </Box>
     );
 }, areEqualHeader);
