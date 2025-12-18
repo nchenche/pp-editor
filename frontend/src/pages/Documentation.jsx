@@ -95,7 +95,7 @@ const Documentation = () => {
                             PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
                             representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF). It supports
                             standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
-                            branched peptides.
+                            branched peptides. 
                         </Typography>
 
                         <Typography variant="body1" component="p">
@@ -123,6 +123,7 @@ const Documentation = () => {
                             </MUILink>
                                 
                             </li>
+                            <li> PEP-EDIT can handle up to 40 monomers.</li>
                         </ul>
                     </section>
 
@@ -349,8 +350,8 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>) or by inserting
-                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are porposed ease the identification of the monomer. 
+                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>), by specifying a peptide sequencein a FASTA format (limited to the 20 standard amino acids) or by inserting
+                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are proposed ease the identification of the monomer. 
                         </Typography>
 
                         <Box component="figure" className="my-4">
@@ -439,31 +440,51 @@ const Documentation = () => {
                         </ul>
 
                         <Typography variant="body1" component="p">
-                            Secondary-structure presets in PEP-EDIT are implemented by setting backbone <strong>dihedral angles</strong>
+                            <strong>Secondary-structure presets</strong> in PEP-EDIT are implemented by setting backbone <strong>dihedral angles</strong>
                             (φ/ψ, plus ω) using reference values for helices and extended conformations. The target angles are adjusted
                             depending on residue chirality (L vs D), mirroring in Ramachandran space for D residues.
                         </Typography>
-
-                        <Typography variant="body1" component="p">
-                            3D templates apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
-                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them. 
-                        </Typography>
-                        
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
-                                src="/assets/documentation/3DConstraints.png"
+                                src="/assets/documentation/SecondaryStructure.png"
                                 alt="Linking and unlinking chains using R-groups"
                                 className="max-w-xs w-full mx-auto rounded-xl shadow"
                                 onClick={() =>
                                     openLightbox(
-                                        "/assets/documentation/3DConstraints.png",
+                                        "/assets/documentation/SecondaryStructure.png",
                                         "Linking and unlinking chains using R-groups"
                                     )
                                 }
                             />
                             <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 5. Imposing 3D conformational constraints.
+                                Figure 5. Imposing Secondary structure constraints.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body1" component="p">
+                            <strong>3D template constraints</strong> apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
+                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template (PDB format) is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them.
+                        </Typography>
+                        <Typography variant="body1" component="p">
+                            The mapping configuration allows to define the exact fragment of the PDB entry to use (chain, residue index), and how it is mapped onto the BILN sequence (in a contiguous manner from an offset position). It is possible to finely tune the mapping usage on a per residue basis by masking residues (constraints not taken into account). 
+                        </Typography>
+                   
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/3DTemplateProcess.png"
+                                alt="Linking and unlinking chains using R-groups"
+                                className="max-w-xs w-full mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/3DTemplateProcess.png",
+                                        "Linking and unlinking chains using R-groups"
+                                    )
+                                }
+                            />
+                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+                                Figure 6. Imposing 3D template constraints.
                             </Typography>
                         </Box>
 
@@ -541,9 +562,9 @@ const Documentation = () => {
                         </Typography>
 
                         <ul className="list-disc ml-6 mb-3">
-                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available).</li>
-                            <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines).</li>
-                            <li><strong>3D:</strong> PDB / SDF / MOL2 (starting conformers for modeling / MD).</li>
+                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available). These formats are widely used by the chemoinformatics community, and allow for similarity search, substructure search, pharmacophore identification, etc. The SMILES format can also be used as an input to AlphaFold 3.</li>
+                            <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines). These formats are widely used by the chemoinformatics community for fingerprints based similarity search and pharmacophore identification.</li>
+                            <li><strong>3D:</strong> PDB / XYZ / SDF / MOL2 (starting conformers for modeling / MD). These formats can be used as starting conformations to undergo 3D conformational sampling, using molecular dynamics simulations approaches (PDB + SMILES - openmm), or quantum calculation approaches (XYZ - ORCA) for instance.</li>
                         </ul>
 
                         <Typography variant="body1" component="p">
@@ -774,7 +795,29 @@ const Documentation = () => {
                                     {`G(1,1)-T-V-A-V-Q-F-L(1,2)`}
                                 </Typography>
                             </li>
-
+                            <Box component="figure" className="my-4">
+                                <Box
+                                    component="img"
+                                    src="/assets/documentation/OctaL.png"
+                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
+                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                    onClick={() =>
+                                        openLightbox(
+                                            "/assets/documentation/OctaL.png",
+                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
+                                        )
+                                    }
+                                />
+                                <Typography
+                                    variant="caption"
+                                    display="block"
+                                    align="center"
+                                    sx={{ mt: 1 }}
+                                >
+                                    Figure 7. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization
+                                </Typography>
+                            </Box>
+                            
                             <li>
                                 Head-to-tail octapeptide containing three D-amino acids:
                                 <Typography
@@ -785,7 +828,7 @@ const Documentation = () => {
                                     {`D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)`}
                                 </Typography>
                             </li>
-
+                            
                             <li>
                                 Head-to-tail octapeptide containing four D-amino acids:
                                 <Typography
@@ -796,6 +839,28 @@ const Documentation = () => {
                                     {`dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)`}
                                 </Typography>
                             </li>
+                            <Box component="figure" className="my-4">
+                                <Box
+                                    component="img"
+                                    src="/assets/documentation/OctaD4L.png"
+                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
+                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                    onClick={() =>
+                                        openLightbox(
+                                            "/assets/documentation/OctaD4L.png",
+                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
+                                        )
+                                    }
+                                />
+                                <Typography
+                                    variant="caption"
+                                    display="block"
+                                    align="center"
+                                    sx={{ mt: 1 }}
+                                >
+                                    Figure 7. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization
+                                </Typography>
+                            </Box>
                         </ul>
 
                         <Typography variant="body1" component="p">
