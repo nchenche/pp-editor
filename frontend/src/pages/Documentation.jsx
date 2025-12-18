@@ -92,7 +92,7 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            PEP-EDIT is a web application for the rapid online preparation and generation of peptide
+                            PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
                             representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF). It supports
                             standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
                             branched peptides.
@@ -112,8 +112,8 @@ const Documentation = () => {
                                 Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.
                             </li>
                             <li>Control protonation of exported molecules using a pH model (default: pH 7.4).</li>
-                            <li>The monomer library is evolutive in a collaborative/moderated mode.</li>
-                            <li>In addition to the standard web instance, a n.eko instance of the service is available at {" "}
+                            <li>Manage monomer library evolution in a collaborative/moderated mode.</li>
+                            <li>Support collaborative peptide design and/or didactic use of PEP-EDIT. In addition to the standard web instance, a n.eko instance of the service is available at {" "}
                             <MUILink
                                     href="https://neko.rpbs.univ-paris-diderot.fr"
                                     target="_blank"
@@ -121,7 +121,7 @@ const Documentation = () => {
                                 >
                                  https://neko.rpbs.univ-paris-diderot.fr. 
                             </MUILink>
-                                {" "}This enables collaborative peptide design and/or didactic use of PEP-EDIT. 
+                                
                             </li>
                         </ul>
                     </section>
@@ -185,6 +185,9 @@ const Documentation = () => {
 
                         <ul className="list-disc ml-6 mb-3">
                             <li>
+                                <strong>Web interface:</strong> PEP-EDIT provides a web acces to complex peptide modeling using an enhanced interface to pyPept. 
+                            </li>
+                            <li>
                                 <strong>Monomer storage:</strong> monomer metadata is stored in a <strong>MongoDB</strong> database
                                 (instead of CSV files) to enable richer querying, editing and moderation workflows.
                             </li>
@@ -208,6 +211,13 @@ const Documentation = () => {
                             <li>
                                 <strong>pH-aware protonation:</strong> final molecules (SMILES/PDB/exports) include protonation predicted
                                 from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).
+                            </li>
+                            <li>
+                                <strong>Collaborative facilities:</strong>
+                                <ul>
+                                    <li> a n.eko instance of PEP-EDIT enables multiuser design of a peptide. </li>
+                                    <li> the monomer library can be enhanced though a dedicated interface. </li>
+                                </ul>
                             </li>
                         </ul>
                     </section>
@@ -436,8 +446,27 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             3D templates apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
-                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them. 
+                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them. 
                         </Typography>
+                        
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/3DConstraints.png"
+                                alt="Linking and unlinking chains using R-groups"
+                                className="max-w-xs w-full mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/3DConstraints.png",
+                                        "Linking and unlinking chains using R-groups"
+                                    )
+                                }
+                            />
+                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+                                Figure 5. Imposing 3D conformational constraints.
+                            </Typography>
+                        </Box>
+
                     </section>
 
                     <Divider sx={{ my: 4 }} />
@@ -619,7 +648,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
+                                Figure 6. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
                                 topology of Microcin J25 during conformer generation.
                                 Left: 3D conformation generated without contraints. Right:3D conformation generated using the PDB entry 1Q71 as template.
                             </Typography>
