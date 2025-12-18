@@ -14,7 +14,7 @@ function makeKey(baseUrl, paramsObj) {
   if (paramsObj.caps) params.append('filter', 'm_type:cap');
   if (paramsObj.natural) params.append('filter', 'm_subtype:natural');
   if (paramsObj.nonNatural) params.append('filter', 'm_subtype:non-natural');
-  return `${baseUrl}?${params.toString()}`;
+  return `${baseUrl}&${params.toString()}`;
 }
 
 function getCached(key) {
@@ -47,7 +47,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const baseUrl = `${API_BASE_URL}/api/db/monomers/images`;
+  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles`;
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
   );
