@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Route, Routes, Link, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -12,6 +12,48 @@ import Documentation from './pages/Documentation';
 import './App.css'
 
 import { Box } from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+
+import { useOwnerId } from './hooks/useOwnerId';
+
+
+function OwnerIdRequiredDialog({ open, onClose }) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Owner ID required</DialogTitle>
+      <DialogContent>
+        <Typography variant="body1">
+          This page is only available when you’re connected with an Owner ID.
+          Please click on "Load ID" or "Create ID" in the header to connect with an Owner ID.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="contained">OK</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+function OwnerIdRequiredRouteDialog() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const returnTo = useMemo(() => {
+    const from = location?.state?.from?.pathname;
+    return from && typeof from === 'string' ? from : '/';
+  }, [location?.state?.from?.pathname]);
+
+  const handleClose = useCallback(() => {
+    navigate(returnTo, { replace: true });
+  }, [navigate, returnTo]);
+
+  return <OwnerIdRequiredDialog open={true} onClose={handleClose} />;
+}
 
 
 // import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
@@ -21,24 +63,9 @@ import { Box } from '@mui/material';
 // import PeptideEditor from './components/core/Peptide';
 // import VisNetwork from './components/graph/Test2';
 
-const dataLinks = [
-  {
-    to: '/',
-    text: 'Design peptide'
-  },
-  {
-    to: '/admin-monomers',
-    text: 'Add new monomer'
-  },
-  {
-    to: '/documentation',
-    text: 'Documentation'
-  }
-]
-
-
 function AppRoutes() {
-  // const location = useLocation();
+  const ownerId = useOwnerId();
+  const location = useLocation();
   // const isDesignActive = location.pathname === '/';
 
   return (
@@ -64,9 +91,13 @@ function AppRoutes() {
         <Route
           path="/admin-monomers"
           element={
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
-              <UIAddMonomers />
-            </Box>
+            ownerId ? (
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                <UIAddMonomers />
+              </Box>
+            ) : (
+              <OwnerIdRequiredRouteDialog key={location.key} />
+            )
           }
         />
         <Route
@@ -92,6 +123,33 @@ function AppRoutes() {
 
 
 function App() {
+  const ownerId = useOwnerId();
+  const [isOwnerRequiredOpen, setIsOwnerRequiredOpen] = useState(false);
+
+  const dataLinks = [
+    {
+      to: '/',
+      text: 'Design peptide'
+    },
+    {
+      to: '/admin-monomers',
+      text: 'Add new monomer',
+      disabled: !ownerId,
+      disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
+    },
+    {
+      to: '/documentation',
+      text: 'Documentation'
+    }
+  ];
+
+  const onDisabledLinkClick = useCallback(() => {
+    setIsOwnerRequiredOpen(true);
+  }, []);
+
+  const closeOwnerRequired = useCallback(() => {
+    setIsOwnerRequiredOpen(false);
+  }, []);
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -104,10 +162,12 @@ function App() {
         }}
       >
         <Header>
-          <NavBar dataLinks={dataLinks} />
+          <NavBar dataLinks={dataLinks} onDisabledLinkClick={onDisabledLinkClick} />
         </Header>
         <AppRoutes />
         <Footer />
+
+        <OwnerIdRequiredDialog open={isOwnerRequiredOpen} onClose={closeOwnerRequired} />
       </Box>
     </Router>
   );
