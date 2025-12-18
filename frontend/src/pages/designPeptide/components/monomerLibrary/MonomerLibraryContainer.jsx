@@ -135,32 +135,42 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     pt: 1,
                     pb: 2,
                     position: "relative",
-                    overflowY: "auto",
+                    overflow: "hidden",
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}
             >
-                {initialLoading && (
-                    <Box
-                        position="absolute"
-                        top={0}
-                        left={0}
-                        width="100%"
-                        height="100%"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        bgcolor="rgba(255,255,255,0.6)"
-                        zIndex={2}
-                    >
-                        <CircularProgress size={32} />
-                    </Box>
-                )}
+                <Box sx={{ flex: '0 0 auto', px: 2, pb: 1, display: 'flex', justifyContent: 'flex-start' }}>
+                    <Typography variant="caption" color="text.secondary">
+                        Showing {Array.isArray(filteredMonomers) ? filteredMonomers.length : 0} of {Array.isArray(allMonomers) ? allMonomers.length : 0} monomers
+                    </Typography>
+                </Box>
 
-                <MonomerLibraryItems
-                    monomers={filteredMonomers}
-                    handleAddingMonomer={handleAdd}
-                    activeSeqIdx={activeSeqIdx}
-                    itemSize="sm"
-                />
+                <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflowY: 'auto' }}>
+                    {initialLoading && (
+                        <Box
+                            position="absolute"
+                            top={0}
+                            left={0}
+                            width="100%"
+                            height="100%"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            bgcolor="rgba(255,255,255,0.6)"
+                            zIndex={2}
+                        >
+                            <CircularProgress size={32} />
+                        </Box>
+                    )}
+
+                    <MonomerLibraryItems
+                        monomers={filteredMonomers}
+                        handleAddingMonomer={handleAdd}
+                        activeSeqIdx={activeSeqIdx}
+                        itemSize="sm"
+                    />
+                </Box>
             </Box>
         </Box>
     );

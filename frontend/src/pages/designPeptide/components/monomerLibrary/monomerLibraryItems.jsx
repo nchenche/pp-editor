@@ -80,7 +80,7 @@ const SIZE = {
         imgMinH: 84,
         titleFs: '0.72rem',
         nameFs: '0.66rem',
-        gapClass: 'gap-5',
+        gap: 2.5,
     },
     lg: {
         cardW: 160,
@@ -90,7 +90,7 @@ const SIZE = {
         imgMinH: 112,
         titleFs: '0.80rem',
         nameFs: '0.72rem',
-        gapClass: 'gap-6',
+        gap: 3,
     }
 };
 
@@ -253,10 +253,10 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
 });
 
 function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
-    const gapClass = (SIZE[itemSize] || SIZE.sm).gapClass;
+    const sz = SIZE[itemSize] || SIZE.sm;
     return (
-        <div className={`relative flex flex-wrap justify-center ${gapClass} p-2 `}>
-            {monomers.map((monomer) => (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: sz.gap, p: 1 }}>
+            {(monomers || []).map((monomer) => (
                 <MonomerLibraryItem
                     key={monomer._id}
                     monomer={monomer}
@@ -265,7 +265,7 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                     itemSize={itemSize}
                 />
             ))}
-        </div>
+        </Box>
     );
 }
 
