@@ -1,7 +1,7 @@
 // src/hooks/useGenerate3D.js
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
-import { apiFetch, getOwnerId } from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 export function useGenerate3D() {
     const [result, setResult] = useState(null);
@@ -46,11 +46,6 @@ export function useGenerate3D() {
             if (!body.biln) {
                 body.biln = bilnValue;
                 // body.embed_params = { use_random_coords: true, timeout: 80};
-            }
-
-            // Always send owner_id
-            if (!body.owner_id) {
-                body.owner_id = getOwnerId();
             }
 
             if (hasConstraints) {

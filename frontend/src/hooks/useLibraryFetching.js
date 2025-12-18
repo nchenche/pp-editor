@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { API_BASE_URL } from '../config';
-import { apiFetch, getOwnerId } from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 
 // Simple in-memory cache (per session)
@@ -48,8 +48,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const ownerId = getOwnerId();
-  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles&user_id=${encodeURIComponent(ownerId)}&owner_id=${encodeURIComponent(ownerId)}`;
+  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles`;
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
   );

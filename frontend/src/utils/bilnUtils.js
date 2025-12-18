@@ -1,5 +1,5 @@
 import { API_URL } from '../config';
-import { apiFetch, getOwnerId } from './api';
+import { apiFetch } from './api';
 
 
 /**
@@ -161,7 +161,7 @@ export async function convertHelmToBiln(helmString) {
     const resp = await apiFetch(`${API_URL}/core/conversions/helm-to-biln`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: helmString, owner_id: getOwnerId() }),
+        body: JSON.stringify({ sequence: helmString }),
     });
 
     if (!resp.ok) {

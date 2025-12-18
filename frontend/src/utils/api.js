@@ -1,18 +1,59 @@
-// Centralized API helpers to ensure every backend call includes owner_id.
+// Centralized API helpers to ensure backend calls include owner_id when connected.
+
+export const OWNER_ID_STORAGE_KEY = 'owner_id';
+export const OWNER_ID_CHANGED_EVENT = 'pp-owner-id-changed';
+
+function normalizeOwnerId(value) {
+  const v = String(value ?? '').trim();
+  return v || null;
+}
+
+export function setOwnerIdInStorage(ownerId) {
+  const normalized = normalizeOwnerId(ownerId);
+  if (!normalized) return null;
+
+  try {
+    window?.localStorage?.setItem(OWNER_ID_STORAGE_KEY, normalized);
+  } catch {
+    // ignore
+  }
+
+  try {
+    window?.dispatchEvent?.(new Event(OWNER_ID_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+
+  return normalized;
+}
+
+export function clearOwnerIdFromStorage() {
+  try {
+    window?.localStorage?.removeItem(OWNER_ID_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+
+  try {
+    window?.dispatchEvent?.(new Event(OWNER_ID_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+}
 
 export function getOwnerId() {
   const envOwner = import.meta?.env?.VITE_OWNER_ID;
   if (envOwner && String(envOwner).trim()) return String(envOwner).trim();
 
   try {
-    const lsOwner = window?.localStorage?.getItem('owner_id');
+    const lsOwner = window?.localStorage?.getItem(OWNER_ID_STORAGE_KEY);
     if (lsOwner && String(lsOwner).trim()) return String(lsOwner).trim();
   } catch {
     // ignore
   }
 
-  // Backwards-compatible default (repo already hardcodes user_test in some calls)
-  return 'user_test';
+  // Disconnected/public mode
+  return null;
 }
 
 export function withOwnerId(url, ownerId = getOwnerId()) {
@@ -21,6 +62,10 @@ export function withOwnerId(url, ownerId = getOwnerId()) {
   const u = new URL(url, window.location.origin);
   if (!u.searchParams.has('owner_id')) {
     u.searchParams.set('owner_id', ownerId);
+  }
+  // Backwards-compatible: some endpoints historically used user_id.
+  if (!u.searchParams.has('user_id')) {
+    u.searchParams.set('user_id', ownerId);
   }
   return u.toString();
 }

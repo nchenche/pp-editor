@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import { log } from '../utils/dev'
-import { apiFetch, getOwnerId } from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 
 export const useFetchMolecule = (smiles, queryParams) => {
@@ -26,7 +26,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
         });
 
         const url = `${baseURL}?${params.toString()}`;
-        const payload = JSON.stringify({ smiles, owner_id: getOwnerId() });
+        const payload = JSON.stringify({ smiles });
 
         const fetchData = async () => {
             setIsLoading(true);

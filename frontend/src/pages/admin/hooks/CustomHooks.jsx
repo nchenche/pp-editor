@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef, memo } from 'react';
 
 import { API_URL } from '../../../config';
-import { apiFetch, getOwnerId } from '../../../utils/api';
+import { apiFetch } from '../../../utils/api';
 
 // Custom Hooks
 export const useFragments = (smiles, selectedBonds) => {
@@ -23,7 +23,7 @@ export const useFragments = (smiles, selectedBonds) => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ smiles, bonds: selectedBonds, owner_id: getOwnerId() }),
+          body: JSON.stringify({ smiles, bonds: selectedBonds }),
           signal,
         });
 
@@ -70,7 +70,7 @@ export const useFormSubmission = (formData, fragments, selectedFragmentIndex) =>
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ ...payload, owner_id: getOwnerId() }),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
