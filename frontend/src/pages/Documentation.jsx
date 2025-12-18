@@ -29,6 +29,7 @@ const sections = [
     { id: "monomer-editor", label: "Monomer editor" },
     { id: "use-cases", label: "Examples & use cases" },
     { id: "limitations-tips", label: "Limitations & tips" },
+    { id: "policies", label: "Accessibility and cookie consent" },
 ];
 
 const Documentation = () => {
@@ -190,7 +191,7 @@ const Documentation = () => {
                             </li>
                             <li>
                                 <strong>Monomer storage:</strong> monomer metadata is stored in a <strong>MongoDB</strong> database
-                                (instead of CSV files) to enable richer querying, editing and moderation workflows.
+                                (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows.
                             </li>
                             <li>
                                 <strong>Monomer naming rule:</strong> monomers containing the <code>-</code> character are renamed using
@@ -897,7 +898,23 @@ const Documentation = () => {
                             </li>
                         </ul>
                     </section>
-                </Box>
+
+                                    {/* Limitations */}
+                    <section id="policies">
+                        <Typography variant="h5" gutterBottom>
+                            Accessibility and cookie consent.
+                        </Typography>
+
+                        <ul className="list-disc ml-6 mb-3">
+                            <li>
+                                This website is free and open to all and there is no login requirement.
+                            </li>
+                            <li>
+                                This web site does not make use of tracking cookies. Cookie usage is restricted to strictily necessary cookies.
+                            </li>
+                        </ul>
+                    </section>
+</Box>
             </Box>
 
             {/* Image lightbox */}
