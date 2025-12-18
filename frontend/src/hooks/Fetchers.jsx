@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import { log } from '../utils/dev'
+import { apiFetch, getOwnerId } from '../utils/api';
 
 
 export const useFetchMolecule = (smiles, queryParams) => {
@@ -25,13 +26,13 @@ export const useFetchMolecule = (smiles, queryParams) => {
         });
 
         const url = `${baseURL}?${params.toString()}`;
-        const payload = JSON.stringify({ smiles });
+        const payload = JSON.stringify({ smiles, owner_id: getOwnerId() });
 
         const fetchData = async () => {
             setIsLoading(true);
             setError(null);
             try {
-                const response = await fetch(url, {
+                const response = await apiFetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -73,7 +74,7 @@ export const useFetchData = ( url, payload ) => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(url, {
+                const response = await apiFetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export const useGetData = (url) => {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(url, { signal: controller.signal });
+                    const response = await apiFetch(url, { signal: controller.signal });
           if (!response.ok) {
             throw new Error(`Error fetching data: ${response.status}`);
           }

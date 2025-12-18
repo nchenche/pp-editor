@@ -75,9 +75,9 @@ const SIZE = {
     sm: {
         cardW: 128,
         sidebarW: 22,
-        imgW: 92,
-        imgH: 68,
-        imgMinH: 84,
+        imgW: 100,
+        imgH: 80,
+        imgMinH: 80,
         titleFs: '0.72rem',
         nameFs: '0.66rem',
         gap: 2.5,
@@ -124,7 +124,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                 borderRadius: 2,
                 boxShadow: 2,
                 transition: "transform 0.2s",
-                "&:hover": { transform: "scale(1.04)", zIndex: 2 },
+                "&:hover": { transform: "scale(1.2)", zIndex: 20 },
                 bgcolor: "background.paper",
                 position: "relative",
             }}
@@ -190,7 +190,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
             <Box
                 sx={{
                     mt: 3.8,
-                    pt: 0.75,
+                    pt: 0.05,
                     ml: tag ? `${sz.sidebarW}px` : 0,
                     display: "flex",
                     flexDirection: "column",
@@ -255,7 +255,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
 function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
     const sz = SIZE[itemSize] || SIZE.sm;
     return (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: sz.gap, p: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: sz.gap, p: 1, pt: 2 }}>
             {(monomers || []).map((monomer) => (
                 <MonomerLibraryItem
                     key={monomer._id}

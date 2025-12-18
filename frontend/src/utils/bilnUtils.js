@@ -1,4 +1,5 @@
 import { API_URL } from '../config';
+import { apiFetch, getOwnerId } from './api';
 
 
 /**
@@ -157,10 +158,10 @@ export function parseFastaToBiln(input) {
 // Example HELM -> BILN server call (adjust URL to your backend)
 export async function convertHelmToBiln(helmString) {
 
-    const resp = await fetch(`${API_URL}/core/conversions/helm-to-biln`, {
+    const resp = await apiFetch(`${API_URL}/core/conversions/helm-to-biln`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: helmString }),
+        body: JSON.stringify({ sequence: helmString, owner_id: getOwnerId() }),
     });
 
     if (!resp.ok) {

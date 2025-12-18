@@ -5,6 +5,7 @@ import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { log } from '../../utils/dev'
 import { API_DB_URL } from '../../config';
+import { apiFetch } from '../../utils/api';
 
 import FormWizard from "react-form-wizard-component";
 import "react-form-wizard-component/dist/style.css";
@@ -122,7 +123,7 @@ const UIAddMonomers = memo(() => {
     console.log(`Server URL: ${API_DB_URL}/monomers/add`);
 
     try {
-      const response = await fetch(`${API_DB_URL}/monomers/add`, {
+      const response = await apiFetch(`${API_DB_URL}/monomers/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain',

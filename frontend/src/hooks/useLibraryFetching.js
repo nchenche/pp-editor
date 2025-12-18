@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { API_BASE_URL } from '../config';
+import { apiFetch, getOwnerId } from '../utils/api';
 
 
 // Simple in-memory cache (per session)
@@ -47,7 +48,8 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles`;
+  const ownerId = getOwnerId();
+  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles&user_id=${encodeURIComponent(ownerId)}&owner_id=${encodeURIComponent(ownerId)}`;
   const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
   );
@@ -70,7 +72,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
 
     async function run() {
       try {
-        const res = await fetch(url, { signal: controller.signal });
+        const res = await apiFetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
         const json = await res.json();
         const next = (json?.data || []);  // .slice(0, 200)

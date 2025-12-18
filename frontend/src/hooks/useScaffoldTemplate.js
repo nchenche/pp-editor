@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+import { API_BASE_URL } from '../config';
+import { apiFetch } from '../utils/api';
 
 export function useScaffoldTemplate() {
     const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
@@ -28,7 +28,7 @@ export function useScaffoldTemplate() {
     const deleteTemplateOnServer = useCallback(async (templateId) => {
         if (!templateId) return;
         try {
-            const res = await fetch(
+            const res = await apiFetch(
                 `${API_BASE_URL}/api/structures/delete_pdb_template?template_id=${encodeURIComponent(templateId)}`,
                 { method: 'DELETE' },
             );
@@ -52,7 +52,7 @@ export function useScaffoldTemplate() {
             const form = new FormData();
             form.append('file', file); // backend expects `file` in form-data
 
-            const res = await fetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
+            const res = await apiFetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
                 method: 'POST',
                 body: form,
             });
@@ -91,7 +91,7 @@ export function useScaffoldTemplate() {
             const form = new FormData();
             form.append('pdb_id', pdbId);
 
-            const res = await fetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
+            const res = await apiFetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
                 method: 'POST',
                 body: form,
             });

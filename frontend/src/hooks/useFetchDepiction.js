@@ -1,6 +1,7 @@
 // src/hooks/useFetchDepiction.js
 import { useState, useCallback } from 'react';
 import { DEPICT_2D_URL } from '../config';
+import { apiFetch } from '../utils/api';
 
 
 export function useFetchDepiction() {
@@ -22,7 +23,7 @@ export function useFetchDepiction() {
 
         setLoading(true);
         try {
-            const response = await fetch(fetchUrl);
+            const response = await apiFetch(fetchUrl);
             if (!response.ok) {
                 const res = await response.json();
                 console.error('Error fetching depiction:', res);

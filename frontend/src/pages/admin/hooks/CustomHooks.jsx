@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useRef, memo } from 'react';
 
 import { API_URL } from '../../../config';
+import { apiFetch, getOwnerId } from '../../../utils/api';
 
 // Custom Hooks
 export const useFragments = (smiles, selectedBonds) => {
@@ -17,12 +18,12 @@ export const useFragments = (smiles, selectedBonds) => {
 
     const fragmentMolecule = async () => {
       try {
-        const response = await fetch(`${API_URL}/molecules/fragmentation`, {
+        const response = await apiFetch(`${API_URL}/molecules/fragmentation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ smiles, bonds: selectedBonds }),
+          body: JSON.stringify({ smiles, bonds: selectedBonds, owner_id: getOwnerId() }),
           signal,
         });
 
@@ -64,12 +65,12 @@ export const useFormSubmission = (formData, fragments, selectedFragmentIndex) =>
 
     const generateMolBlock = async () => {
       try {
-        const response = await fetch(`${API_URL}/molecules/molblock`, {
+        const response = await apiFetch(`${API_URL}/molecules/molblock`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, owner_id: getOwnerId() }),
         });
 
         if (!response.ok) {
