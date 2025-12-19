@@ -22,6 +22,37 @@ import Button from '@mui/material/Button';
 
 import { useOwnerId } from './hooks/useOwnerId';
 
+import DataPolicyDialog from './components/common/DataPolicyDialog';
+
+
+const COOKIE_CONSENT_STORAGE_KEY = 'pp-editor:cookie-consent:v1';
+
+function readCookieConsent() {
+  try {
+    const raw = window?.localStorage?.getItem(COOKIE_CONSENT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function writeCookieConsentAccepted() {
+  try {
+    window?.localStorage?.setItem(
+      COOKIE_CONSENT_STORAGE_KEY,
+      JSON.stringify({ accepted: true, acceptedAt: new Date().toISOString() })
+    );
+  } catch {
+    // If storage is blocked, keep showing consent on next load.
+  }
+}
+
+
+function CookieConsentDialog({ open, onAccept }) {
+  return <DataPolicyDialog open={open} mode="consent" onAccept={onAccept} />;
+}
+
 
 function OwnerIdRequiredDialog({ open, onClose }) {
   return (
@@ -54,6 +85,30 @@ function OwnerIdRequiredRouteDialog() {
   }, [navigate, returnTo]);
 
   return <OwnerIdRequiredDialog open={true} onClose={handleClose} />;
+}
+
+
+function CookieConsentController() {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const path = location?.pathname || '';
+    if (path !== '/') {
+      setOpen(false);
+      return;
+    }
+
+    const consent = readCookieConsent();
+    setOpen(!consent?.accepted);
+  }, [location?.pathname]);
+
+  const accept = useCallback(() => {
+    writeCookieConsentAccepted();
+    setOpen(false);
+  }, []);
+
+  return <CookieConsentDialog open={open} onAccept={accept} />;
 }
 
 
@@ -167,6 +222,9 @@ function App() {
         <Header>
           <NavBar dataLinks={dataLinks} onDisabledLinkClick={onDisabledLinkClick} />
         </Header>
+
+        <CookieConsentController />
+
         <AppRoutes />
         <Footer />
 
