@@ -29,7 +29,7 @@ import createPalette from "@mui/material/styles/createPalette";
 
 export const MolNameForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
             <Controller
                 name="name"
                 control={control}
@@ -39,6 +39,7 @@ export const MolNameForm = ({ sxOptions, control }) => {
                             label="Name"
                             {...field}
                             size="small"
+                            fullWidth
                         />
                     </>
                 )}
@@ -49,7 +50,7 @@ export const MolNameForm = ({ sxOptions, control }) => {
 
 export const MolSymbolForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
             <Controller
                 name="symbol"
                 control={control}
@@ -58,6 +59,7 @@ export const MolSymbolForm = ({ sxOptions, control }) => {
                         label="Symbol"
                         {...field}
                         size="small"
+                        fullWidth
                     />
                 )}
             />
@@ -67,7 +69,7 @@ export const MolSymbolForm = ({ sxOptions, control }) => {
 
 export const MolAnalogForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
             <Controller
                 name="naturalAnalog"
                 control={control}
@@ -76,6 +78,7 @@ export const MolAnalogForm = ({ sxOptions, control }) => {
                         label="Natural analog"
                         {...field}
                         size="small"
+                        fullWidth
                     />
                 )}
             />
@@ -85,7 +88,7 @@ export const MolAnalogForm = ({ sxOptions, control }) => {
 
 export const MolPDBForm = ({ sxOptions, control, error }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
             <Controller
                 name="pdb"
                 control={control}
@@ -102,6 +105,7 @@ export const MolPDBForm = ({ sxOptions, control, error }) => {
                         error={!!error}
                         {...field}
                         size="small"
+                        fullWidth
                     />
                 )}
             />
@@ -112,9 +116,9 @@ export const MolPDBForm = ({ sxOptions, control, error }) => {
     )
 }
 
-export const MolTypeForm = ({ sxOptions, control, error }) => {
+export const MolTypeForm = ({ sxOptions, control, error, capDisabled, aaDisabled }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
             <InputLabel id="select-type" error={!!error}>Select Type</InputLabel>
 
             <Controller
@@ -132,8 +136,8 @@ export const MolTypeForm = ({ sxOptions, control, error }) => {
                             label="Select Type"
                             error={!!error}
                         >
-                            <MenuItem value="aa">Amino acid</MenuItem>
-                            <MenuItem value="cap">Cap</MenuItem>
+                            <MenuItem value="aa" disabled={!!aaDisabled}>Amino acid</MenuItem>
+                            <MenuItem value="cap" disabled={!!capDisabled}>Cap</MenuItem>
                         </Select>
                     </>
                 )}
@@ -147,7 +151,7 @@ export const MolTypeForm = ({ sxOptions, control, error }) => {
 
 export const MolSubTypeForm = ({ sxOptions, control, error, options, disabled }) => {
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
             {/* <InputLabel id="select-subtype" error={!!error}>Select Subtype</InputLabel> */}
             <Controller
                 name="selectSubType"
@@ -162,6 +166,7 @@ export const MolSubTypeForm = ({ sxOptions, control, error, options, disabled })
                         fullWidth
                         {...field}
                         error={!!error}
+                        disabled={!!disabled}
                     >
                         {options.map((opt) => (
                             <MenuItem key={opt.value} value={opt.value}>
@@ -184,7 +189,7 @@ export const GroupLabelForm = ({ sxOptions, control, error, index }) => {
     const name = `groupLabel_${index}`;
 
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
             <InputLabel id={labelId} error={!!error}>{label}</InputLabel>
             <Controller
                 name={name}
@@ -223,18 +228,24 @@ export const GroupLeavingForm = ({ sxOptions, control, error, index }) => {
 
 
     return (
-        <FormControl sx={sxOptions} variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
             <Controller
                 name={name}
                 control={control}
+                defaultValue=""
                 rules={{ required: 'Leaving group is required' }}
                 render={({ field }) => (
                     <TextField
+                        select
                         label={label}
                         error={!!error}
                         {...field}
                         size="small"
-                    />
+                        fullWidth
+                    >
+                        <MenuItem value="H">H</MenuItem>
+                        <MenuItem value="OH">OH</MenuItem>
+                    </TextField>
                 )}
             />
             {error && (

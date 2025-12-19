@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
+import { useOwnerId } from './useOwnerId';
 
 
 // Simple in-memory cache (per session)
@@ -8,14 +9,21 @@ const CACHE = new Map(); // key -> { data, ts }
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const CACHE_MAX_ENTRIES = 50;
 
-function makeKey(baseUrl, paramsObj) {
-  // Use the full URL including normalized params to key the cache
+function makeRequestUrl(baseUrl, paramsObj) {
+  // Build the request URL without owner_id.
+  // apiFetch is responsible for injecting owner_id consistently across the app.
   const params = new URLSearchParams();
   if (paramsObj.search) params.append('search', paramsObj.search);
   if (paramsObj.caps) params.append('filter', 'm_type:cap');
   if (paramsObj.natural) params.append('filter', 'm_subtype:natural');
   if (paramsObj.nonNatural) params.append('filter', 'm_subtype:non-natural');
-  return `${baseUrl}&${params.toString()}`;
+  const suffix = params.toString();
+  return suffix ? `${baseUrl}&${suffix}` : baseUrl;
+}
+
+function makeCacheKey(requestUrl, ownerKey) {
+  // Cache is owner-scoped, even though owner_id isn't added to requestUrl.
+  return `${requestUrl}::owner=${ownerKey || 'anon'}`;
 }
 
 function getCached(key) {
@@ -43,19 +51,26 @@ export function clearLibraryFetchCache() {
 }
 
 export function useLibraryFetching({ search = '', caps = false, natural = false, nonNatural = false }) {
+  const ownerId = useOwnerId();
+
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
   const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles`;
-  const cacheKey = useMemo(() => makeKey(baseUrl, { search, caps, natural, nonNatural }),
+  const requestUrl = useMemo(
+    () => makeRequestUrl(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
+  );
+  const cacheKey = useMemo(
+    () => makeCacheKey(requestUrl, ownerId || ''),
+    [requestUrl, ownerId]
   );
 
   useEffect(() => {
     const controller = new AbortController();
-    const url = cacheKey; // already includes params
+    const url = requestUrl;
     setError(null);
 
     // Serve from cache immediately if present
@@ -88,14 +103,14 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
       }
     }
 
-    // Always revalidate in background (stale-while-revalidate)
-    run();
+    // Only fetch when cache is empty (or stale, since getCached prunes stale entries)
+    if (!cached) run();
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [cacheKey]);
+  }, [cacheKey, requestUrl]);
 
   // remember last good data to avoid flicker while loading
   useEffect(() => {

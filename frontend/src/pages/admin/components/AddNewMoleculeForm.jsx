@@ -21,7 +21,7 @@ import createPalette from "@mui/material/styles/createPalette";
 
 export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
 
-    const sxOptions = { margin: 0.85, width: 180 };
+    const sxOptions = { margin: 0.85, width: '100%' };
     const {
         control,
         formState: { errors },
@@ -31,6 +31,10 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
 
     // Watch the selected type to drive subtype logic
     const selectedType = watch('selectType');
+
+    const rGroupCount = Array.isArray(groupIndices) ? groupIndices.length : 0;
+    const capRequired = rGroupCount === 1;
+    const capForbidden = rGroupCount > 1;
 
     // Derive subtype options based on type
     const subtypeOptions = useMemo(() => {
@@ -68,10 +72,23 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
         }
     }, [selectedType, setValue]);
 
+    // Enforce "cap" rules based on R-group count:
+    // - If exactly 1 R-group exists => type must be cap
+    // - If >1 R-group exists => type cannot be cap
+    useEffect(() => {
+        if (capRequired && selectedType !== 'cap') {
+            setValue('selectType', 'cap', { shouldValidate: true, shouldDirty: true });
+            return;
+        }
+        if (capForbidden && selectedType === 'cap') {
+            setValue('selectType', 'aa', { shouldValidate: true, shouldDirty: true });
+        }
+    }, [capRequired, capForbidden, selectedType, setValue]);
+
     return (
         <>
 
-            <Grid container rowSpacing={0.5} columnSpacing={{ xs: 0.5, sm: 1, md: 2 }}>
+            <Grid container rowSpacing={0.5} columnSpacing={{ xs: 0.5, sm: 1, md: 2 }} sx={{ width: '100%' }}>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                     <MolNameForm
@@ -107,6 +124,8 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
                         sxOptions={sxOptions}
                         control={control}
                         error={errors.selectType}
+                        capDisabled={capForbidden}
+                        aaDisabled={capRequired}
                     />
                 </Grid>
 

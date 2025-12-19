@@ -29,6 +29,9 @@ import {
   CircularProgress,
 } from '@mui/material';
 
+import FormWizard from 'react-form-wizard-component';
+import 'react-form-wizard-component/dist/style.css';
+
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
@@ -39,6 +42,9 @@ import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 
 import { API_DB_URL } from '../../config';
 import { apiFetch } from '../../utils/api';
+
+import { useFragments, useFormSubmission } from './hooks/CustomHooks';
+import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
 
 const NEVER_VISIBLE_KEYS = new Set([
   'owner_id',
@@ -258,14 +264,15 @@ function normalizeType(value) {
 function normalizeSubtype(value) {
   const v = String(value || '').trim();
   if (!v) return '';
-  if (v === 'natural' || v === 'non-natural') return v;
+  if (v === 'natural' || v === 'non-natural' || v === 'cap') return v;
   return v;
 }
 
 function enforceTypeSubtypeRule(nextType, nextSubtype) {
   const type = normalizeType(nextType);
   let subtype = normalizeSubtype(nextSubtype);
-  if (type === 'cap' || type === 'other') subtype = 'non-natural';
+  if (type === 'cap') subtype = 'cap';
+  if (type === 'other') subtype = 'non-natural';
   return { type, subtype };
 }
 
@@ -280,8 +287,10 @@ export default function PersonalMonomers() {
   const [editDialog, setEditDialog] = useState({ open: false, monomer: null, originalSymbol: '', rGroupSlots: [], baseRGroups: [] });
   const [editForm, setEditForm] = useState({ symbol: '', name: '', natAnalog: '', pdbName: '', type: '', subtype: '', rGroupsByIndex: {} });
 
-  const capForbidden = (editDialog?.rGroupSlots?.length ?? 0) > 1;
-  const capInvalid = capForbidden && editForm.type === 'cap';
+  const editRGroupCount = editDialog?.rGroupSlots?.length ?? 0;
+  const capRequired = editRGroupCount === 1;
+  const capForbidden = editRGroupCount > 1;
+  const capInvalid = (capForbidden && editForm.type === 'cap') || (capRequired && editForm.type !== 'cap');
 
   const [deleteDialog, setDeleteDialog] = useState({ open: false, monomer: null });
 
@@ -292,6 +301,23 @@ export default function PersonalMonomers() {
   const [createFileName, setCreateFileName] = useState('');
   const [createRecords, setCreateRecords] = useState([]); // [{ id, text }]
   const [createSelectedRecordId, setCreateSelectedRecordId] = useState('');
+
+  // Scratch wizard state (mirrors UIAddMonomers strategy)
+  const [scratchSmiles, setScratchSmiles] = useState('CCO');
+  const [scratchSelectedBonds, setScratchSelectedBonds] = useState([]);
+  const [scratchSelectedFragmentIndex, setScratchSelectedFragmentIndex] = useState(-1);
+  const [scratchCurrentIndex, setScratchCurrentIndex] = useState(0);
+  const [scratchFormData, setScratchFormData] = useState({});
+
+  const wizardRef = useRef(null);
+  const formRef = useRef(null);
+
+  const [scratchFragments] = useFragments(scratchSmiles, scratchSelectedBonds);
+  const [handleScratchFormSubmit, scratchMolBlock] = useFormSubmission(
+    scratchFormData,
+    scratchFragments,
+    scratchSelectedFragmentIndex
+  );
 
   const [columnsAnchorEl, setColumnsAnchorEl] = useState(null);
   const [visibleColumns, setVisibleColumns] = useState([]);
@@ -358,6 +384,108 @@ export default function PersonalMonomers() {
     setCreateFileName('');
     setCreateRecords([]);
     setCreateSelectedRecordId('');
+
+    // reset scratch wizard state
+    setScratchSmiles('CCO');
+    setScratchSelectedBonds([]);
+    setScratchSelectedFragmentIndex(-1);
+    setScratchCurrentIndex(0);
+    setScratchFormData({});
+  }, []);
+
+  const closeCreateDialog = useCallback(() => {
+    setCreateDialogOpen(false);
+    resetCreateDialog();
+  }, [resetCreateDialog]);
+
+  const StepGuideline = useCallback(({ title, children }) => {
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.5,
+          borderColor: 'divider',
+          bgcolor: 'action.hover',
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {children}
+        </Typography>
+      </Paper>
+    );
+  }, []);
+
+  // Scratch wizard side effects (same pattern as UIAddMonomers)
+  useEffect(() => {
+    if (createMode !== 'scratch') return;
+    setScratchSelectedBonds([]);
+  }, [scratchSmiles, createMode]);
+
+  useEffect(() => {
+    if (createMode !== 'scratch') return;
+    setScratchFormData({});
+  }, [scratchSelectedFragmentIndex, createMode]);
+
+  useEffect(() => {
+    if (createMode !== 'scratch') return;
+    if (Array.isArray(scratchFragments) && scratchFragments.length > 0) {
+      setScratchSelectedFragmentIndex(0);
+    } else {
+      setScratchSelectedFragmentIndex(-1);
+    }
+  }, [scratchFragments, createMode]);
+
+  const scratchCheckTab = useCallback(async () => {
+    switch (scratchCurrentIndex) {
+      case 0:
+        return Boolean(String(scratchSmiles || '').trim());
+      case 1:
+        return Array.isArray(scratchSelectedBonds) && scratchSelectedBonds.length > 0;
+      case 2:
+        return scratchSelectedFragmentIndex !== -1;
+      case 3: {
+        if (!formRef.current) return false;
+        const isValid = await formRef.current.isValid();
+        if (!isValid) return false;
+        handleScratchFormSubmit();
+        return true;
+      }
+      case 4:
+        return true;
+      default:
+        return true;
+    }
+  }, [scratchCurrentIndex, scratchSmiles, scratchSelectedBonds, scratchSelectedFragmentIndex, handleScratchFormSubmit]);
+
+  const handleScratchNext = useCallback(async () => {
+    const ok = await scratchCheckTab();
+    if (wizardRef.current && ok) wizardRef.current.nextTab();
+  }, [scratchCheckTab]);
+
+  const handleScratchPrev = useCallback(() => {
+    if (wizardRef.current) wizardRef.current.prevTab();
+  }, []);
+
+  const scratchTabChanged = useCallback(({ prevIndex }) => {
+    // Keep local index in sync (same approach as UIAddMonomers)
+    setTimeout(() => setScratchCurrentIndex(() => prevIndex), 0);
+  }, []);
+
+  const handleScratchSelectedBonds = useCallback((bondIndex) => {
+    setScratchSelectedBonds((prev) =>
+      prev.includes(bondIndex) ? prev.filter((idx) => idx !== bondIndex) : [...prev, bondIndex]
+    );
+  }, []);
+
+  const handleScratchSelectedFragment = useCallback((fragmentIndex) => {
+    setScratchSelectedFragmentIndex(fragmentIndex);
+  }, []);
+
+  const handleScratchFormDataChange = useCallback((data) => {
+    setScratchFormData(data);
   }, []);
 
   const load = useCallback(async () => {
@@ -383,6 +511,41 @@ export default function PersonalMonomers() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleScratchComplete = useCallback(async () => {
+    const mol = String(scratchMolBlock || '');
+    if (!mol.trim()) {
+      setCreateError('No molblock generated. Please complete the previous steps first.');
+      return;
+    }
+
+    setCreateError('');
+    setCreateIsUploading(true);
+    try {
+      // Ensure pepedit-compatible record delimiter
+      const sdfText = normalizeSdfRecordForUpload(mol);
+
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=pepedit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: sdfText,
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message || json?.error || `Failed to upload monomer (status ${res.status})`;
+        setCreateError(String(msg));
+        return;
+      }
+
+      closeCreateDialog();
+      await load();
+    } catch (e) {
+      setCreateError(e?.message || 'Failed to upload monomer.');
+    } finally {
+      setCreateIsUploading(false);
+    }
+  }, [scratchMolBlock, closeCreateDialog, load]);
 
   useEffect(() => {
     load();
@@ -485,9 +648,12 @@ export default function PersonalMonomers() {
 
   const openEdit = useCallback((m) => {
     const nm = normalizeMonomer(m);
-    const fixed = enforceTypeSubtypeRule(nm.type, nm.subtype);
-    const natAnalog = fixed.type === 'cap' ? 'X' : (normalizeNatAnalogInput(nm.natAnalog) || 'X');
     const slots = getRGroupSlots(m);
+    const rGroupCount = slots.length;
+
+    const desiredType = rGroupCount === 1 ? 'cap' : nm.type;
+    const fixed = enforceTypeSubtypeRule(desiredType, nm.subtype);
+    const natAnalog = fixed.type === 'cap' ? 'X' : (normalizeNatAnalogInput(nm.natAnalog) || 'X');
     const baseRGroups = Array.isArray(m?.m_Rgroups) ? m.m_Rgroups.slice() : [];
     const rGroupsByIndex = {};
     for (const i of slots) {
@@ -513,8 +679,14 @@ export default function PersonalMonomers() {
     const symbol = String(editForm.symbol || '').trim();
     if (!symbol) return;
 
-    if ((editDialog?.rGroupSlots?.length ?? 0) > 1 && editForm.type === 'cap') {
+    const rGroupCount = editDialog?.rGroupSlots?.length ?? 0;
+    if (rGroupCount > 1 && editForm.type === 'cap') {
       setError('Type “cap” is not allowed when more than one R group is defined.');
+      return;
+    }
+
+    if (rGroupCount === 1 && editForm.type !== 'cap') {
+      setError('When exactly one R group is defined, type must be “cap”.');
       return;
     }
 
@@ -677,11 +849,6 @@ export default function PersonalMonomers() {
     const stamp = new Date().toISOString().slice(0, 10);
     downloadTextFile(`personal_monomers_${stamp}.sdf`, content);
   }, [normalized]);
-
-  const closeCreateDialog = useCallback(() => {
-    setCreateDialogOpen(false);
-    resetCreateDialog();
-  }, [resetCreateDialog]);
 
   const handleCreateFilePicked = useCallback(async (file) => {
     if (!file) return;
@@ -1115,15 +1282,21 @@ export default function PersonalMonomers() {
                   }));
                 }}
               >
-                <MenuItem value="aa">aa</MenuItem>
+                <MenuItem value="aa" disabled={capRequired}>aa</MenuItem>
                 <MenuItem value="cap" disabled={capForbidden}>cap</MenuItem>
-                <MenuItem value="other">other</MenuItem>
+                <MenuItem value="other" disabled={capRequired}>other</MenuItem>
               </Select>
             </FormControl>
 
             {capForbidden ? (
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 Type “cap” is disabled when more than one R group exists.
+              </Typography>
+            ) : null}
+
+            {capRequired ? (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                When exactly one R group exists, type is forced to “cap”.
               </Typography>
             ) : null}
 
@@ -1139,13 +1312,21 @@ export default function PersonalMonomers() {
                   setEditForm((s) => ({ ...s, type: fixed.type, subtype: fixed.subtype }));
                 }}
               >
-                <MenuItem value="natural">natural</MenuItem>
-                <MenuItem value="non-natural">non-natural</MenuItem>
+                {editForm.type === 'cap' ? (
+                  <MenuItem value="cap">cap</MenuItem>
+                ) : editForm.type === 'other' ? (
+                  <MenuItem value="non-natural">non-natural</MenuItem>
+                ) : (
+                  [
+                    <MenuItem key="natural" value="natural">natural</MenuItem>,
+                    <MenuItem key="non-natural" value="non-natural">non-natural</MenuItem>,
+                  ]
+                )}
               </Select>
             </FormControl>
 
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Note: for type “cap” or “other”, subtype is forced to “non-natural”.
+              Note: for type “cap”, subtype is forced to “cap”. For type “other”, subtype is forced to “non-natural”.
             </Typography>
 
             {Array.isArray(editDialog.rGroupSlots) && editDialog.rGroupSlots.length > 0 ? (
@@ -1203,7 +1384,7 @@ export default function PersonalMonomers() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={createDialogOpen} onClose={closeCreateDialog} maxWidth="sm" fullWidth>
+      <Dialog open={createDialogOpen} onClose={closeCreateDialog} maxWidth="md" fullWidth>
         <DialogTitle>Create monomer</DialogTitle>
         <DialogContent dividers>
           {createError ? (
@@ -1243,11 +1424,109 @@ export default function PersonalMonomers() {
           {createMode === 'scratch' ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                The “create from scratch” multi-step workflow (SMILES → R groups → params) will be implemented next.
+                Create a monomer from scratch using the same workflow as the admin wizard (fragmentation → settings → generated molblock).
               </Typography>
-              <Button variant="outlined" onClick={() => setCreateMode(null)}>
-                Back
-              </Button>
+
+              <FormWizard
+                ref={wizardRef}
+                color="rgb(30, 41, 59)"
+                stepSize="xs"
+                shape="circle"
+                onComplete={handleScratchComplete}
+                onTabChange={scratchTabChanged}
+                backButtonTemplate={() => (
+                  <Button variant="contained" onClick={handleScratchPrev} disabled={createIsUploading}>
+                    Back
+                  </Button>
+                )}
+                nextButtonTemplate={() => (
+                  <Button variant="contained" onClick={handleScratchNext} disabled={createIsUploading}>
+                    Next
+                  </Button>
+                )}
+              >
+                <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <StepGuideline title="Guideline">
+                      Enter or paste a valid SMILES string for the molecule you want to convert into a monomer.
+                    </StepGuideline>
+                    <TabStep1 smiles={scratchSmiles} handleChangeSmiles={setScratchSmiles} />
+                  </Box>
+                </FormWizard.TabContent>
+
+                <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <StepGuideline title="Guideline">
+                      Click one or more bonds to choose cut points. These cuts drive fragmentation and attachment point detection.
+                    </StepGuideline>
+                    <TabStep2
+                      smiles={scratchSmiles}
+                      handleSelectedBonds={handleScratchSelectedBonds}
+                      selectedBonds={scratchSelectedBonds}
+                      fragments={scratchFragments}
+                    />
+                  </Box>
+                </FormWizard.TabContent>
+
+                <FormWizard.TabContent title="Select a fragment" icon="ti-check">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <StepGuideline title="Guideline">
+                      Choose the fragment that best represents your monomer core. You’ll configure its metadata and R-groups next.
+                    </StepGuideline>
+                    <TabStep3
+                      fragments={scratchFragments}
+                      selectedFragmentIndex={scratchSelectedFragmentIndex}
+                      handleSelectedFragment={handleScratchSelectedFragment}
+                    />
+                  </Box>
+                </FormWizard.TabContent>
+
+                <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <StepGuideline title="Guideline">
+                      Fill in monomer metadata (symbol, name, type/subtype, and R-group information). Use values consistent with pepedit conventions.
+                    </StepGuideline>
+                    <TabStep4
+                      ref={formRef}
+                      fragmentSmiles={scratchFragments?.[scratchSelectedFragmentIndex]}
+                      initialData={scratchFormData}
+                      onFormDataChange={handleScratchFormDataChange}
+                    />
+                  </Box>
+                </FormWizard.TabContent>
+
+                <FormWizard.TabContent title="Validate" icon="ti-check">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <StepGuideline title="Guideline">
+                      Review the generated molblock. If it looks correct, click “Complete” to upload this monomer into your personal library.
+                    </StepGuideline>
+                    <TextField
+                      label="Generated molblock (read-only)"
+                      value={scratchMolBlock || ''}
+                      multiline
+                      minRows={10}
+                      fullWidth
+                      slotProps={{
+                        input: {
+                          readOnly: true,
+                          sx: { fontFamily: 'monospace' },
+                        },
+                      }}
+                    />
+                  </Box>
+                </FormWizard.TabContent>
+              </FormWizard>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <Button variant="text" onClick={() => setCreateMode(null)} disabled={createIsUploading}>
+                  Back
+                </Button>
+              </Box>
+
+              <style>{`
+                @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
+                .wizard-card-footer{ display:flex; justify-content:center; margin-top:10px; gap:20px; flex-wrap:wrap; row-gap:10px; }
+              `}</style>
             </Box>
           ) : null}
 

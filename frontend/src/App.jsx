@@ -57,17 +57,9 @@ function OwnerIdRequiredRouteDialog() {
 }
 
 
-// import DesignPeptideContainer from './pages/designPeptide/DesignPeptide';
-// import MonomerCrudPage from './components/monomerCrud/MonomerCrudPage';
-// import About from './pages/About';
-// import FilterableMonomerLibrary from './components/core/Monomers';
-// import PeptideEditor from './components/core/Peptide';
-// import VisNetwork from './components/graph/Test2';
-
 function AppRoutes() {
   const ownerId = useOwnerId();
   const location = useLocation();
-  // const isDesignActive = location.pathname === '/';
 
   return (
     <Box
@@ -78,14 +70,6 @@ function AppRoutes() {
         flexDirection: 'column',
       }}
     >
-      {/* Persist Design page; only hide/show */}
-      {/* <div style={{ display: isDesignActive ? 'block' : 'none', height: '100%', minHeight: 0 }}>
-        <main className="flex-grow min-h-0 h-full">
-          <Home isActive={isDesignActive} />
-        </main>
-      </div> */}
-
-
       {/* Other routes render normally */}
       <Routes>
         <Route path="/" element={<Home isActive={true} />} />

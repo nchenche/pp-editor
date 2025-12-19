@@ -11,7 +11,7 @@ import { log } from '../../../utils/dev'
 
 export const TabStep1 = memo(({ smiles, handleChangeSmiles }) => {
     return (
-        <div className='grid grid-cols-2'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
             <InputContainer smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
             <MoleculeDisplayContainer smiles={smiles} />
         </div>
@@ -44,7 +44,7 @@ export const TabStep2 = memo(({ smiles, handleSelectedBonds, selectedBonds, frag
     };
 
     return (
-        <div className='grid grid-cols-2'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
             <MoleculeDisplayContainer
                 smiles={smiles}
                 queryParams={queryParams}
@@ -192,9 +192,9 @@ export const TabStep4 = memo(
         }
 
         return (
-            <div className='grid grid-cols-2 border'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
                 <MoleculeDisplayContainer smiles={fragmentSmiles} queryParams={queryParams} />
-                <div className='p-2 m-2 border'>
+                <div className='p-2 md:m-2 border'>
                     <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
                     <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} />
                 </div>
