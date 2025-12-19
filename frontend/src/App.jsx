@@ -6,10 +6,10 @@ import Footer from './components/layout/Footer';
 import NavBar from './components/layout/Navbar';
 
 import Home from './pages/Home';
-import UIAddMonomers from './pages/admin/UIAddMonomers';
 import PersonalMonomers from './pages/admin/PersonalMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import Documentation from './pages/Documentation';
+import SubmitPublicMonomers from './pages/SubmitPublicMonomers';
 import './App.css'
 
 import { Box } from '@mui/material';
@@ -128,6 +128,7 @@ function AppRoutes() {
       {/* Other routes render normally */}
       <Routes>
         <Route path="/" element={<Home isActive={true} />} />
+
         <Route
           path="/my-monomers"
           element={
@@ -140,26 +141,22 @@ function AppRoutes() {
             )
           }
         />
-        {/* <Route
-          path="/admin-monomers"
-          element={
-            ownerId ? (
-              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
-                <UIAddMonomers />
-              </Box>
-            ) : (
-              <OwnerIdRequiredRouteDialog key={location.key} />
-            )
-          }
-        /> */}
         <Route
+          path="/submit-public-monomers"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+              <SubmitPublicMonomers />
+            </Box>
+          }
+        />
+        {/* <Route
           path="/monomers"
           element={
             <Box sx={{ flex: 1, minHeight: 0, display: 'flex', backgroundColor: 'background.default' }}>
               <MonomerLibraryContainer />
             </Box>
           }
-        />
+        /> */}
         <Route
           path="/documentation"
           element={
@@ -189,12 +186,10 @@ function App() {
       disabled: !ownerId,
       disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
     },
-    // {
-    //   to: '/admin-monomers',
-    //   text: 'Add new monomer',
-    //   disabled: !ownerId,
-    //   disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
-    // },
+    {
+      to: '/submit-public-monomers',
+      text: 'Submit to public library'
+    },
     {
       to: '/documentation',
       text: 'Documentation'
