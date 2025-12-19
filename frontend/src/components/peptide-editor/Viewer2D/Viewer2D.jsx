@@ -100,6 +100,41 @@ function makeTightResponsiveSvg(svgString, { padding = 8, preserve = 'xMidYMid m
     return out;
 }
 
+function downloadSvgElement(svgEl, filename = 'pep-edit_2d.svg') {
+    if (!svgEl) return;
+
+    const clone = svgEl.cloneNode(true);
+    // Ensure namespaces exist (some serializers/viewers rely on them)
+    if (!clone.getAttribute('xmlns')) {
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    }
+    if (!clone.getAttribute('xmlns:xlink')) {
+        clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    }
+
+    // Prefer explicit dimensions for downloaded files
+    const vb = (clone.getAttribute('viewBox') || '').trim();
+    const parts = vb.split(/\s+/).map(Number);
+    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+        const w = parts[2];
+        const h = parts[3];
+        if (!clone.getAttribute('width')) clone.setAttribute('width', String(Math.round(w)));
+        if (!clone.getAttribute('height')) clone.setAttribute('height', String(Math.round(h)));
+    }
+
+    const svgText = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
 export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const {
         svgData,
@@ -234,6 +269,11 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         },
         resetView() { panZoomApi.current?.reset?.(); },
         getModes() { return { linkMode: isShowRGroups, bondsMode: isShowBonds }; },
+        downloadSvg(filename) {
+            const svgEl = svgContainer.current?.querySelector('svg');
+            if (!svgEl) return;
+            downloadSvgElement(svgEl, filename || 'pep-edit_2d.svg');
+        },
     }));
 
 

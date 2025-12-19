@@ -32,6 +32,7 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import DownloadIcon from '@mui/icons-material/Download';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -715,6 +716,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 aria-label="reset-view"
                                             >
                                                 <RestartAltIcon fontSize="inherit" />
+                                            </Button>
+                                        </span>
+                                    </Tooltip>
+
+                                    <Tooltip title="Download SVG" arrow placement='top'>
+                                        <span>
+                                            <Button
+                                                onClick={() => viewer2DRef.current?.downloadSvg?.('pep-edit_2d.svg')}
+                                                color="inherit"
+                                                disabled={!svgDepiction}
+                                                aria-label="download-svg"
+                                            >
+                                                <DownloadIcon fontSize="inherit" />
                                             </Button>
                                         </span>
                                     </Tooltip>
