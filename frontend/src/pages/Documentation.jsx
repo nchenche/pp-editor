@@ -94,9 +94,9 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
-                            representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). It supports
+                            representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). PEP-EDIT is not a peptide structure prediction tool, but it helps preparing realistic conformations to undergo further processing (molecular dynamics simulations, docking, etc). It supports
                             standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
-                            branched peptides. 
+                        branched peptides. 
                         </Typography>
 
                         <Typography variant="body1" component="p">
@@ -113,18 +113,19 @@ const Documentation = () => {
                                 Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.
                             </li>
                             <li>Control protonation of exported molecules using a pH model (default: pH 7.4).</li>
-                            <li>Manage monomer library evolution in a collaborative/moderated mode.</li>
+                           
+                            <li>Manage both public and user private monomer library. The public monomer library monomer can be updated in a collaborative/moderated mode.</li>
                             <li>Support collaborative peptide design and/or didactic use of PEP-EDIT. In addition to the standard web instance, a n.eko instance of the service is available at {" "}
                             <MUILink
-                                    href="https://neko.rpbs.univ-paris-diderot.fr"
+                                    href="https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                 https://neko.rpbs.univ-paris-diderot.fr. 
+                                 https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs. 
                             </MUILink>
                                 
                             </li>
-                            <li> PEP-EDIT can handle up to 40 monomers.</li>
+                            <li> PEP-EDIT can handle peptides with up to 40 monomers.</li>
                         </ul>
                     </section>
 
@@ -191,7 +192,7 @@ const Documentation = () => {
                             </li>
                             <li>
                                 <strong>Monomer storage:</strong> monomer metadata is stored in a <strong>MongoDB</strong> database
-                                (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows.
+                                (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows. This flexible management allows PEP-EDIT to handle both public and user specific monomer libraries, as well as facilities to migrate monomers from the user library to the public one in a moderated mode.
                             </li>
                             <li>
                                 <strong>Monomer naming rule:</strong> monomers containing the <code>-</code> character are renamed using
@@ -215,10 +216,10 @@ const Documentation = () => {
                                 from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).
                             </li>
                             <li>
-                                <strong>Collaborative facilities:</strong>
+                                <strong>Collaborative/didactic facilities:</strong>
                                 <ul>
                                     <li> a n.eko instance of PEP-EDIT enables multiuser design of a peptide. </li>
-                                    <li> the monomer library can be enhanced though a dedicated interface. </li>
+                                    {/* <li> the monomer library can be enhanced though a dedicated interface. </li> */}
                                 </ul>
                             </li>
                         </ul>
@@ -531,21 +532,19 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to Dimorphite-DL to predict a
-                            protonated form at a chosen pH (default: 7.4), and the protonated state is propagated to exports (SMILES, PDB, etc.).
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                Dimorphite-DL reference:{" "}
-                                <MUILink
+                            Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to {" "}
+                            <MUILink
                                     href="https://link.springer.com/article/10.1186/s13321-019-0336-9"
                                     target="_blank"
                                     rel="noreferrer"
-                                >
-                                    https://link.springer.com/article/10.1186/s13321-019-0336-9
-                                </MUILink>
-                            </li>
+                            >
+                                Dimorphite-DL {" "}
+                            </MUILink>
+                            
+                            to predict a protonated form at a chosen pH (default: 7.4), and the protonated state is propagated to exports (SMILES, PDB, etc.).
+                        </Typography>
+
+                        <ul className="list-disc ml-6 mb-3">
                             <li>
                                 PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
                                 (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
@@ -704,7 +703,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             From the primary sequence, it is straightforward to generate the
-                            corresponding BILN sequence, substitute residue 19, and define the
+                            corresponding BILN sequence using the <strong>Upload sequence</strong> button , substitute residue 19, and define the
                             side-chain-to-backbone cyclization. However, a generic 3D builder cannot
                             spontaneously recover the lasso topology: the C-terminal segment does not
                             naturally thread through the ring.
@@ -903,10 +902,22 @@ const Documentation = () => {
                         <Typography variant="body1" component="p">
                             Then, using the XYZ file as input for ORCA's global optimizer
                             allows to start exploring various conformations of cilengitide.
+                            
                             In this example, we used the semi-empirical method GFN2-xTB combined with the implicit water solvent model
                             ALPB, but any level of theory available in ORCA can be used.
                         </Typography>
 
+                        <Typography variant="body1" component="p">
+                            The scripts used for ORCA input preparation and the conversion of the ORCA xyz output into PDB are available {" "}
+                            <MUILink
+                                href="https://github.com/alexisdougha/goat-pep"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                here. {" "}
+                            </MUILink>
+                        </Typography>
+                        
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
@@ -935,6 +946,8 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             PEP-EDIT proves to be a suitable tool for generating initial XYZ coordinates of modified and cyclic peptides to be studied further with quantum chemistry methods.
+                            
+
                         </Typography>
 
                         <Divider sx={{ my: 3 }} />
@@ -952,28 +965,31 @@ const Documentation = () => {
                             together with the sequence of a protein.
                         </Typography>
 
-                        <li>
-                            Doubly sulfated CCR2 N-terminal peptide (PDB ID: <code>7P8X</code>):
-                            <Typography
-                                variant="body2"
-                                component="pre"
-                                sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                            >
-                                {`ac-D-Tyr_SO3H-D-Tyr_SO3H-G with corresponding SMILES CC(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)NCC(=O)[O-]`}
-                            </Typography>
-                        </li>
+                        <ul>
+                            <li>
+                                Doubly sulfated CCR2 N-terminal peptide (PDB ID: <code>7P8X</code>):
+                                <Typography
+                                    variant="body2"
+                                    component="pre"
+                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
+                                >
+                                    {`ac-D-Tyr_SO3H-D-Tyr_SO3H-G with corresponding SMILES CC(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)NCC(=O)[O-]`}
+                                </Typography>
+                            </li>
+                            
+                            <li>
+                                Histone H3K27ac(24-27) peptide (PDB ID: <code>7X88</code>):
+                                <Typography
+                                    variant="body2"
+                                    component="pre"
+                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
+                                >
+                                    {`A-A-R-Lys_Ac with corresponding SMILES CC(=O)NCCCC[C@H](NC(=O)[C@H](CCCNC(N)=[NH2+])NC(=O)[C@H](C)NC(=O)[C@H](C)[NH3+])C(=O)[O-]`}
+                                </Typography>
+                            </li>
+                            
+                        </ul>
                         
-                        <li>
-                            Histone H3K27ac(24-27) peptide (PDB ID: <code>7X88</code>):
-                            <Typography
-                                variant="body2"
-                                component="pre"
-                                sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                            >
-                                {`A-A-R-Lys_Ac with corresponding SMILES CC(=O)NCCCC[C@H](NC(=O)[C@H](CCCNC(N)=[NH2+])NC(=O)[C@H](C)NC(=O)[C@H](C)[NH3+])C(=O)[O-]`}
-                            </Typography>
-                        </li>
-
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
@@ -1003,6 +1019,18 @@ const Documentation = () => {
                         <Typography variant="body1" component="p">
                             PEP-EDIT can be used to help prepare inputs for AlphaFold 3 (or other similar models like Chai or Boltz) to model protein-peptide interactions involving modified peptides.
                             However, the predicted structures should be interpreted with caution.
+
+                            <Typography variant="body1" component="p">
+                                    The scripts used to prepare the input for AlphaFold3 from SMILES are available {" "}
+                                <MUILink
+                                        href="https://github.com/alexisdougha/smiles-fold-input-builder"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        here. {" "}
+                                    </MUILink>
+                            </Typography>
+
                         </Typography>
                     </section>
 
