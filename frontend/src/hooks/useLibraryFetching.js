@@ -9,6 +9,9 @@ const CACHE = new Map(); // key -> { data, ts }
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const CACHE_MAX_ENTRIES = 50;
 
+const LIBRARY_UPDATED_EVENT = 'pp-editor:library-updated';
+let libraryCacheNonce = 0;
+
 function makeRequestUrl(baseUrl, paramsObj) {
   // Build the request URL without owner_id.
   // apiFetch is responsible for injecting owner_id consistently across the app.
@@ -50,8 +53,19 @@ export function clearLibraryFetchCache() {
   CACHE.clear();
 }
 
+// Call this after adding/updating monomers so the design-page library refetches.
+export function invalidateLibraryFetching(reason = 'updated') {
+  clearLibraryFetchCache();
+  libraryCacheNonce += 1;
+  if (typeof window !== 'undefined' && window?.dispatchEvent) {
+    window.dispatchEvent(new CustomEvent(LIBRARY_UPDATED_EVENT, { detail: { reason, nonce: libraryCacheNonce } }));
+  }
+}
+
 export function useLibraryFetching({ search = '', caps = false, natural = false, nonNatural = false }) {
   const ownerId = useOwnerId();
+
+  const [nonce, setNonce] = useState(libraryCacheNonce);
 
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +81,16 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
     () => makeCacheKey(requestUrl, ownerId || ''),
     [requestUrl, ownerId]
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window?.addEventListener) return;
+    const handler = (e) => {
+      const nextNonce = e?.detail?.nonce;
+      setNonce(typeof nextNonce === 'number' ? nextNonce : (v) => v + 1);
+    };
+    window.addEventListener(LIBRARY_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(LIBRARY_UPDATED_EVENT, handler);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -110,7 +134,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
       cancelled = true;
       controller.abort();
     };
-  }, [cacheKey, requestUrl]);
+  }, [cacheKey, requestUrl, nonce]);
 
   // remember last good data to avoid flicker while loading
   useEffect(() => {

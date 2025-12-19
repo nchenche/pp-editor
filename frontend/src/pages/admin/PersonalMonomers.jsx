@@ -42,6 +42,7 @@ import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 
 import { API_DB_URL } from '../../config';
 import { apiFetch } from '../../utils/api';
+import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks';
 import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
@@ -610,6 +611,7 @@ export default function PersonalMonomers() {
         return;
       }
 
+      invalidateLibraryFetching('personal-monomer-added');
       closeCreateDialog();
       await load();
     } catch (e) {
@@ -819,6 +821,7 @@ export default function PersonalMonomers() {
         return;
       }
 
+      invalidateLibraryFetching('personal-monomer-edited');
       closeEdit();
       await load();
     } catch (e) {
@@ -854,6 +857,7 @@ export default function PersonalMonomers() {
         return;
       }
 
+      invalidateLibraryFetching('personal-monomer-deleted');
       closeDelete();
       await load();
     } catch (e) {
@@ -969,6 +973,7 @@ export default function PersonalMonomers() {
         return;
       }
 
+      invalidateLibraryFetching('personal-monomers-uploaded');
       closeCreateDialog();
       await load();
     } catch (e) {

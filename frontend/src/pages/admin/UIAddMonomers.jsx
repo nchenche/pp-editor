@@ -24,6 +24,7 @@ import {
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks'
 import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
+import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 
 const UIAddMonomers = memo(() => {
@@ -203,6 +204,7 @@ const UIAddMonomers = memo(() => {
 
       const result = await response.json();
       console.log(result);
+      invalidateLibraryFetching('monomer-added');
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Error during addition of new monomer:', error);
