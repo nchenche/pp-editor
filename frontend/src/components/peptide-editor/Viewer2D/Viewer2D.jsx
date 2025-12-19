@@ -1,24 +1,15 @@
 import { useEffect, useState, useRef, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import './viewer2D.css'; // Assuming you have a CSS file for styles
-import { addClassName, removeClassName, createRect } from './utils';
 
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import DeviceHubIcon from "@mui/icons-material/DeviceHub";
-import LinkIcon from "@mui/icons-material/Link";
-import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
+
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import Alert from '@mui/material/Alert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import LinkOffIcon from '@mui/icons-material/LinkOff';
-import ContentCut from '@mui/icons-material/ContentCut';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+
 import Box from "@mui/material/Box";
-import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
+
 
 
 

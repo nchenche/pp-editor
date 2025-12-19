@@ -55,11 +55,12 @@ const OUTPUT_FIELDS = Object.freeze([
     { key: 'biln', label: 'BILN', filename: 'pep-edit_biln.txt', mime: 'text/plain' },
     { key: 'helm', label: 'HELM', filename: 'pep-edit_helm.txt', mime: 'text/plain' },
     { key: 'smiles', label: 'SMILES', filename: 'pep-edit_smiles.txt', mime: 'text/plain' },
+    { key: 'sdf2d', label: 'SDF 2D', filename: 'pep-edit_2d.sdf', mime: 'chemical/x-mdl-sdfile' },
     { key: 'inchi', label: 'InChI', filename: 'pep-edit_inchi.txt', mime: 'text/plain' },
     { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
     { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
     { key: 'xyz', label: 'XYZ', filename: 'pep-edit_structure.xyz', mime: 'chemical/x-xyz' },
-    { key: 'sdf', label: 'SDF', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
+    { key: 'sdf3d', label: 'SDF 3D', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
     { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
 
 ]);

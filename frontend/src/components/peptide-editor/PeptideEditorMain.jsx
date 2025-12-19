@@ -77,7 +77,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
     const EMPTY_ARRAY = Object.freeze([]);
-    const { svg: svgDepiction = '', smiles = '', helm = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
+    const { svg: svgDepiction = '', smiles = '', helm = '', sdf = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
     const structurePDB = structureOutput?.pdb || structureOutput?.PDB || '';
 
     // Viewer refs and states
@@ -225,15 +225,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 biln: bilnValue,
                 helm: helm,
                 smiles: smiles,
+                sdf2d: sdf,
                 structure3D: structurePDB || '',
                 xyz: structureOutput?.XYZ || structureOutput?.xyz || '',
-                sdf: structureOutput?.SDF || structureOutput?.sdf || '',
+                // sdf3d: structureOutput?.SDF || structureOutput?.sdf || '',
                 mol2: structureOutput?.MOL2 || structureOutput?.mol2 || '',
                 inchi: structureOutput?.InChI || structureOutput?.inchi || '',
                 inchiKey: structureOutput?.InChIKey || structureOutput?.inchiKey || '',
             });
         }
-    }, [bilnValue, helm, smiles, structurePDB, structureOutput, onOutputChange]);
+    }, [bilnValue, helm, sdf, smiles, structurePDB, structureOutput, onOutputChange]);
+    console.log('helm', helm);
+    console.log('sdf2d', sdf);
 
 
     const canGenerate3D = useMemo(() => {
@@ -448,7 +451,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!isActive) return; // skip when not active
         if (!committedBiln) {
             setMonomerSequences('', []); // clear sequences
-            setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
+            setDepictionData({ svg: '', monomers: [], smiles: '', helm: '', sdf2d: '' });
             setStructureOutput({ pdb: '' });
             return;
         }
