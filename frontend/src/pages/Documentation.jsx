@@ -167,7 +167,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
-                            their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong>
+                            their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong>{" "}
                             and <strong>R2 = backbone carbonyl C</strong> for amino acids (for readability and N→C order).
                         </Typography>
                     </section>
