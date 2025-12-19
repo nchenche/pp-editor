@@ -577,66 +577,227 @@ const Documentation = () => {
                     {/* Monomer editor */}
                     <section id="monomer-editor">
                         <Typography variant="h5" gutterBottom>
-                            Monomer editor: extending the library
+                            Monomer editor: personal monomers & extending the public library
                         </Typography>
 
-                        <Typography variant="body1" component="p">
-                            In order to preserve its ability to evolve, PEP-EDIT provides a monomer editor
-                            that allows users to define new monomers and extend the library in a moderated manner.
-                            This mechanism enables the introduction of novel amino acids, caps, linkers or
-                            peptidomimetic building blocks while remaining compatible with the BILN formalism.
+                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
+                            PEP-EDIT lets you use the public monomer library <b>and</b> manage a personal monomer library (“My monomers”).
+                            Personal monomers are scoped by an anonymous <b>Owner/Token ID</b>, which enables collaboration (by sharing an ID)
+                            and persistent work across navigation/refresh.
                         </Typography>
 
-                        <Typography variant="body1" component="p">
-                            The monomer definition workflow is organized into the following steps:
+                        <Box
+                            sx={{
+                                p: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 2,
+                                bgcolor: "action.hover",
+                                mb: 3,
+                            }}
+                        >
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                                Owner/Token ID (why it matters)
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                                Your personal monomers are linked to an anonymous Owner/Token ID. Without an ID, you can still use the public library,
+                                but you cannot store or retrieve a personal library. Keep your ID somewhere safe: if you lose it, you may lose access to
+                                the personal monomers associated with it.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="h6" gutterBottom sx={{ mt: 1 }}>
+                            A. Use a collaborator’s monomers (shared ID)
                         </Typography>
 
-                        <ol className="list-decimal ml-6 mb-4">
-                            <li>
-                                <strong>Monomer structure definition:</strong> the monomer is first described
-                                using a SMILES string. Protonation details are not required at this stage.
-                                Alternatively, a <strong>ChEMBL identifier</strong> can be provided to
-                                automatically retrieve the corresponding SMILES.
-                            </li>
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            If someone sends you an ID, you can temporarily “connect” to their personal library:
+                        </Typography>
 
-                            <li>
-                                <strong>R-group identification:</strong> the user specifies the attachment
-                                points by selecting one or more bonds to be broken. Each selected bond defines
-                                an R-group (R1, R2, R3, …) according to the BILN formalism.
-                            </li>
+                        <Box
+                            component="ol"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Click <b>Load ID</b> (top-left).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Paste the shared ID (example format: <code>pep-...</code>).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Open <b>My monomers</b> (or use the Design page library search) to find the shared monomers.
+                            </Typography>
+                        </Box>
 
-                            <li>
-                                <strong>Fragment selection:</strong> breaking bonds produces two or more
-                                molecular fragments. The user must select the fragment that corresponds to
-                                the monomer core once it is connected to other monomers in a peptide.
-                            </li>
+                        <Typography variant="h6" gutterBottom>
+                            B. Create your own personal library (recommended)
+                        </Typography>
 
-                            <li>
-                                <strong>Monomer annotation:</strong> the user then specifies:
-                                <ul className="list-disc ml-6 mt-1">
-                                    <li>the full monomer name,</li>
-                                    <li>the BILN label (used in BILN sequences),</li>
-                                    <li>the 3-letter code used for PDB export,</li>
-                                    <li>
-                                        optionally, a <em>natural analog</em> if the monomer corresponds to a
-                                        modified version of a standard amino acid.
-                                    </li>
-                                </ul>
-                            </li>
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            To build your own monomer library:
+                        </Typography>
 
-                            <li>
-                                <strong>Submission:</strong> the monomer definition is submitted for inclusion.
-                                Depending on the platform configuration, it can be added to the current session
-                                library or stored in a shared, moderated library.
-                            </li>
-                        </ol>
+                        <Box
+                            component="ol"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Click <b>Create ID</b> (top-left).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Click <b>Generate</b> to create a new ID.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Save/copy it somewhere safe. You can always re-copy it later while connected.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                You can now use <b>My monomers</b> to create, edit, export and delete monomers.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="h6" gutterBottom>
+                            Creating monomers in “My monomers”
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
+                            There are two supported workflows. Both produce pepedit-compatible SDF records (with SD-tags) so monomers behave like built-in ones:
+                            they can be searched in the library, inserted in BILN sequences, linked via R-groups, visualized, and exported.
+                        </Typography>
+
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                                gap: 2,
+                                mb: 3,
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 2,
+                                }}
+                            >
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                                    Option 1 — Upload an SDF file
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                    Best if you already have monomers prepared in SDF format.
+                                </Typography>
+
+                                <Box
+                                    component="ol"
+                                    sx={{
+                                        pl: 3,
+                                        mb: 0,
+                                        "& > li": { mb: 0.6 },
+                                        "& > li:last-of-type": { mb: 0 },
+                                    }}
+                                >
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        My monomers → <b>Create</b> → <b>Upload SDF file</b>
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Choose a <code>.sdf</code> file and upload
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        The monomers become available in the Design page library/search
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <Box
+                                sx={{
+                                    p: 2,
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    borderRadius: 2,
+                                }}
+                            >
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                                    Option 2 — Create from scratch (SMILES → wizard)
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                    Best if you start from a structure and want to define R-groups interactively.
+                                </Typography>
+
+                                <Box
+                                    component="ol"
+                                    sx={{
+                                        pl: 3,
+                                        mb: 0,
+                                        "& > li": { mb: 0.6 },
+                                        "& > li:last-of-type": { mb: 0 },
+                                    }}
+                                >
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Provide a <b>SMILES</b>
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Select bond(s) to define attachment points (R-groups)
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Choose the fragment corresponding to the monomer core (max 4 R-groups)
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Fill monomer fields (Symbol must be unique; PDB is 1–3 uppercase letters)
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Validate the generated SDF and save to your personal library
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Box>
+
+                        <Typography variant="h6" gutterBottom>
+                            Editing personal monomers
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            From the My monomers table, you can edit a monomer’s metadata and leaving groups. The UI enforces key rules to keep monomers usable:
+                        </Typography>
+
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Symbol</b> must be unique (checked before saving in the creation wizard).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>PDB</b> is limited to <b>1–3 uppercase letters</b>.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Leaving groups are restricted to <b>H</b> or <b>OH</b>.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                A monomer with exactly <b>one</b> R-group is treated as a <b>cap</b> (type/subtype set accordingly).
+                            </Typography>
+                        </Box>
 
                         <Typography variant="body1" component="p">
-                            Once validated, newly defined monomers behave exactly like built-in ones and can
-                            be used in BILN sequences, linked via their R-groups, visualized in 2D/3D, and
-                            exported in all supported formats.
+                            If you want to propose monomers for everyone, use the dedicated submission page (“Submit to public library”).
+                            Your request is reviewed by maintainers before adding monomers to the public collection.
                         </Typography>
                     </section>
+                    
                     <Divider sx={{ my: 4 }} />
 
                     {/* Use cases */}
