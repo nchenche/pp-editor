@@ -29,6 +29,7 @@ const sections = [
     { id: "monomer-editor", label: "Monomer editor" },
     { id: "use-cases", label: "Examples & use cases" },
     { id: "limitations-tips", label: "Limitations & tips" },
+    { id: "policies", label: "Accessibility and cookie consent" },
 ];
 
 const Documentation = () => {
@@ -93,9 +94,9 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
-                            representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF). It supports
+                            representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). PEP-EDIT is not a peptide structure prediction tool, but it helps preparing realistic conformations to undergo further processing (molecular dynamics simulations, docking, etc). It supports
                             standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
-                            branched peptides.
+                        branched peptides. 
                         </Typography>
 
                         <Typography variant="body1" component="p">
@@ -112,17 +113,19 @@ const Documentation = () => {
                                 Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.
                             </li>
                             <li>Control protonation of exported molecules using a pH model (default: pH 7.4).</li>
-                            <li>Manage monomer library evolution in a collaborative/moderated mode.</li>
+                           
+                            <li>Manage both public and user private monomer library. The public monomer library monomer can be updated in a collaborative/moderated mode.</li>
                             <li>Support collaborative peptide design and/or didactic use of PEP-EDIT. In addition to the standard web instance, a n.eko instance of the service is available at {" "}
                             <MUILink
-                                    href="https://neko.rpbs.univ-paris-diderot.fr"
+                                    href="https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
-                                 https://neko.rpbs.univ-paris-diderot.fr. 
+                                 https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs. 
                             </MUILink>
                                 
                             </li>
+                            <li> PEP-EDIT can handle peptides with up to 40 monomers.</li>
                         </ul>
                     </section>
 
@@ -165,7 +168,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
-                            their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong>
+                            their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong>{" "}
                             and <strong>R2 = backbone carbonyl C</strong> for amino acids (for readability and N→C order).
                         </Typography>
                     </section>
@@ -189,7 +192,7 @@ const Documentation = () => {
                             </li>
                             <li>
                                 <strong>Monomer storage:</strong> monomer metadata is stored in a <strong>MongoDB</strong> database
-                                (instead of CSV files) to enable richer querying, editing and moderation workflows.
+                                (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows. This flexible management allows PEP-EDIT to handle both public and user specific monomer libraries, as well as facilities to migrate monomers from the user library to the public one in a moderated mode.
                             </li>
                             <li>
                                 <strong>Monomer naming rule:</strong> monomers containing the <code>-</code> character are renamed using
@@ -213,10 +216,10 @@ const Documentation = () => {
                                 from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).
                             </li>
                             <li>
-                                <strong>Collaborative facilities:</strong>
+                                <strong>Collaborative/didactic facilities:</strong>
                                 <ul>
                                     <li> a n.eko instance of PEP-EDIT enables multiuser design of a peptide. </li>
-                                    <li> the monomer library can be enhanced though a dedicated interface. </li>
+                                    {/* <li> the monomer library can be enhanced though a dedicated interface. </li> */}
                                 </ul>
                             </li>
                         </ul>
@@ -336,7 +339,7 @@ const Documentation = () => {
                             <li><strong>2D viewer</strong> (interactive SVG)</li>
                             <li><strong>3D viewer</strong> (conformer visualization)</li>
                             <li><strong>Monomer library</strong> (search/filter/add)</li>
-                            <li><strong>Output files</strong> (1D/2D/3D - BILN/HELM/SMILES/InChi/InChiKey/PDB/SDF/MOL2)</li>
+                            <li><strong>Output files</strong> (1D/2D/3D - BILN/HELM/SMILES/InChi/InChiKey/PDB/SDF/MOL2/XYZ)</li>
                         </ol>
                     </section>
 
@@ -349,8 +352,8 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>) or by inserting
-                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are porposed ease the identification of the monomer. 
+                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>), by specifying a peptide sequencein a FASTA format (limited to the 20 standard amino acids) or by inserting
+                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are proposed ease the identification of the monomer. 
                         </Typography>
 
                         <Box component="figure" className="my-4">
@@ -439,31 +442,51 @@ const Documentation = () => {
                         </ul>
 
                         <Typography variant="body1" component="p">
-                            Secondary-structure presets in PEP-EDIT are implemented by setting backbone <strong>dihedral angles</strong>
+                            <strong>Secondary-structure presets</strong> in PEP-EDIT are implemented by setting backbone <strong>dihedral angles</strong>
                             (φ/ψ, plus ω) using reference values for helices and extended conformations. The target angles are adjusted
                             depending on residue chirality (L vs D), mirroring in Ramachandran space for D residues.
                         </Typography>
-
-                        <Typography variant="body1" component="p">
-                            3D templates apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
-                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them. 
-                        </Typography>
-                        
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
-                                src="/assets/documentation/3DConstraints.png"
+                                src="/assets/documentation/SecondaryStructure.png"
                                 alt="Linking and unlinking chains using R-groups"
                                 className="max-w-xs w-full mx-auto rounded-xl shadow"
                                 onClick={() =>
                                     openLightbox(
-                                        "/assets/documentation/3DConstraints.png",
+                                        "/assets/documentation/SecondaryStructure.png",
                                         "Linking and unlinking chains using R-groups"
                                     )
                                 }
                             />
                             <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 5. Imposing 3D conformational constraints.
+                                Figure 5. Imposing Secondary structure constraints.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body1" component="p">
+                            <strong>3D template constraints</strong> apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
+                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template (PDB format) is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them.
+                        </Typography>
+                        <Typography variant="body1" component="p">
+                            The mapping configuration allows to define the exact fragment of the PDB entry to use (chain, residue index), and how it is mapped onto the BILN sequence (in a contiguous manner from an offset position). It is possible to finely tune the mapping usage on a per residue basis by masking residues (constraints not taken into account). 
+                        </Typography>
+                   
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/3DTemplateProcess.png"
+                                alt="Linking and unlinking chains using R-groups"
+                                className="max-w-xs w-full mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/3DTemplateProcess.png",
+                                        "Linking and unlinking chains using R-groups"
+                                    )
+                                }
+                            />
+                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+                                Figure 6. Imposing 3D template constraints.
                             </Typography>
                         </Box>
 
@@ -509,21 +532,19 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to Dimorphite-DL to predict a
-                            protonated form at a chosen pH (default: 7.4), and the protonated state is propagated to exports (SMILES, PDB, etc.).
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                Dimorphite-DL reference:{" "}
-                                <MUILink
+                            Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to {" "}
+                            <MUILink
                                     href="https://link.springer.com/article/10.1186/s13321-019-0336-9"
                                     target="_blank"
                                     rel="noreferrer"
-                                >
-                                    https://link.springer.com/article/10.1186/s13321-019-0336-9
-                                </MUILink>
-                            </li>
+                            >
+                                Dimorphite-DL {" "}
+                            </MUILink>
+                            
+                            to predict a protonated form at a chosen pH (default: 7.4), and the protonated state is propagated to exports (SMILES, PDB, etc.).
+                        </Typography>
+
+                        <ul className="list-disc ml-6 mb-3">
                             <li>
                                 PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
                                 (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
@@ -541,9 +562,9 @@ const Documentation = () => {
                         </Typography>
 
                         <ul className="list-disc ml-6 mb-3">
-                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available).</li>
-                            <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines).</li>
-                            <li><strong>3D:</strong> PDB / SDF / MOL2 (starting conformers for modeling / MD).</li>
+                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available). These formats are widely used by the chemoinformatics community, and allow for similarity search, substructure search, pharmacophore identification, etc. The SMILES format can also be used as an input to AlphaFold 3.</li>
+                            <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines). These formats are widely used by the chemoinformatics community for fingerprints based similarity search and pharmacophore identification.</li>
+                            <li><strong>3D:</strong> PDB / XYZ / SDF / MOL2 (starting conformers for modeling / MD). These formats can be used as starting conformations to undergo 3D conformational sampling, using molecular dynamics simulations approaches (PDB + SMILES - openmm), or quantum calculation approaches (XYZ - ORCA) for instance.</li>
                         </ul>
 
                         <Typography variant="body1" component="p">
@@ -648,7 +669,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 6. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
+                                Figure 7. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
                                 topology of Microcin J25 during conformer generation.
                                 Left: 3D conformation generated without contraints. Right:3D conformation generated using the PDB entry 1Q71 as template.
                             </Typography>
@@ -682,7 +703,7 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             From the primary sequence, it is straightforward to generate the
-                            corresponding BILN sequence, substitute residue 19, and define the
+                            corresponding BILN sequence using the <strong>Upload sequence</strong> button , substitute residue 19, and define the
                             side-chain-to-backbone cyclization. However, a generic 3D builder cannot
                             spontaneously recover the lasso topology: the C-terminal segment does not
                             naturally thread through the ring.
@@ -774,7 +795,29 @@ const Documentation = () => {
                                     {`G(1,1)-T-V-A-V-Q-F-L(1,2)`}
                                 </Typography>
                             </li>
-
+                            <Box component="figure" className="my-4">
+                                <Box
+                                    component="img"
+                                    src="/assets/documentation/OctaL.png"
+                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
+                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                    onClick={() =>
+                                        openLightbox(
+                                            "/assets/documentation/OctaL.png",
+                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
+                                        )
+                                    }
+                                />
+                                <Typography
+                                    variant="caption"
+                                    display="block"
+                                    align="center"
+                                    sx={{ mt: 1 }}
+                                >
+                                    Figure 8. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
+                                </Typography>
+                            </Box>
+                            
                             <li>
                                 Head-to-tail octapeptide containing three D-amino acids:
                                 <Typography
@@ -785,7 +828,7 @@ const Documentation = () => {
                                     {`D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)`}
                                 </Typography>
                             </li>
-
+                            
                             <li>
                                 Head-to-tail octapeptide containing four D-amino acids:
                                 <Typography
@@ -796,6 +839,28 @@ const Documentation = () => {
                                     {`dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)`}
                                 </Typography>
                             </li>
+                            <Box component="figure" className="my-4">
+                                <Box
+                                    component="img"
+                                    src="/assets/documentation/OctaD4L.png"
+                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
+                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                    onClick={() =>
+                                        openLightbox(
+                                            "/assets/documentation/OctaD4L.png",
+                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
+                                        )
+                                    }
+                                />
+                                <Typography
+                                    variant="caption"
+                                    display="block"
+                                    align="center"
+                                    sx={{ mt: 1 }}
+                                >
+                                    Figure 9. Generation of an octopeptide (containing four D-amino acids) with head-to-tail cyclization.
+                                </Typography>
+                            </Box>
                         </ul>
 
                         <Typography variant="body1" component="p">
@@ -803,6 +868,169 @@ const Documentation = () => {
                             control over cyclization and chirality, enabling the construction of
                             non-canonical cyclic peptides that would be difficult to describe using
                             sequence-only representations.
+                        </Typography>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        {/* Conformer search with ORCA */}
+                        <Typography variant="h6" gutterBottom>
+                            Conformer search with ORCA
+                        </Typography>
+
+                        <Typography variant="body1" component="p">
+                            When dealing with flexible molecules such as peptides, it is important to consider
+                            the conformational space they can occupy for reliable quantum chemistry calculations.
+                            The XYZ file generated by PEP-EDIT is suitable to be used as input for the{" "}
+                            <MUILink
+                                href="https://www.faccts.de/docs/orca/6.0/tutorials/prop/goat.html"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                global optimizer algorithm (GOAT) in ORCA
+                            </MUILink>
+                            . For instance, the orphan cyclic peptide drug cilengitide can be generated in PEP-EDIT using the following BILN sequence:
+                        </Typography>
+
+                        <Typography
+                            variant="body2"
+                            component="pre"
+                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
+                        >
+                            {`R(1,1)-G-D-dF-meV(1,2)`}
+                        </Typography>
+
+                        <Typography variant="body1" component="p">
+                            Then, using the XYZ file as input for ORCA's global optimizer
+                            allows to start exploring various conformations of cilengitide.
+                            
+                            In this example, we used the semi-empirical method GFN2-xTB combined with the implicit water solvent model
+                            ALPB, but any level of theory available in ORCA can be used.
+                        </Typography>
+
+                        <Typography variant="body1" component="p">
+                            The scripts used for ORCA input preparation and the conversion of the ORCA xyz output into PDB are available {" "}
+                            <MUILink
+                                href="https://github.com/alexisdougha/goat-pep"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                here. {" "}
+                            </MUILink>
+                        </Typography>
+                        
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/cilengitide.png"
+                                alt="Ensemble of conformers generated by ORCA's GOAT algorithm for cilengitide"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/cilengitide.png",
+                                        "Ensemble of conformers generated by ORCA's GOAT algorithm for cilengitide"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 10. Starting from the geometry given by PEP-EDIT, an ensemble of conformers is generated
+                                to explore the conformational space of cilengitide. Compared with a reference structure (PDB ID: <code>1L5G</code>), new
+                                conformers have been identified with lower backbone RMSD. The backbone of the PEP-EDIT conformation and the lowest-rmsd conformer
+                                are shown in purple and green, respectively, while the reference PDB structure is shown in gray.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body1" component="p">
+                            PEP-EDIT proves to be a suitable tool for generating initial XYZ coordinates of modified and cyclic peptides to be studied further with quantum chemistry methods.
+                            
+
+                        </Typography>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        {/* Protein-peptide structure prediction */}
+                        <Typography variant="h6" gutterBottom>
+                            Protein-peptide structure prediction
+                        </Typography>
+
+                        <Typography variant="body1" component="p">
+                            Diffusion-based structure prediction models like AlphaFold 3 make it possible to directly perform
+                            co-folding (i.e. simultaneous prediction of protein and peptide structures). SMILES can be used as input to predict
+                            the binding pose of a modified peptide in interaction with a protein.
+                            Here, we predict such complexes using the SMILES generated by PEP-EDIT as an input to AlphaFold 3
+                            together with the sequence of a protein.
+                        </Typography>
+
+                        <ul>
+                            <li>
+                                Doubly sulfated CCR2 N-terminal peptide (PDB ID: <code>7P8X</code>):
+                                <Typography
+                                    variant="body2"
+                                    component="pre"
+                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
+                                >
+                                    {`ac-D-Tyr_SO3H-D-Tyr_SO3H-G with corresponding SMILES CC(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)NCC(=O)[O-]`}
+                                </Typography>
+                            </li>
+                            
+                            <li>
+                                Histone H3K27ac(24-27) peptide (PDB ID: <code>7X88</code>):
+                                <Typography
+                                    variant="body2"
+                                    component="pre"
+                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
+                                >
+                                    {`A-A-R-Lys_Ac with corresponding SMILES CC(=O)NCCCC[C@H](NC(=O)[C@H](CCCNC(N)=[NH2+])NC(=O)[C@H](C)NC(=O)[C@H](C)[NH3+])C(=O)[O-]`}
+                                </Typography>
+                            </li>
+                            
+                        </ul>
+                        
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/7P8X_top_7X88_bottom.png"
+                                alt="Protein-peptide complexes predicted with AlphaFold 3 using PEP-EDIT generated SMILES"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/7P8X_top_7X88_bottom.png",
+                                        "Protein-peptide complexes predicted with AlphaFold 3 using PEP-EDIT generated SMILES"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 11. Based on the SMILES given by PEP-EDIT (and the sequence of the proteins), both protein-peptide complexes were predicted with AlphaFold 3.
+                                The experimental (dark and light green) and the predicted structures (purple and magenta) are superimposed.
+                                AlphaFold 3 fails to recover the experimental structure for 7P8X but it accurately predicts the binding pose in 7X88.
+                                Top: <code>7P8X</code>. Bottom: <code>7X88</code>.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body1" component="p">
+                            PEP-EDIT can be used to help prepare inputs for AlphaFold 3 (or other similar models like Chai or Boltz) to model protein-peptide interactions involving modified peptides.
+                            However, the predicted structures should be interpreted with caution.
+
+                            <Typography variant="body1" component="p">
+                                    The scripts used to prepare the input for AlphaFold3 from SMILES are available {" "}
+                                <MUILink
+                                        href="https://github.com/alexisdougha/smiles-fold-input-builder"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        here. {" "}
+                                    </MUILink>
+                            </Typography>
+
                         </Typography>
                     </section>
 
@@ -832,7 +1060,23 @@ const Documentation = () => {
                             </li>
                         </ul>
                     </section>
-                </Box>
+
+                                    {/* Limitations */}
+                    <section id="policies">
+                        <Typography variant="h5" gutterBottom>
+                            Accessibility and cookie consent.
+                        </Typography>
+
+                        <ul className="list-disc ml-6 mb-3">
+                            <li>
+                                This website is free and open to all and there is no login requirement.
+                            </li>
+                            <li>
+                                This web site does not make use of tracking cookies. Cookie usage is restricted to strictily necessary cookies.
+                            </li>
+                        </ul>
+                    </section>
+</Box>
             </Box>
 
             {/* Image lightbox */}
