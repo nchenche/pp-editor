@@ -756,6 +756,37 @@ const Documentation = () => {
                             side chain of Lys20 using the graphical linking tool or explicit BILN
                             connectivity.
                         </Typography>
+                        <Typography
+                            variant="body2"
+                            component="pre"
+                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
+                        >
+                            {`H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)`}
+                        </Typography>
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/Semaglutide.png"
+                                alt="Generating a 3D structure for the semaglutide"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/Semaglutide.png",
+                                        "Generating a 3D structure for the semaglutide"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 8. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
+                            </Typography>
+                        </Box>
+
 
                         <Typography variant="body1" component="p">
                             While PEP-EDIT can generate a valid initial conformation for this construct,
@@ -815,7 +846,7 @@ const Documentation = () => {
                                     align="center"
                                     sx={{ mt: 1 }}
                                 >
-                                    Figure 8. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
+                                    Figure 9. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
                                 </Typography>
                             </Box>
                             
@@ -859,7 +890,7 @@ const Documentation = () => {
                                     align="center"
                                     sx={{ mt: 1 }}
                                 >
-                                    Figure 9. Generation of an octopeptide (containing four D-amino acids) with head-to-tail cyclization.
+                                    Figure 10. Generation of an octopeptide (containing four D-amino acids) with head-to-tail cyclization.
                                 </Typography>
                             </Box>
                         </ul>
@@ -938,7 +969,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 10. Starting from the geometry given by PEP-EDIT, an ensemble of conformers is generated
+                                Figure 11. Starting from the geometry given by PEP-EDIT, an ensemble of conformers is generated
                                 to explore the conformational space of cilengitide. Compared with a reference structure (PDB ID: <code>1L5G</code>), new
                                 conformers have been identified with lower backbone RMSD. The backbone of the PEP-EDIT conformation and the lowest-rmsd conformer
                                 are shown in purple and green, respectively, while the reference PDB structure is shown in gray.
@@ -1010,7 +1041,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 11. Based on the SMILES given by PEP-EDIT (and the sequence of the proteins), both protein-peptide complexes were predicted with AlphaFold 3.
+                                Figure 12. Based on the SMILES given by PEP-EDIT (and the sequence of the proteins), both protein-peptide complexes were predicted with AlphaFold 3.
                                 The experimental (dark and light green) and the predicted structures (purple and magenta) are superimposed.
                                 AlphaFold 3 fails to recover the experimental structure for 7P8X but it accurately predicts the binding pose in 7X88.
                                 Top: <code>7P8X</code>. Bottom: <code>7X88</code>.
@@ -1074,7 +1105,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 12. Based on the SMILES and PDB given by PEP-EDIT, Cilengitide conformationnal space was sampled using OpenMM.
+                                Figure 13. Based on the SMILES and PDB given by PEP-EDIT, Cilengitide conformationnal space was sampled using OpenMM.
                                 The RMSD to the experimental conformation (left) is around 1 Angtroem. The sampling includes the experimental conformation of the Cilengitide in complex with the extracellular segment of integrin avb3 (PDB: <code>1L5G</code>) (black dot, center image), the closest conformation is at 0.7 Angstroem from the experimental one (right).
                             </Typography>
                         </Box>
@@ -1125,7 +1156,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 13. Based on the FASTA sequence of the BAD peptide, PEP-EDIT can be used to generate an all helical conformation of the 25 residue BAD peptide.
+                                Figure 14. Based on the FASTA sequence of the BAD peptide, PEP-EDIT can be used to generate an all helical conformation of the 25 residue BAD peptide.
                             </Typography>
                         </Box>
                         
@@ -1148,7 +1179,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 14. Bcl-xl is colored in cyan, experimental BH3 peptide in magenta and the docked BH3 peptide is in green.
+                                Figure 15. Bcl-xl is colored in cyan, experimental BH3 peptide in magenta and the docked BH3 peptide is in green.
                             </Typography>
                         </Box>
                         
