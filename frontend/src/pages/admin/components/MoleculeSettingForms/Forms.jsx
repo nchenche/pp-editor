@@ -29,7 +29,7 @@ import createPalette from "@mui/material/styles/createPalette";
 
 export const MolNameForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
             <Controller
                 name="name"
                 control={control}
@@ -40,6 +40,7 @@ export const MolNameForm = ({ sxOptions, control }) => {
                             {...field}
                             size="small"
                             fullWidth
+                            placeholder="Alanine"
                         />
                     </>
                 )}
@@ -50,7 +51,7 @@ export const MolNameForm = ({ sxOptions, control }) => {
 
 export const MolSymbolForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
             <Controller
                 name="symbol"
                 control={control}
@@ -60,6 +61,7 @@ export const MolSymbolForm = ({ sxOptions, control }) => {
                         {...field}
                         size="small"
                         fullWidth
+                        placeholder="A"
                     />
                 )}
             />
@@ -69,7 +71,7 @@ export const MolSymbolForm = ({ sxOptions, control }) => {
 
 export const MolAnalogForm = ({ sxOptions, control }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
             <Controller
                 name="naturalAnalog"
                 control={control}
@@ -88,7 +90,7 @@ export const MolAnalogForm = ({ sxOptions, control }) => {
 
 export const MolPDBForm = ({ sxOptions, control, error }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small" error={!!error}>
             <Controller
                 name="pdb"
                 control={control}
@@ -104,8 +106,17 @@ export const MolPDBForm = ({ sxOptions, control, error }) => {
                         label="PDB"
                         error={!!error}
                         {...field}
+                        onChange={(e) => {
+                            const next = String(e.target.value || '')
+                                .toUpperCase()
+                                .replace(/[^A-Z]/g, '')
+                                .slice(0, 3);
+                            field.onChange(next);
+                        }}
                         size="small"
                         fullWidth
+                        placeholder="ALA"
+                        inputProps={{ maxLength: 3 }}
                     />
                 )}
             />
@@ -118,7 +129,7 @@ export const MolPDBForm = ({ sxOptions, control, error }) => {
 
 export const MolTypeForm = ({ sxOptions, control, error, capDisabled, aaDisabled }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small" error={!!error}>
             <InputLabel id="select-type" error={!!error}>Select Type</InputLabel>
 
             <Controller
@@ -151,7 +162,7 @@ export const MolTypeForm = ({ sxOptions, control, error, capDisabled, aaDisabled
 
 export const MolSubTypeForm = ({ sxOptions, control, error, options, disabled }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
             {/* <InputLabel id="select-subtype" error={!!error}>Select Subtype</InputLabel> */}
             <Controller
                 name="selectSubType"
@@ -189,7 +200,7 @@ export const GroupLabelForm = ({ sxOptions, control, error, index }) => {
     const name = `groupLabel_${index}`;
 
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
             <InputLabel id={labelId} error={!!error}>{label}</InputLabel>
             <Controller
                 name={name}
@@ -228,7 +239,7 @@ export const GroupLeavingForm = ({ sxOptions, control, error, index }) => {
 
 
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="normal" size="small" error={!!error}>
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small" error={!!error}>
             <Controller
                 name={name}
                 control={control}

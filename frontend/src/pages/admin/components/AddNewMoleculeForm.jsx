@@ -21,7 +21,7 @@ import createPalette from "@mui/material/styles/createPalette";
 
 export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
 
-    const sxOptions = { margin: 0.85, width: '100%' };
+    const sxOptions = { mt: 0.5, mb: 0.5, width: '100%' };
     const {
         control,
         formState: { errors },

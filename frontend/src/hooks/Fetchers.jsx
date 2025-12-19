@@ -10,8 +10,19 @@ export const useFetchMolecule = (smiles, queryParams) => {
     const [error, setError] = useState(null);
 
 
+    const queryKey = (() => {
+        try {
+            return JSON.stringify(queryParams || {});
+        } catch {
+            return '';
+        }
+    })();
+
     useEffect(() => {
         if (!smiles) return;
+
+        const controller = new AbortController();
+        const signal = controller.signal;
 
         const baseURL = `${API_BASE_URL}/api/molecules/svg-rendering`;
         const params = new URLSearchParams();
@@ -37,7 +48,8 @@ export const useFetchMolecule = (smiles, queryParams) => {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: payload
+                    body: payload,
+                    signal,
                 });
 
                 if (!response.ok) {
@@ -47,14 +59,17 @@ export const useFetchMolecule = (smiles, queryParams) => {
                 const result = await response.json();
                 setData(() => result);
             } catch (err) {
-                setError(err.message);
+                if (err?.name !== 'AbortError') {
+                    setError(err.message);
+                }
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchData();
-    }, [smiles]);
+        return () => controller.abort();
+    }, [smiles, queryKey]);
 
     return { data, isLoading, error };
 };

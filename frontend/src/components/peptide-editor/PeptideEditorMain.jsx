@@ -409,7 +409,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     function loadData(newBiln) {
         // Assign width and height based on biln sequence length (from chain with max residues)
         const maxLen = rowMonomerLists.reduce((max, seq) => Math.max(max, seq.length), 0);
-        const size = Math.min(Math.max(300 + maxLen * 75, 600), 2200);
+        const size = Math.min(Math.max(300 + maxLen * 90, 600), 2800);
         const params = {
             sequence: newBiln,
             mode: 'rdkit',

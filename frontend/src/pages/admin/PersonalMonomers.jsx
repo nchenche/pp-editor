@@ -44,7 +44,7 @@ import { API_DB_URL } from '../../config';
 import { apiFetch } from '../../utils/api';
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks';
-import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
+import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
 
 const NEVER_VISIBLE_KEYS = new Set([
   'owner_id',
@@ -244,7 +244,7 @@ function safeToString(value) {
 
 function normalizePdbNameInput(value) {
   const upper = String(value || '').toUpperCase().replace(/\s+/g, '');
-  return upper.slice(0, 3);
+  return upper.replace(/[^A-Z]/g, '').slice(0, 3);
 }
 
 function normalizeNatAnalogInput(value) {
@@ -308,6 +308,7 @@ export default function PersonalMonomers() {
   const [scratchSelectedFragmentIndex, setScratchSelectedFragmentIndex] = useState(-1);
   const [scratchCurrentIndex, setScratchCurrentIndex] = useState(0);
   const [scratchFormData, setScratchFormData] = useState({});
+  const [scratchStepError, setScratchStepError] = useState('');
 
   const wizardRef = useRef(null);
   const formRef = useRef(null);
@@ -418,6 +419,58 @@ export default function PersonalMonomers() {
     );
   }, []);
 
+  const StepGuidelineWithError = useCallback(({ title, children, error }) => {
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.5,
+          borderColor: 'divider',
+          bgcolor: 'action.hover',
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {children}
+        </Typography>
+        {error ? (
+          <Typography variant="body2" sx={{ color: 'error.main', mt: 1 }}>
+            {error}
+          </Typography>
+        ) : null}
+      </Paper>
+    );
+  }, []);
+
+  const checkSymbolExists = useCallback(async (values) => {
+    const symbol = String(values?.symbol || '').trim();
+    if (!symbol) return { exists: false };
+
+    const params = new URLSearchParams();
+    params.set('db_name', 'pepedit');
+    params.set('symbol', symbol);
+
+    const res = await apiFetch(`${API_DB_URL}/monomers/exists?${params.toString()}`, { method: 'GET' });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { exists: false, error: json?.message || json?.error || `Failed to validate symbol (status ${res.status})` };
+    }
+
+    // Expected shape:
+    // { data: { symbol: { exists: boolean, value: string, where: [] } }, ... }
+    if (typeof json?.data?.symbol?.exists === 'boolean') {
+      return { exists: json.data.symbol.exists };
+    }
+
+    // Fallbacks (in case backend shape changes)
+    if (typeof json?.exists === 'boolean') return { exists: json.exists };
+    if (typeof json?.data?.exists === 'boolean') return { exists: json.data.exists };
+
+    return { exists: false };
+  }, []);
+
   // Scratch wizard side effects (same pattern as UIAddMonomers)
   useEffect(() => {
     if (createMode !== 'scratch') return;
@@ -427,12 +480,14 @@ export default function PersonalMonomers() {
   useEffect(() => {
     if (createMode !== 'scratch') return;
     setScratchFormData({});
+    setScratchStepError('');
   }, [scratchSelectedFragmentIndex, createMode]);
 
   useEffect(() => {
     if (createMode !== 'scratch') return;
     if (Array.isArray(scratchFragments) && scratchFragments.length > 0) {
-      setScratchSelectedFragmentIndex(0);
+      const firstAllowed = scratchFragments.findIndex((f) => isFragmentAllowed(f, 4));
+      setScratchSelectedFragmentIndex(firstAllowed >= 0 ? firstAllowed : -1);
     } else {
       setScratchSelectedFragmentIndex(-1);
     }
@@ -445,11 +500,26 @@ export default function PersonalMonomers() {
       case 1:
         return Array.isArray(scratchSelectedBonds) && scratchSelectedBonds.length > 0;
       case 2:
-        return scratchSelectedFragmentIndex !== -1;
+        if (scratchSelectedFragmentIndex === -1) return false;
+        if (!isFragmentAllowed(scratchFragments?.[scratchSelectedFragmentIndex], 4)) return false;
+        return true;
       case 3: {
         if (!formRef.current) return false;
         const isValid = await formRef.current.isValid();
         if (!isValid) return false;
+
+        const values = formRef.current.getFormData ? formRef.current.getFormData() : scratchFormData;
+        const existsRes = await checkSymbolExists(values);
+        if (existsRes?.error) {
+          setScratchStepError(String(existsRes.error));
+          return false;
+        }
+        if (existsRes?.exists) {
+          setScratchStepError('This symbol already exists. Please choose a different Symbol.');
+          return false;
+        }
+
+        setScratchStepError('');
         handleScratchFormSubmit();
         return true;
       }
@@ -458,7 +528,7 @@ export default function PersonalMonomers() {
       default:
         return true;
     }
-  }, [scratchCurrentIndex, scratchSmiles, scratchSelectedBonds, scratchSelectedFragmentIndex, handleScratchFormSubmit]);
+  }, [scratchCurrentIndex, scratchSmiles, scratchSelectedBonds, scratchSelectedFragmentIndex, scratchFragments, handleScratchFormSubmit, checkSymbolExists, scratchFormData]);
 
   const handleScratchNext = useCallback(async () => {
     const ok = await scratchCheckTab();
@@ -481,10 +551,12 @@ export default function PersonalMonomers() {
   }, []);
 
   const handleScratchSelectedFragment = useCallback((fragmentIndex) => {
+    setScratchStepError('');
     setScratchSelectedFragmentIndex(fragmentIndex);
   }, []);
 
   const handleScratchFormDataChange = useCallback((data) => {
+    setScratchStepError('');
     setScratchFormData(data);
   }, []);
 
@@ -692,8 +764,8 @@ export default function PersonalMonomers() {
 
     const originalSymbol = String(editDialog.originalSymbol || symbol).trim();
     const pdbName = normalizePdbNameInput(editForm.pdbName);
-    if (pdbName && !/^[A-Z0-9]{1,3}$/.test(pdbName)) {
-      setError('PDB name must be 1–3 characters (A–Z / 0–9), uppercase.');
+    if (pdbName && !/^[A-Z]{1,3}$/.test(pdbName)) {
+      setError('PDB name must be 1–3 uppercase letters (A–Z).');
       return;
     }
 
@@ -1262,7 +1334,8 @@ export default function PersonalMonomers() {
               value={editForm.pdbName}
               onChange={(e) => setEditForm((s) => ({ ...s, pdbName: normalizePdbNameInput(e.target.value) }))}
               inputProps={{ maxLength: 3 }}
-              helperText="Up to 3 characters, uppercase (e.g., ALT)."
+              placeholder="ALA"
+              helperText="Up to 3 letters, uppercase (e.g., ALA)."
             />
 
             <FormControl size="small">
@@ -1423,9 +1496,6 @@ export default function PersonalMonomers() {
 
           {createMode === 'scratch' ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Create a monomer from scratch using the same workflow as the admin wizard (fragmentation → settings → generated molblock).
-              </Typography>
 
               <FormWizard
                 ref={wizardRef}
@@ -1457,7 +1527,7 @@ export default function PersonalMonomers() {
                 <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <StepGuideline title="Guideline">
-                      Click one or more bonds to choose cut points. These cuts drive fragmentation and attachment point detection.
+                      Click one or more bonds to choose cut points. The right-hand 2D view is only an illustrative preview of the fragments produced by those cuts; you will choose the actual fragment in the next step.
                     </StepGuideline>
                     <TabStep2
                       smiles={scratchSmiles}
@@ -1470,22 +1540,23 @@ export default function PersonalMonomers() {
 
                 <FormWizard.TabContent title="Select a fragment" icon="ti-check">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <StepGuideline title="Guideline">
-                      Choose the fragment that best represents your monomer core. You’ll configure its metadata and R-groups next.
-                    </StepGuideline>
+                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>
+                      Choose the fragment that will become the monomer core. A maximum of 4 attachment points ("*") is allowed.
+                    </StepGuidelineWithError>
                     <TabStep3
                       fragments={scratchFragments}
                       selectedFragmentIndex={scratchSelectedFragmentIndex}
                       handleSelectedFragment={handleScratchSelectedFragment}
+                      onInvalidFragment={(msg) => setScratchStepError(String(msg || ''))}
                     />
                   </Box>
                 </FormWizard.TabContent>
 
                 <FormWizard.TabContent title="Fill the fields" icon="ti-check">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <StepGuideline title="Guideline">
-                      Fill in monomer metadata (symbol, name, type/subtype, and R-group information). Use values consistent with pepedit conventions.
-                    </StepGuideline>
+                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>
+                      Fill in monomer metadata. Clicking “Next” will validate the form and also check that the Symbol does not already exist.
+                    </StepGuidelineWithError>
                     <TabStep4
                       ref={formRef}
                       fragmentSmiles={scratchFragments?.[scratchSelectedFragmentIndex]}
@@ -1505,11 +1576,12 @@ export default function PersonalMonomers() {
                       value={scratchMolBlock || ''}
                       multiline
                       minRows={10}
+                      maxRows={18}
                       fullWidth
                       slotProps={{
                         input: {
                           readOnly: true,
-                          sx: { fontFamily: 'monospace' },
+                          sx: { fontFamily: 'monospace', '& textarea': { overflow: 'auto' } },
                         },
                       }}
                     />
@@ -1525,7 +1597,7 @@ export default function PersonalMonomers() {
 
               <style>{`
                 @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
-                .wizard-card-footer{ display:flex; justify-content:center; margin-top:10px; gap:20px; flex-wrap:wrap; row-gap:10px; }
+                .wizard-card-footer{ display:flex; justify-content:center; margin-top:10px; gap:20px; flex-wrap:wrap; row-gap:10px; position:sticky; bottom:0; z-index:2; padding:10px 0; }
               `}</style>
             </Box>
           ) : null}

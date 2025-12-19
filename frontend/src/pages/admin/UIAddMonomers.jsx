@@ -16,13 +16,14 @@ import './styles.css'
 import {
   Box,
   Button,
+  Paper,
   TextField,
   Typography,
 } from '@mui/material';
 
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks'
-import { TabStep1, TabStep2, TabStep3, TabStep4 } from './components/Steps';
+import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
 
 
 const UIAddMonomers = memo(() => {
@@ -34,6 +35,7 @@ const UIAddMonomers = memo(() => {
   const [selectedFragmentIndex, setSelectedFragmentIndex] = useState(-1);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [formData, setFormData] = useState({});
+  const [stepError, setStepError] = useState('');
 
   // References
   const wizardRef = useRef();
@@ -42,6 +44,56 @@ const UIAddMonomers = memo(() => {
   // Custom Hooks for managing fragments and form submission
   const [fragments] = useFragments(smiles, selectedBonds);
   const [handleFormSubmit, molBlock] = useFormSubmission(formData, fragments, selectedFragmentIndex);
+
+  const StepGuideline = useCallback(({ title, children, error }) => {
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 1.5,
+          borderColor: 'divider',
+          bgcolor: 'action.hover',
+          mb: 2,
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {children}
+        </Typography>
+        {error ? (
+          <Typography variant="body2" sx={{ color: 'error.main', mt: 1 }}>
+            {error}
+          </Typography>
+        ) : null}
+      </Paper>
+    );
+  }, []);
+
+  const checkSymbolExists = useCallback(async (values) => {
+    const symbol = String(values?.symbol || '').trim();
+    if (!symbol) return { exists: false };
+
+    const params = new URLSearchParams();
+    params.set('db_name', 'pepedit');
+    params.set('symbol', symbol);
+
+    const res = await apiFetch(`${API_DB_URL}/monomers/exists?${params.toString()}`, { method: 'GET' });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      return { exists: false, error: json?.message || json?.error || `Failed to validate symbol (status ${res.status})` };
+    }
+
+    if (typeof json?.data?.symbol?.exists === 'boolean') {
+      return { exists: json.data.symbol.exists };
+    }
+
+    if (typeof json?.exists === 'boolean') return { exists: json.exists };
+    if (typeof json?.data?.exists === 'boolean') return { exists: json.data.exists };
+
+    return { exists: false };
+  }, []);
 
 
   const checkTab = async () => {
@@ -54,11 +106,25 @@ const UIAddMonomers = memo(() => {
         return true;
       case 2:
         if (selectedFragmentIndex === -1) return false;
+        if (!isFragmentAllowed(fragments?.[selectedFragmentIndex], 4)) return false;
         return true;
       case 3:
         if (formRef.current) {
           const isValid = await formRef.current.isValid();
           if (!isValid) return false;
+
+          const values = formRef.current.getFormData ? formRef.current.getFormData() : formData;
+          const existsRes = await checkSymbolExists(values);
+          if (existsRes?.error) {
+            setStepError(String(existsRes.error));
+            return false;
+          }
+          if (existsRes?.exists) {
+            setStepError('This symbol already exists. Please choose a different Symbol.');
+            return false;
+          }
+
+          setStepError('');
 
           handleFormSubmit();
           return true;
@@ -148,15 +214,18 @@ const UIAddMonomers = memo(() => {
   // Side effect Hooks
   useEffect(() => {
     setSelectedBonds([]);
+    setStepError('');
   }, [smiles]);
 
   useEffect(() => {
     setFormData({});
+    setStepError('');
   }, [selectedFragmentIndex]);
 
   useEffect(() => {
     if (fragments.length > 0) {
-      setSelectedFragmentIndex(0);
+      const firstAllowed = fragments.findIndex((f) => isFragmentAllowed(f, 4));
+      setSelectedFragmentIndex(firstAllowed >= 0 ? firstAllowed : -1);
     } else {
       setSelectedFragmentIndex(-1);
     }
@@ -179,11 +248,13 @@ const UIAddMonomers = memo(() => {
 
   // Handle selection of fragment
   const handleSelectedFragment = useCallback((fragmentIndex) => {
+    setStepError('');
     setSelectedFragmentIndex(fragmentIndex);
   }, []);
 
   // Use useCallback to memoize setFormData
   const handleFormDataCallback = useCallback((data) => {
+    setStepError('');
     setFormData(data);
   }, []);
 
@@ -227,6 +298,9 @@ const UIAddMonomers = memo(() => {
           nextButtonTemplate={nextButtonTemplate}
         >
           <FormWizard.TabContent title="Choose a molecule" icon="ti-user">
+            <StepGuideline title="Guideline">
+              Enter or paste a valid SMILES string for the molecule you want to convert into a monomer.
+            </StepGuideline>
             <TabStep1
               smiles={smiles}
               handleChangeSmiles={handleChangeSmiles}
@@ -234,6 +308,9 @@ const UIAddMonomers = memo(() => {
           </FormWizard.TabContent>
 
           <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
+            <StepGuideline title="Guideline">
+              Select one or more bonds to define where the molecule should be cut. The second 2D view is only an illustrative preview of the resulting fragments; you will choose the actual fragment in the next step.
+            </StepGuideline>
             <TabStep2
               smiles={smiles}
               handleSelectedBonds={handleSelectedBonds}
@@ -243,11 +320,21 @@ const UIAddMonomers = memo(() => {
           </FormWizard.TabContent>
 
           <FormWizard.TabContent title="Select a fragment" icon="ti-check">
-            <TabStep3 fragments={fragments} selectedFragmentIndex={selectedFragmentIndex} handleSelectedFragment={handleSelectedFragment} />
-            <p>Selected fragment: {selectedFragmentIndex} - {fragments[selectedFragmentIndex]}</p>
+            <StepGuideline title="Guideline" error={stepError}>
+              Choose the fragment that will become the monomer core. A maximum of 4 attachment points ("*") is allowed.
+            </StepGuideline>
+            <TabStep3
+              fragments={fragments}
+              selectedFragmentIndex={selectedFragmentIndex}
+              handleSelectedFragment={handleSelectedFragment}
+              onInvalidFragment={(msg) => setStepError(String(msg || ''))}
+            />
           </FormWizard.TabContent>
 
           <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+            <StepGuideline title="Guideline" error={stepError}>
+              Fill in the monomer metadata. Clicking “Next” will validate the form and also check that the Symbol does not already exist.
+            </StepGuideline>
             <TabStep4
               ref={formRef}
               fragmentSmiles={fragments[selectedFragmentIndex]}
@@ -257,6 +344,9 @@ const UIAddMonomers = memo(() => {
           </FormWizard.TabContent>
 
           <FormWizard.TabContent title="Validate" icon="ti-check">
+            <StepGuideline title="Guideline">
+              Review the generated molblock for correctness before submitting.
+            </StepGuideline>
             <Box mb={2}>
               <Typography variant="h6" >
                 Please review the generated molblock for the monomer before submission.
@@ -264,9 +354,9 @@ const UIAddMonomers = memo(() => {
 
               <Box mt={2}>
                 <TextField
-
                   multiline
-                  rows={25}
+                  minRows={10}
+                  maxRows={18}
                   fullWidth
                   variant="outlined"
                   value={molBlock || 'No molblock generated.'}
@@ -282,6 +372,7 @@ const UIAddMonomers = memo(() => {
                           fontFamily: 'inherit',
                           fontSize: 'inherit',
                           color: 'inherit',
+                          overflow: 'auto',
                         },
                       },
                     },
@@ -305,6 +396,10 @@ const UIAddMonomers = memo(() => {
           justify-content: center;
           margin-top: 10px;
           gap: 20px;
+          position: sticky;
+          bottom: 0;
+          z-index: 2;
+          padding: 10px 0;
         }
       `}</style>
     </Box>
