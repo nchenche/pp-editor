@@ -418,7 +418,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             'ph_value': phValue,
             'width': size,
             'height': size,
-            'owner_id': 'user_test',
+            // 'owner_id': 'user_test',
         }
 
         // const query = `?sequence=${newBiln}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;

@@ -10,36 +10,40 @@ export function useFetchDepiction() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const fetchDepiction = async (params = {}) => {
+    const fetchDepiction = useCallback(async (params = {}) => {
         if (params && typeof params !== 'object') {
             throw new Error('Params must be an object');
         }
 
-        // Construct query string from params
-        const queryString = Object.keys(params).length > 0
-            ? `?${new URLSearchParams(params).toString()}`
-            : '';
-        const fetchUrl = DEPICT_2D_URL + queryString;
+        // Build URL safely (supports DEPICT_2D_URL already having query params).
+        // Owner scoping: apiFetch() will append owner_id/user_id automatically when connected.
+        const url = new URL(DEPICT_2D_URL, window.location.origin);
+        if (params) {
+            for (const [k, v] of Object.entries(params)) {
+                if (v == null) continue;
+                url.searchParams.set(k, String(v));
+            }
+        }
 
         setLoading(true);
         try {
-            const response = await apiFetch(fetchUrl);
+            const response = await apiFetch(url.toString(), { method: 'GET' });
+            const json = await response.json().catch(() => null);
+
             if (!response.ok) {
-                const res = await response.json();
-                console.error('Error fetching depiction:', res);
-                setError(res.message);
-                setLoading(false);
+                console.error('Error fetching depiction:', json);
+                setError(json?.message || json?.error || `Failed to fetch depiction (status ${response.status})`);
                 return;
             }
-            const json = await response.json();
-            setData(json.data);
+
+            setData(json?.data ?? null);
             setError(null);
         } catch (err) {
-            setError(err);
+            setError(err?.message || 'Failed to fetch depiction.');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     return { data, error, loading, fetchDepiction, setData };
 }

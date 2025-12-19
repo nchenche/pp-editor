@@ -7,6 +7,7 @@ import NavBar from './components/layout/Navbar';
 
 import Home from './pages/Home';
 import UIAddMonomers from './pages/admin/UIAddMonomers';
+import PersonalMonomers from './pages/admin/PersonalMonomers';
 import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import Documentation from './pages/Documentation';
 import './App.css'
@@ -89,6 +90,18 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Home isActive={true} />} />
         <Route
+          path="/my-monomers"
+          element={
+            ownerId ? (
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                <PersonalMonomers />
+              </Box>
+            ) : (
+              <OwnerIdRequiredRouteDialog key={location.key} />
+            )
+          }
+        />
+        <Route
           path="/admin-monomers"
           element={
             ownerId ? (
@@ -130,6 +143,12 @@ function App() {
     {
       to: '/',
       text: 'Design peptide'
+    },
+    {
+      to: '/my-monomers',
+      text: 'My monomers',
+      disabled: !ownerId,
+      disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
     },
     {
       to: '/admin-monomers',
