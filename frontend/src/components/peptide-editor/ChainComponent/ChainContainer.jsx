@@ -139,13 +139,13 @@ export default function ChainContainer({
                             Sequence
                         </Typography>
                         <Box sx={iconRowSx}>
-                            <Tooltip title="Menu" arrow>
+                            {/* <Tooltip title="Menu" arrow>
                                 <span>
                                     <IconButton size="small" onClick={onSequenceMenu} sx={iconBtnSx}>
                                         <MoreVertIcon fontSize="inherit" />
                                     </IconButton>
                                 </span>
-                            </Tooltip>
+                            </Tooltip> */}
                             <Tooltip title="Clear" arrow>
                                 <span>
                                     <IconButton size="small" onClick={onSequenceClear} sx={iconBtnSx}>
@@ -153,13 +153,13 @@ export default function ChainContainer({
                                     </IconButton>
                                 </span>
                             </Tooltip>
-                            <Tooltip title="Help" arrow>
+                            {/* <Tooltip title="Help" arrow>
                                 <span>
                                     <IconButton size="small" onClick={onSequenceHelp} sx={iconBtnSx}>
                                         <HelpOutlineIcon fontSize="inherit" />
                                     </IconButton>
                                 </span>
-                            </Tooltip>
+                            </Tooltip> */}
                         </Box>
                     </Box>
                     <Box sx={{ minWidth: 0 }}>{sequenceSlot}</Box>
@@ -186,13 +186,13 @@ export default function ChainContainer({
                                     </IconButton>
                                 </span>
                             </Tooltip>
-                            <Tooltip title="Help" arrow>
+                            {/* <Tooltip title="Help" arrow>
                                 <span>
                                     <IconButton size="small" onClick={onConstraintsHelp} sx={iconBtnSx}>
                                         <HelpOutlineIcon fontSize="inherit" />
                                     </IconButton>
                                 </span>
-                            </Tooltip>
+                            </Tooltip> */}
                         </Box>
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
@@ -240,13 +240,13 @@ export default function ChainContainer({
                                 </span>
                             </Tooltip>
 
-                            <Tooltip title="Help" arrow>
+                            {/* <Tooltip title="Help" arrow>
                                 <span>
                                     <IconButton size="small" onClick={onTemplateHelp} sx={iconBtnSx}>
                                         <HelpOutlineIcon fontSize="inherit" />
                                     </IconButton>
                                 </span>
-                            </Tooltip>
+                            </Tooltip> */}
                         </Box>
 
                     </Box>
