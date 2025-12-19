@@ -85,7 +85,7 @@ function AppRoutes() {
             )
           }
         />
-        <Route
+        {/* <Route
           path="/admin-monomers"
           element={
             ownerId ? (
@@ -96,7 +96,7 @@ function AppRoutes() {
               <OwnerIdRequiredRouteDialog key={location.key} />
             )
           }
-        />
+        /> */}
         <Route
           path="/monomers"
           element={
@@ -134,12 +134,12 @@ function App() {
       disabled: !ownerId,
       disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
     },
-    {
-      to: '/admin-monomers',
-      text: 'Add new monomer',
-      disabled: !ownerId,
-      disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
-    },
+    // {
+    //   to: '/admin-monomers',
+    //   text: 'Add new monomer',
+    //   disabled: !ownerId,
+    //   disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
+    // },
     {
       to: '/documentation',
       text: 'Documentation'
