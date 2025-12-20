@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useCallback, useMemo, useState } from 'react';
 
 import Header from './components/layout/Header';
@@ -24,6 +24,9 @@ import Button from '@mui/material/Button';
 import { useOwnerId } from './hooks/useOwnerId';
 
 import DataPolicyDialog from './components/common/DataPolicyDialog';
+
+
+const IS_DOCS_ONLY = import.meta.env.VITE_DOCS_ONLY === 'true';
 
 
 const COOKIE_CONSENT_STORAGE_KEY = 'pp-editor:cookie-consent:v1';
@@ -117,6 +120,39 @@ function AppRoutes() {
   const ownerId = useOwnerId();
   const location = useLocation();
 
+  if (IS_DOCS_ONLY) {
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                <Documentation />
+              </Box>
+            }
+          />
+          <Route
+            path="/documentation"
+            element={
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                <Documentation />
+              </Box>
+            }
+          />
+          <Route path="*" element={<Navigate to="/documentation" replace />} />
+        </Routes>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -185,7 +221,14 @@ function App() {
   const ownerId = useOwnerId();
   const [isOwnerRequiredOpen, setIsOwnerRequiredOpen] = useState(false);
 
-  const dataLinks = [
+  const dataLinks = IS_DOCS_ONLY
+    ? [
+      {
+        to: '/documentation',
+        text: 'Documentation'
+      }
+    ]
+    : [
     {
       to: '/',
       text: 'Design peptide'
@@ -204,7 +247,7 @@ function App() {
       to: '/documentation',
       text: 'Documentation'
     }
-  ];
+    ];
 
   const onDisabledLinkClick = useCallback(() => {
     setIsOwnerRequiredOpen(true);

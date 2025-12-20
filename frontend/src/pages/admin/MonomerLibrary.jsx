@@ -156,7 +156,7 @@ const ListMonomerLibrary = ({ monomers }) => {
 
 
 export const MonomerLibraryContainer = () => {
-    const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers/images`);
+    const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers?include_images=true`);
     const dataRef = useRef(null);
 
     const limitRangeMolWeight = useMemo(() => ({}), []);

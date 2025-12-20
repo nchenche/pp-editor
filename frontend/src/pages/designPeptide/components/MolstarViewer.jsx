@@ -6,6 +6,7 @@ import { useMolstarSelection } from '../../../hooks/useMolstarSelection';
 
 import { RepresentationSelector } from "./molstar/RepresentationSelector";
 import { ColorSchemeSelector } from "./molstar/ColorSchemeSelector";
+import { BackgroundSelector } from "./molstar/BackgroundSelector";
 
 
 const MolStarViewer = ({
@@ -24,8 +25,27 @@ const MolStarViewer = ({
 
     const [representation, setRepresentation] = useState(defaultRepresentation);
     const [colorScheme, setColorScheme] = useState(defaultColorScheme);
+    const [background, setBackground] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem('pp-editor:molstar-background:v1');
+            const v = String(raw || '').trim().toLowerCase();
+            return v === 'dark' ? 'dark' : 'light';
+        } catch {
+            return 'light';
+        }
+    });
 
-    const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin();
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem('pp-editor:molstar-background:v1', String(background));
+        } catch {
+            // ignore
+        }
+    }, [background]);
+
+    const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin({
+        backgroundColor: background,
+    });
     const {
         structure,
         loading: structureLoading,
@@ -133,6 +153,7 @@ const MolStarViewer = ({
             <div className="absolute controls mt-2 flex gap-4 justify-center -top-2 left-0">
                 <RepresentationSelector value={representation} onChange={setRepresentation} />
                 <ColorSchemeSelector value={colorScheme} onChange={setColorScheme} />
+                <BackgroundSelector value={background} onChange={setBackground} />
             </div>
         </div>
     );

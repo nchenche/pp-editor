@@ -1,5 +1,14 @@
 # React + Vite
 
+## Docs-only development (no backend)
+
+If you only want to edit the Documentation page and don’t want to run/install the backend dependencies, you can start the frontend in a “docs-only” mode.
+
+- Install frontend deps: `cd frontend && npm install`
+- Start docs-only dev server: `npm run docs`
+
+In this mode, the app will serve the Documentation page and will redirect all routes to `/documentation`, so backend-dependent pages won’t mount.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

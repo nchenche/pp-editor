@@ -39,6 +39,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -49,6 +50,7 @@ import { useTheme } from '@mui/material/styles';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 const MAX_MONOMERS = 40;
+const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
 
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
@@ -65,6 +67,24 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(['ball-and-stick']);
     const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
     const [repOpacityPctById, setRepOpacityPctById] = useState({});
+
+    const [molstarBackground, setMolstarBackground] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_BG_STORAGE_KEY);
+            const v = String(raw || '').trim().toLowerCase();
+            return v === 'dark' ? 'dark' : 'light';
+        } catch {
+            return 'light';
+        }
+    });
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_BG_STORAGE_KEY, String(molstarBackground));
+        } catch {
+            // ignore
+        }
+    }, [molstarBackground]);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -977,7 +997,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </Button>
                                         </Tooltip>
 
-                                        <Tooltip title="Reset 3D View" arrow placement='top'>
+                                        <Tooltip title="Background" arrow placement='top'>
+                                            <Button
+                                                onClick={() => setActive3DPanel((p) => (p === 'background' ? null : 'background'))}
+                                                color="inherit"
+                                                aria-pressed={active3DPanel === 'background'}
+                                                aria-label="background"
+                                            >
+                                                <FormatColorFillIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
+                                        <Tooltip title="View" arrow placement='top'>
                                             <Button
                                                 onClick={() => setActive3DPanel((p) => (p === 'view' ? null : 'view'))}
                                                 color="inherit"
@@ -1118,6 +1149,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         handleMonomerHover={handleMonomerHover}
                                         defaultRepresentation="ball-and-stick"
                                         defaultColorScheme="element-symbol"
+                                        background={molstarBackground}
                                         height="100%"
                                         width="100%"
                                         error={generate3DError}
@@ -1129,7 +1161,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 {active3DPanel && (
                                     <Box
                                         sx={{
-                                            width: 190,
+                                            width: 240,
                                             flex: '0 0 auto',
                                             borderLeft: 1,
                                             borderColor: 'divider',
@@ -1146,6 +1178,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     ? 'Color by'
                                                     : active3DPanel === 'labels'
                                                         ? 'Labels'
+                                                        : active3DPanel === 'background'
+                                                            ? 'Background'
                                                         : 'View'}
                                         </Typography>
                                         <Divider sx={{ mb: 0.75 }} />
@@ -1283,6 +1317,50 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         {color.label}
                                                     </Button>
                                                 ))}
+                                            </Box>
+                                        )}
+
+                                        {active3DPanel === 'background' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                    Canvas background
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                                    <Button
+                                                        size="small"
+                                                        variant={molstarBackground === 'light' ? 'contained' : 'text'}
+                                                        color="inherit"
+                                                        onClick={() => setMolstarBackground('light')}
+                                                        sx={{
+                                                            justifyContent: 'flex-start',
+                                                            textTransform: 'none',
+                                                            fontSize: 12,
+                                                            lineHeight: 1.2,
+                                                            minHeight: 26,
+                                                            px: 0.75,
+                                                            color: 'text.primary',
+                                                        }}
+                                                    >
+                                                        Light
+                                                    </Button>
+                                                    <Button
+                                                        size="small"
+                                                        variant={molstarBackground === 'dark' ? 'contained' : 'text'}
+                                                        color="inherit"
+                                                        onClick={() => setMolstarBackground('dark')}
+                                                        sx={{
+                                                            justifyContent: 'flex-start',
+                                                            textTransform: 'none',
+                                                            fontSize: 12,
+                                                            lineHeight: 1.2,
+                                                            minHeight: 26,
+                                                            px: 0.75,
+                                                            color: 'text.primary',
+                                                        }}
+                                                    >
+                                                        Dark
+                                                    </Button>
+                                                </Box>
                                             </Box>
                                         )}
 

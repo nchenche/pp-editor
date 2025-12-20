@@ -98,6 +98,8 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
 
+    const imageBase64 = monomer?.image_binary || monomer?.image_url || monomer?.image_base64 || monomer?.imageBase64 || '';
+
     const detailsTooltip = (
         <Box
             sx={{
@@ -203,7 +205,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
             >
                 <Box
                     component="img"
-                    src={`data:image/png;base64,${monomer.image_url}`}
+                    src={`data:image/png;base64,${imageBase64}`}
                     alt={`Structure of ${monomer.symbol}`}
                     loading="lazy"
                     decoding="async"

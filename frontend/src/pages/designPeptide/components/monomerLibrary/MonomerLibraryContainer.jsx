@@ -105,7 +105,6 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         handleAddingMonomer?.(monomer, { ...linkingRef.current, ...options });
     }, [handleAddingMonomer]);
 
-    if (error) return <p>Error: {String(error)}</p>;
     const initialLoading = isLoading && (!allMonomers || allMonomers.length === 0);
 
     // Header now receives uiState directly and controls the sequence index
@@ -163,6 +162,14 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                             <CircularProgress size={32} />
                         </Box>
                     )}
+
+                    {error ? (
+                        <Box sx={{ px: 2, py: 1 }}>
+                            <Typography variant="body2" color="error">
+                                Error: {String(error)}
+                            </Typography>
+                        </Box>
+                    ) : null}
 
                     <MonomerLibraryItems
                         monomers={filteredMonomers}

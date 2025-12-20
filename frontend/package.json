@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "docs": "vite --mode docs",
     "build": "vite build",
     "start:prod": "npm run build && npm run preview:prod",
     "preview:prod": "vite preview --host 0.0.0.0",

@@ -15,6 +15,7 @@ const Viewer3DInner = ({
     handleMonomerHover,
     defaultRepresentation = 'ball-and-stick',
     defaultColorScheme = 'chain-id',
+    background = 'light',
     height = '20rem',
     width = '100%',
     isGenerating3D = false,
@@ -25,7 +26,9 @@ const Viewer3DInner = ({
     const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
     const [representationAlphaByRep, setRepresentationAlphaByRep] = useState({});
 
-    const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin();
+    const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin({
+        backgroundColor: background,
+    });
     const {
         structure,
         loading: structureLoading,

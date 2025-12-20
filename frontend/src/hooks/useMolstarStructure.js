@@ -12,7 +12,6 @@ import { PluginConfig } from 'molstar/lib/mol-plugin/config';
 import { StructureComponentManager } from 'molstar/lib/mol-plugin-state/manager/structure/component';
 import { cameraProject } from "molstar/lib/mol-canvas3d/camera/util";
 import { transformDirectionArray } from "molstar/lib/mol-geo/util";
-import { RendererParams } from "molstar/lib/mol-gl/renderer";
 
 
 /* Molstar programmatical access to some functionalities
@@ -77,10 +76,8 @@ async function applyStyle(plugin) {
                 },
                 shadow: { name: 'off', params: {} },
             },
-            // Use the surrounding MUI Paper as the backdrop.
-            // This avoids the default Mol* dark/gradient background and keeps the viewer consistent with the page.
-            transparentBackground: PD.Boolean(true),
-            renderer: PD.Group({ ...RendererParams, backgroundColor: PD.Color(Color(0xFFFFFF)) }) // white
+            // Use a solid background so user-selected background colors are visible.
+            transparentBackground: false,
         });
     }
 }

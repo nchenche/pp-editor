@@ -72,7 +72,9 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
   const [error, setError] = useState(null);
   const prevDataRef = useRef([]);
 
-  const baseUrl = `${API_BASE_URL}/api/db/monomers/images?efields=m_id,sdf,smiles`;
+  // Use unified monomers endpoint; server returns images as JSON-safe base64 when include_images=true.
+  // Keep apiFetch() so owner_id/user_id is still injected and public+personal behavior stays unchanged.
+  const baseUrl = `${API_BASE_URL}/api/db/monomers?include_images=true&efields=m_id,sdf,smiles`;
   const requestUrl = useMemo(
     () => makeRequestUrl(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]
@@ -113,7 +115,19 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
         const res = await apiFetch(url, { signal: controller.signal });
         if (!res.ok) throw new Error(`Failed to fetch (${res.status})`);
         const json = await res.json();
-        const next = (json?.data || []);  // .slice(0, 200)
+        const payload = json?.data ?? json;
+        const list = Array.isArray(payload)
+          ? payload
+          : (Array.isArray(payload?.monomers) ? payload.monomers : []);
+
+        // Back-compat: some UIs expect `image_url` to contain a base64 png string.
+        const next = (list || []).map((m) => {
+          if (!m || typeof m !== 'object') return m;
+          if (m.image_url) return m;
+          if (m.image_binary) return { ...m, image_url: m.image_binary };
+          if (m.image_base64) return { ...m, image_url: m.image_base64 };
+          return m;
+        });
 
         if (cancelled) return;
         setCached(cacheKey, next);
