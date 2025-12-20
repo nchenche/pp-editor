@@ -57,12 +57,24 @@ export function useGenerate3D(baseUrlOverride) {
             const myReqId = ++reqIdRef.current;
             setLoading(true);
             try {
+                // Build URL the same way as `useFetchDepiction`:
+                // - allow base prefix like '' or '/api' (prod behind nginx)
+                // - allow base absolute like 'https://host' or 'https://host/api'
+                // - preserve base path even when endpoint starts with '/'
                 const base = baseUrlOverride ?? API_BASE_URL ?? '';
-                const originBase = typeof base === 'string' && base.startsWith('http')
-                    ? base
-                    : `${window.location.origin}${base}`;
+                const urlObj = (() => {
+                    if (typeof endpoint === 'string' && endpoint.startsWith('http')) {
+                        return new URL(endpoint);
+                    }
 
-                const urlObj = new URL(endpoint, originBase);
+                    // If base is absolute (http...), concatenate directly.
+                    if (typeof base === 'string' && base.startsWith('http')) {
+                        return new URL(`${base}${endpoint}`);
+                    }
+
+                    // base is '' or a relative prefix like '/api'
+                    return new URL(`${base}${endpoint}`, window.location.origin);
+                })();
 
                 const effectiveParams = {
                     no_hydrogens: false,
