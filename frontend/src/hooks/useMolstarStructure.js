@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { CircularProgress } from "@mui/material";
 import { PresetStructureRepresentations } from 'molstar/lib/mol-plugin-state/builder/structure/representation-preset';
 import { Color } from 'molstar/lib/mol-util/color';
+import { StateSelection } from 'molstar/lib/mol-state/state/selection';
 import { CollapsableControls, PurePluginUIComponent } from 'molstar/lib/mol-plugin-ui/base';
 import { MagicWandSvg } from 'molstar/lib/mol-plugin-ui/controls/icons';
 import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
@@ -12,6 +13,32 @@ import { StructureComponentManager } from 'molstar/lib/mol-plugin-state/manager/
 import { cameraProject } from "molstar/lib/mol-canvas3d/camera/util";
 import { transformDirectionArray } from "molstar/lib/mol-geo/util";
 import { RendererParams } from "molstar/lib/mol-gl/renderer";
+
+
+/* Molstar programmatical access to some functionalities
+
+# Hydrogens visualization
+
+Hide all hydrogens:
+plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, hydrogens: 'hide-all' })
+Show all hydrogens:
+plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, hydrogens: 'all' })
+Only polar hydrogens:
+plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, hydrogens: 'only-polar' })
+
+# Lighting and effects
+Set lighting to "soft":
+plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, ignoreLight: false });
+
+Set lighting to "flat":
+plugin.managers.structure.component.setOptions({ ...plugin.managers.structure.component.state.options, ignoreLight: true });
+
+Enable outline and occlusion effects with custom parameters:
+See applyStyle() function below.
+
+
+
+*/
 
 
 async function applyStyle(plugin) {
@@ -50,7 +77,9 @@ async function applyStyle(plugin) {
                 },
                 shadow: { name: 'off', params: {} },
             },
-            // transparentBackground: PD.Boolean(false),
+            // Use the surrounding MUI Paper as the backdrop.
+            // This avoids the default Mol* dark/gradient background and keeps the viewer consistent with the page.
+            transparentBackground: PD.Boolean(true),
             renderer: PD.Group({ ...RendererParams, backgroundColor: PD.Color(Color(0xFFFFFF)) }) // white
         });
     }
@@ -70,14 +99,18 @@ function determineFileFormat(filename, mimeType) {
 
 export function useMolstarStructure(pluginRef, {
     defaultRepresentation = 'cartoon',
+    enabledRepresentations = null,
     defaultColorScheme = 'chain-id',
+    atomLabelsEnabled = false,
+    labelsEnabled = null,
+    representationAlphaByRep = null,
 } = {}) {
     const [structure, setStructure] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // Always use latest representation/color scheme (in case they are made dynamic)
-    const processStructureData = useCallback(async (fileData, format, rep = defaultRepresentation, colorScheme = defaultColorScheme) => {
+    const processStructureData = useCallback(async (fileData, format) => {
         if (!pluginRef.current) return;
         const plugin = pluginRef.current;
         const trajectorySO = await plugin.builders.structure.parseTrajectory(fileData, format);
@@ -107,6 +140,37 @@ export function useMolstarStructure(pluginRef, {
         //     { tag: 'atom-labels' },
         // );
 
+    }, [pluginRef]);
+
+    const repTag = useCallback((repType) => `ui-rep:${repType}`, []);
+    const labelsTag = useCallback((level) => `ui-labels:${level}`, []);
+    const prevEnabledRef = useRef([]);
+    const prevColorRef = useRef(null);
+    const prevStructureRef = useRef(null);
+    const prevLabelsEnabledRef = useRef({ element: false, residue: false, chain: false });
+    const prevAlphaSigRef = useRef(null);
+
+    const getEffectiveEnabled = useCallback(() => {
+        const arr = Array.isArray(enabledRepresentations)
+            ? enabledRepresentations
+            : (defaultRepresentation ? [defaultRepresentation] : []);
+        // sanitize/normalize
+        return Array.from(new Set(arr.filter(Boolean).map(String)));
+    }, [enabledRepresentations, defaultRepresentation]);
+
+    const removeTaggedInSubtree = useCallback(async (rootRef, tag) => {
+        if (!pluginRef.current || !rootRef || !tag) return;
+        const plugin = pluginRef.current;
+        const sel = StateSelection.Generators.byRef(rootRef).subtree().withTag(tag);
+        const cells = StateSelection.select(sel, plugin.state.data);
+        if (!cells || cells.length === 0) return;
+
+        const builder = plugin.state.data.build();
+        for (const cell of cells) {
+            if (!cell?.transform?.ref) continue;
+            builder.delete(cell.transform.ref);
+        }
+        await builder.commit();
     }, [pluginRef]);
 
     // Loader: PDB raw data string
@@ -194,42 +258,138 @@ export function useMolstarStructure(pluginRef, {
     }, [pluginRef, processStructureData]);
 
 
-    // **Add an effect to update rep/color**
-    const updateRepresentation = useCallback(
-        async (repType, colorScheme) => {
-            if (!structure || !pluginRef.current) return;
-            const plugin = pluginRef.current;
-            // Remove old representation (tagged 'current-representation')
-            try {
-                await plugin.builders.structure.representation.removeRepresentations(structure, { tag: 'current-representation' });
-            } catch { }
-            // Add new representation
-            await plugin.builders.structure.representation.addRepresentation(
-                structure,
-                {
-                    type: repType,
-                    color: colorScheme,
-                    // typeParams: { alpha: 0.01, },
-                },
-                { tag: "current-representation" }
-            );
-        },
-        // async () => {
-        //     const { structures } = pluginRef.current.managers.structure.hierarchy.selection;
-        //     console.log('Updating representation/color for structures:', structures);
-        //     if (!structures) return;
-
-        //     await pluginRef.current.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['molecular-surface']);
-
-        // },
-        [structure]
-    );
-
-    // If representation/color changes, update it
+    // Reconcile multiple representations (toggle on/off) and keep colors in sync.
     useEffect(() => {
-        if (!structure) return;
-        updateRepresentation(defaultRepresentation, defaultColorScheme);
-    }, [defaultRepresentation, defaultColorScheme, updateRepresentation]);
+        if (!structure || !pluginRef.current) return;
+
+        const plugin = pluginRef.current;
+        const enabled = getEffectiveEnabled();
+
+        const getAlphaForRep = (repType) => {
+            const v = representationAlphaByRep && typeof representationAlphaByRep === 'object'
+                ? representationAlphaByRep[String(repType)]
+                : undefined;
+            const a = Number(v);
+            if (!Number.isFinite(a)) return 1;
+            return Math.min(1, Math.max(0, a));
+        };
+
+        const prevEnabled = Array.isArray(prevEnabledRef.current) ? prevEnabledRef.current : [];
+        const prevColor = prevColorRef.current;
+        const isNewStructure = prevStructureRef.current !== structure;
+        const colorChanged = prevColor !== defaultColorScheme;
+        const alphaSig = enabled.map((rep) => `${rep}:${getAlphaForRep(rep)}`).join('|');
+        const alphaChanged = prevAlphaSigRef.current !== alphaSig;
+
+        const removed = isNewStructure
+            ? []
+            : prevEnabled.filter((x) => !enabled.includes(x));
+        const added = isNewStructure
+            ? enabled
+            : enabled.filter((x) => !prevEnabled.includes(x));
+
+        const run = async () => {
+            const rootRef = structure?.cell?.transform?.ref;
+            if (!rootRef) return;
+
+            // Remove disabled reps
+            for (const repType of removed) {
+                await removeTaggedInSubtree(rootRef, repTag(repType));
+            }
+
+            // If color/alpha changed (or a new structure), update the enabled reps in-place via applyOrUpdateTagged.
+            // This avoids a remove/re-add cycle and keeps toggles reliable.
+            if (isNewStructure || colorChanged || alphaChanged) {
+                for (const repType of enabled) {
+                    await plugin.builders.structure.representation.addRepresentation(
+                        structure,
+                        { type: repType, color: defaultColorScheme, typeParams: { alpha: getAlphaForRep(repType) } },
+                        { tag: repTag(repType) }
+                    );
+                }
+
+                prevEnabledRef.current = enabled;
+                prevColorRef.current = defaultColorScheme;
+                prevAlphaSigRef.current = alphaSig;
+                prevStructureRef.current = structure;
+                return;
+            }
+
+            // Add newly enabled reps
+            for (const repType of added) {
+                await plugin.builders.structure.representation.addRepresentation(
+                    structure,
+                    { type: repType, color: defaultColorScheme, typeParams: { alpha: getAlphaForRep(repType) } },
+                    { tag: repTag(repType) }
+                );
+            }
+
+            prevEnabledRef.current = enabled;
+            prevColorRef.current = defaultColorScheme;
+            prevAlphaSigRef.current = alphaSig;
+            prevStructureRef.current = structure;
+        };
+
+        run().catch((e) => {
+            // Avoid throwing in effects; surface a minimal message
+            console.warn('Mol* representation reconcile failed:', e);
+        });
+    }, [structure, pluginRef, getEffectiveEnabled, defaultColorScheme, repTag, removeTaggedInSubtree, representationAlphaByRep]);
+
+    // Labels toggles (independent of representations)
+    useEffect(() => {
+        if (!structure || !pluginRef.current) return;
+        const plugin = pluginRef.current;
+        const rootRef = structure?.cell?.transform?.ref;
+        if (!rootRef) return;
+
+        const prev = prevLabelsEnabledRef.current ?? { element: false, residue: false, chain: false };
+        const next = (labelsEnabled && typeof labelsEnabled === 'object')
+            ? {
+                element: !!labelsEnabled.element,
+                residue: !!labelsEnabled.residue,
+                chain: !!labelsEnabled.chain,
+            }
+            : { element: !!atomLabelsEnabled, residue: false, chain: false };
+
+        const isNewStructure = prevStructureRef.current !== structure;
+        if (!isNewStructure
+            && prev.element === next.element
+            && prev.residue === next.residue
+            && prev.chain === next.chain
+        ) return;
+
+        const levels = ['element', 'residue', 'chain'];
+
+        const run = async () => {
+            for (const level of levels) {
+                const enabled = !!next[level];
+                if (!enabled) {
+                    await removeTaggedInSubtree(rootRef, labelsTag(level));
+                    continue;
+                }
+
+                await plugin.builders.structure.representation.addRepresentation(
+                    structure,
+                    {
+                        type: 'label',
+                        typeParams: {
+                            sizeFactor: 0.6,
+                            tether: false,
+                            level,
+                        },
+                    },
+                    { tag: labelsTag(level) }
+                );
+            }
+
+            prevLabelsEnabledRef.current = next;
+        };
+
+        run().catch((e) => {
+            console.warn('Mol* labels reconcile failed:', e);
+        });
+    }, [structure, pluginRef, atomLabelsEnabled, labelsEnabled, labelsTag, removeTaggedInSubtree]);
 
     return {
         structure,

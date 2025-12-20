@@ -64,6 +64,7 @@ export function useSplitLayout({
     return {
         editorAreaHeight,
         viewerSplitRatio,
+        setViewerSplitRatio,
         mainAreaRef,
         viewerRowRef,
         startDrag,

@@ -30,19 +30,21 @@ import {
 import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
+import Slider from '@mui/material/Slider';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
+import LabelIcon from '@mui/icons-material/Label';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import DownloadIcon from '@mui/icons-material/Download';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useTheme } from '@mui/material/styles';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
@@ -56,12 +58,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
 
-    const [repMenuEl, setRepMenuEl] = useState(null);
-    const [colorMenuEl, setColorMenuEl] = useState(null);
-    const [reset3DEl, setReset3DEl] = useState(null);
-    const repMenuOpen = Boolean(repMenuEl);
-    const colorMenuOpen = Boolean(colorMenuEl);
-    const reset3DOpen = Boolean(reset3DEl);
+    const [active3DPanel, setActive3DPanel] = useState(null);
+
+    const theme = useTheme();
+
+    const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(['ball-and-stick']);
+    const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
+    const [repOpacityPctById, setRepOpacityPctById] = useState({});
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -85,6 +88,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    const viewer2DColRef = useRef(null);
+
+    const was3DPanelOpenRef = useRef(false);
+    const splitRatioBefore3DPanelRef = useRef(null);
 
     const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
@@ -236,9 +244,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             });
         }
     }, [bilnValue, helm, sdf, smiles, structurePDB, structureOutput, onOutputChange]);
-    console.log('helm', helm);
-    console.log('sdf2d', sdf);
-
 
     const canGenerate3D = useMemo(() => {
         if (!committedBiln) return false;
@@ -263,7 +268,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     : null;
 
             const requestParams = {
-                no_hydrogens: false,
+                no_hydrogens: true,
                 is_protonated: true,
                 ph_value: phValue,
             };
@@ -564,6 +569,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const {
         editorAreaHeight,
         viewerSplitRatio,
+        setViewerSplitRatio,
         mainAreaRef,
         viewerRowRef,
         startDrag,
@@ -573,6 +579,55 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         minViewerPanelWidth: 200,
         initialViewerSplitRatio: 0.5,
     });
+
+    // Keep the *3D canvas* width stable when the 3D side panel opens.
+    // We do this by shifting space from the 2D pane (adjusting viewerSplitRatio).
+    useLayoutEffect(() => {
+        const isOpen = !!active3DPanel;
+
+        // Only act on open/close transitions (not when switching between panel sections)
+        const wasOpen = was3DPanelOpenRef.current;
+        if (isOpen === wasOpen) {
+            // Still ensure Mol* resizes correctly when switching panel content
+            const raf = requestAnimationFrame(() => {
+                try { viewer3DRef.current?.resize?.(); } catch { }
+            });
+            return () => cancelAnimationFrame(raf);
+        }
+
+        const panelWidthPx = 190;
+        const panelGapPx = Number.parseFloat(theme.spacing(1)) || 8;
+        const deltaPx = panelWidthPx + panelGapPx;
+        const minViewerPanelWidth = 200;
+
+        if (isOpen) {
+            splitRatioBefore3DPanelRef.current = viewerSplitRatio;
+
+            const rowRect = viewerRowRef.current?.getBoundingClientRect?.();
+            const leftRect = viewer2DColRef.current?.getBoundingClientRect?.();
+
+            if (rowRect?.width && leftRect?.width) {
+                const nextLeftPx = Math.min(
+                    Math.max(leftRect.width - deltaPx, minViewerPanelWidth),
+                    rowRect.width - minViewerPanelWidth,
+                );
+                setViewerSplitRatio(nextLeftPx / rowRect.width);
+            }
+        } else {
+            const prev = splitRatioBefore3DPanelRef.current;
+            if (typeof prev === 'number' && Number.isFinite(prev)) {
+                setViewerSplitRatio(prev);
+            }
+            splitRatioBefore3DPanelRef.current = null;
+        }
+
+        was3DPanelOpenRef.current = isOpen;
+
+        const raf = requestAnimationFrame(() => {
+            try { viewer3DRef.current?.resize?.(); } catch { }
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [active3DPanel, setViewerSplitRatio, theme, viewerSplitRatio, viewerRowRef]);
 
 
     return (
@@ -676,6 +731,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
 
                     <Box
+                        ref={viewer2DColRef}
                         sx={{
                             flexBasis: `${viewerSplitRatio * 100}%`,
                             minWidth: 200,
@@ -892,11 +948,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     >
                                         <Tooltip title="Representation" arrow placement='top'>
                                             <Button
-                                                onClick={(e) => setRepMenuEl(e.currentTarget)}
+                                                onClick={() => setActive3DPanel((p) => (p === 'representation' ? null : 'representation'))}
                                                 color="inherit"
-                                                aria-haspopup="menu"
-                                                aria-controls={repMenuOpen ? 'rep-menu' : undefined}
-                                                aria-expanded={repMenuOpen ? 'true' : undefined}
+                                                aria-pressed={active3DPanel === 'representation'}
                                             >
                                                 <CategoryIcon fontSize="inherit" />
                                             </Button>
@@ -904,301 +958,365 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                         <Tooltip title="Color by" arrow placement='top'>
                                             <Button
-                                                onClick={(e) => setColorMenuEl(e.currentTarget)}
+                                                onClick={() => setActive3DPanel((p) => (p === 'color' ? null : 'color'))}
                                                 color="inherit"
-                                                aria-haspopup="menu"
-                                                aria-controls={colorMenuOpen ? 'color-menu' : undefined}
-                                                aria-expanded={colorMenuOpen ? 'true' : undefined}
+                                                aria-pressed={active3DPanel === 'color'}
                                             >
                                                 <PaletteIcon fontSize="inherit" />
                                             </Button>
                                         </Tooltip>
 
+                                        <Tooltip title="Labels" arrow placement='top'>
+                                            <Button
+                                                onClick={() => setActive3DPanel((p) => (p === 'labels' ? null : 'labels'))}
+                                                color="inherit"
+                                                aria-pressed={active3DPanel === 'labels'}
+                                                aria-label="labels-menu"
+                                            >
+                                                <LabelIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
                                         <Tooltip title="Reset 3D View" arrow placement='top'>
                                             <Button
-                                                onClick={(e) => setReset3DEl(e.currentTarget)}
+                                                onClick={() => setActive3DPanel((p) => (p === 'view' ? null : 'view'))}
                                                 color="inherit"
-                                                aria-haspopup="menu"
-                                                aria-controls={reset3DOpen ? 'reset3D-menu' : undefined}
-                                                aria-expanded={reset3DOpen ? 'true' : undefined}
+                                                aria-pressed={active3DPanel === 'view'}
                                                 aria-label="reset-view"
                                             >
                                                 <RestartAltIcon fontSize="inherit" />
                                             </Button>
                                         </Tooltip>
 
+                                        <Tooltip title="Snapshot" arrow placement='top'>
+                                            <span>
+                                                <Button
+                                                    onClick={() => viewer3DRef.current?.takeScreenshot?.()}
+                                                    color="inherit"
+                                                    aria-label="snapshot"
+                                                    disabled={!structurePDB}
+                                                >
+                                                    <PhotoCameraIcon fontSize="inherit" />
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
 
                                     </ButtonGroup>
                                 </Box>
-
-                                {/* MENUS */}
-                                {/* Representation menu */}
-                                <Menu
-                                    id="rep-menu"
-                                    anchorEl={repMenuEl}
-                                    open={repMenuOpen}
-                                    onClose={() => setRepMenuEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-
-                                    MenuListProps={{ dense: true }}
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
-                                        sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
-                                        }}
-                                    >
-                                        Representation
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {/* Compact items with subtle dividers */}
-                                    {MolstarSchemes.representationSchemes.flatMap((rep, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={rep.id}
-                                                onClick={() => {
-                                                    viewer3DRef.current?.setRepresentation?.(rep.id);
-                                                    setRepMenuEl(null);
-                                                }}
-                                                sx={{ minHeight: 24, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {rep.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${rep.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
-
-                                {/* Color menu */}
-                                <Menu
-                                    id="color-menu"
-                                    anchorEl={colorMenuEl}
-                                    open={colorMenuOpen}
-                                    onClose={() => setColorMenuEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    MenuListProps={{ dense: true }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
-                                        sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
-                                        }}
-                                    >
-                                        Color by
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {MolstarSchemes.colorBySchemes.flatMap((color, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={color.id}
-                                                onClick={() => {
-                                                    viewer3DRef.current?.setColorScheme?.(color.id);
-                                                    setColorMenuEl(null);
-                                                }}
-                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {color.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${color.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
-
-                                {/* Reset 3D View menu */}
-                                <Menu
-                                    id="reset3D-menu"
-                                    anchorEl={reset3DEl}
-                                    open={reset3DOpen}
-                                    onClose={() => setReset3DEl(null)}
-                                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                    MenuListProps={{ dense: true }}
-                                    sx={{ '& .MuiMenu-paper': { maxHeight: 400 }, my: 0.25 }}
-
-                                >
-                                    {/* Title */}
-                                    <MenuItem
-                                        disabled
-                                        sx={{
-                                            cursor: 'default',
-                                            fontSize: 14,
-                                            fontWeight: 600,
-                                            color: 'text.secondary',
-                                            '&.Mui-disabled': { opacity: 1 },
-                                        }}
-                                    >
-                                        Reset 3D View
-                                    </MenuItem>
-                                    <Divider sx={{ my: 0.5 }} />
-                                    {MolstarSchemes.resetViewScheme.flatMap((reset, idx, arr) => {
-                                        const items = [
-                                            <MenuItem
-                                                key={reset.id}
-                                                onClick={() => {
-                                                    if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
-                                                    else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
-                                                    else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
-                                                    setReset3DEl(null);
-                                                }}
-                                                sx={{ minHeight: 28, py: 0, px: 1.5, fontSize: 13 }}
-                                            >
-                                                {reset.label}
-                                            </MenuItem>
-                                        ];
-                                        if (idx < arr.length - 1) {
-                                            items.push(
-                                                <Divider key={`${reset.id}-div`} component="li" sx={{ my: 0, opacity: 0.6 }} />
-                                            );
-                                        }
-                                        return items;
-                                    })}
-                                </Menu>
-
                             </Box>
 
                             {/* Canvas area */}
-                            <Box sx={{ flex: 1, minHeight: 220, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                                {structureLoading && (
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            width: '100%',
-                                            height: '100%',
-                                            bgcolor: 'rgba(255,255,255,0.6)',
-                                            zIndex: 1,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        <CircularProgress size={48} />
-                                    </Box>
-                                )}
-                                {!structureLoading && !structurePDB && (
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            width: '100%',
-                                            height: '100%',
-                                            bgcolor: 'background.paper',
-                                            zIndex: 1,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            px: 2,
-                                            textAlign: 'center',
-                                        }}
-                                    >
-                                        {(() => {
-                                            const err = generate3DError;
-                                            const isTemplateFail =
-                                                typeof err === 'string' &&
-                                                err.includes('constraints');
+                            <Box sx={{ flex: 1, minHeight: 220, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                                {/* Left: 3D canvas area */}
+                                <Box sx={{ position: 'relative', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                    {structureLoading && (
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                bgcolor: 'rgba(255,255,255,0.6)',
+                                                zIndex: 1,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <CircularProgress size={48} />
+                                        </Box>
+                                    )}
+                                    {!structureLoading && !structurePDB && (
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                bgcolor: 'background.paper',
+                                                zIndex: 1,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                px: 2,
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            {(() => {
+                                                const err = generate3DError;
+                                                const isTemplateFail =
+                                                    typeof err === 'string' &&
+                                                    err.includes('constraints');
 
-                                            if (!err) {
-                                                // No error, just no data
+                                                if (!err) {
+                                                    return (
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: 'text.secondary',
+                                                                fontSize: '1.1rem',
+                                                                lineHeight: 1.75,
+                                                                fontWeight: 400,
+                                                            }}
+                                                        >
+                                                            No data to display.
+                                                        </Typography>
+                                                    );
+                                                }
+
+                                                if (isTemplateFail) {
+                                                    return (
+                                                        <Box>
+                                                            <Typography
+                                                                variant="body1"
+                                                                sx={{
+                                                                    color: 'warning.main',
+                                                                    fontSize: '1.1rem',
+                                                                    lineHeight: 1.75,
+                                                                    fontWeight: 500,
+                                                                }}
+                                                            >
+                                                                {err}
+                                                            </Typography>
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    mt: 0.75,
+                                                                    color: 'text.secondary',
+                                                                    fontSize: '0.9rem',
+                                                                }}
+                                                            >
+                                                                Please try to relax your constraints and run the generation again.
+                                                            </Typography>
+                                                        </Box>
+                                                    );
+                                                }
+
                                                 return (
                                                     <Typography
                                                         variant="body1"
                                                         sx={{
-                                                            color: 'text.secondary',
+                                                            color: 'error.main',
                                                             fontSize: '1.1rem',
-                                                            lineHeight: 1.75,
-                                                            fontWeight: 400,
+                                                            lineHeight: 1.6,
+                                                            fontWeight: 500,
+                                                            whiteSpace: 'pre-wrap',
                                                         }}
                                                     >
-                                                        No data to display.
+                                                        {`${err}`}
                                                     </Typography>
                                                 );
-                                            }
+                                            })()}
+                                        </Box>
+                                    )}
+                                    <Viewer3D
+                                        ref={viewer3DRef}
+                                        pdbRawData={structurePDB}
+                                        hoveredMonomer={hoveredMonomer}
+                                        handleMonomerHover={handleMonomerHover}
+                                        defaultRepresentation="ball-and-stick"
+                                        defaultColorScheme="element-symbol"
+                                        height="100%"
+                                        width="100%"
+                                        error={generate3DError}
+                                        isGenerating3D={structureLoading}
+                                    />
+                                </Box>
 
-                                            if (isTemplateFail) {
-                                                // Template-based generation failed, show warning style + hint
-                                                return (
-                                                    <Box>
-                                                        <Typography
-                                                            variant="body1"
-                                                            sx={{
-                                                                color: 'warning.main',
-                                                                fontSize: '1.1rem',
-                                                                lineHeight: 1.75,
-                                                                fontWeight: 500,
-                                                            }}
-                                                        >
-                                                            {err}
+                                {/* Right: in-container panel (no page overlay) */}
+                                {active3DPanel && (
+                                    <Box
+                                        sx={{
+                                            width: 190,
+                                            flex: '0 0 auto',
+                                            borderLeft: 1,
+                                            borderColor: 'divider',
+                                            pl: 0.75,
+                                            pr: 0.25,
+                                            py: 0.5,
+                                            overflow: 'auto',
+                                        }}
+                                    >
+                                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
+                                            {active3DPanel === 'representation'
+                                                ? 'Representation'
+                                                : active3DPanel === 'color'
+                                                    ? 'Color by'
+                                                    : active3DPanel === 'labels'
+                                                        ? 'Labels'
+                                                        : 'View'}
+                                        </Typography>
+                                        <Divider sx={{ mb: 0.75 }} />
+
+                                        {active3DPanel === 'representation' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                {MolstarSchemes.representationSchemes.map((rep) => {
+                                                    const checked = enabled3DRepresentations.includes(rep.id);
+                                                    const opacityPct = typeof repOpacityPctById?.[rep.id] === 'number'
+                                                        ? repOpacityPctById[rep.id]
+                                                        : 100;
+
+                                                    return (
+                                                        <Box key={rep.id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                            <Box
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'space-between',
+                                                                    gap: 1,
+                                                                    minHeight: 28,
+                                                                }}
+                                                            >
+                                                                <Typography variant="body2" sx={{ fontSize: 12, color: 'text.primary' }}>
+                                                                    {rep.label}
+                                                                </Typography>
+
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                <Switch
+                                                                    size="small"
+                                                                    checked={checked}
+                                                                    onChange={(e) => {
+                                                                        const nextChecked = e.target.checked;
+                                                                        viewer3DRef.current?.setRepresentationEnabled?.(rep.id, nextChecked);
+                                                                        setEnabled3DRepresentations((prev) => {
+                                                                            const arr = Array.isArray(prev) ? prev : [];
+                                                                            const has = arr.includes(rep.id);
+                                                                            if (nextChecked && has) return arr;
+                                                                            if (!nextChecked && !has) return arr;
+                                                                            if (nextChecked) return [...arr, rep.id];
+                                                                            return arr.filter((x) => x !== rep.id);
+                                                                        });
+
+                                                                        // Apply current opacity immediately when enabling.
+                                                                        if (nextChecked) {
+                                                                            viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, opacityPct / 100);
+                                                                        }
+                                                                    }}
+                                                                    inputProps={{ 'aria-label': `toggle representation ${rep.label}` }}
+                                                                />
+                                                                </Box>
+                                                            </Box>
+
+                                                            {checked && (
+                                                                <Box sx={{ px: 0.5, pb: 0.25 }}>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                                                        <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                            Opacity
+                                                                        </Typography>
+                                                                        <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                            {opacityPct}%
+                                                                        </Typography>
+                                                                    </Box>
+                                                                    <Slider
+                                                                        size="small"
+                                                                        value={opacityPct}
+                                                                        min={5}
+                                                                        max={100}
+                                                                        step={5}
+                                                                        onChange={(_, v) => {
+                                                                            const next = Array.isArray(v) ? v[0] : v;
+                                                                            const pct = Math.min(100, Math.max(0, Number(next) || 0));
+                                                                            setRepOpacityPctById((prev) => ({ ...prev, [rep.id]: pct }));
+                                                                            viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, pct / 100);
+                                                                        }}
+                                                                        aria-label={`opacity ${rep.label}`}
+                                                                    />
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    );
+                                                })}
+                                            </Box>
+                                        )}
+
+                                        {active3DPanel === 'labels' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {[
+                                                    { key: 'element', label: 'Atom labels' },
+                                                    { key: 'residue', label: 'Residue labels' },
+                                                    { key: 'chain', label: 'Chain labels' },
+                                                ].map((row) => (
+                                                    <Box
+                                                        key={row.key}
+                                                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
+                                                    >
+                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                            {row.label}
                                                         </Typography>
-                                                        <Typography
-                                                            variant="body2"
-                                                            sx={{
-                                                                mt: 0.75,
-                                                                color: 'text.secondary',
-                                                                fontSize: '0.9rem',
+                                                        <Switch
+                                                            size="small"
+                                                            checked={!!labelsEnabled[row.key]}
+                                                            onChange={(e) => {
+                                                                const next = e.target.checked;
+                                                                viewer3DRef.current?.setLabelEnabled?.(row.key, next);
+                                                                setLabelsEnabled((prev) => ({ ...prev, [row.key]: next }));
                                                             }}
-                                                        >
-                                                            Please try to relax your constraints and run the generation again.
-                                                        </Typography>
+                                                            inputProps={{ 'aria-label': `toggle ${row.key} labels` }}
+                                                        />
                                                     </Box>
-                                                );
-                                            }
+                                                ))}
+                                            </Box>
+                                        )}
 
-                                            // Any other error: show in alarming color
-                                            return (
-                                                <Typography
-                                                    variant="body1"
-                                                    sx={{
-                                                        color: 'error.main',
-                                                        fontSize: '1.1rem',
-                                                        lineHeight: 1.6,
-                                                        fontWeight: 500,
-                                                        whiteSpace: 'pre-wrap',
-                                                    }}
-                                                >
-                                                    {`${err}`}
-                                                </Typography>
-                                            );
-                                        })()}
+                                        {active3DPanel === 'color' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {MolstarSchemes.colorBySchemes.map((color) => (
+                                                    <Button
+                                                        key={color.id}
+                                                        size="small"
+                                                        variant="text"
+                                                        color="inherit"
+                                                        onClick={() => viewer3DRef.current?.setColorScheme?.(color.id)}
+                                                        sx={{
+                                                            justifyContent: 'flex-start',
+                                                            textTransform: 'none',
+                                                            fontSize: 12,
+                                                            lineHeight: 1.2,
+                                                            minHeight: 26,
+                                                            px: 0.5,
+                                                            color: 'text.primary',
+                                                        }}
+                                                        fullWidth
+                                                    >
+                                                        {color.label}
+                                                    </Button>
+                                                ))}
+                                            </Box>
+                                        )}
+
+                                        {active3DPanel === 'view' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {MolstarSchemes.resetViewScheme.map((reset) => (
+                                                    <Button
+                                                        key={reset.id}
+                                                        size="small"
+                                                        variant="text"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
+                                                            else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
+                                                            else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
+                                                        }}
+                                                        sx={{
+                                                            justifyContent: 'flex-start',
+                                                            textTransform: 'none',
+                                                            fontSize: 12,
+                                                            lineHeight: 1.2,
+                                                            minHeight: 26,
+                                                            px: 0.5,
+                                                            color: 'text.primary',
+                                                        }}
+                                                        fullWidth
+                                                    >
+                                                        {reset.label}
+                                                    </Button>
+                                                ))}
+                                            </Box>
+                                        )}
                                     </Box>
                                 )}
-                                <Viewer3D
-                                    ref={viewer3DRef}
-                                    pdbRawData={structurePDB}
-                                    hoveredMonomer={hoveredMonomer}
-                                    handleMonomerHover={handleMonomerHover}
-                                    defaultRepresentation="ball-and-stick"
-                                    defaultColorScheme="element-symbol"
-                                    height="100%"
-                                    width="100%"
-                                    error={generate3DError}
-                                    isGenerating3D={structureLoading}
-                                />
                             </Box>
                         </Paper>
                     </Box>

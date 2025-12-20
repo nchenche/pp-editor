@@ -20,8 +20,10 @@ const Viewer3DInner = ({
     isGenerating3D = false,
     error,
 }, ref) => {
-    const [representation, setRepresentation] = useState(defaultRepresentation);
+    const [enabledRepresentations, setEnabledRepresentations] = useState(() => [defaultRepresentation].filter(Boolean));
     const [colorScheme, setColorScheme] = useState(defaultColorScheme);
+    const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
+    const [representationAlphaByRep, setRepresentationAlphaByRep] = useState({});
 
     const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin();
     const {
@@ -34,8 +36,10 @@ const Viewer3DInner = ({
         loadFromBlob,
         loadFromURL,
     } = useMolstarStructure(pluginRef, {
-        defaultRepresentation: representation,
-        defaultColorScheme: colorScheme
+        enabledRepresentations,
+        defaultColorScheme: colorScheme,
+        labelsEnabled,
+        representationAlphaByRep,
     });
 
     useMolstarSelection({
@@ -51,12 +55,70 @@ const Viewer3DInner = ({
         orientAxes: () => pluginRef.current?.managers.camera.orientAxes(undefined, 0),
         resetAxes: () => pluginRef.current?.managers.camera.resetAxes(),
         resize: () => pluginRef.current?.canvas3d?.requestResize?.(),
-        setRepresentation: (type) => setRepresentation(type),
+        // Legacy: exclusive representation (kept for compatibility)
+        setRepresentation: (type) => setEnabledRepresentations([type].filter(Boolean)),
+        // New: multi-representation control
+        setRepresentationEnabled: (type, enabled) => {
+            const rep = String(type || '').trim();
+            if (!rep) return;
+            setEnabledRepresentations(prev => {
+                const arr = Array.isArray(prev) ? prev : [];
+                const has = arr.includes(rep);
+                if (enabled && has) return arr;
+                if (!enabled && !has) return arr;
+                if (enabled) return [...arr, rep];
+                return arr.filter(x => x !== rep);
+            });
+        },
+        toggleRepresentation: (type) => {
+            const rep = String(type || '').trim();
+            if (!rep) return;
+            setEnabledRepresentations(prev => {
+                const arr = Array.isArray(prev) ? prev : [];
+                return arr.includes(rep) ? arr.filter(x => x !== rep) : [...arr, rep];
+            });
+        },
+        getEnabledRepresentations: () => enabledRepresentations,
+        setLabelEnabled: (level, enabled) => {
+            if (!level) return;
+            setLabelsEnabled((prev) => ({ ...prev, [String(level)]: !!enabled }));
+        },
+        getLabelsEnabled: () => labelsEnabled,
+        // Back-compat: treat "atom labels" as element labels
+        setAtomLabelsEnabled: (enabled) => setLabelsEnabled((prev) => ({ ...prev, element: !!enabled })),
+        toggleAtomLabels: () => setLabelsEnabled((prev) => ({ ...prev, element: !prev.element })),
+        getAtomLabelsEnabled: () => !!labelsEnabled.element,
         setColorScheme: (scheme) => setColorScheme(scheme),
+        setRepresentationAlphaFor: (type, alpha) => {
+            const rep = String(type || '').trim();
+            if (!rep) return;
+            const a = Number(alpha);
+            if (!Number.isFinite(a)) return;
+            const clamped = Math.min(1, Math.max(0, a));
+            setRepresentationAlphaByRep((prev) => ({ ...prev, [rep]: clamped }));
+        },
+        getRepresentationAlphaFor: (type) => {
+            const rep = String(type || '').trim();
+            if (!rep) return 1;
+            const v = representationAlphaByRep?.[rep];
+            return typeof v === 'number' && Number.isFinite(v) ? v : 1;
+        },
+        takeScreenshot: () => {
+            try {
+                pluginRef.current?.helpers?.viewportScreenshot?.download?.();
+            } catch {
+                // ignore
+            }
+        },
         clear: async () => {
             try { await pluginRef.current?.clear?.(); } catch { }
         },
-    }), [pluginRef]);
+    }), [pluginRef, enabledRepresentations, labelsEnabled, representationAlphaByRep]);
+
+    // Keep enabled representations in sync when defaultRepresentation prop changes
+    useEffect(() => {
+        setEnabledRepresentations([defaultRepresentation].filter(Boolean));
+    }, [defaultRepresentation]);
 
     // Load structure once the plugin is initialized and whenever the source props change.
     useEffect(() => {

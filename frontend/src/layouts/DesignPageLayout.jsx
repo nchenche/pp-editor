@@ -4,6 +4,11 @@ import { alpha, keyframes } from '@mui/material/styles';
 import { OverlayPortalProvider } from '../components/common/OverlayPortalContext';
 
 import { Box, Paper } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Button from '@mui/material/Button';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 
 // Use outside the component, only defined once
@@ -118,6 +123,9 @@ export const DesignPageLayoutMUI = ({
     maxLeftFrac = 0.45, // maximum sidebar width as fraction of viewport width
     handleWidth = 6,   // draggable handle width (px)
     defaultLeftFrac = 0.3,
+    defaultSidebarCollapsed = false,
+    collapsedSidebarWidth = 34,
+    collapsedStorageKey = 'pp-editor:rightSidebarCollapsed',
     ...rest
 }) => {
     const containerRef = useRef(null);
@@ -127,6 +135,17 @@ export const DesignPageLayoutMUI = ({
     const [leftPx, setLeftPx] = useState(() => {
         const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
         return Math.floor(vw * defaultLeftFrac);
+    });
+
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        if (typeof window === 'undefined') return !!defaultSidebarCollapsed;
+        try {
+            const raw = window.localStorage.getItem(collapsedStorageKey);
+            if (raw === null) return !!defaultSidebarCollapsed;
+            return raw === '1' || raw === 'true';
+        } catch {
+            return !!defaultSidebarCollapsed;
+        }
     });
     const [dragging, setDragging] = useState(false);
     const draggingRef = useRef(false); // NEW: source of truth for listeners
@@ -156,12 +175,13 @@ export const DesignPageLayoutMUI = ({
 
     // Stable move handler (no dragging in deps)
     const onMouseMove = useCallback((e) => {
+        if (sidebarCollapsed) return;
         if (!draggingRef.current || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
         // Right sidebar: width = distance from mouse to right edge
         const desired = rect.right - e.clientX;
         setLeftPx(clampLeft(desired));
-    }, [clampLeft, containerRef]);
+    }, [clampLeft, containerRef, sidebarCollapsed]);
 
     const stopDrag = useCallback(() => {
         if (!draggingRef.current) return;
@@ -175,6 +195,7 @@ export const DesignPageLayoutMUI = ({
     }, [onMouseMove]);
 
     const startDrag = useCallback((e) => {
+        if (sidebarCollapsed) return;
         e.preventDefault();
         e.stopPropagation();
         draggingRef.current = true;
@@ -199,7 +220,18 @@ export const DesignPageLayoutMUI = ({
         };
     }, [onMouseMove, stopDrag]);
 
-    const gridTemplateColumns = useMemo(() => `1fr ${handleWidth}px ${leftPx}px`, [leftPx, handleWidth]);
+    // Persist collapsed state
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(collapsedStorageKey, sidebarCollapsed ? '1' : '0');
+        } catch {
+            // ignore storage errors
+        }
+    }, [collapsedStorageKey, sidebarCollapsed]);
+
+    const sidebarWidthPx = sidebarCollapsed ? collapsedSidebarWidth : leftPx;
+    const gridTemplateColumns = useMemo(() => `1fr ${handleWidth}px ${sidebarWidthPx}px`, [sidebarWidthPx, handleWidth]);
 
     return (
         <Box
@@ -275,11 +307,13 @@ export const DesignPageLayoutMUI = ({
                 onMouseDown={startDrag}
                 onKeyDown={(e) => { if (e.key === 'Escape') stopDrag(); }}
                 onDoubleClick={() => {
+                    if (sidebarCollapsed) return;
                     userResizedRef.current = false;
                     setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac)));
                 }}
                 sx={{
                     cursor: 'col-resize',
+                    pointerEvents: sidebarCollapsed ? 'none' : 'auto',
                     position: 'relative',
                     height: '100%',
                     outline: 'none',
@@ -306,13 +340,16 @@ export const DesignPageLayoutMUI = ({
                 square
                 sx={{
                     height: '100%',
-                    minWidth: `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
+                    minWidth: sidebarCollapsed
+                        ? `${collapsedSidebarWidth}px`
+                        : `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
                     overflow: 'hidden',
                     // overflowX: 'hidden',
                     borderRadius: 1,
                     p: 1,
                     borderWidth: overlayActive ? 2 : 1,
                     // bgcolor: '#a5aa52',
+                    position: 'relative',
                     borderColor: (t) =>
                         overlayActive
                             ? (t.palette.mode === 'dark'
@@ -329,9 +366,108 @@ export const DesignPageLayoutMUI = ({
                     '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
                 }}
             >
+                {/* Keep the sidebar mounted even when collapsed (prevents library/output from reloading) */}
                 <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                    {sidebar}
+                    {/* Hide button */}
+                    <Box sx={{ mb: 0, position: 'relative', display: sidebarCollapsed ? 'none' : 'block' }}>
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: -8,
+                                left: -8,
+                            }}
+                        >
+                            <Tooltip title="Hide panels" placement="left" arrow>
+                                <Button
+                                    size="small"
+                                    color="inherit"
+                                    onClick={() => setSidebarCollapsed(true)}
+                                    startIcon={<ChevronRightIcon fontSize="small" />}
+                                    sx={{
+                                        minWidth: 0,
+                                        px: 0.75,
+                                        py: 0.25,
+                                        textTransform: 'none',
+                                        fontSize: 12,
+                                        color: 'text.secondary',
+                                        borderColor: 'divider',
+                                        '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
+                                    }}
+                                    aria-label="hide right panels"
+                                >
+                                    Hide panels
+                                </Button>
+                            </Tooltip>
+
+                            {/* icon-only fallback for narrow widths */}
+                            <Tooltip title="Hide panels" placement="left" arrow>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setSidebarCollapsed(true)}
+                                    sx={{
+                                        display: { xs: 'inline-flex', sm: 'none' },
+                                        ml: 0.5,
+                                        color: 'text.secondary',
+                                    }}
+                                    aria-label="hide right panels (icon)"
+                                >
+                                    <ChevronRightIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                    </Box>
+
+                    {/* Sidebar content (mounted; just hidden when collapsed) */}
+                    <Box
+                        sx={{
+                            mt: 3,
+                            flex: 1,
+                            minHeight: 0,
+                            display: sidebarCollapsed ? 'none' : 'flex',
+                            flexDirection: 'column',
+                        }}
+                    >
+                        {sidebar}
+                    </Box>
                 </Box>
+
+                {/* Collapsed handle overlay */}
+                <Tooltip title="Show panels" placement="left" arrow>
+                    <Box
+                        onClick={() => setSidebarCollapsed(false)}
+                        role="button"
+                        aria-label="expand right panel"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') setSidebarCollapsed(false);
+                        }}
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: sidebarCollapsed ? 'flex' : 'none',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 1,
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                        }}
+                    >
+                        <ChevronLeftIcon fontSize="small" />
+                        <Box
+                            component="span"
+                            sx={{
+                                writingMode: 'vertical-rl',
+                                transform: 'rotate(180deg)',
+                                fontSize: 11,
+                                color: 'text.secondary',
+                                letterSpacing: 0.5,
+                            }}
+                        >
+                            Show panels
+                        </Box>
+                    </Box>
+                </Tooltip>
             </Paper>
 
         </Box>
