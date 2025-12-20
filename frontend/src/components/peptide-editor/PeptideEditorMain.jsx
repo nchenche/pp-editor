@@ -23,7 +23,8 @@ import {
     setMonomerSequences,
     deriveSeqCount,
     reconcileActiveSeqIdx,
-    analyzeBiln
+    analyzeBiln,
+    getSequences,
 } from '../../../src/utils/bilnUtils';
 
 import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
@@ -261,6 +262,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     ? JSON.stringify(scaffoldMappingPayload)
                     : null;
 
+            const requestParams = {
+                no_hydrogens: false,
+                is_protonated: true,
+                ph_value: phValue,
+            };
+
             // Normalize BILN: if it's effectively empty, do not generate
             const normalizedBiln = (biln || '')
                 .trim()
@@ -299,13 +306,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         template_id: scaffoldMappingPayload.template_id,
                         scaffold_mappings: scaffoldMappingPayload.mappings,
                     },
+                    requestParams,
                 });
             } else {
-                generate3D(biln, constraintsBySeq);
+                generate3D(biln, constraintsBySeq, { requestParams });
             }
         },
         // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -410,10 +418,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         getBiln: () => bilnValue,
     }), [addMonomerToBiln, replaceMonomerInBiln, uiState, bilnValue, isAtMonomerLimit, currentTokenCount, openLimitDialog, cancelReplaceSelection, trySetBilnValue]);
 
+
     function loadData(newBiln) {
-        // Assign width and height based on biln sequence length (from chain with max residues)
-        const maxLen = rowMonomerLists.reduce((max, seq) => Math.max(max, seq.length), 0);
-        const size = Math.min(Math.max(300 + maxLen * 90, 600), 2800);
+        // Assign width and height based on BILN sequence length (from chain with max residues)
+        const maxLen = Math.max(
+            0,
+            ...(getSequences(newBiln) || []).map((seq) => {
+                const s = String(seq || '').trim();
+                if (!s) return 0;
+                return s.split('-').filter(Boolean).length;
+            }),
+        );
+        const size = Math.min(Math.max(400 + maxLen * 80, 600), 2800);
         const params = {
             sequence: newBiln,
             mode: 'rdkit',
@@ -456,7 +472,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return;
         }
         loadData(committedBiln);
-    }, [committedBiln, isActive]); // [committedBiln, isShowingAtomIndices] if you want atom indices to affect depiction
+    }, [committedBiln, isActive, isShowingAtomIndices, phValue]);
 
     useEffect(() => {
         if (!isActive) return;

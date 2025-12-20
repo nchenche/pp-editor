@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
 
-export function useGenerate3D() {
+export function useGenerate3D(baseUrlOverride) {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ export function useGenerate3D() {
             const {
                 endpoint = '/api/core/molecules/generate_conformer',
                 extraBody = null,
+                requestParams = null,
             } = options;
 
             const hasConstraints = ssConstraints !== null && Array.isArray(ssConstraints) && ssConstraints.length > 0;
@@ -56,7 +57,25 @@ export function useGenerate3D() {
             const myReqId = ++reqIdRef.current;
             setLoading(true);
             try {
-                const url = `${API_BASE_URL}${endpoint}?no_hydrogens=false&is_protonated=true&ph_value=7.4`;
+                const base = baseUrlOverride ?? API_BASE_URL ?? '';
+                const originBase = typeof base === 'string' && base.startsWith('http')
+                    ? base
+                    : `${window.location.origin}${base}`;
+
+                const urlObj = new URL(endpoint, originBase);
+
+                const effectiveParams = {
+                    no_hydrogens: false,
+                    is_protonated: true,
+                    ph_value: 7.4,
+                    ...(requestParams && typeof requestParams === 'object' ? requestParams : {}),
+                };
+                for (const [k, v] of Object.entries(effectiveParams)) {
+                    if (v == null) continue;
+                    urlObj.searchParams.set(k, String(v));
+                }
+
+                const url = urlObj.toString();
                 const response = await apiFetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
