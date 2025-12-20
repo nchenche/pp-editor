@@ -19,7 +19,7 @@ import {
 import createPalette from "@mui/material/styles/createPalette";
 
 
-export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
+export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) => {
 
     const sxOptions = { mt: 0.5, mb: 0.5, width: '100%' };
     const {
@@ -116,6 +116,7 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices }) => {
                         sxOptions={sxOptions}
                         control={control}
                         error={errors.pdb}
+                        pdbConfig={pdbConfig}
                     />
                 </Grid>
 

@@ -148,7 +148,7 @@ const createRGroupObject = (baseName, groupIndices) => {
 };
 
 export const TabStep4 = memo(
-    forwardRef(({ fragmentSmiles, initialData, onFormDataChange }, ref) => {
+    forwardRef(({ fragmentSmiles, initialData, onFormDataChange, pdbConfig }, ref) => {
         if (!fragmentSmiles) return null;
 
         const groupIndices = useMemo(() => extractSmilesIndices(fragmentSmiles), [fragmentSmiles]);
@@ -220,7 +220,7 @@ export const TabStep4 = memo(
                 <MoleculeDisplayContainer smiles={fragmentSmiles} queryParams={queryParams} />
                 <div className='p-2 md:p-3'>
                     <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
-                    <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} />
+                    <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} pdbConfig={pdbConfig} />
                 </div>
             </div>
         );

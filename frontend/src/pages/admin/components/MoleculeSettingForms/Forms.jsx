@@ -88,35 +88,50 @@ export const MolAnalogForm = ({ sxOptions, control }) => {
     )
 }
 
-export const MolPDBForm = ({ sxOptions, control, error }) => {
+export const MolPDBForm = ({ sxOptions, control, error, pdbConfig }) => {
+    const cfg = pdbConfig || {};
+    const label = cfg.label || 'PDB';
+    const placeholder = cfg.placeholder || 'ALA';
+    const inputMaxLength = Number(cfg.maxLength || 3);
+    const inputMinLength = Number(cfg.minLength || 3);
+    const isRequired = cfg.required !== false;
+    const normalize =
+        typeof cfg.normalize === 'function'
+            ? cfg.normalize
+            : (raw) =>
+                String(raw || '')
+                    .toUpperCase()
+                    .replace(/[^A-Z]/g, '')
+                    .slice(0, inputMaxLength);
+
+    const requiredMessage = cfg.requiredMessage || 'PDB is required';
+    const minLengthMessage = cfg.minLengthMessage || `Minimum length is ${inputMinLength} characters`;
+    const maxLengthMessage = cfg.maxLengthMessage || `Maximum length is ${inputMaxLength} characters`;
+
     return (
         <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small" error={!!error}>
             <Controller
                 name="pdb"
                 control={control}
                 rules={{
-                    required: 'PDB is required',
-                    minLength: { value: 3, message: 'Minimum length is 3 characters' },
-                    maxLength: { value: 3, message: 'Maximum length is 3 characters' },
+                    ...(isRequired ? { required: requiredMessage } : {}),
+                    minLength: { value: inputMinLength, message: minLengthMessage },
+                    maxLength: { value: inputMaxLength, message: maxLengthMessage },
                 }}
                 render={({
                     field
                 }) => (
                     <TextField
-                        label="PDB"
+                        label={label}
                         error={!!error}
                         {...field}
                         onChange={(e) => {
-                            const next = String(e.target.value || '')
-                                .toUpperCase()
-                                .replace(/[^A-Z]/g, '')
-                                .slice(0, 3);
-                            field.onChange(next);
+                            field.onChange(normalize(e.target.value));
                         }}
                         size="small"
                         fullWidth
-                        placeholder="ALA"
-                        inputProps={{ maxLength: 3 }}
+                        placeholder={placeholder}
+                        inputProps={{ maxLength: inputMaxLength }}
                     />
                 )}
             />

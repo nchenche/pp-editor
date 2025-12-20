@@ -268,7 +268,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     : null;
 
             const requestParams = {
-                no_hydrogens: true,
+                no_hydrogens: false,
                 is_protonated: true,
                 ph_value: phValue,
             };

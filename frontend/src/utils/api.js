@@ -117,3 +117,8 @@ export async function apiFetch(url, init) {
   const initWithOwner = withOwnerIdInInit(init, ownerId);
   return fetch(urlWithOwner, initWithOwner);
 }
+
+// Use for endpoints that must NOT include owner_id/user_id (e.g. public admin APIs).
+export async function apiFetchNoOwner(url, init) {
+  return fetch(url, init);
+}
