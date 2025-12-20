@@ -106,6 +106,11 @@ export function useMolstarStructure(pluginRef, {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Keep the previous data subtree around until the new structure is ready,
+    // then delete it. This avoids a blank canvas during parsing and reduces flicker.
+    const dataRootRef = useRef(null);
+    const loadReqIdRef = useRef(0);
+
     // Always use latest representation/color scheme (in case they are made dynamic)
     const processStructureData = useCallback(async (fileData, format) => {
         if (!pluginRef.current) return;
@@ -137,6 +142,27 @@ export function useMolstarStructure(pluginRef, {
         //     { tag: 'atom-labels' },
         // );
 
+    }, [pluginRef]);
+
+    const deleteSubtreeByRef = useCallback(async (rootRef) => {
+        if (!pluginRef.current || !rootRef) return;
+        const plugin = pluginRef.current;
+        try {
+            const sel = StateSelection.Generators.byRef(rootRef).subtree();
+            const cells = StateSelection.select(sel, plugin.state.data);
+            if (!cells || cells.length === 0) return;
+
+            const builder = plugin.state.data.build();
+            // Delete deepest nodes first to avoid dependency issues.
+            for (let i = cells.length - 1; i >= 0; i--) {
+                const ref = cells[i]?.transform?.ref;
+                if (!ref) continue;
+                builder.delete(ref);
+            }
+            await builder.commit();
+        } catch {
+            // ignore
+        }
     }, [pluginRef]);
 
     const repTag = useCallback((repType) => `ui-rep:${repType}`, []);
@@ -173,86 +199,141 @@ export function useMolstarStructure(pluginRef, {
     // Loader: PDB raw data string
     const loadFromRawData = useCallback(async (data, format = 'pdb') => {
         if (!pluginRef.current) return;
+        const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
         try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.rawData({ data });
+            const plugin = pluginRef.current;
+            const prevRoot = dataRootRef.current;
+
+            const fileData = await plugin.builders.data.rawData({ data });
+            const nextRoot = fileData?.cell?.transform?.ref || null;
+
             await processStructureData(fileData, format);
+
+            if (loadReqIdRef.current !== myReqId) return;
+
+            dataRootRef.current = nextRoot;
+            if (prevRoot) {
+                await deleteSubtreeByRef(prevRoot);
+            }
             setLoading(false);
         } catch (err) {
             setError(`Failed to load raw data: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
 
     // Loader: PDB ID
     const loadFromPdbId = useCallback(async (id) => {
         if (!pluginRef.current) return;
+        const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
         try {
-            await pluginRef.current.clear();
+            const plugin = pluginRef.current;
+            const prevRoot = dataRootRef.current;
             const url = `https://models.rcsb.org/${id}.bcif`;
-            const fileData = await pluginRef.current.builders.data.download({ url, isBinary: true });
+            const fileData = await plugin.builders.data.download({ url, isBinary: true });
+            const nextRoot = fileData?.cell?.transform?.ref || null;
+
             await processStructureData(fileData, 'mmcif');
+
+            if (loadReqIdRef.current !== myReqId) return;
+
+            dataRootRef.current = nextRoot;
+            if (prevRoot) {
+                await deleteSubtreeByRef(prevRoot);
+            }
             setLoading(false);
         } catch (err) {
             setError(`Failed to load PDB ID: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
 
     // Loader: File (input[type=file])
     const loadFromPdbFile = useCallback(async (file) => {
         if (!pluginRef.current) return;
+        const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
         try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.readFile({ file });
+            const plugin = pluginRef.current;
+            const prevRoot = dataRootRef.current;
+
+            const fileData = await plugin.builders.data.readFile({ file });
+            const nextRoot = fileData?.cell?.transform?.ref || null;
             const format = determineFileFormat(file.name, file.type);
             await processStructureData(fileData, format);
+
+            if (loadReqIdRef.current !== myReqId) return;
+
+            dataRootRef.current = nextRoot;
+            if (prevRoot) {
+                await deleteSubtreeByRef(prevRoot);
+            }
             setLoading(false);
         } catch (err) {
             setError(`Failed to load file: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
 
     // Loader: URL
     const loadFromURL = useCallback(async (url) => {
         if (!pluginRef.current) return;
+        const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
         try {
-            await pluginRef.current.clear();
-            const fileData = await pluginRef.current.builders.data.download({ url, isBinary: false });
+            const plugin = pluginRef.current;
+            const prevRoot = dataRootRef.current;
+
+            const fileData = await plugin.builders.data.download({ url, isBinary: false });
+            const nextRoot = fileData?.cell?.transform?.ref || null;
             await processStructureData(fileData, 'pdb');
+
+            if (loadReqIdRef.current !== myReqId) return;
+
+            dataRootRef.current = nextRoot;
+            if (prevRoot) {
+                await deleteSubtreeByRef(prevRoot);
+            }
             setLoading(false);
         } catch (err) {
             setError(`Failed to load URL: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
 
     // Loader: Blob (for drag & drop)
     const loadFromBlob = useCallback(async (blob) => {
         if (!pluginRef.current) return;
+        const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
         try {
-            await pluginRef.current.clear();
+            const plugin = pluginRef.current;
+            const prevRoot = dataRootRef.current;
             const file = new File([blob], 'structure.pdb', { type: blob.type });
-            const fileData = await pluginRef.current.builders.data.readFile({ file });
+            const fileData = await plugin.builders.data.readFile({ file });
+            const nextRoot = fileData?.cell?.transform?.ref || null;
             const format = determineFileFormat(file.name, blob.type);
             await processStructureData(fileData, format);
+
+            if (loadReqIdRef.current !== myReqId) return;
+
+            dataRootRef.current = nextRoot;
+            if (prevRoot) {
+                await deleteSubtreeByRef(prevRoot);
+            }
             setLoading(false);
         } catch (err) {
             setError(`Failed to load blob: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
 
 
     // Reconcile multiple representations (toggle on/off) and keep colors in sync.

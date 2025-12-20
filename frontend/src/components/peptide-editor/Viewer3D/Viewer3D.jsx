@@ -108,7 +108,8 @@ const Viewer3DInner = ({
         },
         takeScreenshot: () => {
             try {
-                pluginRef.current?.helpers?.viewportScreenshot?.download?.();
+                // Mol* defaults the filename to a placeholder; pass an explicit name.
+                pluginRef.current?.helpers?.viewportScreenshot?.download?.('pep-edit_3d.png');
             } catch {
                 // ignore
             }

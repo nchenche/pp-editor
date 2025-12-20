@@ -615,7 +615,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return () => cancelAnimationFrame(raf);
         }
 
-        const panelWidthPx = 190;
+        const panelWidthPx = 260;
         const panelGapPx = Number.parseFloat(theme.spacing(1)) || 8;
         const deltaPx = panelWidthPx + panelGapPx;
         const minViewerPanelWidth = 200;
@@ -1161,14 +1161,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 {active3DPanel && (
                                     <Box
                                         sx={{
-                                            width: 240,
+                                            width: 260,
                                             flex: '0 0 auto',
                                             borderLeft: 1,
                                             borderColor: 'divider',
                                             pl: 0.75,
                                             pr: 0.25,
                                             py: 0.5,
-                                            overflow: 'auto',
+                                            overflowY: 'auto',
+                                            overflowX: 'hidden',
                                         }}
                                     >
                                         <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
@@ -1249,6 +1250,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                         min={5}
                                                                         max={100}
                                                                         step={5}
+                                                                        sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
                                                                         onChange={(_, v) => {
                                                                             const next = Array.isArray(v) ? v[0] : v;
                                                                             const pct = Math.min(100, Math.max(0, Number(next) || 0));
