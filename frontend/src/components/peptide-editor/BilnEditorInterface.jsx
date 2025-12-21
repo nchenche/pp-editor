@@ -1,5 +1,6 @@
 // ...existing imports...
 import React, { useState, useRef } from 'react';
+import { alpha } from '@mui/material/styles';
 import {
     Box,
     Paper,
@@ -132,6 +133,23 @@ export default function BilnEditorInterface({
         px: 1,
         color: 'text.secondary',
         borderColor: 'divider',
+    };
+
+    const helpSectionSx = {
+        p: { xs: 1.75, sm: 2.25 },
+        borderRadius: 2,
+        bgcolor: 'background.default',
+    };
+
+    const helpSectionTitleSx = {
+        fontWeight: 800,
+        fontSize: { xs: '1.15rem', sm: '1.3rem' },
+        lineHeight: 1.25,
+        mb: 1.25,
+        pb: 0.75,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        letterSpacing: '0.2px',
     };
 
     return (
@@ -381,25 +399,358 @@ export default function BilnEditorInterface({
 
 
             {/* BILN help dialog with examples */}
-            <Dialog open={bilnHelpOpen} onClose={() => setBilnHelpOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>BILN format basics</DialogTitle>
-                <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <p>Use BILN to describe peptide chains with simple tokens:</p>
-                    <ul>
-                        <li>Residues are separated by hyphens “-”. Example: A-G-S</li>
-                        <li>Multiple chains are separated by dots “.”. Example: A-G.S-S</li>
-                        <li>Residue codes use library symbols (e.g., A, R, Lys, Pra).</li>
-                        <li>Optional annotations may appear in parentheses for advanced linking.</li>
-                    </ul>
-                    <p style={{ marginTop: 8, marginBottom: 4 }}>Examples</p>
-                    <pre style={{ margin: 0, padding: '8px 10px', background: 'transparent', border: '1px solid var(--mui-palette-divider)', borderRadius: 6, overflowX: 'auto' }}>
-                        A-F-R-I-C-A
-                        A-G-S.Phe-Ser
-                        Lys-Pra(links)
-                    </pre>
-                    <p style={{ marginTop: 8 }}>
-                        You can freely type here, or use the library and sequence track to update the BILN automatically.
-                    </p>
+            <Dialog
+                open={bilnHelpOpen}
+                onClose={() => setBilnHelpOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        maxWidth: 980,
+                    },
+                }}
+            >
+                <DialogTitle>Manual edit (BILN) help</DialogTitle>
+                <DialogContent
+                    dividers
+                    sx={{
+                        typography: 'body2',
+                        p: { xs: 2, sm: 3 },
+                        lineHeight: 1.8,
+                        '& code': { fontFamily: 'monospace', fontSize: '0.9em' },
+                        '& strong': { fontWeight: 800 },
+                        '& ul': {
+                            margin: 0,
+                            paddingLeft: 2.75,
+                            listStylePosition: 'outside',
+                            listStyleType: 'disc',
+                        },
+                        '& ul ul': {
+                            listStyleType: 'circle',
+                            marginTop: 0.5,
+                        },
+                        '& li': { marginBottom: 1 },
+                        '& li::marker': { color: 'text.secondary', fontWeight: 700 },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 900, mx: 'auto' }}>
+                        <Paper
+                            variant="outlined"
+                            sx={(theme) => ({
+                                ...helpSectionSx,
+                                borderColor: 'info.main',
+                                backgroundColor: alpha(
+                                    theme.palette.info.main,
+                                    theme.palette.mode === 'dark' ? 0.14 : 0.08
+                                ),
+                            })}
+                        >
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Quick reference
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Use monomer identifiers from the Library panel, and combine them with <code>-</code>, <code>.</code>, and optional bond annotations.
+                            </Typography>
+
+                            <Box
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflowX: 'auto',
+                                    backgroundColor: 'background.paper',
+                                }}
+                            >
+                                <Box
+                                    component="table"
+                                    sx={{
+                                        width: '100%',
+                                        minWidth: 720,
+                                        borderCollapse: 'collapse',
+                                        '& th, & td': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            px: 1.25,
+                                            py: 1,
+                                            verticalAlign: 'top',
+                                        },
+                                        '& th': {
+                                            textAlign: 'left',
+                                            fontWeight: 800,
+                                            color: 'text.secondary',
+                                            backgroundColor: (theme) =>
+                                                alpha(
+                                                    theme.palette.info.main,
+                                                    theme.palette.mode === 'dark' ? 0.18 : 0.10
+                                                ),
+                                        },
+                                        '& tr:last-child td': { borderBottom: 'none' },
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '70%' }}>Concept</th>
+                                            <th>Example</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Backbone connection</strong> (automatic <code>R2 → R1</code>)</td>
+                                            <td><code>A-C</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Explicit equivalent</strong> (same as <code>A-C</code>)</td>
+                                            <td><code>A(1,2).C(1,1)</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Branch / side-chain capping</strong> (branch separated by <code>.</code>)</td>
+                                            <td><code>A-G-K(1,3)-D.ac(1,2)</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Monomer containing “-”</strong> (use brackets)</td>
+                                            <td><code>[2-Cl-Phe]-A</code></td>
+                                        </tr>
+                                    </tbody>
+                                </Box>
+                            </Box>
+                        </Paper>
+
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Basic Rules &amp; Linear Sequences
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Monomer Identifiers:</strong> Use the unique identifiers found in the <strong>Monomer Library Panel</strong> to the right.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Direction:</strong> Sequences are written in consecutive order, following an <strong>N-terminal to C-terminal</strong> convention.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Standard Connections:</strong> Use a hyphen (<code>-</code>) to represent standard backbone connections where <code>R2</code> of the first monomer connects to <code>R1</code> of the next.
+                                    </Typography>
+                                    <Box
+                                        sx={{
+                                            mt: 1,
+                                            p: 1,
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            borderRadius: 1.5,
+                                            backgroundColor: 'background.paper',
+                                        }}
+                                    >
+                                        <Typography component="div" sx={{ color: 'text.secondary' }}>
+                                            <strong>Equivalence:</strong> <code>A-C</code> is shorthand for an explicit <code>R2 → R1</code> bond:
+                                            {' '}
+                                            <code>A(1,2).C(1,1)</code>
+                                            {' '}
+                                            (any BondID works as long as it appears exactly twice).
+                                        </Typography>
+                                    </Box>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Brackets:</strong> If a monomer identifier contains a hyphen (e.g., <code>2-Cl-Phe</code>), it must be enclosed in brackets: <code>[2-Cl-Phe]</code>.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Unconnected Chains:</strong> Use a dot (<code>.</code>) to separate monomers or chains that are not yet connected.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Custom Bonds and R-Groups
+                            </Typography>
+                            <Typography sx={{ mb: 1 }}>
+                                For any bond that does not follow the standard backbone connection (like side-chain bonds or cyclization), use:
+                                {' '}
+                                <code>Monomer(BondID, R-group)</code>
+                            </Typography>
+
+                            <Typography sx={{ mb: 1, color: 'text.secondary' }}>
+                                Note: The <code>#</code> comments below are explanatory (don’t include them in your input).
+                            </Typography>
+
+                            <Box
+                                component="pre"
+                                sx={{
+                                    m: 0,
+                                    p: 1.25,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflowX: 'auto',
+                                    backgroundColor: 'background.paper',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.55,
+                                }}
+                            >
+                                {`C(1,3)-...-C(1,3)  # disulfide bridge\nC(1,1)-...-C(1,2)  # head-to-tail cyclization`}
+                            </Box>
+
+                            <ul style={{ marginTop: 12 }}>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Bond Identifier (BondID):</strong> An integer used to pair two monomers together; each BondID must appear exactly twice within the string.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>R-group Number:</strong> The exact attachment point on the monomer.
+                                    </Typography>
+                                    <ul>
+                                        <li>
+                                            <Typography component="span">
+                                                <strong>R1:</strong> Typically the N-terminal backbone nitrogen.
+                                            </Typography>
+                                        </li>
+                                        <li>
+                                            <Typography component="span">
+                                                <strong>R2:</strong> Typically the C-terminal carbonyl carbon.
+                                            </Typography>
+                                        </li>
+                                        <li>
+                                            <Typography component="span">
+                                                <strong>R3 and higher:</strong> Used for side chains, branching, or specific chemical modifications.
+                                            </Typography>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Common BILN-based Sequence Examples
+                            </Typography>
+
+                            <Box
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflowX: 'auto',
+                                    backgroundColor: 'background.paper',
+                                }}
+                            >
+                                <Box
+                                    component="table"
+                                    sx={{
+                                        width: '100%',
+                                        minWidth: 760,
+                                        borderCollapse: 'collapse',
+                                        '& th, & td': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            px: 1.25,
+                                            py: 1,
+                                            verticalAlign: 'top',
+                                        },
+                                        '& th': {
+                                            textAlign: 'left',
+                                            fontWeight: 700,
+                                            color: 'text.secondary',
+                                            backgroundColor: 'background.default',
+                                        },
+                                        '& tbody tr:nth-of-type(odd) td': {
+                                            backgroundColor: 'action.hover',
+                                        },
+                                        '& tr:last-child td': { borderBottom: 'none' },
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '26%' }}>Type</th>
+                                            <th style={{ width: '36%' }}>Example Notation</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Simple Linear</strong></td>
+                                            <td><code>P-E-P-T-I-D-E</code></td>
+                                            <td>Standard peptide connected via backbone.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Disulfide Bridge</strong></td>
+                                            <td><code>A-C(1,3)-G-A-G-C(1,3)-D</code></td>
+                                            <td>Bond <code>1</code> connects the <code>R3</code> side chains of two Cysteines.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Cyclic Peptide</strong></td>
+                                            <td><code>C(1,1)-Y-C-L-I-C(1,2)</code></td>
+                                            <td>Bond <code>1</code> connects <code>R1</code> of the first residue to <code>R2</code> of the last.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Branched Chain</strong></td>
+                                            <td><code>A-G-K(1,3)-G-A-D.E-H-I-A(1,2)</code></td>
+                                            <td>The <code>.</code> separates the main chain from the branch. Bond <code>1</code> connects <code>R3</code> of Lysine to <code>R2</code> of Alanine.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>N-Terminal Capping</strong></td>
+                                            <td><code>ac-G-A-D</code></td>
+                                            <td>
+                                                A capping monomer (<code>ac</code>) attached to the N-terminus.
+                                                {' '}
+                                                <Box component="span" sx={{ color: 'text.secondary' }}>
+                                                    Equivalent explicit form: <code>ac(1,2).G(1,1)-A-D</code>
+                                                </Box>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>C-Terminal Capping</strong></td>
+                                            <td><code>G-A-D-am</code></td>
+                                            <td>
+                                                A capping monomer (<code>am</code>) attached to the C-terminus.
+                                                {' '}
+                                                <Box component="span" sx={{ color: 'text.secondary' }}>
+                                                    Equivalent explicit form: <code>G-A-D(1,2).am(1,1)</code>
+                                                </Box>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Side Chain Capping</strong></td>
+                                            <td><code>A-G-K(1,3)-D.ac(1,2)</code></td>
+                                            <td>The <code>.</code> separates the main chain from the branch.</td>
+                                        </tr>
+                                    </tbody>
+                                </Box>
+                            </Box>
+                        </Paper>
+
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Manual Entry Tips
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Check Attachment Points:</strong> Verify available <code>R-groups</code> for a monomer in the <strong>Library Panel</strong> to ensure your bond is valid.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Concatenation:</strong> If a monomer has multiple connections, concatenate the bond pairs: <code>K(1,3)(2,3)</code>
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Unambiguous Translation:</strong> When correctly formatted, BILN provides an unequivocal translation into a full chemical structure.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+                    </Box>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setBilnHelpOpen(false)} size="small">Close</Button>
