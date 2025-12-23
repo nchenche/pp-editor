@@ -502,8 +502,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return;
         }
 
-        const { committable } = analyzeBiln(bilnValue);
-        if (!committable) return;
+        const { committable, bondsComplete } = analyzeBiln(bilnValue);
+        if (!committable || !bondsComplete) return;
         if (bilnValue !== committedBiln) setCommittedBiln(bilnValue);
     }, [bilnValue, committedBiln]);
 

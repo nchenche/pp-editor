@@ -14,6 +14,9 @@ export function normalizeBilnInput(input) {
     s = s.trim();
     // remove whitespace around '-' (covers typing and paste cases)
     s = s.replace(/\s*-\s*/g, '-');
+    // normalize *complete* bond annotations to a canonical form: (id,rgroup)
+    // (does not affect partial in-progress input like '(1,')
+    s = s.replace(/\(\s*(\d+)\s*,\s*(\d+)\s*\)/g, '($1,$2)');
     return s;
 }
 
@@ -203,8 +206,8 @@ export async function convertHelmToBiln(helmString) {
 
 export function analyzeBiln(biln) {
     const s = (biln || '').trim();
-    if (!s) return { committable: true, tokenCount: 0 };
-    if (/[-.\(,]\s*$/.test(s)) return { committable: false, tokenCount: 0 };
+    if (!s) return { committable: true, tokenCount: 0, bondsComplete: true, incompleteBondIds: [] };
+    if (/[-.\(,]\s*$/.test(s)) return { committable: false, tokenCount: 0, bondsComplete: false, incompleteBondIds: [] };
 
     let depth = 0;
     for (let i = 0; i < s.length; i++) {
@@ -212,12 +215,40 @@ export function analyzeBiln(biln) {
         if (ch === '(') depth++;
         else if (ch === ')') {
             depth--;
-            if (depth < 0) return { committable: false, tokenCount: 0 };
+            if (depth < 0) return { committable: false, tokenCount: 0, bondsComplete: false, incompleteBondIds: [] };
         }
     }
-    if (depth !== 0) return { committable: false, tokenCount: 0 };
+    if (depth !== 0) return { committable: false, tokenCount: 0, bondsComplete: false, incompleteBondIds: [] };
+
+    // Validate that every parenthesis group is a *complete* (int,int).
+    // Examples that should NOT be committable:
+    //  - A()
+    //  - A(1,)
+    //  - A(,2)
+    //  - A(1,2,3)
+    //  - A(foo)
+    const parenGroups = s.match(/\([^)]*\)/g) || [];
+    for (const grp of parenGroups) {
+        if (!/^\(\s*\d+\s*,\s*\d+\s*\)$/.test(grp)) {
+            return { committable: false, tokenCount: 0, bondsComplete: false, incompleteBondIds: [] };
+        }
+    }
+
+    // Bond completeness check: each bondId in (bondId,rgroup) should appear exactly twice
+    // (prevents triggering depiction/3D while user has only entered one endpoint).
+    const bondCounts = {};
+    const bondRegex = /\((\d+)\s*,\s*(\d+)\s*\)/g;
+    let match;
+    while ((match = bondRegex.exec(s)) !== null) {
+        const bondId = match[1];
+        bondCounts[bondId] = (bondCounts[bondId] || 0) + 1;
+    }
+    const incompleteBondIds = Object.entries(bondCounts)
+        .filter(([, count]) => count !== 2)
+        .map(([bondId]) => bondId);
+    const bondsComplete = incompleteBondIds.length === 0;
 
     const noParen = s.replace(/\([^)]*\)/g, '');
     const tokenCount = noParen.split(/[.-]+/).filter(Boolean).length;
-    return { committable: true, tokenCount };
+    return { committable: true, tokenCount, bondsComplete, incompleteBondIds };
 }

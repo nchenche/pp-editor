@@ -3,7 +3,7 @@ import { log } from '../../utils/dev';
 
 
 import { DesignPageLayout } from '../../layouts/DesignPageLayout';
-import { buildLinkMapFromBiln, getSequences } from '../../utils/bilnUtils';
+import { buildLinkMapFromBiln, getSequences, analyzeBiln } from '../../utils/bilnUtils';
 
 import { useFetchDepiction } from '../../hooks/useFetchDepiction';
 import { useGenerate3D } from '../../hooks/useGenerate3D';
@@ -75,6 +75,9 @@ const DesignPeptideContainer = ({ children }) => {
             setStructureOutput(null);
             return;
         }
+
+        const { committable, bondsComplete } = analyzeBiln(bilnValue);
+        if (!committable || !bondsComplete) return;
 
         const query = `?sequence=${bilnValue}&mode=rdkit&show-atom-indices=${isShowingAtomIndices}`;
         const loadAndGenerate = async () => {
