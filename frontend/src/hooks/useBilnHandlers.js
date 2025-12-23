@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { removeGroup, buildBilnFromRowMonomerLists } from "../utils/bilnUtils";
+import { removeGroup, buildBilnFromRowMonomerLists, buildLinkMapFromBiln } from "../utils/bilnUtils";
 import { useConfirm } from "../components/common/ConfirmDialogProvider";
 
 
@@ -16,6 +16,105 @@ export function useBilnHandlers({
     setHoveredMonomer,
 }) {
     const confirm = useConfirm();
+
+    const validateDnDReorder = useCallback((candidateRows, candidateBiln) => {
+        // Treat empty rows as non-existent; `buildBilnFromRowMonomerLists` drops them.
+        const effectiveRows = (candidateRows || []).filter((r) => Array.isArray(r) && r.length > 0);
+
+        const candidateLinkMap = buildLinkMapFromBiln(candidateBiln || '');
+
+        // Only treat *complete* links (exactly 2 endpoints) as consuming R-groups.
+        const usedRgroupsByMonomerIdx = new Map();
+        for (const pairs of Object.values(candidateLinkMap || {})) {
+            if (!Array.isArray(pairs) || pairs.length !== 2) continue;
+            for (const p of pairs) {
+                const monomerIdx = Number(p?.monomerIdx);
+                const rgroup = Number(p?.rgroup);
+                if (!Number.isFinite(monomerIdx) || !Number.isFinite(rgroup)) continue;
+                if (!usedRgroupsByMonomerIdx.has(monomerIdx)) usedRgroupsByMonomerIdx.set(monomerIdx, new Set());
+                usedRgroupsByMonomerIdx.get(monomerIdx).add(rgroup);
+            }
+        }
+
+        let offset = 0;
+        for (const row of effectiveRows) {
+            const lastIdx = row.length - 1;
+            for (let i = 0; i < row.length; i++) {
+                const monomer = row[i];
+                const globalIdx = offset + i;
+
+                const isCap = monomer?.m_subtype === 'cap';
+                const hasR1 = monomer?.m_RgroupIdx?.[0] != null; // BILN rgroup 1
+                const hasR2 = monomer?.m_RgroupIdx?.[1] != null; // BILN rgroup 2
+                const isNterCap = isCap && hasR2 && !hasR1;
+                const isCterCap = isCap && hasR1 && !hasR2;
+
+                // Caps must remain terminal; they are non-draggable but can be displaced.
+                if (isNterCap && i !== 0) return { ok: false, reason: 'nter-cap-not-terminal', monomer };
+                if (isCterCap && i !== lastIdx) return { ok: false, reason: 'cter-cap-not-terminal', monomer };
+
+                const used = usedRgroupsByMonomerIdx.get(globalIdx);
+                const r1Used = used?.has(1) ?? false;
+                const r2Used = used?.has(2) ?? false;
+
+                // Backbone adjacency requires the corresponding R-group to exist and be unused.
+                if (i > 0) {
+                    if (!hasR1) return { ok: false, reason: 'missing-r1-for-backbone', monomer };
+                    if (r1Used) return { ok: false, reason: 'r1-already-used', monomer };
+                }
+                if (i < lastIdx) {
+                    if (!hasR2) return { ok: false, reason: 'missing-r2-for-backbone', monomer };
+                    if (r2Used) return { ok: false, reason: 'r2-already-used', monomer };
+                }
+            }
+            offset += row.length;
+        }
+
+        return { ok: true, reason: null, monomer: null };
+    }, []);
+
+    const showDnDInvalidMoveDialog = useCallback(async ({ reason, monomer }) => {
+        const code = monomer?.symbol || monomer?.m_abbr || monomer?.m_name || 'This monomer';
+
+        let title = 'Cannot move monomer';
+        let message = 'This move is not possible because it would create an invalid backbone connection.';
+
+        switch (reason) {
+            case 'nter-cap-not-terminal':
+                title = 'Cannot move N‑terminal cap';
+                message = `The N‑terminus is capped with “${code}”. Capping monomers must remain at the start of the chain.`;
+                break;
+            case 'cter-cap-not-terminal':
+                title = 'Cannot move C‑terminal cap';
+                message = `The C‑terminus is capped with “${code}”. Capping monomers must remain at the end of the chain.`;
+                break;
+            case 'missing-r1-for-backbone':
+                title = 'Cannot move monomer here';
+                message = `“${code}” cannot be placed at this position because it has no R1 to connect to the left neighbor.`;
+                break;
+            case 'missing-r2-for-backbone':
+                title = 'Cannot move monomer here';
+                message = `“${code}” cannot be placed at this position because it has no R2 to connect to the right neighbor.`;
+                break;
+            case 'r1-already-used':
+                title = 'Cannot move monomer here';
+                message = 'The N‑terminus is already used in a bond (e.g., cyclic). Remove the bond first.';
+                break;
+            case 'r2-already-used':
+                title = 'Cannot move monomer here';
+                message = 'The C‑terminus is already used in a bond (e.g., cyclic). Remove the bond first.';
+                break;
+            default:
+                break;
+        }
+
+        await confirm({
+            title,
+            message,
+            confirmText: 'Close',
+            hideCancel: true,
+        });
+    }, [confirm]);
 
     // Helper: is C-ter free to append?
     const isCterFree = useCallback((cterGlobalIdx, cterMonomer) => {
@@ -506,41 +605,53 @@ export function useBilnHandlers({
     }, [setIsDragging, setHoveredMonomer]);
 
     // Handle drag end
-    const handleOnDragEnd = useCallback((result) => {
+    const handleOnDragEnd = useCallback(async (result) => {
         setIsDragging(false);
         // console.log('Drag result:', result);
-        const { source, destination, draggableId } = result;
+        const { source, destination } = result;
 
         if (!destination) {
             return; // dropped outside the list
         }
 
-        let newBiln = null;
-        if (source.droppableId === destination.droppableId) {
-            // Reorder within the same list
-            const reorderedList = Array.from(rowMonomerLists[source.droppableId]);
+        // No-op drop
+        if (source.droppableId === destination.droppableId && source.index === destination.index) {
+            return;
+        }
+
+        // Work on a clone first; only commit if valid.
+        const nextRows = (rowMonomerLists || []).map((row) => Array.from(row || []));
+
+        const srcId = parseInt(String(source.droppableId), 10);
+        const dstId = parseInt(String(destination.droppableId), 10);
+        if (!Number.isFinite(srcId) || !Number.isFinite(dstId)) return;
+
+        if (srcId === dstId) {
+            const reorderedList = Array.from(nextRows[srcId] || []);
             const [removed] = reorderedList.splice(source.index, 1);
             reorderedList.splice(destination.index, 0, removed);
-
-            rowMonomerLists[source.droppableId] = reorderedList;
-            newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
-            // console.log("Reordered BILN:", newBiln);
-        }
-        else {
-            // Move between 2 different lists
-            const sourceList = Array.from(rowMonomerLists[source.droppableId]);
-            const destList = Array.from(rowMonomerLists[destination.droppableId]);
+            nextRows[srcId] = reorderedList;
+        } else {
+            const sourceList = Array.from(nextRows[srcId] || []);
+            const destList = Array.from(nextRows[dstId] || []);
             const [removed] = sourceList.splice(source.index, 1);
             destList.splice(destination.index, 0, removed);
-
-            rowMonomerLists[source.droppableId] = sourceList;
-            rowMonomerLists[destination.droppableId] = destList;
-            newBiln = buildBilnFromRowMonomerLists(rowMonomerLists, bilnValue);
-            // console.log("Moved BILN:", newBiln);
+            nextRows[srcId] = sourceList;
+            nextRows[dstId] = destList;
         }
-        if (newBiln) setBilnValue(() => newBiln);
 
-    }, [bilnValue, setBilnValue, rowMonomerLists]);
+        const candidateBiln = buildBilnFromRowMonomerLists(nextRows, bilnValue);
+        const validation = validateDnDReorder(nextRows, candidateBiln);
+        if (!validation.ok) {
+            await showDnDInvalidMoveDialog(validation);
+            return;
+        }
+
+        // Commit: update the memoized rows in-place (existing pattern here)
+        for (let i = 0; i < nextRows.length; i++) rowMonomerLists[i] = nextRows[i];
+        if (candidateBiln) setBilnValue(() => candidateBiln);
+
+    }, [bilnValue, setBilnValue, rowMonomerLists, validateDnDReorder, showDnDInvalidMoveDialog, setIsDragging]);
 
 
     return {

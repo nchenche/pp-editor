@@ -18,6 +18,7 @@ export const ChainSlots = ({
     activeSeqIdx,
     onSetActiveSeqIdx,
     linkMap,
+    isDragging = false,
     hoveredMonomer,
     handleDeleteMonomerItem,
     onDragEnd,
@@ -62,7 +63,12 @@ export const ChainSlots = ({
 
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
-            {rowMonomerLists.map((list, seqIdx) => {
+            {(() => {
+                let runningOffset = 0;
+                return rowMonomerLists.map((list, seqIdx) => {
+
+                const sequenceOffset = runningOffset;
+                runningOffset += (list?.length || 0);
 
                 const mapping = scaffoldMappings[seqIdx] || {};
                 const isTemplateEnabled = mapping?.enabled === true;
@@ -220,6 +226,8 @@ export const ChainSlots = ({
                                             droppableRef={provided.innerRef}
                                             monomers={list}
                                             linkMap={linkMap}
+                                            isDragging={isDragging}
+                                            sequenceOffset={sequenceOffset}
                                             isActive={seqIdx === activeSeqIdx}
                                             hoveredMonomer={overlayActive ? null : hoveredMonomer}
                                             onDelete={handleDeleteMonomerItem}
@@ -256,7 +264,8 @@ export const ChainSlots = ({
                         />
                     </Box>
                 );
-            })}
+            });
+            })()}
         </DragDropContext>
     );
 };

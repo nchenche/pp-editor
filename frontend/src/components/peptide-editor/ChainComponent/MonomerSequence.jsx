@@ -1,10 +1,12 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 
 import { MonomerItem } from "./MonomerItem";
 
 import { Box, Typography, IconButton, Tooltip, useTheme, ListItem } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { alpha } from "@mui/material/styles";
+
+import { LINK_COLORS } from './linkColors';
 
 function mergeRefs(...refs) {
     return (node) => {
@@ -40,13 +42,31 @@ export const MonomerSequence = ({
     handleMonomerLeave,
 
     // visuals
-    isDragging = true, // suppress link highlights during drag
+    isDragging = false, // suppress link highlights during drag
     dndDisabled = false,
+
+    // global token index offset for this sequence (0-based), used to match linkMap while reordering
+    sequenceOffset = 0,
 
     constraintsMode = false,
     constraints = [],
     onEditConstraint = () => { },
 }) => {
+        const linkColorIndexById = useMemo(() => {
+            if (!linkMap) return {};
+
+            // Deterministic + distinct color per linkId (for complete links)
+            const completeLinkIds = Object.entries(linkMap)
+                .filter(([, pairs]) => Array.isArray(pairs) && pairs.length === 2)
+                .map(([linkId]) => linkId)
+                .sort((a, b) => Number(a) - Number(b));
+
+            const out = {};
+            for (let i = 0; i < completeLinkIds.length; i++) {
+                out[completeLinkIds[i]] = i % LINK_COLORS.length;
+            }
+            return out;
+        }, [linkMap]);
     const theme = useTheme();
 
     const gridGap = 0.5; // spacing between chips (theme spacing units)
@@ -114,11 +134,13 @@ export const MonomerSequence = ({
 
                         let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
                         if (!linkIndices.length && linkMap) {
-                            const monomerIdx = parseInt(String(monomer["res-idx"]).split("-")[1], 10);
+                            const globalIdx = Number(sequenceOffset) + Number(index);
                             linkIndices = Object.entries(linkMap)
-                                .filter(([, pairs]) => pairs?.some((p) => p.monomerIdx === monomerIdx))
+                                .filter(([, pairs]) => pairs?.some((p) => Number(p?.monomerIdx) === globalIdx))
                                 .map(([linkId]) => linkId);
                         }
+                        // Keep ordering stable
+                        linkIndices = (linkIndices || []).slice().sort((a, b) => Number(a) - Number(b));
                         if (isDragging) linkIndices = [];
 
                         return (
@@ -132,6 +154,7 @@ export const MonomerSequence = ({
                                 isNterCap={isNterCap}
                                 isCterCap={isCterCap}
                                 linkIndices={linkIndices}
+                                linkColorIndexById={linkColorIndexById}
                                 isHovered={isHovered}
                                 dndDisabled={dndDisabled}
                             />

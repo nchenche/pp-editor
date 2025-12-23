@@ -11,13 +11,7 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
 
-// Use outside the component, only defined once
-const LINK_COLORS = [
-    "#3A86FF", "#FFBE0B", "#E63946", "#F1A208", "#2A9D8F",
-    "#457B9D", "#8E44AD", "#F4A261", "#6D6875", "#43AA8B",
-    "#386641", "#B5179E", "#FF006E", "#8338EC", "#264653",
-    "#1FAB89", "#EF476F", "#06D6A0", "#118AB2", "#FFD166"
-];
+import { LINK_COLORS } from './linkColors';
 
 // Style helpers (use classnames library if you want more dynamic combinations)
 const containerBase = [
@@ -40,6 +34,8 @@ const MonomerItemComponent = (props) => {
         onDelete,
         isNterCap = false,
         isCterCap = false,
+        linkIndices = [],
+        linkColorIndexById = {},
         setSelectedMonomer, // <-- assumed to be passed if you want selection logic!
         isHovered = false, // <-- default to false if not passed
         handleMonomerEnter,
@@ -163,15 +159,21 @@ const MonomerItemComponent = (props) => {
             {isCapped && <span className={capClassName}>CAP</span>}
 
             {/* Bond indices display */}
-            {Array.isArray(monomer.bond_idx) && monomer.bond_idx.length > 0 && !snapshot.isDropAnimating && (
+            {Array.isArray(linkIndices) && linkIndices.length > 0 && (
                 <div className='flex items-center justify-around absolute bottom-0 translate-y-[50%] w-7 h-3 gap-x-[0.2em]'>
-                    {monomer.bond_idx.map(linkId => (
+                    {linkIndices.map((linkId) => {
+                        const idx = linkColorIndexById?.[linkId];
+                        const colorIdx = Number.isFinite(idx)
+                            ? (idx % LINK_COLORS.length)
+                            : (Number(linkId) % LINK_COLORS.length);
+                        return (
                         <span
                             key={linkId}
-                            style={{ background: LINK_COLORS[linkId % LINK_COLORS.length] }}
+                            style={{ background: LINK_COLORS[colorIdx] }}
                             className="rounded w-[0.47em] h-[0.47em] mx-[1px] border border-stone-800"
                         />
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -309,7 +311,23 @@ const MonomerItemComponent = (props) => {
                 </MenuItem>
             </Menu>
         </div>
-    ), [containerClasses, dragAreaClasses, capClassName, isCapped, isHovered, monomer, handleMonomerEnter, handleMonomerLeave, handleDelete, swapMenuOpen, handleOpenSwapMenu, handleCloseSwapMenu, isSelected]);
+    ), [
+        containerClasses,
+        dragAreaClasses,
+        capClassName,
+        isCapped,
+        isHovered,
+        monomer,
+        linkIndices,
+        linkColorIndexById,
+        handleMonomerEnter,
+        handleMonomerLeave,
+        handleDelete,
+        swapMenuOpen,
+        handleOpenSwapMenu,
+        handleCloseSwapMenu,
+        isSelected,
+    ]);
 
     // If capped, not draggable
     if (isCapped) return <MonomerContent />;

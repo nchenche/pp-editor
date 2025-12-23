@@ -83,6 +83,7 @@ export default function BilnEditorInterface({
     onClearScaffold = () => { },
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
+    isDragging = false,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);

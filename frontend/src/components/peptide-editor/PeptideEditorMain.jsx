@@ -693,6 +693,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         isAtMonomerLimit={isAtMonomerLimit}
                         onChangeBiln={handleBilnChange}
                         hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
+                        isDragging={isDragging}
                         canUndo={canUndo}
                         canRedo={canRedo}
                         onUndo={handleUndoBiln}

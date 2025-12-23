@@ -39,7 +39,7 @@ export const MonomerItem = ({
         "#FFD166", // Pastel Yellow
     ];
 
-    const monomerBondIndices = monomer.bond_idx;
+    const monomerBondIndices = Array.isArray(monomer.bond_idx) ? monomer.bond_idx : [];
     const [selectedMonomer, setSelectedMonomer] = useState(null);
     const [isSelectedMonomer, setIsSelectedMonomer] = useState(false);
 
@@ -111,7 +111,7 @@ export const MonomerItem = ({
 
                             <span
                                 key={linkId}
-                                style={{ background: linkColors[linkId] }}
+                                style={{ background: linkColors[Number(linkId) % linkColors.length] }}
                                 className="rounded w-[0.47em] h-[0.47em] mx-[1px] border border-stone-800"
                             />
                         ))}

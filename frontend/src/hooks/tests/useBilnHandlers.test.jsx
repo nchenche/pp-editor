@@ -3,6 +3,11 @@ import { render, fireEvent } from '@testing-library/react';
 import React, { useState } from 'react';
 import { useBilnHandlers } from '../useBilnHandlers';
 import { monomersMock } from '../../../test/mocks/monomers.mock';
+import { ConfirmProvider } from '../../components/common/ConfirmDialogProvider';
+
+function renderWithConfirm(ui) {
+    return render(<ConfirmProvider>{ui}</ConfirmProvider>);
+}
 
 function Harness({ initialBiln = '', uiInitial = { activeSeqIdx: null, seqNumber: 0 } }) {
     const [bilnValue, setBilnValue] = useState(initialBiln);
@@ -35,20 +40,20 @@ function Harness({ initialBiln = '', uiInitial = { activeSeqIdx: null, seqNumber
 
 describe('useBilnHandlers.addMonomerToBiln', () => {
     it('creates first sequence and focuses it', () => {
-        const { getByTestId, getByText } = render(<Harness />);
+        const { getByTestId, getByText } = renderWithConfirm(<Harness />);
         fireEvent.click(getByText('add-new-seq'));
         expect(getByTestId('biln').textContent).toBe('A');
         expect(getByTestId('seq').textContent).toBe('0');
     });
 
     it('appends to selected sequence', () => {
-        const { getByTestId, getByText } = render(<Harness initialBiln="A" uiInitial={{ activeSeqIdx: 0, seqNumber: 1 }} />);
+        const { getByTestId, getByText } = renderWithConfirm(<Harness initialBiln="A" uiInitial={{ activeSeqIdx: 0, seqNumber: 1 }} />);
         fireEvent.click(getByText('append-0'));
         expect(getByTestId('biln').textContent).toBe('A-B');
     });
 
     it('prepends to selected sequence', () => {
-        const { getByTestId, getByText } = render(<Harness initialBiln="A-B" uiInitial={{ activeSeqIdx: 0, seqNumber: 1 }} />);
+        const { getByTestId, getByText } = renderWithConfirm(<Harness initialBiln="A-B" uiInitial={{ activeSeqIdx: 0, seqNumber: 1 }} />);
         fireEvent.click(getByText('prepend-0'));
         expect(getByTestId('biln').textContent).toBe('C-A-B');
     });
