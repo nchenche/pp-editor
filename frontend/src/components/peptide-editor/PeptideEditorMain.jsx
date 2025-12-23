@@ -7,6 +7,7 @@ import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
 import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
 import { ReplaceOverlay } from './ReplaceOverlay';
+import { ScaffoldWarningsDialog } from './ScaffoldWarningsDialog';
 
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
@@ -211,7 +212,26 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         handleClearScaffold,
         loading: scaffoldLoading,
         error: scaffoldError,
+        warnings: scaffoldWarnings,
+        messages: scaffoldMessages,
+        standardization: scaffoldStandardization,
     } = useScaffoldTemplate();
+
+    const [scaffoldErrorOpen, setScaffoldErrorOpen] = useState(false);
+
+    useEffect(() => {
+        setScaffoldErrorOpen(!!scaffoldError);
+    }, [scaffoldError]);
+
+    const [scaffoldWarningsOpen, setScaffoldWarningsOpen] = useState(false);
+
+    useEffect(() => {
+        if (Array.isArray(scaffoldMessages) && scaffoldMessages.length > 0) {
+            setScaffoldWarningsOpen(true);
+        } else {
+            setScaffoldWarningsOpen(false);
+        }
+    }, [scaffoldMessages]);
 
     const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
     const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
@@ -739,6 +759,34 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     </DialogContent>
                     <DialogActions>
                         <Button size="small" onClick={() => setTemplateOverlapOpen(false)}>
+                            OK
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                <ScaffoldWarningsDialog
+                    open={scaffoldWarningsOpen}
+                    warnings={scaffoldWarnings}
+                    messages={scaffoldMessages}
+                    standardization={scaffoldStandardization}
+                    scaffoldName={scaffoldTemplate?.name}
+                    onAcknowledge={() => setScaffoldWarningsOpen(false)}
+                />
+
+                <Dialog
+                    open={scaffoldErrorOpen}
+                    onClose={() => setScaffoldErrorOpen(false)}
+                    maxWidth="xs"
+                    fullWidth
+                >
+                    <DialogTitle>Scaffold upload failed</DialogTitle>
+                    <DialogContent dividers>
+                        <Typography variant="body2" color="text.secondary">
+                            {String(scaffoldError || 'Failed to parse scaffold.')}
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button size="small" onClick={() => setScaffoldErrorOpen(false)}>
                             OK
                         </Button>
                     </DialogActions>

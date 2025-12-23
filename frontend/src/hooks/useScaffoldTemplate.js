@@ -6,13 +6,34 @@ export function useScaffoldTemplate() {
     const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [warnings, setWarnings] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [standardization, setStandardization] = useState(null);
+
+    const buildParsePdbUrl = useCallback((options = {}) => {
+        const standardize = options?.standardize ?? true;
+        const backboneOnly = options?.backboneOnly ?? options?.backbone_only ?? false;
+
+        const params = new URLSearchParams();
+        params.set('standardize', standardize ? 'true' : 'false');
+        params.set('backbone_only', backboneOnly ? 'true' : 'true');
+
+        return `${API_BASE_URL}/api/structures/parse_pdb?${params.toString()}`;
+    }, []);
 
     const parsePdbResponse = useCallback((name, text, meta) => {
-        // meta is the JSON from your Flask route: { status, data: { chains: [...] } }
+        // meta is the JSON from your Flask route
+        const w = Array.isArray(meta?.warnings) ? meta.warnings.filter(Boolean).map(String) : [];
+        const m = Array.isArray(meta?.messages) ? meta.messages.filter(Boolean).map(String) : [];
+        const s = meta?.standardization && typeof meta.standardization === 'object' ? meta.standardization : null;
         const chains = meta?.data?.chains ?? [];
         const source = meta?.data?.source || null; // e.g., 'pdb_id' or 'file_upload'
         const pdbPath = meta?.data?.pdb_path || null;
         const doc_id = meta?.data?._id || null;
+
+        setWarnings(w);
+        setMessages(m);
+        setStandardization(s);
         setScaffoldTemplate({
             id: doc_id,
             name,
@@ -21,6 +42,9 @@ export function useScaffoldTemplate() {
             chainData: chains,
             source: source,
             pdbPath: pdbPath,
+            warnings: w,
+            messages: m,
+            standardization: s,
         });
     }, []);
 
@@ -41,10 +65,13 @@ export function useScaffoldTemplate() {
         }
     }, []);
 
-    const uploadScaffoldFile = useCallback(async (file) => {
+    const uploadScaffoldFile = useCallback(async (file, options = undefined) => {
         if (!file) return;
         setLoading(true);
         setError(null);
+        setWarnings([]);
+        setMessages([]);
+        setStandardization(null);
 
         try {
             const text = null; // await file.text();
@@ -52,7 +79,7 @@ export function useScaffoldTemplate() {
             const form = new FormData();
             form.append('file', file); // backend expects `file` in form-data
 
-            const res = await apiFetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
+            const res = await apiFetch(buildParsePdbUrl(options), {
                 method: 'POST',
                 body: form,
             });
@@ -79,21 +106,24 @@ export function useScaffoldTemplate() {
         } finally {
             setLoading(false);
         }
-    }, [parsePdbResponse]);
+    }, [buildParsePdbUrl, parsePdbResponse]);
 
-    const fetchScaffoldById = useCallback(async (pdbId) => {
+    const fetchScaffoldById = useCallback(async (pdbId, options = undefined) => {
         // console.log('fetchScaffoldById', pdbId);
         if (!pdbId) return;
         setLoading(true);
         setError(null);
+        setWarnings([]);
+        setMessages([]);
+        setStandardization(null);
 
         try {
-            const form = new FormData();
-            form.append('pdb_id', pdbId);
-
-            const res = await apiFetch(`${API_BASE_URL}/api/structures/parse_pdb`, {
+            const res = await apiFetch(buildParsePdbUrl(options), {
                 method: 'POST',
-                body: form,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ pdb_id: pdbId }),
             });
 
             const meta = await res.json().catch(() => null);
@@ -119,7 +149,7 @@ export function useScaffoldTemplate() {
         } finally {
             setLoading(false);
         }
-    }, [parsePdbResponse]);
+    }, [buildParsePdbUrl, parsePdbResponse]);
 
     const handleClearScaffold = useCallback(async () => {
         const templateId = scaffoldTemplate?.id ?? null;
@@ -128,6 +158,9 @@ export function useScaffoldTemplate() {
         }
         setScaffoldTemplate(null);
         setError(null);
+        setWarnings([]);
+        setMessages([]);
+        setStandardization(null);
     }, [deleteTemplateOnServer, scaffoldTemplate]);
 
     return {
@@ -138,5 +171,8 @@ export function useScaffoldTemplate() {
         handleClearScaffold,
         loading,
         error,
+        warnings,
+        messages,
+        standardization,
     };
 }
