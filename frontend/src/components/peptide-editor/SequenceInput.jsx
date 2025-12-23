@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 
 import { Box, Stack, TextField, Typography } from '@mui/material';
 
+import { normalizeBilnInput } from '../../utils/bilnUtils';
+
 
 function countMonomersFromBiln(biln) {
   // Simple token count: chains split by '.', residues split by '-'
@@ -54,7 +56,7 @@ export function SequenceInput({
     <TextField
       label="Enter BILN sequence"
       value={value}
-      onChange={(e) => onChangeValue(e.target.value)}
+      onChange={(e) => onChangeValue(normalizeBilnInput(e.target.value))}
       variant="outlined"
       size="small"
       fullWidth
@@ -83,8 +85,9 @@ export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
   }, [biln]);
 
   const handleBilnChange = (val) => {
+    const normalized = normalizeBilnInput(val);
     const prevCount = countMonomersFromBiln(bilnText);
-    const nextCount = countMonomersFromBiln(val);
+    const nextCount = countMonomersFromBiln(normalized);
 
     if (nextCount > maxMonomers && nextCount > prevCount) {
       setError(`Maximum length reached (${maxMonomers} monomers). Remove a monomer to add a new one.`);
@@ -92,8 +95,8 @@ export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
     }
 
     setError('');
-    setBilnText(val);
-    onChangeBiln?.(val);
+    setBilnText(normalized);
+    onChangeBiln?.(normalized);
   };
 
   return (

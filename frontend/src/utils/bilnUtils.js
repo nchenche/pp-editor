@@ -2,6 +2,22 @@ import { API_URL } from '../config';
 import { apiFetch } from './api';
 
 
+// Normalize common user input mistakes in BILN strings.
+// - no leading/trailing whitespace
+// - no whitespace around '-' separators
+export function normalizeBilnInput(input) {
+    if (input == null) return '';
+    let s = String(input);
+    // normalize common copy/paste whitespace
+    s = s.replace(/\u00A0/g, ' ');
+    // trim start/end (covers spaces, tabs, newlines)
+    s = s.trim();
+    // remove whitespace around '-' (covers typing and paste cases)
+    s = s.replace(/\s*-\s*/g, '-');
+    return s;
+}
+
+
 /**
  * Decomposes a BILN string into tokens and separators.
  */
