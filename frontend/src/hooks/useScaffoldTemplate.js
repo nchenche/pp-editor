@@ -16,7 +16,7 @@ export function useScaffoldTemplate() {
 
         const params = new URLSearchParams();
         params.set('standardize', standardize ? 'true' : 'false');
-        params.set('backbone_only', backboneOnly ? 'true' : 'true');
+        params.set('backbone_only', backboneOnly ? 'true' : 'false');
 
         return `${API_BASE_URL}/api/structures/parse_pdb?${params.toString()}`;
     }, []);
@@ -99,7 +99,7 @@ export function useScaffoldTemplate() {
                 setError(meta?.message || `Failed to parse PDB (status ${res.status})`);
                 return;
             }
-
+            console.log('PDB parse success', meta);
             parsePdbResponse(file.name, text, meta);
         } catch (e) {
             setError(e?.message || 'Failed to upload scaffold.');
