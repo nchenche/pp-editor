@@ -472,6 +472,10 @@ const Documentation = () => {
                             The mapping configuration allows to define the exact fragment of the PDB entry to use (chain, residue index), and how it is mapped onto the BILN sequence (in a contiguous manner from an offset position). It is possible to finely tune the mapping usage on a per residue basis by masking residues (constraints not taken into account).
                         </Typography>
 
+                        <Typography variant="body1" component="p">
+                            Note that the use of a 3D template disables the automatic synchronization of the 3D generation. The user has to click the <strong> Generate 3D </strong> button to trigger the 3D generation.
+                        </Typography>
+
                         <Box component="figure" className="my-4">
                             <Box
                                 component="img"
@@ -944,7 +948,7 @@ const Documentation = () => {
                                 align="center"
                                 sx={{ mt: 1 }}
                             >
-                                Figure 8. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
+                                Figure 8. Generation of the semaglutide without any structural constraints.
                             </Typography>
                         </Box>
 
@@ -953,11 +957,35 @@ const Documentation = () => {
                             While PEP-EDIT can generate a valid initial conformation for this construct,
                             the resulting structure is not expected to be fully realistic, especially
                             for the peptide backbone.
-                            {/* // A practical strategy is to generate a backbone
-                            // conformation for residues 3–31 using an external tool such as PEP-FOLD4,
-                            // and then use this model as a <strong>3D template</strong> within PEP-EDIT
-                            // to build the full lipidated structure. */}
+                            A possible strategy is to generate a backbone
+                            conformation for residues 3–31 (i.e. avoiding the Aib) using an external tool such as PEP-FOLD4,
+                             and then use this model as a <strong>3D template</strong> within PEP-EDIT
+                             to build the full lipidated structure. The truncated sequence requires an offset of 2 to map that of the full semaglutide.
                         </Typography>
+
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/SemaglutideFromTemplate.png"
+                                alt="Generating a 3D structure for the semaglutide"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/Semaglutide.png",
+                                        "Generating a 3D structure for the semaglutide"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 9. Generation of the semaglutide including structural constraints for the region 3-31.
+                            </Typography>
+                        </Box>
 
                         {/* <Typography variant="body2" color="text.secondary" component="p">
                             Note: this workflow is currently experimental and may require manual
