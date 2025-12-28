@@ -6,6 +6,7 @@ import { DesignPageLayoutMUI } from '../layouts/DesignPageLayout';
 import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMain';
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 import { OutputContainer } from '../components/output/OutputContainer';
+import { ConformerJobsPanel } from '../components/output/ConformerJobsPanel';
 
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
@@ -74,6 +75,7 @@ const Home = forwardRef((props, ref) => {
               >
                 <Tab label="Monomer Library" />
                 <Tab label="Output" />
+                <Tab label="Jobs" />
               </Tabs>
 
               {/* Keep both mounted; toggle visibility */}
@@ -110,6 +112,19 @@ const Home = forwardRef((props, ref) => {
                 <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                   <OutputContainer outputData={outputData} />
                 </Box>
+              </Box>
+
+              <Box
+                role="tabpanel"
+                sx={{
+                  display: tabIndex === 2 ? 'flex' : 'none',
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: 'hidden',
+                }}
+                aria-hidden={tabIndex !== 2}
+              >
+                <ConformerJobsPanel dbName="pepedit" />
               </Box>
             </Box>
           }

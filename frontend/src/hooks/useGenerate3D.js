@@ -1,12 +1,79 @@
 // src/hooks/useGenerate3D.js
-import { useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
+import { useOwnerId } from './useOwnerId';
+import { useConformerJob } from './useConformerJob';
+
+function toErrorMessage(value) {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value instanceof Error) return value.message || String(value);
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
+function mapResultRefToLegacyResult(resultRef) {
+    const props = resultRef?.properties || {};
+    return {
+        ...props,
+        pdb: props.PDB || props.pdb || '',
+        PDB: props.PDB || props.pdb || '',
+        smiles: props.SMILES || props.smiles || '',
+        SMILES: props.SMILES || props.smiles || '',
+        sdf: props.SDF || props.sdf || '',
+        SDF: props.SDF || props.sdf || '',
+        biln: props.BILN || props.biln || '',
+        BILN: props.BILN || props.biln || '',
+    };
+}
 
 export function useGenerate3D(baseUrlOverride) {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    const ownerId = useOwnerId();
+    const dbName = 'pepedit';
+    const {
+        jobId,
+        state: jobState,
+        progress,
+        progressMessage,
+        mappingMessage,
+        mappingRaw,
+        resultRef,
+        error: jobError,
+        errorType,
+        isActive: isJobActive,
+        isStarting,
+        isCanceling,
+        start: startJob,
+        cancel: cancelJob,
+        retry: retryJob,
+        clear: clearJob,
+    } = useConformerJob({ dbName, ownerId, baseUrlOverride: baseUrlOverride ?? API_BASE_URL });
+
+    // Mirror job state into legacy { result, error, loading } shape.
+    const jobDerivedResult = useMemo(() => {
+        if (jobState !== 'success') return null;
+        return mapResultRefToLegacyResult(resultRef);
+    }, [jobState, resultRef]);
+
+    useEffect(() => {
+        if (jobDerivedResult) {
+            setResult(jobDerivedResult);
+            setError(null);
+        }
+    }, [jobDerivedResult]);
+
+    useEffect(() => {
+        if (!jobError) return;
+        setError(toErrorMessage(jobError));
+    }, [jobError]);
 
     const ctrlRef = useRef(null);
     const reqIdRef = useRef(0);
@@ -27,10 +94,43 @@ export function useGenerate3D(baseUrlOverride) {
                 setResult({ pdb: '' });
                 setError(null);
                 setLoading(false);
+                clearJob();
                 return;
             }
 
-            // Cancel previous request
+            const isTemplateEndpoint = endpoint.includes('generate_3d_from_template');
+            const isAsyncConformer = !isTemplateEndpoint && endpoint.includes('generate_conformer');
+
+            if (isAsyncConformer) {
+                // Delegate to job system.
+                const body = extraBody && typeof extraBody === 'object' ? { ...extraBody } : {};
+                if (!body.biln) body.biln = bilnValue;
+
+                if (hasConstraints) {
+                    const isCoiled = ssConstraints.every(seq => seq.every(ch => ch === '-'));
+                    body.ss_constraints = isCoiled ? null : ssConstraints;
+                }
+
+                // embed_params is optional; allow callers to supply it.
+                const embedParams = body.embed_params || body.embedParams || undefined;
+
+                setLoading(true);
+                try {
+                    await startJob({
+                        biln: body.biln,
+                        ssConstraints: body.ss_constraints ?? null,
+                        embedParams,
+                        requestParams,
+                        ownerId: body.owner_id || ownerId || undefined,
+                    });
+                } finally {
+                    // loading state for async jobs is derived from isJobActive/isStarting; keep legacy true while start runs.
+                    setLoading(false);
+                }
+                return;
+            }
+
+            // Cancel previous request (sync/template)
             if (ctrlRef.current) {
                 ctrlRef.current.abort();
                 ctrlRef.current = null;
@@ -38,7 +138,7 @@ export function useGenerate3D(baseUrlOverride) {
             const controller = new AbortController();
             ctrlRef.current = controller;
 
-            // set up body from extraBody and defaults
+            // set up body from extraBody and defaults (sync/template)
             const body = extraBody && typeof extraBody === 'object'
                 ? { ...extraBody }
                 : {};
@@ -131,8 +231,30 @@ export function useGenerate3D(baseUrlOverride) {
                 }
             }
         },
-        [],
+        [clearJob, ownerId, startJob],
     );
 
-    return { result, error, loading, generate3D, setResult };
+    const derivedLoading = loading || isJobActive || isStarting || jobState === 'queued' || jobState === 'running';
+    const derivedError = error || (jobError ? toErrorMessage(jobError) : null);
+
+    return {
+        result,
+        error: derivedError,
+        loading: derivedLoading,
+        generate3D,
+        setResult,
+
+        // Async job extras (safe to ignore by old call sites)
+        jobId,
+        jobState,
+        progress,
+        progressMessage,
+        mappingMessage,
+        mappingRaw,
+        errorType,
+        isCanceling,
+        cancelJob,
+        retryJob,
+        clearJob,
+    };
 }

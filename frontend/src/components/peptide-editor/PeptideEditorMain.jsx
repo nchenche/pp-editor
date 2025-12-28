@@ -47,6 +47,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useTheme } from '@mui/material/styles';
+import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
@@ -59,7 +60,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // console.log('PeptideEditorMain rendered');
 
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
-    const { result: structureOutput, error: generate3DError, loading: structureLoading, generate3D, setResult: setStructureOutput } = useGenerate3D(API_BASE_URL);
+    const {
+        result: structureOutput,
+        error: generate3DError,
+        loading: structureLoading,
+        generate3D,
+        setResult: setStructureOutput,
+        jobState: conformerJobState,
+        progressMessage: conformerProgressMessage,
+        mappingMessage: conformerMappingMessage,
+        errorType: conformerErrorType,
+        cancelJob: cancelConformerJob,
+        retryJob: retryConformerJob,
+        isCanceling: isCancelingConformerJob,
+    } = useGenerate3D(API_BASE_URL);
 
     const [active3DPanel, setActive3DPanel] = useState(null);
 
@@ -104,6 +118,41 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const EMPTY_ARRAY = Object.freeze([]);
     const { svg: svgDepiction = '', smiles = '', helm = '', sdf = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
     const structurePDB = structureOutput?.pdb || structureOutput?.PDB || '';
+
+    const isConformerQueuedOrRunning = conformerJobState === 'queued' || conformerJobState === 'running';
+    const isConformerTerminalFailedOrCanceled = conformerJobState === 'failed' || conformerJobState === 'canceled';
+
+    const suppressNextAutoConformerGenRef = useRef(false);
+    const suppressAutoConformerForBilnRef = useRef(null);
+    const suppressAutoConformerAfterResumeRef = useRef(false);
+
+    const normalizeBilnForGen = useCallback((value) => {
+        return (value || '')
+            .toString()
+            .trim()
+            .replace(/^[.\-]+|[.\-]+$/g, '')
+            .replace(/\.+/g, '.')
+            .replace(/\-+/g, '-');
+    }, []);
+
+    useEffect(() => {
+        const onResume = (e) => {
+            const biln = String(e?.detail?.biln || '').trim();
+            const pdb = String(e?.detail?.pdb || '').trim();
+            if (!biln) return;
+            suppressNextAutoConformerGenRef.current = true;
+            suppressAutoConformerForBilnRef.current = normalizeBilnForGen(biln);
+            suppressAutoConformerAfterResumeRef.current = true;
+            setBilnValue(biln);
+
+            // If the job list already has the result, load it immediately (no compute, no polling needed).
+            if (pdb) {
+                setStructureOutput({ pdb });
+            }
+        };
+        window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
+        return () => window.removeEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
+    }, [setBilnValue, normalizeBilnForGen]);
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);
@@ -154,6 +203,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 console.warn('trySetBilnValue: expected string BILN but got:', nextBiln);
                 return false;
             }
+
+            // Any user-driven change (typing, drag/drop, add/remove monomer, etc.) re-enables auto-sync generation.
+            suppressAutoConformerAfterResumeRef.current = false;
 
             const { tokenCount } = analyzeBiln(nextBiln);
             if (tokenCount > MAX_MONOMERS) {
@@ -314,11 +366,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             };
 
             // Normalize BILN: if it's effectively empty, do not generate
-            const normalizedBiln = (biln || '')
-                .trim()
-                .replace(/^[.\-]+|[.\-]+$/g, '')
-                .replace(/\.+/g, '.')
-                .replace(/\-+/g, '-');
+            const normalizedBiln = normalizeBilnForGen(biln);
 
             if (!normalizedBiln) {
                 lastGenRef.current = { biln, ss, useTemplate, mappingSig };
@@ -358,7 +406,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
         },
         // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue],
+        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -372,6 +420,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const handleManualGenerate3D = useCallback(() => {
         if (!isActive || !canGenerate3D || !committedBiln) return;
+
+        // Manual runs should allow a re-run even if inputs didn't change.
+        // Auto-sync keeps the lastGenRef guard to avoid unnecessary recomputation.
+        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+
+        // User explicitly asked to compute: do not keep "resume suppression" active.
+        suppressAutoConformerForBilnRef.current = null;
+        suppressNextAutoConformerGenRef.current = false;
+        suppressAutoConformerAfterResumeRef.current = false;
+
         triggerGenerate(committedBiln, secstructString);
     }, [isActive, canGenerate3D, committedBiln, secstructString, triggerGenerate]);
 
@@ -526,9 +584,34 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return;
         }
         if (!autoSync3D) return;
+
+        // Resume is a special case: we programmatically set BILN and want to ONLY load the existing PDB.
+        // Block ALL auto-sync conformer generation until the user makes a normal edit.
+        if (suppressAutoConformerAfterResumeRef.current) {
+            return;
+        }
+
         if (!canGenerate3D) return;
+
+        // If the user resumed an existing job, suppress auto-generation for that specific BILN
+        // until the user changes the sequence.
+        if (suppressAutoConformerForBilnRef.current) {
+            const committedNorm = normalizeBilnForGen(committedBiln);
+            if (committedNorm === suppressAutoConformerForBilnRef.current) {
+                return;
+            }
+            // Sequence changed: re-enable auto generation.
+            suppressAutoConformerForBilnRef.current = null;
+        }
+
+        // If the user resumed an existing conformer job, don't auto-trigger a new generation.
+        if (suppressNextAutoConformerGenRef.current) {
+            suppressNextAutoConformerGenRef.current = false;
+            return;
+        }
+
         triggerGenerate(committedBiln, secstructString);
-    }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString]);
+    }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString, normalizeBilnForGen]);
 
     const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
     const generateBtnTooltip = anyScaffoldEnabled
@@ -564,6 +647,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         // Clear editor + derived committed state
         setBilnValue('');
         setCommittedBiln('');
+
+        suppressAutoConformerAfterResumeRef.current = false;
 
         // Clear outputs
         setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
@@ -945,8 +1030,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 variant={autoSync3D ? "outlined" : "contained"}
                                                 size="small"
                                                 color={autoSync3D ? "primary" : "primary"}
-                                                onClick={!autoSync3D ? handleManualGenerate3D : undefined}
-                                                disabled={!autoSync3D && manualGenerateDisabled} // Désactivé seulement si manuel et qu'il n'y a rien à générer
+                                                onClick={(() => {
+                                                    // Allow cancel even in auto-sync mode.
+                                                    if (isConformerQueuedOrRunning) return () => cancelConformerJob?.();
+                                                    if (autoSync3D) return undefined;
+                                                    if (isConformerQueuedOrRunning) return () => cancelConformerJob?.();
+                                                    if (isConformerTerminalFailedOrCanceled) return () => retryConformerJob?.();
+                                                    return handleManualGenerate3D;
+                                                })()}
+                                                disabled={(() => {
+                                                    // In auto-sync, keep this button non-actionable unless it cancels.
+                                                    if (autoSync3D) return !isConformerQueuedOrRunning;
+                                                    if (isConformerQueuedOrRunning) return !!isCancelingConformerJob;
+                                                    if (isConformerTerminalFailedOrCanceled) return false;
+                                                    return manualGenerateDisabled;
+                                                })()}
                                                 startIcon={autoSync3D ? <BoltIcon sx={{ animation: 'pulse 2s infinite' }} /> : <PlayArrowIcon />}
                                                 className={!autoSync3D ? "!bg-slate-800/90 hover:!bg-slate-800/80 !text-slate-50" : '!bg-slate-800/90 !cursor-default !text-slate-50 !btn-disabled'}
                                                 sx={{
@@ -962,7 +1060,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     }
                                                 }}
                                             >
-                                                {autoSync3D ? "Live Preview" : "Generate 3D"}
+                                                {isConformerQueuedOrRunning
+                                                    ? "Cancel"
+                                                    : autoSync3D
+                                                        ? "Live Preview"
+                                                        : isConformerTerminalFailedOrCanceled
+                                                            ? "Retry"
+                                                            : "Generate 3D"}
                                             </Button>
                                         </span>
                                     </Tooltip>
@@ -1102,9 +1206,39 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
+                                                flexDirection: 'column',
+                                                gap: 1,
+                                                px: 2,
                                             }}
                                         >
                                             <CircularProgress size={48} />
+
+                                            {(() => {
+                                                // Only show polled messages in the overlay.
+                                                // Hide noisy terminal message like "Done".
+                                                const pm = conformerProgressMessage ? String(conformerProgressMessage) : '';
+                                                const mm = conformerMappingMessage ? String(conformerMappingMessage) : '';
+
+                                                const isDone = pm.trim().toLowerCase() === 'done';
+                                                const lines = [];
+                                                if (pm && !isDone) lines.push(pm);
+                                                if (mm && mm !== pm) lines.push(mm);
+                                                if (lines.length === 0) return null;
+
+                                                return (
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            textAlign: 'center',
+                                                            maxWidth: 560,
+                                                            whiteSpace: 'pre-wrap',
+                                                        }}
+                                                    >
+                                                        {lines.join('\n')}
+                                                    </Typography>
+                                                );
+                                            })()}
                                         </Box>
                                     )}
                                     {!structureLoading && !structurePDB && (
@@ -1130,7 +1264,34 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     typeof err === 'string' &&
                                                     err.includes('constraints');
 
+                                                const showRetry = !autoSync3D && (isConformerTerminalFailedOrCanceled || !!err);
+
                                                 if (!err) {
+                                                    if (conformerJobState === 'canceled') {
+                                                        return (
+                                                            <Box>
+                                                                <Typography
+                                                                    variant="body1"
+                                                                    sx={{
+                                                                        color: 'warning.main',
+                                                                        fontSize: '1.1rem',
+                                                                        lineHeight: 1.75,
+                                                                        fontWeight: 500,
+                                                                    }}
+                                                                >
+                                                                    Canceled.
+                                                                </Typography>
+                                                                {!autoSync3D && (
+                                                                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                                                                        <Button variant="contained" size="small" onClick={() => retryConformerJob?.()}>
+                                                                            Retry
+                                                                        </Button>
+                                                                    </Box>
+                                                                )}
+                                                            </Box>
+                                                        );
+                                                    }
+
                                                     return (
                                                         <Typography
                                                             variant="body1"
@@ -1170,23 +1331,41 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             >
                                                                 Please try to relax your constraints and run the generation again.
                                                             </Typography>
+
+                                                            {!autoSync3D && showRetry && (
+                                                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                                                                    <Button variant="contained" size="small" onClick={() => retryConformerJob?.()}>
+                                                                        Retry
+                                                                    </Button>
+                                                                </Box>
+                                                            )}
                                                         </Box>
                                                     );
                                                 }
 
                                                 return (
-                                                    <Typography
-                                                        variant="body1"
-                                                        sx={{
-                                                            color: 'error.main',
-                                                            fontSize: '1.1rem',
-                                                            lineHeight: 1.6,
-                                                            fontWeight: 500,
-                                                            whiteSpace: 'pre-wrap',
-                                                        }}
-                                                    >
-                                                        {`${err}`}
-                                                    </Typography>
+                                                    <Box>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: conformerErrorType === 'network' ? 'warning.main' : 'error.main',
+                                                                fontSize: '1.1rem',
+                                                                lineHeight: 1.6,
+                                                                fontWeight: 500,
+                                                                whiteSpace: 'pre-wrap',
+                                                            }}
+                                                        >
+                                                            {`${err}`}
+                                                        </Typography>
+
+                                                        {!autoSync3D && showRetry && (
+                                                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+                                                                <Button variant="contained" size="small" onClick={() => retryConformerJob?.()}>
+                                                                    Retry
+                                                                </Button>
+                                                            </Box>
+                                                        )}
+                                                    </Box>
                                                 );
                                             })()}
                                         </Box>
