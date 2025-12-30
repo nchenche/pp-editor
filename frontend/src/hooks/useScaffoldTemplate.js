@@ -22,14 +22,18 @@ export function useScaffoldTemplate() {
     }, []);
 
     const parsePdbResponse = useCallback((name, text, meta) => {
-        // meta is the JSON from your Flask route
+        // meta is the JSON from your Flask route. Different deployments return either:
+        //  - { status, data: { _id, chains, ... }, warnings/messages/standardization }
+        //  - { status, _id, chains, ... , warnings/messages/standardization }
         const w = Array.isArray(meta?.warnings) ? meta.warnings.filter(Boolean).map(String) : [];
         const m = Array.isArray(meta?.messages) ? meta.messages.filter(Boolean).map(String) : [];
         const s = meta?.standardization && typeof meta.standardization === 'object' ? meta.standardization : null;
-        const chains = meta?.data?.chains ?? [];
-        const source = meta?.data?.source || null; // e.g., 'pdb_id' or 'file_upload'
-        const pdbPath = meta?.data?.pdb_path || null;
-        const doc_id = meta?.data?._id || null;
+
+        const doc = (meta?.data && typeof meta.data === 'object') ? meta.data : meta;
+        const chains = Array.isArray(doc?.chains) ? doc.chains : [];
+        const source = doc?.source || null; // e.g., { pdb_id, backbone_only, ... }
+        const pdbPath = doc?.pdb_path || null;
+        const doc_id = doc?._id || null;
 
         setWarnings(w);
         setMessages(m);
