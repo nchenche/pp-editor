@@ -99,6 +99,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         setJobId(null);
         setState('idle');
         setProgress(null);
+        setLastEmbeddingProgress(null);
         setResultRef(null);
         clearError();
         return;
@@ -217,6 +218,12 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       abortInFlight();
       clearError();
 
+      // Important: starting a new job should not display progress from a previous job.
+      setState('queued');
+      setProgress(null);
+      setLastEmbeddingProgress(null);
+      setResultRef(null);
+
       setIsStarting(true);
 
       const payload = {
@@ -263,6 +270,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         setJobIdAndPersist(id);
         setState('queued');
         setProgress(null);
+        setLastEmbeddingProgress(null);
         setResultRef(null);
 
         // Start polling immediately

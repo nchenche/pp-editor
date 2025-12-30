@@ -46,7 +46,7 @@ import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -78,6 +78,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [active3DPanel, setActive3DPanel] = useState(null);
 
     const theme = useTheme();
+
+    const conformerProgressLines = useMemo(() => {
+        if (!structureLoading) return [];
+
+        // Hide noisy terminal message like "Done".
+        const pm = conformerProgressMessage ? String(conformerProgressMessage) : '';
+        const mm = conformerMappingMessage ? String(conformerMappingMessage) : '';
+        const isDone = pm.trim().toLowerCase() === 'done';
+
+        // Show only the "current" line to avoid stale cached embedding messages
+        // appearing out-of-order next to other stages (e.g., protonation).
+        if (pm && !isDone) return [pm];
+        if (mm) return [mm];
+        return [];
+    }, [structureLoading, conformerProgressMessage, conformerMappingMessage]);
 
     const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(['ball-and-stick']);
     const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
@@ -1201,7 +1216,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 left: 0,
                                                 width: '100%',
                                                 height: '100%',
-                                                bgcolor: 'rgba(255,255,255,0.6)',
+                                                bgcolor: molstarBackground === 'dark'
+                                                    ? alpha(theme.palette.common.black, 0.35)
+                                                    : alpha(theme.palette.common.white, 0.6),
                                                 zIndex: 1,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -1212,33 +1229,45 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             }}
                                         >
                                             <CircularProgress size={48} />
+                                        </Box>
+                                    )}
 
-                                            {(() => {
-                                                // Only show polled messages in the overlay.
-                                                // Hide noisy terminal message like "Done".
-                                                const pm = conformerProgressMessage ? String(conformerProgressMessage) : '';
-                                                const mm = conformerMappingMessage ? String(conformerMappingMessage) : '';
-
-                                                const isDone = pm.trim().toLowerCase() === 'done';
-                                                const lines = [];
-                                                if (pm && !isDone) lines.push(pm);
-                                                if (mm && mm !== pm) lines.push(mm);
-                                                if (lines.length === 0) return null;
-
-                                                return (
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{
-                                                            color: 'text.secondary',
-                                                            textAlign: 'center',
-                                                            maxWidth: 560,
-                                                            whiteSpace: 'pre-wrap',
-                                                        }}
-                                                    >
-                                                        {lines.join('\n')}
-                                                    </Typography>
-                                                );
-                                            })()}
+                                    {structureLoading && conformerProgressLines.length > 0 && (
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                left: 10,
+                                                right: 10,
+                                                bottom: 10,
+                                                zIndex: 2,
+                                                px: 1.25,
+                                                py: 0.75,
+                                                borderRadius: 1,
+                                                border: '1px solid',
+                                                borderColor: molstarBackground === 'dark'
+                                                    ? alpha(theme.palette.common.white, 0.22)
+                                                    : alpha(theme.palette.common.black, 0.12),
+                                                bgcolor: molstarBackground === 'dark'
+                                                    ? alpha(theme.palette.common.black, 0.72)
+                                                    : alpha(theme.palette.background.paper, 0.92),
+                                                backdropFilter: 'blur(2px)',
+                                                pointerEvents: 'none',
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: molstarBackground === 'dark'
+                                                        ? theme.palette.common.white
+                                                        : theme.palette.text.primary,
+                                                    fontSize: '0.92rem',
+                                                    fontWeight: 500,
+                                                    lineHeight: 1.35,
+                                                    whiteSpace: 'pre-wrap',
+                                                }}
+                                            >
+                                                {conformerProgressLines.join('\n')}
+                                            </Typography>
                                         </Box>
                                     )}
                                     {!structureLoading && !structurePDB && (
