@@ -12,6 +12,8 @@ import { PluginConfig } from 'molstar/lib/mol-plugin/config';
 import { StructureComponentManager } from 'molstar/lib/mol-plugin-state/manager/structure/component';
 import { cameraProject } from "molstar/lib/mol-canvas3d/camera/util";
 import { transformDirectionArray } from "molstar/lib/mol-geo/util";
+import { ChainIdColorThemeProvider } from 'molstar/lib/mol-theme/color/chain-id';
+import { ElementSymbolColorThemeProvider } from 'molstar/lib/mol-theme/color/element-symbol';
 
 
 /* Molstar programmatical access to some functionalities
@@ -119,29 +121,7 @@ export function useMolstarStructure(pluginRef, {
         const modelSO = await plugin.builders.structure.createModel(trajectorySO);
         const structureSO = await plugin.builders.structure.createStructure(modelSO);
         setStructure(structureSO);
-        // await plugin.builders.structure.representation.addRepresentation(
-        //     structureSO,
-        //     {
-        //         type: rep,
-        //         color: colorScheme,
-        //         typeParams: { alpha: 0.01, },
-        //     },
-        //     { tag: 'current-representation' }
-        // );
         await applyStyle(plugin);
-        // await plugin.builders.structure.representation.addRepresentation(
-        //     structureSO,
-        //     {
-        //         type: 'label',
-        //         typeParams: {
-        //             sizeFactor: 0.6,
-        //             tether: false,
-        //             level: 'element',
-        //         },
-        //     },
-        //     { tag: 'atom-labels' },
-        // );
-
     }, [pluginRef]);
 
     const deleteSubtreeByRef = useCallback(async (rootRef) => {
@@ -353,9 +333,33 @@ export function useMolstarStructure(pluginRef, {
         };
 
         const prevEnabled = Array.isArray(prevEnabledRef.current) ? prevEnabledRef.current : [];
+
+        // Validate color theme name against Mol* registry. If an unknown name is passed
+        // (e.g. from an outdated UI list), Mol* falls back to defaults that can vary.
+        const colorRegistry = plugin?.representation?.structure?.themes?.colorThemeRegistry;
+        const requestedColor = defaultColorScheme;
+        const effectiveColor = (colorRegistry && requestedColor && colorRegistry.get(requestedColor).name === requestedColor)
+            ? requestedColor
+            : 'chain-id';
+
+        // Provide stable theme params when needed.
+        // In particular, forcing asymId to 'label' avoids color shifts when regenerated PDBs
+        // have unstable/blank auth_asym_id values or offsets.
+        const effectiveColorParams = effectiveColor === 'chain-id'
+            ? { ...ChainIdColorThemeProvider.defaultValues, asymId: 'label' }
+            : effectiveColor === 'element-symbol'
+                // Mol* ElementSymbol theme defaults carbon atoms to chain-id coloring.
+                // That makes organic structures appear to randomly change colors between loads.
+                // Force carbon to also be colored by element-symbol for stable coloring.
+                ? {
+                    ...ElementSymbolColorThemeProvider.defaultValues,
+                    carbonColor: { name: 'element-symbol', params: {} },
+                }
+                : undefined;
+
         const prevColor = prevColorRef.current;
         const isNewStructure = prevStructureRef.current !== structure;
-        const colorChanged = prevColor !== defaultColorScheme;
+        const colorChanged = prevColor !== effectiveColor;
         const alphaSig = enabled.map((rep) => `${rep}:${getAlphaForRep(rep)}`).join('|');
         const alphaChanged = prevAlphaSigRef.current !== alphaSig;
 
@@ -381,13 +385,18 @@ export function useMolstarStructure(pluginRef, {
                 for (const repType of enabled) {
                     await plugin.builders.structure.representation.addRepresentation(
                         structure,
-                        { type: repType, color: defaultColorScheme, typeParams: { alpha: getAlphaForRep(repType) } },
+                        {
+                            type: repType,
+                            color: effectiveColor,
+                            colorParams: effectiveColorParams,
+                            typeParams: { alpha: getAlphaForRep(repType) }
+                        },
                         { tag: repTag(repType) }
                     );
                 }
 
                 prevEnabledRef.current = enabled;
-                prevColorRef.current = defaultColorScheme;
+                prevColorRef.current = effectiveColor;
                 prevAlphaSigRef.current = alphaSig;
                 prevStructureRef.current = structure;
                 return;
@@ -397,13 +406,18 @@ export function useMolstarStructure(pluginRef, {
             for (const repType of added) {
                 await plugin.builders.structure.representation.addRepresentation(
                     structure,
-                    { type: repType, color: defaultColorScheme, typeParams: { alpha: getAlphaForRep(repType) } },
+                    {
+                        type: repType,
+                        color: effectiveColor,
+                        colorParams: effectiveColorParams,
+                        typeParams: { alpha: getAlphaForRep(repType) }
+                    },
                     { tag: repTag(repType) }
                 );
             }
 
             prevEnabledRef.current = enabled;
-            prevColorRef.current = defaultColorScheme;
+            prevColorRef.current = effectiveColor;
             prevAlphaSigRef.current = alphaSig;
             prevStructureRef.current = structure;
         };

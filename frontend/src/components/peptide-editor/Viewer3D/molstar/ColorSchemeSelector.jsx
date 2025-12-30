@@ -7,7 +7,6 @@ const ColorSchemeSelector = ({ value, onChange }) => {
         { id: 'residue-name', label: 'Residue Name' },
         { id: 'sequence-id', label: 'Sequence Position' },
         { id: 'secondary-structure', label: 'Secondary Structure' },
-        { id: 'residue-type', label: 'Residue Type' },
         { id: 'hydrophobicity', label: 'Hydrophobicity' },
         { id: 'uniform', label: 'Uniform' },
     ], []);

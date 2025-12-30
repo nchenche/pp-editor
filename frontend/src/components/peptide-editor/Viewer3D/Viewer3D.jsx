@@ -143,15 +143,11 @@ const Viewer3DInner = ({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            // backgroundColor: bg,
             zIndex: 10
         }}>
             {children}
         </div>
     );
-
-    const showNoStructure = !pdbRawData && !isGenerating3D && !structureLoading;
-    const combinedError = error || pluginError || structureError;
 
     return (
         <div className="molstar-viewer mx-auto text-center absolute inset-0">
@@ -166,18 +162,6 @@ const Viewer3DInner = ({
                     ref={canvasRef}
                     style={{ width: '100%', height: '100%'}}
                 />
-
-                {/* {showNoStructure && (
-                    <Overlay bg="transparent">
-                        <div className="text-xl text-slate-500">No structure</div>
-                    </Overlay>
-                )} */}
-
-                {/* {combinedError && (
-                    <Overlay bg="rgba(255, 200, 200, 0.7)">
-                        <span className="text-red-700">Error: {String(combinedError)}</span>
-                    </Overlay>
-                )} */}
             </div>
         </div>
     );
