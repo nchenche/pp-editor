@@ -28,8 +28,6 @@ import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import UploadIcon from '@mui/icons-material/Upload';
-import Chip from '@mui/material/Chip';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -214,25 +212,6 @@ export default function BilnEditorInterface({
                                 </Button>
                             </span>
                         </Tooltip>
-
-                        {scaffoldTemplate && (
-                            <Chip
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                label={scaffoldTemplate.name}
-                                onDelete={onClearScaffold}
-                                deleteIcon={<DeleteForeverIcon />}
-                                sx={{
-                                    maxWidth: 200,
-                                    '& .MuiChip-label': {
-                                        whiteSpace: 'nowrap',
-                                        textOverflow: 'ellipsis',
-                                        overflow: 'hidden',
-                                    },
-                                }}
-                            />
-                        )}
                     </Box>
 
                     {/* Load example */}

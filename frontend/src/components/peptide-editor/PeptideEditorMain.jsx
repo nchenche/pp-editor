@@ -42,6 +42,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import SubjectIcon from '@mui/icons-material/Subject';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import LayersIcon from '@mui/icons-material/Layers';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -323,6 +324,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         messages: scaffoldMessages,
         standardization: scaffoldStandardization,
     } = useScaffoldTemplate();
+
+    const scaffoldTemplateId = scaffoldTemplate?.id ?? null;
+    const prevScaffoldTemplateIdRef = useRef(null);
+
+    // One-time nudge: when a template is newly loaded, open the Template panel
+    // so the user immediately sees where to remove/manage it.
+    useEffect(() => {
+        const prev = prevScaffoldTemplateIdRef.current;
+        prevScaffoldTemplateIdRef.current = scaffoldTemplateId;
+
+        if (!prev && scaffoldTemplateId) {
+            setActive3DPanel('template');
+        }
+    }, [scaffoldTemplateId]);
 
     const [scaffoldErrorOpen, setScaffoldErrorOpen] = useState(false);
 
@@ -1179,6 +1194,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 onClick={() => setActive3DPanel((p) => (p === 'representation' ? null : 'representation'))}
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'representation'}
+                                                sx={active3DPanel === 'representation' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <CategoryIcon fontSize="inherit" />
                                             </Button>
@@ -1189,6 +1205,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 onClick={() => setActive3DPanel((p) => (p === 'color' ? null : 'color'))}
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'color'}
+                                                sx={active3DPanel === 'color' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <PaletteIcon fontSize="inherit" />
                                             </Button>
@@ -1200,6 +1217,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'labels'}
                                                 aria-label="labels-menu"
+                                                sx={active3DPanel === 'labels' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <LabelIcon fontSize="inherit" />
                                             </Button>
@@ -1211,6 +1229,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'background'}
                                                 aria-label="background"
+                                                sx={active3DPanel === 'background' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <FormatColorFillIcon fontSize="inherit" />
                                             </Button>
@@ -1222,8 +1241,35 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'view'}
                                                 aria-label="reset-view"
+                                                sx={active3DPanel === 'view' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <RestartAltIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
+                                        <Tooltip
+                                            title={
+                                                scaffoldTemplate?.name
+                                                    ? `Template loaded: ${scaffoldTemplate.name}. Click to manage/remove.`
+                                                    : 'Template'
+                                            }
+                                            arrow
+                                            placement='top'
+                                        >
+                                            <Button
+                                                onClick={() => setActive3DPanel((p) => (p === 'template' ? null : 'template'))}
+                                                color="inherit"
+                                                aria-pressed={active3DPanel === 'template'}
+                                                aria-label="template"
+                                                sx={(() => {
+                                                    const isActive = active3DPanel === 'template';
+                                                    const hasTemplate = !!scaffoldTemplate;
+                                                    if (isActive) return { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } };
+                                                    if (hasTemplate) return { color: 'primary.main' };
+                                                    return undefined;
+                                                })()}
+                                            >
+                                                <LayersIcon fontSize="inherit" />
                                             </Button>
                                         </Tooltip>
 
@@ -1246,6 +1292,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 color="inherit"
                                                 aria-pressed={active3DPanel === 'log'}
                                                 aria-label="log"
+                                                sx={active3DPanel === 'log' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
                                             >
                                                 <SubjectIcon fontSize="inherit" />
                                             </Button>
@@ -1621,6 +1668,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         ? 'Labels'
                                                         : active3DPanel === 'background'
                                                             ? 'Background'
+                                                            : active3DPanel === 'template'
+                                                                ? 'Template'
                                                         : active3DPanel === 'log'
                                                             ? 'Log'
                                                             : 'View'}
@@ -1805,10 +1854,33 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </Box>
                                         )}
 
-                                        {active3DPanel === 'view' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                {anyScaffoldEnabled && (
-                                                    <Box sx={{ mb: 0.75 }}>
+                                        {active3DPanel === 'template' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{ fontSize: 12, color: 'text.primary', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                                        title={scaffoldTemplate?.name || ''}
+                                                    >
+                                                        {scaffoldTemplate?.name ? scaffoldTemplate.name : 'No template'}
+                                                    </Typography>
+
+                                                    <span>
+                                                        <Button
+                                                            size="small"
+                                                            variant="text"
+                                                            color="inherit"
+                                                            onClick={() => handleClearScaffold()}
+                                                            disabled={!scaffoldTemplate}
+                                                            sx={{ textTransform: 'none', fontSize: 12, minHeight: 26, px: 0.75 }}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </span>
+                                                </Box>
+
+                                                {anyScaffoldEnabled ? (
+                                                    <Box>
                                                         <Box
                                                             sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
                                                         >
@@ -1850,8 +1922,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             />
                                                         </Box>
                                                     </Box>
+                                                ) : (
+                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                        Upload a scaffold and enable a mapping to use template guidance.
+                                                    </Typography>
                                                 )}
+                                            </Box>
+                                        )}
 
+                                        {active3DPanel === 'view' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                                 {MolstarSchemes.resetViewScheme.map((reset) => (
                                                     <Button
                                                         key={reset.id}
