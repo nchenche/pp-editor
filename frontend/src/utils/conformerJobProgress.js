@@ -7,6 +7,13 @@ function toFiniteNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function toFiniteInteger(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.trunc(n);
+  return Number.isFinite(i) ? i : null;
+}
+
 function formatSeconds(value, { decimals } = {}) {
   const n = toFiniteNumber(value);
   if (n == null) return null;
@@ -21,6 +28,95 @@ function formatSeconds(value, { decimals } = {}) {
   }
 
   return `${fixed}s`;
+}
+
+function formatSecondsCompact(value) {
+  const n = toFiniteNumber(value);
+  if (n == null) return null;
+
+  if (n > 0 && n < 1) return '<1s';
+  return formatSeconds(n, { decimals: n < 60 ? 1 : 0 });
+}
+
+function normalizeModeLabel(mode) {
+  const v = String(mode || '').trim().toLowerCase();
+  if (!v) return '';
+  if (v === 'coordmap') return 'guided';
+  if (v === 'no_coordmap') return 'random';
+  return v;
+}
+
+function formatAnchorsKeptPct(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const pctFromExplicit = (() => {
+    const v = toFiniteNumber(raw.anchors_kept_pct);
+    if (v == null) return null;
+    return Math.round(Math.max(0, Math.min(1, v)) * 100);
+  })();
+  if (pctFromExplicit != null) return pctFromExplicit;
+
+  const pctFromInt = toFiniteInteger(raw.mapping_ratio_pct);
+  if (pctFromInt != null) return Math.max(0, Math.min(100, pctFromInt));
+
+  const ratio = toFiniteNumber(raw.mapping_ratio);
+  if (ratio != null) return Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+
+  return null;
+}
+
+function formatEmbeddingMessageFromRaw(raw, { compact } = {}) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const modeLabel = normalizeModeLabel(raw.mode);
+
+  const attemptIndex = toFiniteInteger(raw.attempt_index ?? raw.current);
+  const totalAttempts = toFiniteInteger(raw.total_attempts ?? raw.total);
+  const attemptPart = attemptIndex && totalAttempts ? `${attemptIndex}/${totalAttempts}` : (attemptIndex ? String(attemptIndex) : '');
+
+  const anchorsPct = formatAnchorsKeptPct(raw);
+  const anchorsUsed = toFiniteInteger(raw.anchors_used);
+  const anchorsTotal = toFiniteInteger(raw.anchors_total);
+  const anchorsCountPart = anchorsUsed != null && anchorsTotal != null && anchorsTotal > 0 ? ` (${anchorsUsed}/${anchorsTotal})` : '';
+
+  const attemptElapsed = toFiniteNumber(raw.attempt_elapsed_s ?? raw.elapsed_s ?? raw.elapsedS ?? raw.elapsed);
+  const attemptTimeout = toFiniteNumber(raw.attempt_timeout_s ?? raw.timeout_s ?? raw.timeoutS ?? raw.timeout);
+  const totalElapsed = toFiniteNumber(raw.embedding_elapsed_total_s);
+
+  const attemptElapsedTxt = attemptElapsed != null ? formatSecondsCompact(attemptElapsed) : null;
+  const attemptTimeoutTxt = attemptTimeout != null ? formatSeconds(attemptTimeout, { decimals: 0 }) : null;
+  const totalElapsedTxt = totalElapsed != null ? formatSecondsCompact(totalElapsed) : null;
+
+  const state = String(raw.state || '').trim().toLowerCase();
+  const success = typeof raw.success === 'boolean' ? raw.success : null;
+
+  const parts = [];
+
+  // Keep the prefix short for narrow UIs.
+  const prefix = compact ? 'Embed' : 'Embedding';
+  parts.push(modeLabel && !compact ? `${prefix} (${modeLabel})` : prefix);
+
+  if (attemptPart) parts.push(attemptPart);
+
+  if (anchorsPct != null) {
+    const anchorsLabel = compact ? `anchors kept ${anchorsPct}%` : `anchors kept ${anchorsPct}%`;
+    parts.push(`· ${anchorsLabel}${anchorsCountPart}`);
+  }
+
+  if (attemptElapsedTxt) {
+    const time = attemptTimeoutTxt ? `${attemptElapsedTxt}/${attemptTimeoutTxt}` : attemptElapsedTxt;
+    parts.push(`— ${time}`);
+  }
+
+  if (totalElapsedTxt) {
+    parts.push(`(total ${totalElapsedTxt})`);
+  }
+
+  if (state === 'finished' && success === false) {
+    parts.push('· failed');
+  }
+
+  return parts.join(' ');
 }
 
 function formatEmbeddingTimeoutSuffix(raw) {
@@ -53,7 +149,7 @@ function formatEmbeddingTimeoutSuffix(raw) {
  * Expected progress shape:
  *  { stage?: string, message?: string, raw?: any }
  */
-export function formatConformerJobProgressMessage(progress) {
+export function formatConformerJobProgressMessage(progress, { compact = false } = {}) {
   if (!progress || typeof progress !== 'object') return null;
 
   const raw = progress.raw;
@@ -62,6 +158,11 @@ export function formatConformerJobProgressMessage(progress) {
 
   // Special-case: embedding can run up to a timeout (RDKit EmbedMolecule/EmbedMultipleConfs).
   if (stage === 'embedding') {
+    const fromRaw = formatEmbeddingMessageFromRaw(raw, { compact });
+    if (fromRaw) return fromRaw;
+
+    // Backward compatibility: if backend hasn't been updated to the new raw fields,
+    // fall back to the legacy timeout-derived suffix and/or message.
     const suffix = formatEmbeddingTimeoutSuffix(raw);
     if (suffix) {
       if (message) return `${message} — ${suffix}`;

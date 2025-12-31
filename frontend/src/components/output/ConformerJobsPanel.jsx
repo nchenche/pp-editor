@@ -126,7 +126,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                 const jobId = job?.job_id || job?.id || '';
                                 const state = formatState(job?.state);
                                 const progressMsg =
-                                    formatConformerJobProgressMessage(job?.progress) ||
+                                    formatConformerJobProgressMessage(job?.progress, { compact: true }) ||
                                     job?.progress?.message ||
                                     job?.progress_message ||
                                     '';

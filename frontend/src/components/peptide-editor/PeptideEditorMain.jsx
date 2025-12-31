@@ -40,6 +40,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import SubjectIcon from '@mui/icons-material/Subject';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
@@ -73,6 +74,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         jobState: conformerJobState,
         progressMessage: conformerProgressMessage,
         mappingMessage: conformerMappingMessage,
+        progressLog: conformerProgressLog,
         errorType: conformerErrorType,
         cancelJob: cancelConformerJob,
         isCanceling: isCancelingConformerJob,
@@ -1238,6 +1240,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </span>
                                         </Tooltip>
 
+                                        <Tooltip title="Log" arrow placement='top'>
+                                            <Button
+                                                onClick={() => setActive3DPanel((p) => (p === 'log' ? null : 'log'))}
+                                                color="inherit"
+                                                aria-pressed={active3DPanel === 'log'}
+                                                aria-label="log"
+                                            >
+                                                <SubjectIcon fontSize="inherit" />
+                                            </Button>
+                                        </Tooltip>
+
                                     </ButtonGroup>
                                 </Box>
                             </Box>
@@ -1608,7 +1621,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         ? 'Labels'
                                                         : active3DPanel === 'background'
                                                             ? 'Background'
-                                                        : 'View'}
+                                                        : active3DPanel === 'log'
+                                                            ? 'Log'
+                                                            : 'View'}
                                         </Typography>
                                         <Divider sx={{ mb: 0.75 }} />
 
@@ -1862,6 +1877,42 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         {reset.label}
                                                     </Button>
                                                 ))}
+                                            </Box>
+                                        )}
+
+                                        {active3DPanel === 'log' && (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                {Array.isArray(conformerProgressLog) && conformerProgressLog.length > 0 ? (
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                        {conformerProgressLog.map((row, idx) => {
+                                                            const ts = typeof row?.ts === 'number' ? row.ts : null;
+                                                            const time = ts
+                                                                ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                                                                : '';
+                                                            const msg = row?.message ? String(row.message) : '';
+                                                            return (
+                                                                <Typography
+                                                                    key={`${ts || 't'}:${idx}`}
+                                                                    variant="caption"
+                                                                    sx={{
+                                                                        color: 'text.secondary',
+                                                                        fontFamily: 'monospace',
+                                                                        fontSize: 11,
+                                                                        lineHeight: 1.25,
+                                                                        whiteSpace: 'pre-wrap',
+                                                                        wordBreak: 'break-word',
+                                                                    }}
+                                                                >
+                                                                    {time ? `[${time}] ` : ''}{msg}
+                                                                </Typography>
+                                                            );
+                                                        })}
+                                                    </Box>
+                                                ) : (
+                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                        No progress yet.
+                                                    </Typography>
+                                                )}
                                             </Box>
                                         )}
                                     </Box>

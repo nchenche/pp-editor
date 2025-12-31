@@ -3,24 +3,30 @@ import { describe, it, expect } from 'vitest';
 import { formatConformerJobProgressMessage } from '../conformerJobProgress';
 
 describe('formatConformerJobProgressMessage', () => {
-  it('appends elapsed/timeout info for embedding stage when raw has timeout fields', () => {
+  it('formats embedding progress using raw attempt/anchors/timing fields', () => {
     const msg = formatConformerJobProgressMessage({
       stage: 'embedding',
-      message: 'Embedding attempt 1 with mapping ratio 1.0...',
+      message: null,
       raw: {
         stage: 'embedding',
         mode: 'coordmap',
-        timeout_s: 50.0,
-        elapsed_s: 12.792651950992877,
-        remaining_s: 37.20734804900712,
-        timeout_ratio: 0.25585303901985754,
+        state: 'running',
+        attempt_index: 6,
+        total_attempts: 50,
+        anchors_kept_pct: 0.8,
+        anchors_used: 32,
+        anchors_total: 40,
+        attempt_timeout_s: 50.0,
+        attempt_elapsed_s: 12.792651950992877,
+        embedding_elapsed_total_s: 12.792651950992877,
       },
     });
 
-    expect(msg).toContain('Embedding attempt 1');
-    expect(msg).toContain('12.8s / 50s');
-    expect(msg).toContain('(26%)');
-    expect(msg).toContain('remaining 37.2s');
+    expect(msg).toContain('Embedding (guided)');
+    expect(msg).toContain('6/50');
+    expect(msg).toContain('anchors kept 80% (32/40)');
+    expect(msg).toContain('12.8s/50s');
+    expect(msg).toContain('(total 12.8s)');
   });
 
   it('builds a message even when backend message is missing (embedding stage)', () => {
@@ -29,16 +35,21 @@ describe('formatConformerJobProgressMessage', () => {
       message: null,
       raw: {
         mode: 'coordmap',
-        timeout_s: 50,
-        elapsed_s: 2.000286092996248,
-        remaining_s: 47.99971390700375,
-        timeout_ratio: 0.04000572185992496,
+        state: 'running',
+        attempt_index: 1,
+        total_attempts: 10,
+        mapping_ratio_pct: 40,
+        attempt_timeout_s: 50,
+        attempt_elapsed_s: 0.2,
+        embedding_elapsed_total_s: 2.000286092996248,
       },
     });
 
-    expect(msg).toContain('Embedding (coordmap)');
-    expect(msg).toContain('2s / 50s');
-    expect(msg).toContain('(4%)');
+    expect(msg).toContain('Embedding (guided)');
+    expect(msg).toContain('1/10');
+    expect(msg).toContain('anchors kept 40%');
+    expect(msg).toContain('<1s/50s');
+    expect(msg).toContain('(total 2s)');
   });
 
   it('returns null when no message is available and not embedding timeout', () => {

@@ -140,6 +140,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   const [lastEmbeddingProgress, setLastEmbeddingProgress] = useState(null);
   const [resultRef, setResultRef] = useState(null);
 
+  // Client-side rolling log of distinct progress messages (not a server log stream).
+  const [progressLog, setProgressLog] = useState([]);
+  const lastLoggedMsgRef = useRef('');
+
   // errorType: 'network' (transport/non-2xx) | 'job' (backend state=failed)
   const [errorType, setErrorType] = useState(null);
   const [error, setError] = useState(null);
@@ -200,6 +204,11 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     setError(null);
   }, []);
 
+  const clearProgressLog = useCallback(() => {
+    lastLoggedMsgRef.current = '';
+    setProgressLog([]);
+  }, []);
+
   const setJobIdAndPersist = useCallback(
     (nextJobId) => {
       const normalized = nextJobId ? String(nextJobId).trim() : '';
@@ -212,6 +221,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         setProgress(null);
         setLastEmbeddingProgress(null);
         setResultRef(null);
+        clearProgressLog();
         clearError();
         cleanupTimeout();
         return;
@@ -222,9 +232,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       setConformerJobIdInStorage(normalized, { dbName, ownerId });
       setJobId(normalized);
       setState('queued');
+      clearProgressLog();
       clearError();
     },
-    [dbName, ownerId, clearError],
+    [dbName, ownerId, clearError, clearProgressLog, cleanupTimeout],
   );
 
   const fetchStatusOnce = useCallback(
@@ -361,6 +372,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       setProgress(null);
       setLastEmbeddingProgress(null);
       setResultRef(null);
+      clearProgressLog();
 
       setIsStarting(true);
 
@@ -462,7 +474,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         if (mountedRef.current) setIsStarting(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, dbName, ownerId, pollLoop, setJobIdAndPersist],
+    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, ownerId, pollLoop, setJobIdAndPersist],
   );
 
   const cancel = useCallback(
@@ -590,6 +602,22 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   const mappingRaw = lastEmbeddingProgress?.raw ?? null;
   const isActive = !!jobId && (state === 'queued' || state === 'running');
 
+  useEffect(() => {
+    if (!jobId) return;
+    if (!progressMessage) return;
+
+    const msg = String(progressMessage).trim();
+    if (!msg) return;
+    if (msg === lastLoggedMsgRef.current) return;
+
+    lastLoggedMsgRef.current = msg;
+    setProgressLog((prev) => {
+      const arr = Array.isArray(prev) ? prev : [];
+      const next = [...arr, { ts: Date.now(), message: msg }];
+      return next.length > 120 ? next.slice(next.length - 120) : next;
+    });
+  }, [jobId, progressMessage]);
+
   return {
     jobId,
     state,
@@ -597,6 +625,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     progressMessage,
     mappingMessage,
     mappingRaw,
+    progressLog,
     resultRef,
     error,
     errorType,
