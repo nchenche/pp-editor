@@ -2,6 +2,10 @@ import { useCallback, useState } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
 
+// Cache template PDB payloads in-memory to avoid re-fetching when the peptide changes.
+// Keyed by template_id returned by /api/structures/parse_pdb.
+const TEMPLATE_PDB_TEXT_CACHE = new Map();
+
 export function useScaffoldTemplate() {
     const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -9,6 +13,23 @@ export function useScaffoldTemplate() {
     const [warnings, setWarnings] = useState([]);
     const [messages, setMessages] = useState([]);
     const [standardization, setStandardization] = useState(null);
+
+    const fetchTemplatePdbText = useCallback(async (templateId) => {
+        const id = templateId ? String(templateId).trim() : '';
+        if (!id) return null;
+        if (TEMPLATE_PDB_TEXT_CACHE.has(id)) return TEMPLATE_PDB_TEXT_CACHE.get(id);
+
+        const url = `${API_BASE_URL}/api/structures/get_pdb_template?template_id=${encodeURIComponent(id)}`;
+        const res = await apiFetch(url, { method: 'GET' });
+        const payload = await res.json().catch(() => null);
+        if (!res.ok || payload?.status !== 'success') {
+            throw new Error(payload?.message || `Failed to download template PDB (status ${res.status})`);
+        }
+        const pdbText = payload?.data?.pdb_text ?? payload?.data?.pdbText ?? null;
+        const text = pdbText != null ? String(pdbText) : null;
+        TEMPLATE_PDB_TEXT_CACHE.set(id, text);
+        return text;
+    }, []);
 
     const buildParsePdbUrl = useCallback((options = {}) => {
         const standardize = options?.standardize ?? true;
@@ -105,12 +126,29 @@ export function useScaffoldTemplate() {
             }
             console.log('PDB parse success', meta);
             parsePdbResponse(file.name, text, meta);
+
+            // Retrieve standardized PDB text by template id for Mol* overlay.
+            const doc = (meta?.data && typeof meta.data === 'object') ? meta.data : meta;
+            const templateId = doc?._id || null;
+            if (templateId) {
+                try {
+                    const pdbText = await fetchTemplatePdbText(templateId);
+                    setScaffoldTemplate((prev) => {
+                        if (!prev || prev.id !== templateId) return prev;
+                        if (prev.text === pdbText) return prev;
+                        return { ...prev, text: pdbText };
+                    });
+                } catch (e) {
+                    // Non-fatal: template metadata is still usable even if PDB text fetch fails.
+                    console.warn('[scaffold] get_pdb_template failed', e);
+                }
+            }
         } catch (e) {
             setError(e?.message || 'Failed to upload scaffold.');
         } finally {
             setLoading(false);
         }
-    }, [buildParsePdbUrl, parsePdbResponse]);
+    }, [buildParsePdbUrl, fetchTemplatePdbText, parsePdbResponse]);
 
     const fetchScaffoldById = useCallback(async (pdbId, options = undefined) => {
         // console.log('fetchScaffoldById', pdbId);
@@ -148,12 +186,28 @@ export function useScaffoldTemplate() {
 
             // We don't have full PDB text here unless backend adds it; keep null for now
             parsePdbResponse(pdbId.toUpperCase(), null, meta);
+
+            // Retrieve standardized PDB text by template id for Mol* overlay.
+            const doc = (meta?.data && typeof meta.data === 'object') ? meta.data : meta;
+            const templateId = doc?._id || null;
+            if (templateId) {
+                try {
+                    const pdbText = await fetchTemplatePdbText(templateId);
+                    setScaffoldTemplate((prev) => {
+                        if (!prev || prev.id !== templateId) return prev;
+                        if (prev.text === pdbText) return prev;
+                        return { ...prev, text: pdbText };
+                    });
+                } catch (e) {
+                    console.warn('[scaffold] get_pdb_template failed', e);
+                }
+            }
         } catch (e) {
             setError(e?.message || 'Failed to fetch scaffold by PDB ID.');
         } finally {
             setLoading(false);
         }
-    }, [buildParsePdbUrl, parsePdbResponse]);
+    }, [buildParsePdbUrl, fetchTemplatePdbText, parsePdbResponse]);
 
     const handleClearScaffold = useCallback(async () => {
         const templateId = scaffoldTemplate?.id ?? null;

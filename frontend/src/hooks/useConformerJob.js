@@ -17,6 +17,8 @@ import {
   getConformerJobStorageKey,
 } from '../utils/conformerJobStorage';
 
+import { formatConformerJobProgressMessage } from '../utils/conformerJobProgress';
+
 const TERMINAL_STATES = new Set(['success', 'failed', 'canceled']);
 
 function isTerminal(state) {
@@ -43,7 +45,7 @@ function toErrorMessage(value) {
 
 const POLL_INTERVAL_MS = 1000;
 const POLL_QUEUED_INTERVAL_MS = 500;
-const POLL_RUNNING_INTERVAL_MS = 1000;
+const POLL_RUNNING_INTERVAL_MS = 250;
 const POLL_NETWORK_ERROR_INTERVAL_MS = 1500;
 
 const JOB_POLL_TIMEOUT_MS = 10 * 60 * 1000;
@@ -317,10 +319,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       // Ensure we have a timeout armed while actively polling.
       armTimeout();
 
-      // Global throttle is a safety net across multiple hook instances.
-      // Keep it at the fast interval so we don't accidentally block legitimate polls
-      // due to stale closures (timing is controlled by the per-instance timer delays).
-      const desiredMinIntervalMs = POLL_RUNNING_INTERVAL_MS;
+      // Global throttle is only a safety net across multiple hook instances.
+      // Keep it small so it never blocks the per-instance polling cadence
+      // (in-flight promise dedupe already prevents request bursts).
+      const desiredMinIntervalMs = 100;
 
       const data = await fetchStatusOnce(effectiveId, { minIntervalMs: desiredMinIntervalMs });
       const nextState = normalizeState(data?.state || state);
@@ -583,8 +585,8 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const progressMessage = progress?.message ? String(progress.message) : null;
-  const mappingMessage = lastEmbeddingProgress?.message ? String(lastEmbeddingProgress.message) : null;
+  const progressMessage = useMemo(() => formatConformerJobProgressMessage(progress), [progress]);
+  const mappingMessage = useMemo(() => formatConformerJobProgressMessage(lastEmbeddingProgress), [lastEmbeddingProgress]);
   const mappingRaw = lastEmbeddingProgress?.raw ?? null;
   const isActive = !!jobId && (state === 'queued' || state === 'running');
 

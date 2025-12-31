@@ -8,6 +8,7 @@ import { Bond } from 'molstar/lib/mol-model/structure';
 export function useMolstarSelection({
     pluginRef,
     pluginInitialized,
+    structure,
     hoveredMonomer, // e.g. "A-3"
     handleMonomerHover, // callback from parent (optional)
 }) {
@@ -73,7 +74,8 @@ export function useMolstarSelection({
         const selectedResidue = parseInt(hoveredMonomer.split('-')[1]) + 1;
         if (isNaN(selectedResidue)) return;
 
-        const data = plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
+        const data = structure?.cell?.obj?.data
+            || plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
         if (!data) return;
 
         const sel = Script.getStructureSelection((Q) =>
@@ -85,7 +87,7 @@ export function useMolstarSelection({
         );
         const loci = StructureSelection.toLociWithSourceUnits(sel);
         plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
-    }, [hoveredMonomer, pluginInitialized, pluginRef]);
+    }, [hoveredMonomer, pluginInitialized, pluginRef, structure]);
 
         // Select residue by position
         // useEffect(() => {

@@ -19,6 +19,7 @@ import {
 import { useOwnerId } from '../../hooks/useOwnerId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
+import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
 
 export const CONFORMER_JOB_RESUME_EVENT = 'pp-conformer-job-resume';
 
@@ -124,7 +125,11 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                             {(items || []).map((job) => {
                                 const jobId = job?.job_id || job?.id || '';
                                 const state = formatState(job?.state);
-                                const progressMsg = job?.progress?.message || job?.progress_message || '';
+                                const progressMsg =
+                                    formatConformerJobProgressMessage(job?.progress) ||
+                                    job?.progress?.message ||
+                                    job?.progress_message ||
+                                    '';
                                 const biln = job?.result_ref?.properties?.BILN || job?.biln || job?.properties?.BILN || '';
                                 const bilnPreview = formatBilnPreview(biln);
                                 const pdb = job?.result_ref?.properties?.PDB || job?.result_ref?.properties?.pdb || '';

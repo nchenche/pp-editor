@@ -54,6 +54,10 @@ const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 const MAX_MONOMERS = 40;
 const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
 
+const MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY = 'pp-editor:molstar-template-overlay:v1';
+
+const DEFAULT_3D_REPRESENTATION = 'line';
+
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
@@ -93,7 +97,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return [];
     }, [structureLoading, conformerProgressMessage, conformerMappingMessage]);
 
-    const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(['ball-and-stick']);
+    const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(() => [DEFAULT_3D_REPRESENTATION]);
     const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
     const [repOpacityPctById, setRepOpacityPctById] = useState({});
 
@@ -107,6 +111,22 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     });
 
+    // null => auto (follow anyScaffoldEnabled). boolean => user override.
+    const [templateOverlayEnabledRaw, setTemplateOverlayEnabledRaw] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY);
+            if (raw == null) return null;
+            const v = String(raw).trim().toLowerCase();
+            if (v === 'true') return true;
+            if (v === 'false') return false;
+            return null;
+        } catch {
+            return null;
+        }
+    });
+
+    const [templateOverlayOpacityPct, setTemplateOverlayOpacityPct] = useState(25);
+
     useEffect(() => {
         try {
             window?.localStorage?.setItem(MOLSTAR_BG_STORAGE_KEY, String(molstarBackground));
@@ -114,6 +134,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [molstarBackground]);
+
+    useEffect(() => {
+        try {
+            if (templateOverlayEnabledRaw == null) {
+                window?.localStorage?.removeItem?.(MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY);
+            } else {
+                window?.localStorage?.setItem(MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY, String(!!templateOverlayEnabledRaw));
+            }
+        } catch {
+            // ignore
+        }
+    }, [templateOverlayEnabledRaw]);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -172,6 +204,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    // Ensure the representation menu initial state matches the viewer.
+    // (Useful after changing DEFAULT_3D_REPRESENTATION, and avoids HMR stale state.)
+    useEffect(() => {
+        setEnabled3DRepresentations([DEFAULT_3D_REPRESENTATION]);
+        viewer3DRef.current?.setRepresentation?.(DEFAULT_3D_REPRESENTATION);
+    }, []);
 
     const viewer2DColRef = useRef(null);
 
@@ -1521,9 +1560,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     <Viewer3D
                                         ref={viewer3DRef}
                                         pdbRawData={structurePDB}
+                                        templateKey={scaffoldTemplate?.id ?? null}
+                                        templatePdbRawData={(() => {
+                                            const effective = templateOverlayEnabledRaw == null ? anyScaffoldEnabled : !!templateOverlayEnabledRaw;
+                                            if (!effective) return null;
+                                            return scaffoldTemplate?.text || null;
+                                        })()}
+                                        templateVisible={(() => {
+                                            const effective = templateOverlayEnabledRaw == null ? anyScaffoldEnabled : !!templateOverlayEnabledRaw;
+                                            return effective && anyScaffoldEnabled;
+                                        })()}
+                                        templateOpacity={Math.min(1, Math.max(0, (Number(templateOverlayOpacityPct) || 0) / 100))}
+                                        templateMappings={scaffoldMappings}
                                         hoveredMonomer={hoveredMonomer}
                                         handleMonomerHover={handleMonomerHover}
-                                        defaultRepresentation="ball-and-stick"
+                                        defaultRepresentation={DEFAULT_3D_REPRESENTATION}
                                         defaultColorScheme="element-symbol"
                                         background={molstarBackground}
                                         height="100%"
@@ -1741,6 +1792,51 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                         {active3DPanel === 'view' && (
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {anyScaffoldEnabled && (
+                                                    <Box sx={{ mb: 0.75 }}>
+                                                        <Box
+                                                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
+                                                        >
+                                                            <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                                Template overlay
+                                                            </Typography>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={(templateOverlayEnabledRaw == null ? true : !!templateOverlayEnabledRaw)}
+                                                                onChange={(e) => {
+                                                                    setTemplateOverlayEnabledRaw(!!e.target.checked);
+                                                                }}
+                                                                inputProps={{ 'aria-label': 'toggle template overlay' }}
+                                                            />
+                                                        </Box>
+
+                                                        <Box sx={{ px: 0.5, pr: 1.5, mt: 0.25 }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                    Opacity
+                                                                </Typography>
+                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                    {templateOverlayOpacityPct}%
+                                                                </Typography>
+                                                            </Box>
+                                                            <Slider
+                                                                size="small"
+                                                                value={templateOverlayOpacityPct}
+                                                                min={5}
+                                                                max={60}
+                                                                step={5}
+                                                                sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
+                                                                onChange={(_, v) => {
+                                                                    const next = Array.isArray(v) ? v[0] : v;
+                                                                    const pct = Math.min(60, Math.max(5, Number(next) || 25));
+                                                                    setTemplateOverlayOpacityPct(pct);
+                                                                }}
+                                                                aria-label="template opacity"
+                                                            />
+                                                        </Box>
+                                                    </Box>
+                                                )}
+
                                                 {MolstarSchemes.resetViewScheme.map((reset) => (
                                                     <Button
                                                         key={reset.id}

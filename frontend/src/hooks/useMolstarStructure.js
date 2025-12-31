@@ -103,6 +103,7 @@ export function useMolstarStructure(pluginRef, {
     atomLabelsEnabled = false,
     labelsEnabled = null,
     representationAlphaByRep = null,
+    tagPrefix = 'ui',
 } = {}) {
     const [structure, setStructure] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -145,8 +146,31 @@ export function useMolstarStructure(pluginRef, {
         }
     }, [pluginRef]);
 
-    const repTag = useCallback((repType) => `ui-rep:${repType}`, []);
-    const labelsTag = useCallback((level) => `ui-labels:${level}`, []);
+    const clear = useCallback(async () => {
+        // Invalidate any in-flight loads.
+        loadReqIdRef.current++;
+
+        const prevRoot = dataRootRef.current;
+        dataRootRef.current = null;
+
+        // Reset reconciliation history so next load starts clean.
+        prevEnabledRef.current = [];
+        prevColorRef.current = null;
+        prevStructureRef.current = null;
+        prevLabelsEnabledRef.current = { element: false, residue: false, chain: false };
+        prevAlphaSigRef.current = null;
+
+        setStructure(null);
+        setError(null);
+        setLoading(false);
+
+        if (prevRoot) {
+            await deleteSubtreeByRef(prevRoot);
+        }
+    }, [deleteSubtreeByRef]);
+
+    const repTag = useCallback((repType) => `${tagPrefix}:rep:${repType}`, [tagPrefix]);
+    const labelsTag = useCallback((level) => `${tagPrefix}:labels:${level}`, [tagPrefix]);
     const prevEnabledRef = useRef([]);
     const prevColorRef = useRef(null);
     const prevStructureRef = useRef(null);
@@ -374,15 +398,43 @@ export function useMolstarStructure(pluginRef, {
             const rootRef = structure?.cell?.transform?.ref;
             if (!rootRef) return;
 
-            // Remove disabled reps
-            for (const repType of removed) {
-                await removeTaggedInSubtree(rootRef, repTag(repType));
-            }
+            // Mol* can sometimes adjust the camera when adding/removing representations.
+            // Preserve the current camera pose across representation-only updates.
+            const preserveCamera = !isNewStructure
+                && !!plugin?.canvas3d?.camera?.getSnapshot
+                && !!plugin?.managers?.camera?.setSnapshot;
+            const cameraSnapshot = preserveCamera ? plugin.canvas3d.camera.getSnapshot() : null;
 
-            // If color/alpha changed (or a new structure), update the enabled reps in-place via applyOrUpdateTagged.
-            // This avoids a remove/re-add cycle and keeps toggles reliable.
-            if (isNewStructure || colorChanged || alphaChanged) {
-                for (const repType of enabled) {
+            try {
+                // Remove disabled reps
+                for (const repType of removed) {
+                    await removeTaggedInSubtree(rootRef, repTag(repType));
+                }
+
+                // If color/alpha changed (or a new structure), re-apply enabled reps.
+                if (isNewStructure || colorChanged || alphaChanged) {
+                    for (const repType of enabled) {
+                        await plugin.builders.structure.representation.addRepresentation(
+                            structure,
+                            {
+                                type: repType,
+                                color: effectiveColor,
+                                colorParams: effectiveColorParams,
+                                typeParams: { alpha: getAlphaForRep(repType) }
+                            },
+                            { tag: repTag(repType) }
+                        );
+                    }
+
+                    prevEnabledRef.current = enabled;
+                    prevColorRef.current = effectiveColor;
+                    prevAlphaSigRef.current = alphaSig;
+                    prevStructureRef.current = structure;
+                    return;
+                }
+
+                // Add newly enabled reps
+                for (const repType of added) {
                     await plugin.builders.structure.representation.addRepresentation(
                         structure,
                         {
@@ -399,27 +451,15 @@ export function useMolstarStructure(pluginRef, {
                 prevColorRef.current = effectiveColor;
                 prevAlphaSigRef.current = alphaSig;
                 prevStructureRef.current = structure;
-                return;
+            } finally {
+                if (cameraSnapshot) {
+                    try {
+                        plugin.managers.camera.setSnapshot(cameraSnapshot, 0);
+                    } catch {
+                        // ignore
+                    }
+                }
             }
-
-            // Add newly enabled reps
-            for (const repType of added) {
-                await plugin.builders.structure.representation.addRepresentation(
-                    structure,
-                    {
-                        type: repType,
-                        color: effectiveColor,
-                        colorParams: effectiveColorParams,
-                        typeParams: { alpha: getAlphaForRep(repType) }
-                    },
-                    { tag: repTag(repType) }
-                );
-            }
-
-            prevEnabledRef.current = enabled;
-            prevColorRef.current = effectiveColor;
-            prevAlphaSigRef.current = alphaSig;
-            prevStructureRef.current = structure;
         };
 
         run().catch((e) => {
@@ -489,6 +529,7 @@ export function useMolstarStructure(pluginRef, {
         error,
         setError,
         setStructure,
+        clear,
         loadFromPdbId,
         loadFromPdbFile,
         loadFromRawData,
