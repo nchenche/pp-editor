@@ -36,6 +36,46 @@ function buildApiUrl(endpoint, { baseUrlOverride, query } = {}) {
   return urlObj.toString();
 }
 
+function buildApiUrlFromServerUrl(serverUrl, { baseUrlOverride, query } = {}) {
+  const base = baseUrlOverride ?? API_BASE_URL ?? '';
+
+  const urlObj = (() => {
+    if (typeof serverUrl === 'string' && serverUrl.startsWith('http')) return new URL(serverUrl);
+    if (typeof base === 'string' && base.startsWith('http')) return new URL(`${base}${serverUrl}`);
+    return new URL(`${base}${serverUrl}`, window.location.origin);
+  })();
+
+  if (query && typeof query === 'object') {
+    for (const [k, v] of Object.entries(query)) {
+      if (v == null) continue;
+      urlObj.searchParams.set(k, String(v));
+    }
+  }
+
+  return urlObj.toString();
+}
+
+export async function startAsyncJob({
+  endpoint,
+  body,
+  dbName = 'pepedit',
+  requestParams,
+  baseUrlOverride,
+  signal,
+} = {}) {
+  const url = buildApiUrl(endpoint, {
+    baseUrlOverride,
+    query: { db_name: dbName, ...(requestParams || {}) },
+  });
+
+  return apiFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+    signal,
+  });
+}
+
 export async function startConformerJob({
   biln,
   ssConstraints,
@@ -46,11 +86,6 @@ export async function startConformerJob({
   baseUrlOverride,
   signal,
 } = {}) {
-  const url = buildApiUrl('/api/core/molecules/generate_conformer', {
-    baseUrlOverride,
-    query: { db_name: dbName, ...(requestParams || {}) },
-  });
-
   const body = {
     biln,
     ss_constraints: ssConstraints ?? null,
@@ -58,10 +93,12 @@ export async function startConformerJob({
     ...(ownerId ? { owner_id: ownerId } : {}),
   };
 
-  return apiFetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  return startAsyncJob({
+    endpoint: '/api/core/molecules/generate_conformer',
+    body,
+    dbName,
+    requestParams,
+    baseUrlOverride,
     signal,
   });
 }
@@ -75,8 +112,27 @@ export async function getConformerJob({ jobId, dbName = 'pepedit', baseUrlOverri
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
 
+export async function getConformerJobByUrl({ statusUrl, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+  if (!statusUrl) throw new Error('Missing statusUrl');
+  const url = buildApiUrlFromServerUrl(statusUrl, {
+    baseUrlOverride,
+    query: { db_name: dbName },
+  });
+  // Do not inject owner_id into job status URL by default.
+  return apiFetchNoOwner(url, { method: 'GET', signal });
+}
+
 export async function cancelConformerJob({ jobId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
   const url = buildApiUrl(`/api/core/molecules/conformer_jobs/${encodeURIComponent(jobId)}/cancel`, {
+    baseUrlOverride,
+    query: { db_name: dbName },
+  });
+  return apiFetchNoOwner(url, { method: 'POST', signal });
+}
+
+export async function cancelConformerJobByUrl({ cancelUrl, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+  if (!cancelUrl) throw new Error('Missing cancelUrl');
+  const url = buildApiUrlFromServerUrl(cancelUrl, {
     baseUrlOverride,
     query: { db_name: dbName },
   });

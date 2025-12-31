@@ -9,6 +9,7 @@ function toErrorMessage(value) {
     if (!value) return '';
     if (typeof value === 'string') return value;
     if (value instanceof Error) return value.message || String(value);
+    if (typeof value === 'object' && typeof value.message === 'string') return value.message;
     try {
         return JSON.stringify(value);
     } catch {
@@ -75,6 +76,12 @@ export function useGenerate3D(baseUrlOverride) {
         setError(toErrorMessage(jobError));
     }, [jobError]);
 
+    useEffect(() => {
+        if (jobState === 'failed' || jobState === 'canceled') {
+            setResult(null);
+        }
+    }, [jobState]);
+
     const ctrlRef = useRef(null);
     const reqIdRef = useRef(0);
 
@@ -100,8 +107,9 @@ export function useGenerate3D(baseUrlOverride) {
 
             const isTemplateEndpoint = endpoint.includes('generate_3d_from_template');
             const isAsyncConformer = !isTemplateEndpoint && endpoint.includes('generate_conformer');
+            const isAsyncTemplate = isTemplateEndpoint;
 
-            if (isAsyncConformer) {
+            if (isAsyncConformer || isAsyncTemplate) {
                 // Delegate to job system.
                 const body = extraBody && typeof extraBody === 'object' ? { ...extraBody } : {};
                 if (!body.biln) body.biln = bilnValue;
@@ -114,6 +122,11 @@ export function useGenerate3D(baseUrlOverride) {
                 // embed_params is optional; allow callers to supply it.
                 const embedParams = body.embed_params || body.embedParams || undefined;
 
+                // Template endpoint requires owner_id key even when null.
+                if (isAsyncTemplate && !Object.prototype.hasOwnProperty.call(body, 'owner_id')) {
+                    body.owner_id = ownerId ?? null;
+                }
+
                 setLoading(true);
                 try {
                     await startJob({
@@ -121,7 +134,9 @@ export function useGenerate3D(baseUrlOverride) {
                         ssConstraints: body.ss_constraints ?? null,
                         embedParams,
                         requestParams,
-                        ownerId: body.owner_id || ownerId || undefined,
+                        ownerId: Object.prototype.hasOwnProperty.call(body, 'owner_id') ? body.owner_id : (ownerId ?? undefined),
+                        endpoint,
+                        extraBody: body,
                     });
                 } finally {
                     // loading state for async jobs is derived from isJobActive/isStarting; keep legacy true while start runs.
@@ -207,16 +222,6 @@ export function useGenerate3D(baseUrlOverride) {
                 if (reqIdRef.current !== myReqId) return;
 
                 const data = json?.data || {};
-                // Special case: template endpoint returned no PDB
-                if (
-                    endpoint.includes('generate_3d_from_template') &&
-                    (! data || !data.pdb || !String(data.pdb).trim())
-                ) {
-                    setError('Failed to generate a 3D conformer from the selected template.');
-                    setResult({ pdb: '' });
-                    setLoading(false);
-                    return;
-                }
 
                 setResult(data);
                 setError(null);

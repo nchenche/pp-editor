@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   startConformerJob,
+  startAsyncJob,
   getConformerJob,
+  getConformerJobByUrl,
   cancelConformerJob,
+  cancelConformerJobByUrl,
 } from '../utils/conformerJobsApi';
 
 import {
@@ -30,6 +33,7 @@ function toErrorMessage(value) {
   if (!value) return '';
   if (typeof value === 'string') return value;
   if (value instanceof Error) return value.message || String(value);
+  if (typeof value === 'object' && typeof value.message === 'string') return value.message;
   try {
     return JSON.stringify(value);
   } catch {
@@ -38,6 +42,86 @@ function toErrorMessage(value) {
 }
 
 const POLL_INTERVAL_MS = 1000;
+const POLL_QUEUED_INTERVAL_MS = 500;
+const POLL_RUNNING_INTERVAL_MS = 1000;
+const POLL_NETWORK_ERROR_INTERVAL_MS = 1500;
+
+const JOB_POLL_TIMEOUT_MS = 10 * 60 * 1000;
+
+function getPollIntervalMs(state, { hasNetworkError } = {}) {
+  if (hasNetworkError) return POLL_NETWORK_ERROR_INTERVAL_MS;
+  if (state === 'running') return POLL_RUNNING_INTERVAL_MS;
+  if (state === 'queued') return POLL_QUEUED_INTERVAL_MS;
+  return POLL_INTERVAL_MS;
+}
+
+// Cross-instance (same tab) in-flight dedupe for status GETs.
+// If multiple components mount `useConformerJob()` for the same job id, they can otherwise
+// generate back-to-back GETs within milliseconds (each hook instance has its own timer).
+const GLOBAL_STATUS_IN_FLIGHT = new Map();
+
+function getGlobalStatusKey({ jobId, statusUrl, dbName, baseUrlOverride }) {
+  const base = baseUrlOverride ?? '';
+  const status = statusUrl ? String(statusUrl) : '';
+  return `${String(dbName || 'pepedit')}::${String(base)}::${String(jobId || '')}::${status}`;
+}
+
+async function fetchConformerJobStatusShared({ jobId, statusUrl, dbName, baseUrlOverride, minIntervalMs, force } = {}) {
+  const key = getGlobalStatusKey({ jobId, statusUrl, dbName, baseUrlOverride });
+  const existing = GLOBAL_STATUS_IN_FLIGHT.get(key);
+  if (existing?.promise) return existing.promise;
+
+  // Cross-instance throttle (same tab): during cooldown, reuse last result instead of firing another GET.
+  // Implemented via timers (not Date.now) so it behaves deterministically under fake timers.
+  if (!force && minIntervalMs && existing?.cooldown && existing?.lastResult) {
+    return existing.lastResult;
+  }
+
+  const promise = (async () => {
+    const res = statusUrl
+      ? await getConformerJobByUrl({ statusUrl, dbName, baseUrlOverride })
+      : await getConformerJob({ jobId, dbName, baseUrlOverride });
+    let json = null;
+    try {
+      json = await res.json();
+    } catch {
+      // ignore
+    }
+    return { ok: !!res.ok, status: res.status, json };
+  })();
+
+  GLOBAL_STATUS_IN_FLIGHT.set(key, { ...existing, promise });
+
+  try {
+    const result = await promise;
+
+    const cur = GLOBAL_STATUS_IN_FLIGHT.get(key);
+    const nextEntry = { ...cur, lastResult: result, promise: null };
+
+    if (!force && minIntervalMs && minIntervalMs > 0) {
+      nextEntry.cooldown = true;
+      GLOBAL_STATUS_IN_FLIGHT.set(key, nextEntry);
+      setTimeout(() => {
+        const latest = GLOBAL_STATUS_IN_FLIGHT.get(key);
+        if (!latest) return;
+        // Only clear the cooldown flag; keep cached lastResult for late subscribers.
+        if (latest.cooldown) {
+          GLOBAL_STATUS_IN_FLIGHT.set(key, { ...latest, cooldown: false });
+        }
+      }, minIntervalMs);
+    } else {
+      nextEntry.cooldown = false;
+      GLOBAL_STATUS_IN_FLIGHT.set(key, nextEntry);
+    }
+
+    return result;
+  } finally {
+    const cur = GLOBAL_STATUS_IN_FLIGHT.get(key);
+    if (cur?.promise === promise) {
+      GLOBAL_STATUS_IN_FLIGHT.set(key, { ...cur, promise: null });
+    }
+  }
+}
 
 /**
  * Hook that manages an async conformer job lifecycle.
@@ -62,8 +146,11 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   const [isCanceling, setIsCanceling] = useState(false);
 
   const timerRef = useRef(null);
+  const timeoutRef = useRef(null);
   const inFlightRef = useRef(null);
   const mountedRef = useRef(true);
+
+  const jobEndpointsRef = useRef({ statusUrl: null, cancelUrl: null });
 
   const lastStartPayloadRef = useRef(null);
 
@@ -78,11 +165,32 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     }
   }, []);
 
-  const abortInFlight = useCallback(() => {
-    if (inFlightRef.current) {
-      inFlightRef.current.abort();
-      inFlightRef.current = null;
+  const cleanupTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
+  }, []);
+
+  const armTimeout = useCallback(() => {
+    cleanupTimeout();
+    timeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      cleanupTimer();
+      setErrorType('network');
+      setError('Job polling timed out');
+    }, JOB_POLL_TIMEOUT_MS);
+  }, [cleanupTimeout, cleanupTimer]);
+
+  const abortInFlight = useCallback(() => {
+    const current = inFlightRef.current;
+    if (!current) return;
+    try {
+      current.controller?.abort?.();
+    } catch {
+      // ignore
+    }
+    inFlightRef.current = null;
   }, []);
 
   const clearError = useCallback(() => {
@@ -95,6 +203,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       const normalized = nextJobId ? String(nextJobId).trim() : '';
       if (!normalized) {
         jobIdRef.current = null;
+        jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
         clearConformerJobIdFromStorage({ dbName, ownerId });
         setJobId(null);
         setState('idle');
@@ -102,6 +211,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         setLastEmbeddingProgress(null);
         setResultRef(null);
         clearError();
+        cleanupTimeout();
         return;
       }
 
@@ -116,70 +226,87 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   );
 
   const fetchStatusOnce = useCallback(
-    async (id) => {
+    async (id, { minIntervalMs, force } = {}) => {
       const effectiveId = id || jobId;
       if (!effectiveId) return null;
 
-      abortInFlight();
-      const controller = new AbortController();
-      inFlightRef.current = controller;
+      const statusUrl = jobEndpointsRef.current?.statusUrl || null;
 
-      try {
-        const res = await getConformerJob({ jobId: effectiveId, dbName, baseUrlOverride, signal: controller.signal });
-        if (!res.ok) {
-          let msg = `Status request failed (${res.status})`;
-          try {
-            const j = await res.json();
-            msg = j?.message || j?.error || msg;
-          } catch {
-            // ignore
-          }
-          setErrorType('network');
-          setError(msg);
-          return null;
-        }
-
-        const json = await res.json();
-        const data = json?.data || {};
-        const nextState = normalizeState(data?.state);
-
-        setState(nextState);
-        setProgress(data?.progress ?? null);
-        setResultRef(data?.result_ref ?? null);
-
-        // Track last embedding/mapping progress so the UI can surface mapping ratios even after success.
-        const p = data?.progress;
-        const raw = p?.raw;
-        const stage = String(p?.stage || raw?.stage || '').toLowerCase();
-        const hasMappingRatio = raw && (raw.mapping_ratio != null || raw.mappingRatio != null);
-        const msg = p?.message ? String(p.message) : '';
-        const hasRatioInMessage = msg.includes('ratio=') || msg.includes('mapping_ratio');
-        if (stage === 'embedding' || hasMappingRatio || hasRatioInMessage) {
-          setLastEmbeddingProgress(p);
-        }
-
-        if (nextState === 'failed') {
-          setErrorType('job');
-          setError(toErrorMessage(data?.error) || 'Job failed');
-        } else {
-          // Clear errors if job progresses again.
-          setErrorType(null);
-          setError(null);
-        }
-
-        return data;
-      } catch (e) {
-        if (e?.name === 'AbortError') return null;
-        setErrorType('network');
-        setError(toErrorMessage(e) || 'Network error');
-        return null;
-      } finally {
-        if (inFlightRef.current === controller) {
-          inFlightRef.current = null;
-        }
+      // Deduplicate in-flight status requests for the same job id.
+      // This prevents rapid back-to-back GETs when pollLoop() gets invoked multiple times
+      // (e.g., multiple hook instances listening to the same storage key).
+      const existing = inFlightRef.current;
+      if (existing?.jobId === effectiveId && existing?.promise) {
+        return existing.promise;
       }
+
+      const promise = (async () => {
+        try {
+          const { ok, status, json } = await fetchConformerJobStatusShared({
+            jobId: effectiveId,
+            statusUrl,
+            dbName,
+            baseUrlOverride,
+            minIntervalMs,
+            force,
+          });
+          if (!ok) {
+            let msg = `Status request failed (${status})`;
+            msg = json?.message || json?.error || msg;
+            setErrorType('network');
+            setError(msg);
+            return null;
+          }
+
+          const data = json?.data || {};
+          const nextState = normalizeState(data?.state);
+
+          // If job id changed while awaiting the network, ignore stale results.
+          if ((jobIdRef.current || null) !== (effectiveId || null)) {
+            return data;
+          }
+
+          setState(nextState);
+          setProgress(data?.progress ?? null);
+          setResultRef(data?.result_ref ?? null);
+
+          // Track last embedding/mapping progress so the UI can surface mapping ratios even after success.
+          const p = data?.progress;
+          const raw = p?.raw;
+          const stage = String(p?.stage || raw?.stage || '').toLowerCase();
+          const hasMappingRatio = raw && (raw.mapping_ratio != null || raw.mappingRatio != null);
+          const msg = p?.message ? String(p.message) : '';
+          const hasRatioInMessage = msg.includes('ratio=') || msg.includes('mapping_ratio');
+          if (stage === 'embedding' || hasMappingRatio || hasRatioInMessage) {
+            setLastEmbeddingProgress(p);
+          }
+
+          if (nextState === 'failed') {
+            setErrorType('job');
+            const progressMsg = data?.progress?.message ? String(data.progress.message) : '';
+            setError(toErrorMessage(data?.error) || progressMsg || 'Job failed');
+          } else {
+            // Clear errors if job progresses again.
+            setErrorType(null);
+            setError(null);
+          }
+
+          return data;
+        } catch (e) {
+          setErrorType('network');
+          setError(toErrorMessage(e) || 'Network error');
+          return null;
+        } finally {
+          const cur = inFlightRef.current;
+          if (cur?.jobId === effectiveId && cur?.promise === promise) inFlightRef.current = null;
+        }
+      })();
+
+      inFlightRef.current = { jobId: effectiveId, promise };
+
+      return promise;
     },
-    [abortInFlight, baseUrlOverride, dbName, jobId],
+    [baseUrlOverride, dbName, jobId],
   );
 
   const pollLoop = useCallback(
@@ -187,7 +314,15 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       const effectiveId = id || jobId;
       if (!effectiveId) return;
 
-      const data = await fetchStatusOnce(effectiveId);
+      // Ensure we have a timeout armed while actively polling.
+      armTimeout();
+
+      // Global throttle is a safety net across multiple hook instances.
+      // Keep it at the fast interval so we don't accidentally block legitimate polls
+      // due to stale closures (timing is controlled by the per-instance timer delays).
+      const desiredMinIntervalMs = POLL_RUNNING_INTERVAL_MS;
+
+      const data = await fetchStatusOnce(effectiveId, { minIntervalMs: desiredMinIntervalMs });
       const nextState = normalizeState(data?.state || state);
 
       if (!mountedRef.current) return;
@@ -195,20 +330,21 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
       if (isTerminal(nextState)) {
         cleanupTimer();
+        cleanupTimeout();
         return;
       }
 
-      const delay = POLL_INTERVAL_MS;
+      const delay = getPollIntervalMs(nextState, { hasNetworkError: errorType === 'network' });
       cleanupTimer();
       timerRef.current = setTimeout(() => {
         pollLoop(effectiveId);
       }, delay);
     },
-    [cleanupTimer, fetchStatusOnce, jobId, state],
+    [cleanupTimer, errorType, fetchStatusOnce, jobId, state],
   );
 
   const start = useCallback(
-    async ({ biln, ssConstraints, embedParams, requestParams, ownerId: ownerIdOverride } = {}) => {
+    async ({ biln, ssConstraints, embedParams, requestParams, ownerId: ownerIdOverride, endpoint, extraBody } = {}) => {
       if (!biln || !String(biln).trim()) {
         setJobIdAndPersist(null);
         return null;
@@ -232,19 +368,54 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         embedParams: embedParams ?? undefined,
         requestParams: requestParams ?? undefined,
         ownerId: ownerIdOverride ?? ownerId ?? undefined,
+        endpoint: endpoint || '/api/core/molecules/generate_conformer',
+        extraBody: extraBody && typeof extraBody === 'object' ? { ...extraBody } : null,
       };
       lastStartPayloadRef.current = payload;
 
       try {
-        const res = await startConformerJob({
-          biln: payload.biln,
-          ssConstraints: payload.ssConstraints,
-          embedParams: payload.embedParams,
-          requestParams: payload.requestParams,
-          ownerId: payload.ownerId,
-          dbName,
-          baseUrlOverride,
-        });
+        const isTemplate = String(payload.endpoint || '').includes('generate_3d_from_template');
+
+        const res = await (() => {
+          if (!isTemplate && String(payload.endpoint || '').includes('generate_conformer')) {
+            return startConformerJob({
+              biln: payload.biln,
+              ssConstraints: payload.ssConstraints,
+              embedParams: payload.embedParams,
+              requestParams: payload.requestParams,
+              ownerId: payload.ownerId,
+              dbName,
+              baseUrlOverride,
+            });
+          }
+
+          const body = payload.extraBody && typeof payload.extraBody === 'object' ? { ...payload.extraBody } : {};
+          if (!('biln' in body) || !body.biln) body.biln = payload.biln;
+
+          // For template generation, owner_id MUST be present even if null.
+          if (isTemplate) {
+            if (!Object.prototype.hasOwnProperty.call(body, 'owner_id')) {
+              body.owner_id = ownerIdOverride ?? ownerId ?? null;
+            }
+            if (body.owner_id == null) body.owner_id = null;
+          } else {
+            if (!Object.prototype.hasOwnProperty.call(body, 'owner_id') && payload.ownerId) {
+              body.owner_id = payload.ownerId;
+            }
+          }
+
+          if (!Object.prototype.hasOwnProperty.call(body, 'embed_params') && payload.embedParams !== undefined) {
+            body.embed_params = payload.embedParams;
+          }
+
+          return startAsyncJob({
+            endpoint: payload.endpoint,
+            body,
+            dbName,
+            requestParams: payload.requestParams,
+            baseUrlOverride,
+          });
+        })();
 
         if (!res.ok && res.status !== 202) {
           let msg = `Start request failed (${res.status})`;
@@ -261,11 +432,15 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
         const json = await res.json();
         const id = json?.data?.job_id;
+        const statusUrl = json?.data?.status_url || null;
+        const cancelUrl = json?.data?.cancel_url || null;
         if (!id) {
           setErrorType('network');
           setError('Backend did not return job_id');
           return null;
         }
+
+        jobEndpointsRef.current = { statusUrl, cancelUrl };
 
         setJobIdAndPersist(id);
         setState('queued');
@@ -298,7 +473,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       setIsCanceling(true);
 
       try {
-        const res = await cancelConformerJob({ jobId: effectiveId, dbName, baseUrlOverride });
+        const cancelUrl = jobEndpointsRef.current?.cancelUrl || null;
+        const res = cancelUrl
+          ? await cancelConformerJobByUrl({ cancelUrl, dbName, baseUrlOverride })
+          : await cancelConformerJob({ jobId: effectiveId, dbName, baseUrlOverride });
         if (!res.ok) {
           // 409 is expected when already finished; treat as non-fatal.
           if (res.status !== 409) {
@@ -316,7 +494,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         }
 
         // Refresh status once, then stop polling if terminal.
-        const data = await fetchStatusOnce(effectiveId);
+        const data = await fetchStatusOnce(effectiveId, { force: true });
         const next = normalizeState(data?.state || state);
         if (!isTerminal(next)) pollLoop(effectiveId);
 
@@ -350,9 +528,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
   const clear = useCallback(() => {
     cleanupTimer();
+    cleanupTimeout();
     abortInFlight();
     setJobIdAndPersist(null);
-  }, [abortInFlight, cleanupTimer, setJobIdAndPersist]);
+  }, [abortInFlight, cleanupTimer, cleanupTimeout, setJobIdAndPersist]);
 
   // On mount/unmount
   useEffect(() => {
@@ -360,9 +539,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     return () => {
       mountedRef.current = false;
       cleanupTimer();
+      cleanupTimeout();
       abortInFlight();
     };
-  }, [abortInFlight, cleanupTimer]);
+  }, [abortInFlight, cleanupTimer, cleanupTimeout]);
 
   // Keep hook in sync if another component updates the persisted job id.
   useEffect(() => {

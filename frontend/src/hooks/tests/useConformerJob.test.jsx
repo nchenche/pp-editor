@@ -70,7 +70,7 @@ describe('useConformerJob', () => {
     return predicate();
   }
 
-  it('polls every 1s and exposes progress updates (component-level assertion)', async () => {
+  it('polls and exposes progress updates (component-level assertion)', async () => {
     const fetchMock = global.fetch;
 
     fetchMock
@@ -130,21 +130,21 @@ describe('useConformerJob', () => {
 
     expect(screen.getByTestId('state').textContent).toMatch(/queued|running|success/);
 
-    // next poll (1s)
+    // next poll (queued interval)
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(500);
     });
 
-    await flushMicrotasks();
+    await flushUntil(() => (screen.getByTestId('progress').textContent || '').includes('Embedding'));
 
     expect(screen.getByTestId('progress').textContent).toContain('Embedding');
 
-    // next poll (1s)
+    // next poll (running interval)
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(250);
     });
 
-    await flushMicrotasks();
+    await flushUntil(() => screen.getByTestId('state').textContent === 'success');
 
     expect(screen.getByTestId('state').textContent).toBe('success');
     expect(screen.getByTestId('pdb').textContent).toBe('PDBDATA');
