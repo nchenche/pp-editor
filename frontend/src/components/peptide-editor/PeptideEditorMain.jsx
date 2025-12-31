@@ -28,7 +28,7 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -82,6 +82,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     } = useGenerate3D(API_BASE_URL);
 
     const [active3DPanel, setActive3DPanel] = useState(null);
+    const [templateMappingSeqIdx, setTemplateMappingSeqIdx] = useState(0);
 
     const theme = useTheme();
 
@@ -228,6 +229,34 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [isDragging, setIsDragging] = useState(false);
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
+
+    const activeSeqIdx = uiState?.activeSeqIdx ?? 0;
+
+    const seqLabel = useCallback((idx) => {
+        const n = Number(idx);
+        if (!Number.isFinite(n) || n < 0) return '';
+        // Excel-like: 0->A, 25->Z, 26->AA, ...
+        let x = Math.floor(n);
+        let out = '';
+        while (x >= 0) {
+            out = String.fromCharCode(65 + (x % 26)) + out;
+            x = Math.floor(x / 26) - 1;
+        }
+        return out;
+    }, []);
+
+    // Keep Template panel chain selector aligned with the currently active chain.
+    useEffect(() => {
+        const n = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
+        if (!n) {
+            if (templateMappingSeqIdx !== 0) setTemplateMappingSeqIdx(0);
+            return;
+        }
+        const clampedActive = Math.min(Math.max(0, Number(activeSeqIdx) || 0), n - 1);
+        if (active3DPanel === 'template' && templateMappingSeqIdx !== clampedActive) {
+            setTemplateMappingSeqIdx(clampedActive);
+        }
+    }, [active3DPanel, activeSeqIdx, rowMonomerLists, templateMappingSeqIdx]);
 
     const [limitDialog, setLimitDialog] = useState({ open: false, message: '' });
     const { tokenCount: currentTokenCount } = useMemo(
@@ -502,6 +531,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         triggerGenerate(committedBiln, secstructString);
     }, [isActive, canGenerate3D, committedBiln, secstructString, triggerGenerate]);
+
+    // Toggling mapping enabled/disabled changes auto-sync conditions.
+    // We never want that toggle itself to trigger an immediate auto conformer generation.
+    const handleEditScaffoldMappingNoAutoGen = useCallback(
+        (seqIdx, patch) => {
+            if (patch && Object.prototype.hasOwnProperty.call(patch, 'enabled')) {
+                suppressNextAutoConformerGenRef.current = true;
+            }
+            handleEditScaffoldMapping(seqIdx, patch);
+        },
+        [handleEditScaffoldMapping],
+    );
 
 
     // keep constraints arrays shaped to sequences
@@ -1622,13 +1663,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         pdbRawData={structurePDB}
                                         templateKey={scaffoldTemplate?.id ?? null}
                                         templatePdbRawData={(() => {
-                                            const effective = templateOverlayEnabledRaw == null ? anyScaffoldEnabled : !!templateOverlayEnabledRaw;
+                                            const effective = templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw;
                                             if (!effective) return null;
                                             return scaffoldTemplate?.text || null;
                                         })()}
                                         templateVisible={(() => {
-                                            const effective = templateOverlayEnabledRaw == null ? anyScaffoldEnabled : !!templateOverlayEnabledRaw;
-                                            return effective && anyScaffoldEnabled;
+                                            const effective = templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw;
+                                            return effective && !!scaffoldTemplate;
                                         })()}
                                         templateOpacity={Math.min(1, Math.max(0, (Number(templateOverlayOpacityPct) || 0) / 100))}
                                         templateMappings={scaffoldMappings}
@@ -1879,54 +1920,195 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     </span>
                                                 </Box>
 
-                                                {anyScaffoldEnabled ? (
-                                                    <Box>
-                                                        <Box
-                                                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
-                                                        >
-                                                            <Typography variant="body2" sx={{ fontSize: 12 }}>
-                                                                Template overlay
-                                                            </Typography>
-                                                            <Switch
-                                                                size="small"
-                                                                checked={(templateOverlayEnabledRaw == null ? true : !!templateOverlayEnabledRaw)}
-                                                                onChange={(e) => {
-                                                                    setTemplateOverlayEnabledRaw(!!e.target.checked);
-                                                                }}
-                                                                inputProps={{ 'aria-label': 'toggle template overlay' }}
-                                                            />
-                                                        </Box>
-
-                                                        <Box sx={{ px: 0.5, pr: 1.5, mt: 0.25 }}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                    Opacity
-                                                                </Typography>
-                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                    {templateOverlayOpacityPct}%
-                                                                </Typography>
-                                                            </Box>
-                                                            <Slider
-                                                                size="small"
-                                                                value={templateOverlayOpacityPct}
-                                                                min={5}
-                                                                max={60}
-                                                                step={5}
-                                                                sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
-                                                                onChange={(_, v) => {
-                                                                    const next = Array.isArray(v) ? v[0] : v;
-                                                                    const pct = Math.min(60, Math.max(5, Number(next) || 25));
-                                                                    setTemplateOverlayOpacityPct(pct);
-                                                                }}
-                                                                aria-label="template opacity"
-                                                            />
-                                                        </Box>
+                                                <Box>
+                                                    {/* Keep overlay controls on top */}
+                                                    <Box
+                                                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
+                                                    >
+                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                            Template overlay
+                                                        </Typography>
+                                                        <Switch
+                                                            size="small"
+                                                            checked={(templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw)}
+                                                            onChange={(e) => {
+                                                                setTemplateOverlayEnabledRaw(!!e.target.checked);
+                                                            }}
+                                                            disabled={!scaffoldTemplate}
+                                                            inputProps={{ 'aria-label': 'toggle template overlay' }}
+                                                        />
                                                     </Box>
-                                                ) : (
-                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                                        Upload a scaffold and enable a mapping to use template guidance.
+
+                                                    <Box sx={{ px: 0.5, pr: 1.5, mt: 0.25, mb: 1 }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                Opacity
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                {templateOverlayOpacityPct}%
+                                                            </Typography>
+                                                        </Box>
+                                                        <Slider
+                                                            size="small"
+                                                            value={templateOverlayOpacityPct}
+                                                            min={5}
+                                                            max={60}
+                                                            step={5}
+                                                            sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
+                                                            onChange={(_, v) => {
+                                                                const next = Array.isArray(v) ? v[0] : v;
+                                                                const pct = Math.min(60, Math.max(5, Number(next) || 25));
+                                                                setTemplateOverlayOpacityPct(pct);
+                                                            }}
+                                                            disabled={!scaffoldTemplate}
+                                                            aria-label="template opacity"
+                                                        />
+                                                    </Box>
+
+                                                    <Divider sx={{ my: 0.75 }} />
+
+                                                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 2.0 }}>
+                                                        Mapping
                                                     </Typography>
-                                                )}
+
+                                                    {/* Mapping editor (always visible when a template is loaded) */}
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                        <TextField
+                                                            select
+                                                            size="small"
+                                                            label="Chain"
+                                                            value={templateMappingSeqIdx}
+                                                            onChange={(e) => {
+                                                                const next = Number(e.target.value);
+                                                                if (!Number.isFinite(next)) return;
+                                                                setTemplateMappingSeqIdx(next);
+                                                            }}
+                                                            disabled={!scaffoldTemplate}
+                                                            sx={{
+                                                                minWidth: 120,
+                                                                '& .MuiInputLabel-root': { fontSize: 12 },
+                                                                '& .MuiInputBase-input': { fontSize: 12 },
+                                                                '& .MuiSelect-select': { fontSize: 12 },
+                                                                '& .MuiInputBase-root': { height: 30 },
+                                                                '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
+                                                            }}
+                                                        >
+                                                            {(Array.isArray(rowMonomerLists) ? rowMonomerLists : []).map((_, idx) => (
+                                                                <MenuItem key={idx} value={idx} sx={{ fontSize: 12 }}>
+                                                                    {seqLabel(idx)}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </TextField>
+
+                                                        {(() => {
+                                                            const idx = templateMappingSeqIdx;
+                                                            const mapping = scaffoldMappings?.[idx] || {};
+                                                            const enabled = mapping?.enabled === true;
+
+                                                            const hasConstraints = (() => {
+                                                                const row = constraintsBySeq?.[idx] || [];
+                                                                return Array.isArray(row) && row.some((ch) => String(ch || '-').toUpperCase() !== '-');
+                                                            })();
+
+                                                            // Keep the same mutual-exclusion rule as ChainSlots:
+                                                            // template is blocked by constraints only when NO template is enabled anywhere.
+                                                            const templateToggleDisabled = !enabled && hasConstraints && !anyScaffoldEnabled;
+
+                                                            const chains = scaffoldTemplate?.chainData ?? [];
+                                                            const chainOptions = (chains.length ? chains : (scaffoldTemplate?.chains || [])).map((c) =>
+                                                                typeof c === 'string' ? c : c?.id
+                                                            ).filter(Boolean);
+
+                                                            const commonFieldSx = {
+                                                                '& .MuiInputLabel-root': { fontSize: 12 },
+                                                                '& .MuiInputBase-input': { fontSize: 12 },
+                                                                '& .MuiSelect-select': { fontSize: 12 },
+                                                                '& .MuiInputBase-root': { height: 26 },
+                                                                '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
+                                                            };
+
+                                                            return (
+                                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}>
+                                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                                            Enable mapping
+                                                                        </Typography>
+                                                                        <Switch
+                                                                            size="small"
+                                                                            checked={enabled}
+                                                                            onChange={(e) => {
+                                                                                const nextEnabled = !!e.target.checked;
+                                                                                    handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
+                                                                            }}
+                                                                            disabled={!scaffoldTemplate || templateToggleDisabled}
+                                                                            inputProps={{ 'aria-label': 'toggle template mapping for selected chain' }}
+                                                                        />
+                                                                    </Box>
+
+                                                                    {templateToggleDisabled && (
+                                                                        <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                                            Clear secondary-structure constraints to enable template mapping.
+                                                                        </Typography>
+                                                                    )}
+
+                                                                    <TextField
+                                                                        select
+                                                                        size="small"
+                                                                        label="PDB chain"
+                                                                        value={mapping.chainId ?? ''}
+                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { chainId: e.target.value || null })}
+                                                                        disabled={!scaffoldTemplate}
+                                                                        sx={commonFieldSx}
+                                                                    >
+                                                                        {chainOptions.length ? (
+                                                                            chainOptions.map((id) => (
+                                                                                <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
+                                                                                    {id}
+                                                                                </MenuItem>
+                                                                            ))
+                                                                        ) : (
+                                                                            <MenuItem value="" disabled sx={{ fontSize: 12 }}>
+                                                                                No chains
+                                                                            </MenuItem>
+                                                                        )}
+                                                                    </TextField>
+
+                                                                    <TextField
+                                                                        size="small"
+                                                                        label="Start residue"
+                                                                        type="number"
+                                                                        value={mapping.start ?? ''}
+                                                                        slotProps={{ htmlInput: { min: 1 } }}
+                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { start: e.target.value ? Number(e.target.value) : null })}
+                                                                        disabled={!scaffoldTemplate}
+                                                                        sx={commonFieldSx}
+                                                                    />
+
+                                                                    <TextField
+                                                                        size="small"
+                                                                        label="End residue"
+                                                                        type="number"
+                                                                        value={mapping.end ?? ''}
+                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { end: e.target.value ? Number(e.target.value) : null })}
+                                                                        disabled={!scaffoldTemplate}
+                                                                        sx={commonFieldSx}
+                                                                    />
+
+                                                                    <TextField
+                                                                        size="small"
+                                                                        label="Offset"
+                                                                        type="number"
+                                                                        value={mapping.offset ?? 0}
+                                                                        slotProps={{ htmlInput: { min: 0 } }}
+                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { offset: Number(e.target.value) || 0 })}
+                                                                        disabled={!scaffoldTemplate}
+                                                                        sx={commonFieldSx}
+                                                                    />
+                                                                </Box>
+                                                            );
+                                                        })()}
+                                                    </Box>
+                                                </Box>
                                             </Box>
                                         )}
 

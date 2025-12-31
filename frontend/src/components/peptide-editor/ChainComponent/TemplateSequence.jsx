@@ -106,14 +106,13 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
         </Box>
     );
 };
-
 export default function TemplateSequence({
     mapping,
     maxResidueCount = null,
     sequenceIndex = null,
     onEditMapping,
 }) {
-    if (!mapping || !mapping.templateResidues) {
+    if (!mapping || !Array.isArray(mapping.templateResidues)) {
         return (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Upload a scaffold to enable mappings.
@@ -121,24 +120,24 @@ export default function TemplateSequence({
         );
     }
 
-    if (!mapping?.enabled) {
+    const isEnabled = mapping?.enabled === true;
+
+    const offsetCount = Math.max(0, Number(mapping.offset) || 0);
+    const trailingCapCount = Math.max(0, Number(mapping.trailingCapCount) || 0);
+    const templateResidues = mapping.templateResidues;
+
+    if (!templateResidues.length) {
         return (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Template disabled for this chain.
+                No template residues mapped yet.
             </Typography>
         );
     }
 
-    const offsetCount = Math.max(0, Number(mapping.offset) || 0);
-    const trailingCapCount = Math.max(0, Number(mapping.trailingCapCount) || 0);
-
-    const templateResidues = Array.isArray(mapping.templateResidues)
-        ? mapping.templateResidues
-        : [];
-
     const manualMaskSet = useMemo(
         () => new Set(mapping.manualMasks || []),
         [mapping.manualMasks],
+
     );
     
 
@@ -254,11 +253,13 @@ export default function TemplateSequence({
                 flexWrap: 'wrap',
                 gap: GRID_GAP,
                 minHeight: CELL_HEIGHT,
+                opacity: isEnabled ? 1 : 0.65,
                 alignItems: 'center',
             }}
         >
             {cells.map((cell, idx) => {
                 const showControls =
+                    isEnabled &&
                     canEdit &&
                     cell.kind === 'template' &&
                     cell.templateIdx != null &&

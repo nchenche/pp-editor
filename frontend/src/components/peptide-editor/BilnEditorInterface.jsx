@@ -34,7 +34,6 @@ import { API_URL } from '../../config';
 
 import { useSequenceUploadDialog } from '../../hooks/useSequenceUploadDialog';
 import { useScaffoldDialog } from '../../hooks/useScaffoldDialog';
-import { useMappingDialog } from '../../hooks/useMappingDialog';
 
 import { SequenceEditorPanel } from './SequenceInput';
 import ChainsToolbar from './ChainComponent/ChainsToolbar';
@@ -116,14 +115,6 @@ export default function BilnEditorInterface({
         onUploadScaffoldFile,
         onFetchScaffoldById,
     });
-
-    // Mapping dialog hook
-    const {
-        mappingDialogOpen,
-        mappingDialogSeqIdx,
-        openMappingDialog,
-        closeMappingDialog,
-    } = useMappingDialog();
 
     const btnSx = {
         textTransform: 'none',
@@ -371,7 +362,6 @@ export default function BilnEditorInterface({
                         // Scaffold mapping
                         scaffoldTemplate={scaffoldTemplate}
                         scaffoldMappings={scaffoldMappings}
-                        onOpenScaffoldMapping={openMappingDialog}
                         onEditScaffoldMapping={onEditScaffoldMapping}
                     />
                 </Box>
@@ -819,120 +809,6 @@ export default function BilnEditorInterface({
                         disabled={uploadLoading}
                     >
                         {uploadLoading ? 'Processing…' : 'Apply'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Template mapping dialog */}
-            <Dialog
-                open={mappingDialogOpen && mappingDialogSeqIdx != null}
-                onClose={closeMappingDialog}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>
-                    Configure 3D template · Chain {mappingDialogSeqIdx != null ? mappingDialogSeqIdx + 1 : ''}
-                </DialogTitle>
-                <DialogContent dividers>
-                    {mappingDialogSeqIdx == null ? null : !scaffoldTemplate ? (
-                        <Typography variant="body2" color="text.secondary">
-                            Upload or fetch a scaffold before configuring per-chain mappings.
-                        </Typography>
-                    ) : (
-                        (() => {
-                            const mapping = scaffoldMappings[mappingDialogSeqIdx] || {};
-                            const enabled = Boolean(mapping.enabled);
-                            const chains = scaffoldTemplate.chainData ?? [];
-                            const selectedChainId = mapping.chainId ?? '';
-                            const update = (patch) =>
-                                onEditScaffoldMapping(mappingDialogSeqIdx, patch);
-
-                            return (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Define how this designed chain threads onto the scaffold.
-                                    </Typography>
-
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                size="small"
-                                                checked={enabled}
-                                                onChange={(e) => update({ enabled: e.target.checked })}
-                                            />
-                                        }
-                                        label="Enable template mapping for this chain"
-                                    />
-
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                                        <TextField
-                                            select
-                                            size="small"
-                                            label="PDB chain"
-                                            value={selectedChainId}
-                                            onChange={(e) => update({ chainId: e.target.value || null })}
-                                            disabled={!enabled}
-                                            sx={{ minWidth: 140 }}
-                                        >
-                                            {(chains.length ? chains : scaffoldTemplate.chains || []).map((chain) => {
-                                                const id = typeof chain === 'string' ? chain : chain.id;
-                                                return (
-                                                    <MenuItem key={id} value={id}>
-                                                        {id}
-                                                    </MenuItem>
-                                                );
-                                            })}
-                                        </TextField>
-
-                                        <TextField
-                                            size="small"
-                                            label="Start residue"
-                                            type="number"
-                                            value={mapping.start ?? ''}
-                                            slotProps={{ htmlInput: { min: 1 } }}
-                                            onChange={(e) =>
-                                                update({ start: e.target.value ? Number(e.target.value) : null })
-                                            }
-                                            disabled={!enabled}
-                                            sx={{ width: 140 }}
-                                        />
-
-                                        <TextField
-                                            size="small"
-                                            label="End residue"
-                                            type="number"
-                                            value={mapping.end ?? ''}
-                                            onChange={(e) =>
-                                                update({ end: e.target.value ? Number(e.target.value) : null })
-                                            }
-                                            disabled={!enabled}
-                                            sx={{ width: 140 }}
-                                        />
-
-                                        <TextField
-                                            size="small"
-                                            label="Offset"
-                                            type="number"
-                                            value={mapping.offset ?? 0}
-                                            slotProps={{ htmlInput: { min: 0 } }}
-                                            onChange={(e) => update({ offset: Number(e.target.value) || 0 })}
-                                            disabled={!enabled}
-                                            sx={{ width: 120 }}
-                                        />
-                                    </Box>
-
-                                    <Typography variant="caption" color="text.secondary">
-                                        Designed length:{' '}
-                                        {rowMonomerLists[mappingDialogSeqIdx]?.length ?? 0} residues.
-                                    </Typography>
-                                </Box>
-                            );
-                        })()
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button size="small" onClick={closeMappingDialog}>
-                        Close
                     </Button>
                 </DialogActions>
             </Dialog>

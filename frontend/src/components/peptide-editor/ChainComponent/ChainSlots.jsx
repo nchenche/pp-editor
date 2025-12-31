@@ -31,7 +31,6 @@ export const ChainSlots = ({
     scaffoldTemplate = null,
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
-    onOpenScaffoldMapping = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
@@ -56,6 +55,19 @@ export const ChainSlots = ({
     const anyTemplateEnabled = useMemo(() => {
         return (scaffoldMappings || []).some((m) => m?.enabled === true);
     }, [scaffoldMappings]);
+
+    const seqLabel = useCallback((idx) => {
+        const n = Number(idx);
+        if (!Number.isFinite(n) || n < 0) return '';
+        // Excel-like: 0->A, 25->Z, 26->AA, ...
+        let x = Math.floor(n);
+        let out = '';
+        while (x >= 0) {
+            out = String.fromCharCode(65 + (x % 26)) + out;
+            x = Math.floor(x / 26) - 1;
+        }
+        return out;
+    }, []);
 
 
     const clearTemplate = () =>
@@ -83,8 +95,6 @@ export const ChainSlots = ({
                 // - Only block template due to constraints when NO template is enabled anywhere.
                 //   (avoids deadlock where constraints exist but become impossible to clear)
                 const templateDisabled = !isTemplateEnabled && hasConstraints && !anyTemplateEnabled;
-
-                const templateMenuDisabled = !scaffoldTemplate || templateDisabled;
 
                 const clearTemplate = () =>
                     onEditScaffoldMapping(seqIdx, {
@@ -233,7 +243,7 @@ export const ChainSlots = ({
                                             onDelete={handleDeleteMonomerItem}
                                             handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
                                             handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
-                                            label={`Chain ${seqIdx + 1}`}
+                                            label={`Chain ${seqLabel(seqIdx)}`}
                                             dndDisabled={overlayActive}
                                         >
                                             {provided.placeholder}
@@ -254,12 +264,6 @@ export const ChainSlots = ({
                                     templateSlot
                                 )
                             }
-                            templateMenuDisabled={templateMenuDisabled}
-                            onTemplateMenu={() => {
-                                if (templateMenuDisabled) return;
-                                onOpenScaffoldMapping(seqIdx);
-                            }}
-                            onTemplateClear={clearTemplate}
                             onTemplateHelp={() => { }}
                         />
                     </Box>

@@ -10,7 +10,6 @@ export default function ChainContainer({
     sequenceSlot,
     constraintsSlot,
     templateSlot,
-    templateMenuDisabled = false,
     // Layout
     labelColWidth = 200,
     gapY = 0.1,
@@ -22,8 +21,6 @@ export default function ChainContainer({
     onConstraintsFill = () => { }, // (letter: 'H' | 'E' | '-') -> parent fills cells
     onConstraintsClear = () => { },
     onConstraintsHelp = () => { },
-    onTemplateMenu = () => { },
-    onTemplateClear = () => { },
     onTemplateHelp = () => { },
 }) {
     const fileInputRef = useRef(null);
@@ -53,13 +50,7 @@ export default function ChainContainer({
         closeConstraintsMenu();
     };
 
-    const [templateMenuEl, setTemplateMenuEl] = useState(null);
-    const openTemplateMenu = (e) => setTemplateMenuEl(e.currentTarget);
-    const closeTemplateMenu = () => setTemplateMenuEl(null);
-    const handleTemplateAction = (cb) => {
-        closeTemplateMenu();
-        cb?.();
-    };
+    // Template mapping configuration is edited in the 3D viewer "Template" panel.
 
 
     const iconRowSx = {
@@ -213,41 +204,7 @@ export default function ChainContainer({
                             3D Template
                         </Typography>
 
-                        <Box sx={iconRowSx}>
-                            <Tooltip title="Menu" arrow>
-                                <span>
-                                    <IconButton
-                                        size="small"
-                                        onClick={openTemplateMenu}
-                                        sx={iconBtnSx}
-                                        disabled={templateMenuDisabled}
-                                    >
-                                        <MoreVertIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-
-                            <Tooltip title="Clear" arrow>
-                                <span>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => handleTemplateAction(onTemplateClear)}
-                                        sx={iconBtnSx}
-                                        disabled={templateMenuDisabled}
-                                    >
-                                        <DeleteOutlineIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-
-                            {/* <Tooltip title="Help" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={onTemplateHelp} sx={iconBtnSx}>
-                                        <HelpOutlineIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip> */}
-                        </Box>
+                        <Box sx={iconRowSx} />
 
                     </Box>
 
@@ -275,24 +232,6 @@ export default function ChainContainer({
                     <MenuItem onClick={() => applyPreset('E')}>All beta (E)</MenuItem>
                     <MenuItem onClick={() => applyPreset('-')}>All random (-)</MenuItem>
                 </Menu>
-
-                {/* 3D template menu */}
-                <Menu
-                    anchorEl={templateMenuEl}
-                    open={Boolean(templateMenuEl)}
-                    onClose={closeTemplateMenu}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    MenuListProps={{ dense: true }}
-                >
-                    <MenuItem onClick={() => handleTemplateAction(onTemplateMenu)} disabled={templateMenuDisabled}>
-                        Configure 3D template ...
-                    </MenuItem>
-                    <MenuItem onClick={() => handleTemplateAction(onTemplateClear)} disabled={templateMenuDisabled}>
-                        Clear mapping
-                    </MenuItem>
-                </Menu>
-
 
             </Box>
         </Box>
