@@ -19,14 +19,12 @@ import {
     Radio,
     FormControl,
     FormLabel,
-    Switch,
-    MenuItem,
 } from '@mui/material';
 
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import UploadIcon from '@mui/icons-material/Upload';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
@@ -176,8 +174,8 @@ export default function BilnEditorInterface({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Manual edit</Typography>
                     <Tooltip title="BILN format help" arrow>
-                        <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary' }}>
-                            <HelpOutlineIcon fontSize="inherit" />
+                        <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
+                            <QuestionMarkSharpIcon fontSize="inherit" />
                         </IconButton>
                     </Tooltip>
                 </Box>
@@ -335,8 +333,8 @@ export default function BilnEditorInterface({
                             Chains
                         </Typography>
                         <Tooltip title="Chains help" arrow>
-                            <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary' }}>
-                                <HelpOutlineIcon fontSize="inherit" />
+                            <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
+                                <QuestionMarkSharpIcon fontSize="inherit" />
                             </IconButton>
                         </Tooltip>
                     </Box>

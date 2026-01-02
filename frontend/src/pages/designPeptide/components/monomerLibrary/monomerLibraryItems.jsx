@@ -2,7 +2,7 @@ import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { Card, CardContent, CardActions, IconButton, Box, Tooltip, Typography } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import Chip from "@mui/material/Chip";
 
 
@@ -183,7 +183,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                         sx={{ p: 0.6, color: "grey.400" }}
                         className="hover:text-slate-200"
                     >
-                        <InfoOutlinedIcon fontSize="small" />
+                        <QuestionMarkSharpIcon fontSize="small" sx={{ fontSize: 15 }} />
                     </IconButton>
                 </Tooltip>
             </CardActions>

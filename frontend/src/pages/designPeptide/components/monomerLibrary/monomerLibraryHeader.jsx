@@ -8,7 +8,7 @@ import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import { alpha } from '@mui/material/styles';
 
 // Linking constants (unchanged)
@@ -172,7 +172,9 @@ function CompactSelect({
                             </Box>
                             {opt.hint ? (
                                 <Tooltip arrow title={opt.hint} placement="right-start">
-                                    <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    <Box sx={{ display: 'flex', alignItems: 'center', lineHeight: 0 }}>
+                                        <QuestionMarkSharpIcon fontSize="small" sx={{ color: 'text.secondary', fontSize: 15 }} />
+                                    </Box>
                                 </Tooltip>
                             ) : null}
                         </MenuItem>
@@ -401,10 +403,12 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                             </Box>
                         }
                     >
-                        <InfoOutlinedIcon
-                            fontSize="small"
-                            sx={{ color: 'text.secondary' }}
-                        />
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
+                            <QuestionMarkSharpIcon
+                                fontSize="small"
+                                sx={{ color: 'text.secondary', fontSize: 15, transform: 'translateY(-2px)' }}
+                            />
+                        </Box>
                     </Tooltip>
                 </Stack>
 

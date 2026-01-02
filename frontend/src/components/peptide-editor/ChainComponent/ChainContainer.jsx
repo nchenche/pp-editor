@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider } from '@mui/material';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';

@@ -13,7 +13,7 @@ import {
     Chip,
     Stack,
 } from '@mui/material';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import BackspaceIcon from '@mui/icons-material/Backspace';
 
@@ -84,8 +84,8 @@ export default function StructuralConstraintsEditor({
                         Structural constraints
                     </Typography>
                     <Tooltip title="About structural constraints" arrow>
-                        <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: 'text.secondary' }}>
-                            <HelpOutlineIcon fontSize="inherit" />
+                        <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 18 }}>
+                            <QuestionMarkSharpIcon fontSize="inherit" />
                         </IconButton>
                     </Tooltip>
                 </Box>
