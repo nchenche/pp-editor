@@ -37,6 +37,9 @@ export const MonomerSequence = ({
     sequenceIndex = 0, // 0-based; label shows 1-based
     label = 'Unknown',
 
+    // chain id label in 3D (e.g. 'A', 'B', ...)
+    chainIdLabel = null,
+
     // hover handlers
     handleMonomerEnter,
     handleMonomerLeave,
@@ -127,10 +130,15 @@ export const MonomerSequence = ({
                         // no overflow here; wrapper above handles scroll
                     }}
                 >
-                    {monomers.map((monomer, index) => {
+                    {(() => {
+                        let aaSeqId = 0;
+                        return monomers.map((monomer, index) => {
                         const isNterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[1] != null;
                         const isCterCap = monomer.m_subtype === "cap" && monomer.m_RgroupIdx?.[0] != null;
                         const isHovered = monomer["res-idx"] === hoveredMonomer;
+
+                        const isCapped = isNterCap || isCterCap;
+                        const focusSeqId = !isCapped ? (++aaSeqId) : null;
 
                         let linkIndices = Array.isArray(monomer.linkIds) ? monomer.linkIds : [];
                         if (!linkIndices.length && linkMap) {
@@ -148,6 +156,8 @@ export const MonomerSequence = ({
                                 key={monomer.uid || monomer._id || monomer["res-idx"] || index}
                                 index={index}
                                 monomer={monomer}
+                                chainIdLabel={chainIdLabel}
+                                aaSeqId={focusSeqId}
                                 handleMonomerEnter={handleMonomerEnter}
                                 handleMonomerLeave={handleMonomerLeave}
                                 onDelete={onDelete}
@@ -159,7 +169,8 @@ export const MonomerSequence = ({
                                 dndDisabled={dndDisabled}
                             />
                         );
-                    })}
+                    });
+                    })()}
                     {children}
                 </Box>
             </Box>

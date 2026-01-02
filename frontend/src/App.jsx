@@ -7,7 +7,6 @@ import NavBar from './components/layout/Navbar';
 
 import Home from './pages/Home';
 import PersonalMonomers from './pages/admin/PersonalMonomers';
-import MonomerLibraryContainer from './pages/admin/MonomerLibrary';
 import PublicMonomers from './pages/admin/PublicMonomers';
 import Documentation from './pages/Documentation';
 import SubmitPublicMonomers from './pages/SubmitPublicMonomers';

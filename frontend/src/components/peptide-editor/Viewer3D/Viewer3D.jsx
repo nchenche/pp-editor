@@ -7,6 +7,9 @@ import { useMolstarSelection } from '../../../hooks/useMolstarSelection';
 import { StructureSelectionQuery } from 'molstar/lib/mol-plugin-state/helpers/structure-selection-query';
 import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder';
 import { StateSelection } from 'molstar/lib/mol-state/state/selection';
+import { Script } from 'molstar/lib/mol-script/script';
+import { StructureSelection } from 'molstar/lib/mol-model/structure';
+import { StructureElement, StructureProperties, Bond } from 'molstar/lib/mol-model/structure';
 
 
 const Viewer3DInner = ({
@@ -37,6 +40,8 @@ const Viewer3DInner = ({
     const [colorScheme, setColorScheme] = useState(defaultColorScheme);
     const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
     const [representationAlphaByRep, setRepresentationAlphaByRep] = useState({});
+    const [hoverLabel, setHoverLabel] = useState('');
+    const [uiHoverLabel, setUiHoverLabel] = useState('');
 
     const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin({
         backgroundColor: background,
@@ -87,9 +92,135 @@ const Viewer3DInner = ({
         pluginRef,
         pluginInitialized,
         structure,
+        templateStructure,
         hoveredMonomer,
         handleMonomerHover,
     });
+
+    // When the user hovers a residue in the chain sequence UI, show the
+    // corresponding residue label (CHAIN RESNAME RESID) in the bottom-right.
+    // This complements (doesn't replace) the Mol* native hover label.
+    useEffect(() => {
+        if (!pluginInitialized) return;
+
+        if (!hoveredMonomer) {
+            setUiHoverLabel('');
+            return;
+        }
+
+        const selectedResidue = parseInt(String(hoveredMonomer).split('-')[1]) + 1;
+        if (!Number.isFinite(selectedResidue)) {
+            setUiHoverLabel('');
+            return;
+        }
+
+        const data = structure?.cell?.obj?.data;
+        if (!data) {
+            setUiHoverLabel('');
+            return;
+        }
+
+        try {
+            const sel = Script.getStructureSelection((Q) =>
+                Q.struct.generator.atomGroups({
+                    'residue-test': Q.core.rel.eq([
+                        Q.struct.atomProperty.macromolecular.label_seq_id(),
+                        selectedResidue,
+                    ]),
+                    'group-by': Q.struct.atomProperty.macromolecular.residueKey(),
+                }),
+                data,
+            );
+            const loci = StructureSelection.toLociWithSourceUnits(sel);
+            const loc = StructureElement.Loci.getFirstLocation(loci);
+            if (!loc) {
+                setUiHoverLabel('');
+                return;
+            }
+
+            const chain = StructureProperties.chain.label_asym_id(loc);
+            const comp = StructureProperties.atom.label_comp_id(loc);
+            const seq = StructureProperties.residue.label_seq_id(loc);
+            if (!chain || !comp || !seq) {
+                setUiHoverLabel('');
+                return;
+            }
+            setUiHoverLabel(`${chain} ${String(comp).toUpperCase()} ${seq}`);
+        } catch {
+            setUiHoverLabel('');
+        }
+    }, [hoveredMonomer, pluginInitialized, structure]);
+
+    // Bottom-right hover label inside the Mol* viewer.
+    useEffect(() => {
+        if (!pluginInitialized || !pluginRef.current) return;
+        const plugin = pluginRef.current;
+
+        const handleHover = (event) => {
+            try {
+                const loci = event?.current?.loci;
+                if (!loci || loci.kind === 'empty-loci') {
+                    setHoverLabel('');
+                    return;
+                }
+
+                if (StructureElement.Loci.is(loci)) {
+                    const loc = StructureElement.Loci.getFirstLocation(loci);
+                    if (!loc) {
+                        setHoverLabel('');
+                        return;
+                    }
+
+                    const chain = StructureProperties.chain.label_asym_id(loc);
+                    const comp = StructureProperties.atom.label_comp_id(loc);
+                    const seq = StructureProperties.residue.label_seq_id(loc);
+                    if (!chain || !comp || !seq) {
+                        setHoverLabel('');
+                        return;
+                    }
+
+                    setHoverLabel(`${chain} ${String(comp).toUpperCase()} ${seq}`);
+                    return;
+                }
+
+                // If hovering over a bond, try to still show the residue.
+                if (Bond.isLoci(loci)) {
+                    const bondLoc = loci.bonds?.[0];
+                    if (!bondLoc) {
+                        setHoverLabel('');
+                        return;
+                    }
+                    const aUnit = bondLoc.aUnit;
+                    const aIndex = bondLoc.aIndex;
+                    const aElement = aUnit?.elements?.[aIndex];
+                    const loc = {
+                        structure: loci.structure,
+                        unit: aUnit,
+                        // StructureProperties expects an element id, not the index into unit.elements
+                        element: aElement != null ? aElement : aIndex,
+                    };
+                    const chain = StructureProperties.chain.label_asym_id(loc);
+                    const comp = StructureProperties.atom.label_comp_id(loc);
+                    const seq = StructureProperties.residue.label_seq_id(loc);
+                    if (!chain || !comp || !seq) {
+                        setHoverLabel('');
+                        return;
+                    }
+                    setHoverLabel(`${chain} ${String(comp).toUpperCase()} ${seq}`);
+                    return;
+                }
+
+                setHoverLabel('');
+            } catch {
+                setHoverLabel('');
+            }
+        };
+
+        plugin.behaviors.interaction.hover.subscribe(handleHover);
+        return () => {
+            try { plugin.behaviors.interaction.hover.unsubscribe(handleHover); } catch { }
+        };
+    }, [pluginInitialized, pluginRef]);
 
     // Imperative API
     useImperativeHandle(ref, () => ({
@@ -97,6 +228,71 @@ const Viewer3DInner = ({
         orientAxes: () => pluginRef.current?.managers.camera.orientAxes(undefined, 0),
         resetAxes: () => pluginRef.current?.managers.camera.resetAxes(),
         resize: () => pluginRef.current?.canvas3d?.requestResize?.(),
+        focusResidue: ({ target = 'main', chainId, seqId, debug } = {}) => {
+            const plugin = pluginRef.current;
+            if (!plugin) return;
+
+            const seq = Number(seqId);
+            const chain = String(chainId ?? '').trim();
+            if (!Number.isFinite(seq)) return;
+
+            const data = (target === 'template'
+                ? templateStructure?.cell?.obj?.data
+                : structure?.cell?.obj?.data);
+            if (!data) return;
+
+            try {
+                const residueTest = chain
+                    ? (Q) => Q.core.logic.and([
+                        Q.core.rel.eq([
+                            Q.struct.atomProperty.macromolecular.label_asym_id(),
+                            chain,
+                        ]),
+                        Q.core.rel.eq([
+                            Q.struct.atomProperty.macromolecular.label_seq_id(),
+                            seq,
+                        ]),
+                    ])
+                    : (Q) => Q.core.rel.eq([
+                        Q.struct.atomProperty.macromolecular.label_seq_id(),
+                        seq,
+                    ]);
+
+                const sel = Script.getStructureSelection((Q) => Q.struct.generator.atomGroups({
+                    'residue-test': residueTest(Q),
+                    'group-by': Q.struct.atomProperty.macromolecular.residueKey(),
+                }), data);
+
+                const loci = StructureSelection.toLociWithSourceUnits(sel);
+
+                if (debug) {
+                    try {
+                        const loc = StructureElement.Loci.getFirstLocation(loci);
+                        if (loc) {
+                            // eslint-disable-next-line no-console
+                            console.debug('[pp-focus-residue] focus match', {
+                                requested: { target, chainId: chain || undefined, seqId: seq },
+                                debug,
+                                label_asym_id: StructureProperties.chain.label_asym_id(loc),
+                                auth_asym_id: StructureProperties.chain.auth_asym_id?.(loc),
+                                label_seq_id: StructureProperties.residue.label_seq_id(loc),
+                                auth_seq_id: StructureProperties.residue.auth_seq_id?.(loc),
+                                label_comp_id: StructureProperties.atom.label_comp_id?.(loc),
+                            });
+                        } else {
+                            // eslint-disable-next-line no-console
+                            console.debug('[pp-focus-residue] focus match: no location', { requested: { target, chainId: chain || undefined, seqId: seq }, debug });
+                        }
+                    } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.debug('[pp-focus-residue] focus debug failed', e);
+                    }
+                }
+                plugin.managers.camera.focusLoci(loci, { extraRadius: 2 });
+            } catch {
+                // ignore
+            }
+        },
         // Legacy: exclusive representation (kept for compatibility)
         setRepresentation: (type) => setEnabledRepresentations([type].filter(Boolean)),
         // New: multi-representation control
@@ -156,7 +352,7 @@ const Viewer3DInner = ({
         clear: async () => {
             try { await pluginRef.current?.clear?.(); } catch { }
         },
-    }), [pluginRef, enabledRepresentations, labelsEnabled, representationAlphaByRep]);
+    }), [pluginRef, enabledRepresentations, labelsEnabled, representationAlphaByRep, structure, templateStructure]);
 
     // Keep enabled representations in sync when defaultRepresentation prop changes
     useEffect(() => {
@@ -378,6 +574,20 @@ const Viewer3DInner = ({
                     ref={canvasRef}
                     style={{ width: '100%', height: '100%'}}
                 />
+
+                {(hoverLabel || uiHoverLabel) && (
+                    <div
+                        className="absolute bottom-2 right-2 px-2 py-1 text-xs rounded"
+                        style={{
+                            background: 'rgba(0,0,0,0.55)',
+                            color: 'white',
+                            pointerEvents: 'none',
+                            userSelect: 'none',
+                        }}
+                    >
+                        {hoverLabel || uiHoverLabel}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -37,11 +37,6 @@ export default function ChainContainer({
         e.target.value = '';
     };
 
-    const handleTemplateClear = () => {
-        if (onTemplateClear) onTemplateClear();
-        setTemplateName('');
-    };
-
     const openConstraintsMenu = (e) => {
         onConstraintsMenu?.();
         setConstraintsMenuEl(e.currentTarget);

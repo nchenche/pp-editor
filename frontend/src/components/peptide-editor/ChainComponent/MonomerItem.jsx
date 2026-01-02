@@ -34,6 +34,8 @@ const MonomerItemComponent = (props) => {
         onDelete,
         isNterCap = false,
         isCterCap = false,
+        chainIdLabel = null,
+        aaSeqId = null,
         linkIndices = [],
         linkColorIndexById = {},
         setSelectedMonomer, // <-- assumed to be passed if you want selection logic!
@@ -114,6 +116,46 @@ const MonomerItemComponent = (props) => {
         setSelectedMonomer && setSelectedMonomer(monomer);
     }, [setSelectedMonomer, monomer]);
 
+    const handleContextMenuFocus = useCallback((e) => {
+        const raw = monomer?.['res-idx'] != null ? String(monomer['res-idx']) : '';
+        // Match existing Mol* hover/highlight mapping:
+        // label_seq_id = parseInt(resIdx.split('-')[1]) + 1
+        let seq = NaN;
+        if (raw.includes('-')) {
+            const parts = raw.split('-');
+            const idx = parseInt(parts?.[1], 10);
+            if (Number.isFinite(idx)) seq = idx + 1;
+        }
+        if (!Number.isFinite(seq)) {
+            const maybe = Number(aaSeqId);
+            if (Number.isFinite(maybe)) seq = maybe;
+        }
+        if (!Number.isFinite(seq) || seq < 1) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const debug = {
+            source: 'designed-peptide',
+            monomerPdbName: monomer?.pdbName,
+            monomerResIdx: raw,
+            computedLabelSeqId: seq,
+            chainIdLabel,
+            aaSeqId,
+        };
+        // User-requested: log which labels we use for focusing
+        // eslint-disable-next-line no-console
+        console.debug('[pp-focus-residue] dispatch', debug);
+
+        window.dispatchEvent(new CustomEvent('pp-focus-residue', {
+            detail: {
+                target: 'main',
+                seqId: seq,
+                debug,
+            }
+        }));
+    }, [chainIdLabel, aaSeqId]);
+
     // Custom drag style: fast drop animation
     const getStyle = (draggableProps, snapshot) => {
         const style = draggableProps?.style;
@@ -130,6 +172,7 @@ const MonomerItemComponent = (props) => {
             style={provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {}}
             onPointerEnter={() => handleMonomerEnter(monomer['res-idx'])}
             onPointerLeave={() => { if (!swapMenuOpen) handleMonomerLeave(monomer['res-idx']); }}
+            onContextMenu={handleContextMenuFocus}
         >
             <Box
                 aria-hidden
@@ -327,6 +370,7 @@ const MonomerItemComponent = (props) => {
         handleOpenSwapMenu,
         handleCloseSwapMenu,
         isSelected,
+        handleContextMenuFocus,
     ]);
 
     // If capped, not draggable

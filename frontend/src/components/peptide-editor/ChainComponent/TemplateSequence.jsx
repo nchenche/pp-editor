@@ -1,6 +1,5 @@
-//// filepath: /home/nche/projects/pp-editor/frontend/src/components/peptide-editor/ChainComponent/TemplateSequence.jsx
 import React, { useMemo, useCallback } from 'react';
-import { Box, Typography, Tooltip, IconButton, TextField } from '@mui/material';
+import { Box, Typography, Tooltip, IconButton } from '@mui/material';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
@@ -8,7 +7,7 @@ const CELL_WIDTH = 32;
 const CELL_HEIGHT = 20;
 const GRID_GAP = 0.5;
 
-const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle }) => {
+const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle, onContextMenu }) => {
     const isOffsetOrMasked = kind === 'offset' || masked;
 
     return (
@@ -33,7 +32,7 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                         className="template-mask-btn"
                         sx={{
                             position: 'absolute',
-                            top: -18,
+                            top: -20,
                             opacity: 0,
                             transition: 'opacity 120ms ease',
                             pointerEvents: 'none',
@@ -43,12 +42,12 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                         <IconButton
                             size="small"
                             onClick={onToggle}
-                            sx={{ width: 8, height: 8, color: 'text.secondary' }}
+                            sx={{ width: 6, height: 6, color: 'text.secondary' }}
                         >
                             {masked ? (
-                                <VisibilityOutlinedIcon sx={{ width: 14, height: 14 }} />
+                                <VisibilityOutlinedIcon sx={{ width: 12, height: 12 }} />
                             ) : (
-                                <VisibilityOffOutlinedIcon sx={{ width: 14, height: 14 }} />
+                                <VisibilityOffOutlinedIcon sx={{ width: 12, height: 12 }} />
                             )}
                         </IconButton>
                     </Box>
@@ -79,6 +78,7 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                             ? theme.palette.warning.dark
                             : theme.palette.primary.dark,
                 }}
+                onContextMenu={onContextMenu}
             >
                 <Box
                     sx={{
@@ -133,12 +133,20 @@ export default function TemplateSequence({
             </Typography>
         );
     }
-
     const manualMaskSet = useMemo(
         () => new Set(mapping.manualMasks || []),
         [mapping.manualMasks],
-
     );
+    const mappingBaseStart = useMemo(() => {
+        const start = Number(mapping?.start);
+        const end = Number(mapping?.end);
+        if (!isEnabled) return null;
+        if (!mapping?.chainId) return null;
+        if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+        if (start < 1 || end < 1) return null;
+        return Math.min(start, end);
+    }, [isEnabled, mapping?.chainId, mapping?.start, mapping?.end]);
+
     
 
     // Number of AA positions in this chain (excluding caps).
@@ -265,6 +273,26 @@ export default function TemplateSequence({
                     cell.templateIdx != null &&
                     !cell.locked;
 
+                const canFocus =
+                    mappingBaseStart != null &&
+                    isEnabled &&
+                    cell.kind === 'template' &&
+                    cell.templateIdx != null;
+
+                const onContextMenu = canFocus
+                    ? (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.dispatchEvent(new CustomEvent('pp-focus-residue', {
+                            detail: {
+                                target: 'template',
+                                chainId: mapping.chainId,
+                                seqId: Number(mappingBaseStart) + Number(cell.templateIdx),
+                            }
+                        }));
+                    }
+                    : undefined;
+
                 return (
                     <TemplateResidue
                         key={`template-residue-${idx}`}
@@ -273,6 +301,7 @@ export default function TemplateSequence({
                         isGap={cell.code === 'X'}
                         kind={cell.kind}
                         showControls={showControls}
+                        onContextMenu={onContextMenu}
                         masked={cell.masked}
                         onToggle={() =>
                             cell.templateIdx != null

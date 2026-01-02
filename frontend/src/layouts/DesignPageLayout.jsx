@@ -265,14 +265,14 @@ export const DesignPageLayoutMUI = ({
                 <OverlayPortalProvider rootRef={overlayRootRef} overlayActive={overlayActive} setOverlayActive={setOverlayActive}>
                     {/* Top: Viewer/Editor area (no scroll) */}
                     <Paper
-                        variant="outlined"
+                        // variant="outlined"
                         square
                         sx={{
                             minHeight: 0,
                             height: '100%',
                             overflow: 'hidden', // prevent internal scroll
                             borderRadius: 1,
-                            p: 1,
+                            pl: 1,
                             display: 'flex',
                             flexDirection: 'column',
                         }}

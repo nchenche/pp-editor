@@ -9,12 +9,24 @@ export function useMolstarSelection({
     pluginRef,
     pluginInitialized,
     structure,
+    templateStructure,
     hoveredMonomer, // e.g. "A-3"
     handleMonomerHover, // callback from parent (optional)
 }) {
     // Keep a ref to the latest handler to avoid stale closures
     const hoverHandlerRef = useRef(handleMonomerHover);
     useEffect(() => { hoverHandlerRef.current = handleMonomerHover; }, [handleMonomerHover]);
+
+    // Keep refs to the latest structures so the hover subscription (registered once)
+    // can correctly classify loci even if template loads later.
+    const mainStructureRef = useRef(null);
+    const templateStructureRef = useRef(null);
+    useEffect(() => {
+        mainStructureRef.current = structure?.cell?.obj?.data ?? null;
+    }, [structure]);
+    useEffect(() => {
+        templateStructureRef.current = templateStructure?.cell?.obj?.data ?? null;
+    }, [templateStructure]);
 
     // Subscribe to Mol* hover events ONCE
     useEffect(() => {
@@ -28,23 +40,57 @@ export function useMolstarSelection({
             }
             const loci = event.current.loci;
 
+            const resolveTarget = (s) => {
+                const mainStruct = mainStructureRef.current;
+                const templateStruct = templateStructureRef.current;
+                if (s && templateStruct && s === templateStruct) return 'template';
+                if (s && mainStruct && s === mainStruct) return 'main';
+                return 'unknown';
+            };
+
             if (StructureElement.Loci.is(loci)) {
                 const loc = StructureElement.Loci.getFirstLocation(loci);
                 if (loc) {
+                    const target = resolveTarget(loc.structure);
+                    // Do not reflect template-hover into chain-slot highlighting.
+                    if (target === 'template') {
+                        hoverHandlerRef.current && hoverHandlerRef.current('');
+                        return;
+                    }
                     const residueId = StructureProperties.residue.label_seq_id(loc);
+                    const chainId = StructureProperties.chain.label_asym_id(loc);
                     hoverHandlerRef.current && hoverHandlerRef.current({
                         origin: 'molstarViewer',
+                        target,
+                        chainId,
                         resid: residueId,
                     });
                 }
             } else if (Bond.isLoci(loci)) {
                 const bondLoc = loci.bonds[0];
                 if (bondLoc) {
-                    const a = bondLoc.aUnit;
+                    const target = resolveTarget(loci.structure);
+                    // Do not reflect template-hover into chain-slot highlighting.
+                    if (target === 'template') {
+                        hoverHandlerRef.current && hoverHandlerRef.current('');
+                        return;
+                    }
+                    // Build a residue id the same way as atom hover: label_seq_id
+                    const aUnit = bondLoc.aUnit;
                     const aIndex = bondLoc.aIndex;
-                    const residueId = a.getResidueIndex(aIndex) + 1;
+                    const aElement = aUnit?.elements?.[aIndex];
+                    const loc = {
+                        structure: loci.structure,
+                        unit: aUnit,
+                        // StructureProperties expects an element id, not the index into unit.elements
+                        element: aElement != null ? aElement : aIndex,
+                    };
+                    const residueId = StructureProperties.residue.label_seq_id(loc);
+                    const chainId = StructureProperties.chain.label_asym_id(loc);
                     hoverHandlerRef.current && hoverHandlerRef.current({
                         origin: 'molstarViewer',
+                        target,
+                        chainId,
                         resid: residueId,
                     });
                 }

@@ -196,6 +196,7 @@ export const ChainSlots = ({
                                             handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
                                             handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
                                             label={`Chain ${seqLabel(seqIdx)}`}
+                                            chainIdLabel={seqLabel(seqIdx)}
                                             dndDisabled={overlayActive}
                                         >
                                             {provided.placeholder}

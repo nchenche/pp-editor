@@ -488,6 +488,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return () => window.removeEventListener('pp-begin-replace-selection', handler);
     }, [beginReplaceSelection]);
 
+    // Focus/zoom a residue in 3D from UI right-clicks (template or designed)
+    useEffect(() => {
+        const handler = (e) => {
+            const detail = e?.detail;
+            viewer3DRef.current?.focusResidue?.(detail);
+        };
+        window.addEventListener('pp-focus-residue', handler);
+        return () => window.removeEventListener('pp-focus-residue', handler);
+    }, []);
+
     // Close on Escape when overlay is open
     useEffect(() => {
         if (!replaceSelect.open) return;

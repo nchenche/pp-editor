@@ -35,6 +35,15 @@ export function useUIHandlers({ monomers, setHoveredMonomer, isDragging }) {
             setHoveredMonomer(data);
             return;
         }
+        if (data.origin === 'molstarViewer') {
+            // Only allow hover from the main structure to drive chain-slot highlighting.
+            // Template/unknown hover should not affect peptide UI.
+            if (data.target && data.target !== 'main') {
+                setHoveredMonomer('');
+                return;
+            }
+        }
+
         if (data.origin === 'molstarViewer' && data.resid) {
             const monomer = monomers.find((ele) =>
                 ele['res-idx'].split('-')[1] == (data.resid - 1)
