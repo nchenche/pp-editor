@@ -324,6 +324,52 @@ export function useBilnHandlers({
         setBilnValue(newBiln);
     }, [bilnValue, confirm, findHeadToTailLinkId, parseBilnSegments, setBilnValue]);
 
+    const handleMirrorSequence = useCallback(async (seqIdx) => {
+        const segments = parseBilnSegments(bilnValue);
+        if (!Array.isArray(segments) || segments.length === 0) return;
+        if (!Number.isFinite(Number(seqIdx)) || seqIdx < 0 || seqIdx >= segments.length) return;
+
+        const segTokens = segments[seqIdx] || [];
+        if (segTokens.length === 0) return;
+
+        const offset = computeOffsetForSeqIdx(segments, seqIdx);
+
+        let changed = false;
+        for (let i = 0; i < segTokens.length; i++) {
+            const globalIdx = offset + i;
+            const m = getMonomerByGlobalIdx(globalIdx);
+            const tok = String(segments[seqIdx][i] || '');
+            const code = tok.match(/^[^(]+/)?.[0] || '';
+            if (!code) continue;
+
+            // Toggle behavior:
+            // - L -> D: only for current *natural* amino acids (m_subtype === 'natural'), and never for Gly (G).
+            // - D -> L: if token is a simple dX (single-letter), allow toggling back even if subtype changed.
+            const isSimpleLetter = /^[A-Z]$/.test(code);
+            const isSimpleDLetter = /^d[A-Z]$/.test(code);
+
+            let nextCode = null;
+            if (isSimpleDLetter) {
+                // Unmirror dX -> X (including dG -> G to recover from invalid manual edits)
+                nextCode = code.slice(1);
+            } else {
+                const subtype = m?.m_subtype;
+                if (subtype !== 'natural') continue;
+                if (!isSimpleLetter) continue;
+                if (code === 'G') continue; // Glycine has no enantiomer
+                nextCode = `d${code}`;
+            }
+
+            if (!nextCode || nextCode === code) continue;
+            segments[seqIdx][i] = tok.replace(/^[^(]+/, nextCode);
+            changed = true;
+        }
+
+        if (!changed) return;
+        const newBiln = segments.map(seg => seg.join('-')).join('.');
+        setBilnValue(newBiln);
+    }, [bilnValue, computeOffsetForSeqIdx, getMonomerByGlobalIdx, parseBilnSegments, setBilnValue]);
+
     /**
      * Add a monomer with smart handling of:
      * - Empty library -> create first sequence
@@ -849,5 +895,6 @@ export function useBilnHandlers({
         replaceMonomerInBiln,
         handleCircularizeSequence,
         handleUncircularizeSequence,
+        handleMirrorSequence,
     };
 }

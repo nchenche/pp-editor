@@ -448,6 +448,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         replaceMonomerInBiln,
         handleCircularizeSequence,
         handleUncircularizeSequence,
+        handleMirrorSequence,
     } = useBilnHandlers({
         bilnValue,
         setBilnValue: trySetBilnValue,
@@ -1069,6 +1070,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onOpenTemplatePanel={() => setActive3DPanel('template')}
                         onCircularizeSequence={handleCircularizeSequence}
                         onUncircularizeSequence={handleUncircularizeSequence}
+                        onMirrorSequence={handleMirrorSequence}
                     />
                 </Box>
 

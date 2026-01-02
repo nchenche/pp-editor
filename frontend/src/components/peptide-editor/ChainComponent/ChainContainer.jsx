@@ -295,7 +295,7 @@ export default function ChainContainer({
                                 closeSeqMenu();
                             }}
                         >
-                            Uncircularize (head-to-tail)
+                            Uncyclize (head-to-tail)
                         </MenuItem>
                     ) : (
                         <MenuItem
@@ -304,7 +304,7 @@ export default function ChainContainer({
                                 closeSeqMenu();
                             }}
                         >
-                            Circularize (head-to-tail)
+                            Cyclize (head-to-tail)
                         </MenuItem>
                     )}
                     <MenuItem
@@ -313,7 +313,7 @@ export default function ChainContainer({
                             closeSeqMenu();
                         }}
                     >
-                        Mirror (D-amino acids)
+                        Mirror (natural amino acids only)
                     </MenuItem>
                 </Menu>
 

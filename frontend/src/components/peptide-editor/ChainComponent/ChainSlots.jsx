@@ -35,6 +35,7 @@ export const ChainSlots = ({
     onOpenTemplatePanel = () => { },
     onCircularizeSequence = () => { },
     onUncircularizeSequence = () => { },
+    onMirrorSequence = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
@@ -223,6 +224,7 @@ export const ChainSlots = ({
                             sequenceIsCircular={sequenceIsCircular}
                             onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
                             onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
+                            onSequenceMirror={() => onMirrorSequence?.(seqIdx)}
                             onConstraintsFill={(letter) => {
                                 const v = normSS(letter);
                                 for (let i = 0; i < list.length; i++) {

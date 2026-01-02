@@ -87,6 +87,7 @@ export default function BilnEditorInterface({
     onOpenTemplatePanel = () => { },
     onCircularizeSequence = () => { },
     onUncircularizeSequence = () => { },
+    onMirrorSequence = () => { },
     isDragging = false,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
@@ -377,6 +378,7 @@ export default function BilnEditorInterface({
                         onOpenTemplatePanel={onOpenTemplatePanel}
                         onCircularizeSequence={onCircularizeSequence}
                         onUncircularizeSequence={onUncircularizeSequence}
+                        onMirrorSequence={onMirrorSequence}
                     />
                 </Box>
             </Box>
