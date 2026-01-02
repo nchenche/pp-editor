@@ -126,15 +126,30 @@ export const DesignPageLayoutMUI = ({
     defaultSidebarCollapsed = false,
     collapsedSidebarWidth = 34,
     collapsedStorageKey = 'pp-editor:rightSidebarCollapsed',
+    widthStorageKey = 'pp-editor:rightSidebarWidthPx:v1',
     ...rest
 }) => {
     const containerRef = useRef(null);
     const overlayRootRef = useRef(null); // right-panel root for overlays
     const [overlayActive, setOverlayActive] = useState(false);
 
+    const userResizedRef = useRef(false);
+
     const [leftPx, setLeftPx] = useState(() => {
         const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-        return Math.floor(vw * defaultLeftFrac);
+        const fallback = Math.floor(vw * defaultLeftFrac);
+
+        if (typeof window === 'undefined') return fallback;
+        try {
+            const raw = window.localStorage.getItem(widthStorageKey);
+            const v = raw == null ? NaN : Number(raw);
+            if (!Number.isFinite(v)) return fallback;
+            // Treat a stored width as an explicit user resize.
+            userResizedRef.current = true;
+            return v;
+        } catch {
+            return fallback;
+        }
     });
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -149,7 +164,11 @@ export const DesignPageLayoutMUI = ({
     });
     const [dragging, setDragging] = useState(false);
     const draggingRef = useRef(false); // NEW: source of truth for listeners
-    const userResizedRef = useRef(false);
+
+    const leftPxRef = useRef(leftPx);
+    useEffect(() => {
+        leftPxRef.current = leftPx;
+    }, [leftPx]);
 
     const clampLeft = useCallback((px) => {
         const vw = window.innerWidth || document.documentElement.clientWidth || 1200;
@@ -192,7 +211,14 @@ export const DesignPageLayoutMUI = ({
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', stopDrag);
         window.removeEventListener('blur', stopDrag);
-    }, [onMouseMove]);
+
+        // Persist final sidebar width after drag.
+        try {
+            window?.localStorage?.setItem(widthStorageKey, String(leftPxRef.current));
+        } catch {
+            // ignore
+        }
+    }, [onMouseMove, widthStorageKey]);
 
     const startDrag = useCallback((e) => {
         if (sidebarCollapsed) return;
@@ -309,7 +335,9 @@ export const DesignPageLayoutMUI = ({
                 onDoubleClick={() => {
                     if (sidebarCollapsed) return;
                     userResizedRef.current = false;
-                    setLeftPx(clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac)));
+                    const next = clampLeft(Math.floor((window.innerWidth || 1200) * defaultLeftFrac));
+                    setLeftPx(next);
+                    try { window?.localStorage?.setItem(widthStorageKey, String(next)); } catch { }
                 }}
                 sx={{
                     cursor: 'col-resize',

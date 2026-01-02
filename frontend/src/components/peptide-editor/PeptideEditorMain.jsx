@@ -61,6 +61,7 @@ const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity
 const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
 const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
+const MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY = 'pp-editor:molstar-right-panel-width:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
 
@@ -108,6 +109,90 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     });
 
     const theme = useTheme();
+
+    // Resizable right-side panel width inside the 3D viewer (shown when active3DPanel is open)
+    const [molstarRightPanelWidth, setMolstarRightPanelWidth] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY);
+            const v = raw == null ? NaN : Number(raw);
+            return Number.isFinite(v) ? v : 220;
+        } catch {
+            return 220;
+        }
+    });
+    const molstarRightPanelWidthRef = useRef(molstarRightPanelWidth);
+    useEffect(() => {
+        molstarRightPanelWidthRef.current = molstarRightPanelWidth;
+    }, [molstarRightPanelWidth]);
+    const molstarRightPanelDraggingRef = useRef(false);
+    const molstarRightPanelRowRef = useRef(null);
+    const molstarRightPanelRafRef = useRef(null);
+
+    const startDragMolstarRightPanel = useCallback((e) => {
+        if (!active3DPanel) return;
+        e.preventDefault();
+        e.stopPropagation();
+        molstarRightPanelDraggingRef.current = true;
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+
+        const onMove = (ev) => {
+            if (!molstarRightPanelDraggingRef.current) return;
+            const host = molstarRightPanelRowRef.current;
+            if (!host) return;
+            const rect = host.getBoundingClientRect();
+            const totalW = rect?.width;
+            if (!Number.isFinite(totalW) || totalW <= 0) return;
+
+            // Panel is on the right; width is distance from mouse to right edge.
+            const desired = rect.right - ev.clientX;
+            const minW = 180;
+            // Keep some space for the Mol* canvas so it can't collapse.
+            const maxW = Math.max(minW, totalW - 240);
+            const clamped = Math.min(Math.max(desired, minW), maxW);
+            setMolstarRightPanelWidth(clamped);
+
+            if (molstarRightPanelRafRef.current == null) {
+                molstarRightPanelRafRef.current = requestAnimationFrame(() => {
+                    molstarRightPanelRafRef.current = null;
+                    try { viewer3DRef.current?.resize?.(); } catch { }
+                });
+            }
+        };
+
+        const stop = () => {
+            if (!molstarRightPanelDraggingRef.current) return;
+            molstarRightPanelDraggingRef.current = false;
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', stop);
+            window.removeEventListener('blur', stop);
+            if (molstarRightPanelRafRef.current != null) {
+                cancelAnimationFrame(molstarRightPanelRafRef.current);
+                molstarRightPanelRafRef.current = null;
+            }
+            try {
+                window?.localStorage?.setItem(MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY, String(molstarRightPanelWidthRef.current));
+            } catch {
+                // ignore
+            }
+            try { viewer3DRef.current?.resize?.(); } catch { }
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', stop);
+        window.addEventListener('blur', stop);
+    }, [active3DPanel]);
+
+    // Keep Mol* canvas in sync when the panel width changes.
+    useEffect(() => {
+        if (!active3DPanel) return;
+        const raf = requestAnimationFrame(() => {
+            try { viewer3DRef.current?.resize?.(); } catch { }
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [active3DPanel, molstarRightPanelWidth]);
 
     const conformerProgressLines = useMemo(() => {
         if (!structureLoading) return [];
@@ -905,54 +990,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         initialViewerSplitRatio: 0.5,
     });
 
-    // Keep the *3D canvas* width stable when the 3D side panel opens.
-    // We do this by shifting space from the 2D pane (adjusting viewerSplitRatio).
     useLayoutEffect(() => {
-        const isOpen = !!active3DPanel;
-
-        // Only act on open/close transitions (not when switching between panel sections)
-        const wasOpen = was3DPanelOpenRef.current;
-        if (isOpen === wasOpen) {
-            // Still ensure Mol* resizes correctly when switching panel content
-            const raf = requestAnimationFrame(() => {
-                try { viewer3DRef.current?.resize?.(); } catch { }
-            });
-            return () => cancelAnimationFrame(raf);
-        }
-
-        const panelWidthPx = 260;
-        const panelGapPx = Number.parseFloat(theme.spacing(1)) || 8;
-        const deltaPx = panelWidthPx + panelGapPx;
-        const minViewerPanelWidth = 200;
-
-        if (isOpen) {
-            splitRatioBefore3DPanelRef.current = viewerSplitRatio;
-
-            const rowRect = viewerRowRef.current?.getBoundingClientRect?.();
-            const leftRect = viewer2DColRef.current?.getBoundingClientRect?.();
-
-            if (rowRect?.width && leftRect?.width) {
-                const nextLeftPx = Math.min(
-                    Math.max(leftRect.width - deltaPx, minViewerPanelWidth),
-                    rowRect.width - minViewerPanelWidth,
-                );
-                setViewerSplitRatio(nextLeftPx / rowRect.width);
-            }
-        } else {
-            const prev = splitRatioBefore3DPanelRef.current;
-            if (typeof prev === 'number' && Number.isFinite(prev)) {
-                setViewerSplitRatio(prev);
-            }
-            splitRatioBefore3DPanelRef.current = null;
-        }
-
-        was3DPanelOpenRef.current = isOpen;
-
+        // Keep the user-controlled 2D/3D split stable; only force Mol* to resize
+        // when the side panel changes.
         const raf = requestAnimationFrame(() => {
             try { viewer3DRef.current?.resize?.(); } catch { }
         });
         return () => cancelAnimationFrame(raf);
-    }, [active3DPanel, setViewerSplitRatio, theme, viewerSplitRatio, viewerRowRef]);
+    }, [active3DPanel]);
 
 
     return (
@@ -1439,7 +1484,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
 
                             {/* Canvas area */}
-                            <Box sx={{ flex: 1, minHeight: 220, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                            <Box ref={molstarRightPanelRowRef} sx={{ flex: 1, minHeight: 220, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
                                 {/* Left: 3D canvas area */}
                                 <Box sx={{ position: 'relative', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                                     {structureLoading && (
@@ -1782,19 +1827,32 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                 {/* Right: in-container panel (no page overlay) */}
                                 {active3DPanel && (
-                                    <Box
-                                        sx={{
-                                            width: 220,
-                                            flex: '0 0 auto',
-                                            borderLeft: 1,
-                                            borderColor: 'divider',
-                                            pl: 0.75,
-                                            pr: 0.25,
-                                            py: 0.5,
-                                            overflowY: 'auto',
-                                            overflowX: 'hidden',
-                                        }}
-                                    >
+                                    <>
+                                        <Box
+                                            role="separator"
+                                            aria-orientation="vertical"
+                                            aria-label="Resize 3D panel"
+                                            onMouseDown={startDragMolstarRightPanel}
+                                            sx={{
+                                                width: 4,
+                                                cursor: 'col-resize',
+                                                bgcolor: 'divider',
+                                                alignSelf: 'stretch',
+                                                '&:hover': { bgcolor: 'text.secondary' },
+                                            }}
+                                        />
+
+                                        <Box
+                                            sx={{
+                                                width: molstarRightPanelWidth,
+                                                flex: '0 0 auto',
+                                                pl: 0.75,
+                                                pr: 0.25,
+                                                py: 0.5,
+                                                overflowY: 'auto',
+                                                overflowX: 'hidden',
+                                            }}
+                                        >
                                         <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
                                             {active3DPanel === 'representation'
                                                 ? 'Representation'
@@ -2246,7 +2304,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 )}
                                             </Box>
                                         )}
-                                    </Box>
+                                        </Box>
+                                    </>
                                 )}
                             </Box>
                         </Paper>
