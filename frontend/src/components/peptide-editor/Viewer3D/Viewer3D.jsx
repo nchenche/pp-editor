@@ -210,6 +210,7 @@ const Viewer3DInner = ({
             .join('|');
     }, [templateMappings, templateVisible]);
 
+
     // Add a slightly stronger representation for the mapped residues on the template.
     useEffect(() => {
         if (!pluginInitialized || !pluginRef.current) return;
@@ -246,14 +247,22 @@ const Viewer3DInner = ({
             if (!templateVisible) return;
 
             const mappings = Array.isArray(templateMappings) ? templateMappings : [];
-            const enabled = mappings.filter((m) => m?.enabled && m?.start != null && m?.end != null);
+            // Only include mappings with valid numeric residue bounds (>= 1). Empty strings often coerce to 0.
+            const enabled = mappings.filter((m) => {
+                if (!m?.enabled) return false;
+                const start = Number(m?.start);
+                const end = Number(m?.end);
+                return Number.isFinite(start) && Number.isFinite(end) && start >= 1 && end >= 1;
+            });
             if (!enabled.length) return;
 
-            const queries = enabled.flatMap((m) => {
+            // Build ONE atomGroups selection across ALL enabled mappings.
+            // This avoids MolScript union edge cases where only the first mapping applies.
+            const clauses = enabled.flatMap((m) => {
                 const chainId = String(m?.chainId ?? m?.chain_id ?? '').trim();
                 const start = Number(m.start);
                 const end = Number(m.end);
-                if (!Number.isFinite(start) || !Number.isFinite(end)) return [];
+                if (!Number.isFinite(start) || !Number.isFinite(end) || start < 1 || end < 1) return [];
 
                 // manualMasks are indices in the AA-length template slice (0-based)
                 const manualMasks = Array.isArray(m?.manualMasks)
@@ -268,8 +277,6 @@ const Viewer3DInner = ({
                         .map((x) => Math.trunc(x)),
                 );
 
-                // Prefer index-based mapping: selection is built in label_seq_id space.
-                // This avoids issues when the displayed residue numbering has gaps/insertion codes.
                 const templateResidues = Array.isArray(m?.templateResidues) ? m.templateResidues : [];
                 const baseStart = Math.min(start, end);
                 const intervals = [];
@@ -292,43 +299,36 @@ const Viewer3DInner = ({
                     if (runStartIdx != null && prevIdx != null) {
                         intervals.push([baseStart + runStartIdx, baseStart + prevIdx]);
                     }
-
-                    // If everything is masked, don't create any query for this mapping.
                     if (intervals.length === 0) return [];
                 } else {
-                    // Fallback: use start/end as a single interval.
                     const s = Math.min(start, end);
                     const e = Math.max(start, end);
                     intervals.push([s, e]);
                 }
 
-                // Note: uses label_* fields. If backend numbering differs (auth_*), mapped highlighting may be imperfect.
-                // Important: build ONE atomGroups query per mapping, using OR across intervals.
-                // Unioning multiple atomGroups can behave unexpectedly (only the first interval applies).
                 const rangeTests = intervals.map(([s, e]) =>
                     MS.core.rel.inRange([MS.struct.atomProperty.macromolecular.label_seq_id(), s, e]),
                 );
                 if (!rangeTests.length) return [];
 
                 const rangeExpr = rangeTests.length === 1 ? rangeTests[0] : MS.core.logic.or(rangeTests);
-                const residueTest = chainId
+                const clause = chainId
                     ? MS.core.logic.and([
                         MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_asym_id(), chainId]),
                         rangeExpr,
                     ])
                     : rangeExpr;
 
-                return [
-                    MS.struct.generator.atomGroups({
-                        'residue-test': residueTest,
-                        'group-by': MS.struct.atomProperty.macromolecular.residueKey(),
-                    }),
-                ];
-            }).filter(Boolean);
+                return [clause];
+            });
 
-            if (!queries.length) return;
+            if (!clauses.length) return;
 
-            const expr = queries.length === 1 ? queries[0] : MS.struct.modifier.union(queries);
+            const residueTest = clauses.length === 1 ? clauses[0] : MS.core.logic.or(clauses);
+            const expr = MS.struct.generator.atomGroups({
+                'residue-test': residueTest,
+                'group-by': MS.struct.atomProperty.macromolecular.residueKey(),
+            });
             const q = StructureSelectionQuery('Mapped Template Residues', expr, { tags: [mappedTag] });
 
             const comp = await plugin.builders.structure.tryCreateComponentFromSelection(
@@ -343,15 +343,18 @@ const Viewer3DInner = ({
             const base = Math.min(1, Math.max(0, Number(templateOpacity) || 0));
             const mappedAlpha = Math.min(1, base + 0.35);
 
+            // Use a uniform tint for mapped residues so highlights are visually consistent.
+            const mappedColorParams = { value: 0xffb300 };
+
             await plugin.builders.structure.representation.addRepresentation(
                 comp,
-                { type: 'cartoon', color: 'chain-id', typeParams: { alpha: mappedAlpha } },
+                { type: 'cartoon', color: 'uniform', colorParams: mappedColorParams, typeParams: { alpha: mappedAlpha } },
                 { tag: mappedRepTagCartoon },
             );
 
             await plugin.builders.structure.representation.addRepresentation(
                 comp,
-                { type: 'line', color: 'chain-id', typeParams: { alpha: Math.min(1, mappedAlpha * 0.85) } },
+                { type: 'line', color: 'uniform', colorParams: mappedColorParams, typeParams: { alpha: Math.min(1, mappedAlpha * 0.85) } },
                 { tag: mappedRepTagLine },
             );
         };
@@ -360,6 +363,7 @@ const Viewer3DInner = ({
             console.warn('Mol* template mapped representation failed:', e);
         });
     }, [pluginInitialized, pluginRef, templateStructure, templateVisible, templateMappings, templateMappedSig, templateOpacity]);
+
 
     return (
         <div className="molstar-viewer mx-auto text-center absolute inset-0">

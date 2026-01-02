@@ -374,10 +374,10 @@ export function useMolstarStructure(pluginRef, {
             : effectiveColor === 'element-symbol'
                 // Mol* ElementSymbol theme defaults carbon atoms to chain-id coloring.
                 // That makes organic structures appear to randomly change colors between loads.
-                // Force carbon to also be colored by element-symbol for stable coloring.
+                // Force carbon to a stable, slightly whitish tint for readability and contrast.
                 ? {
                     ...ElementSymbolColorThemeProvider.defaultValues,
-                    carbonColor: { name: 'element-symbol', params: {} },
+                    carbonColor: { name: 'uniform', params: { value: Color(0xc8c8c8) } },
                 }
                 : undefined;
 

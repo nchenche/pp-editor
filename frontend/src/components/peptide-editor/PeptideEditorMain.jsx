@@ -60,7 +60,6 @@ const MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY = 'pp-editor:molstar-template-overlay
 const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity:v1';
 const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
-const TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY = 'pp-editor:template-mapping-seq-idx:v1';
 const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
@@ -93,16 +92,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return v ? v : null;
         } catch {
             return null;
-        }
-    });
-
-    const [templateMappingSeqIdx, setTemplateMappingSeqIdx] = useState(() => {
-        try {
-            const raw = window?.localStorage?.getItem(TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY);
-            const n = Number(raw);
-            return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-        } catch {
-            return 0;
         }
     });
 
@@ -213,14 +202,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     useEffect(() => {
         try {
-            window?.localStorage?.setItem(TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY, String(templateMappingSeqIdx));
-        } catch {
-            // ignore
-        }
-    }, [templateMappingSeqIdx]);
-
-    useEffect(() => {
-        try {
             window?.localStorage?.setItem(CONSTRAINT_MODE_STORAGE_KEY, String(constraintMode));
         } catch {
             // ignore
@@ -321,29 +302,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return out;
     }, []);
 
-    // Keep Template panel chain selector valid.
-    useEffect(() => {
-        const n = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
-        if (!n) {
-            if (templateMappingSeqIdx !== 0) setTemplateMappingSeqIdx(0);
-            return;
-        }
-        const clamped = Math.min(Math.max(0, Number(templateMappingSeqIdx) || 0), n - 1);
-        if (clamped !== templateMappingSeqIdx) setTemplateMappingSeqIdx(clamped);
-    }, [rowMonomerLists, templateMappingSeqIdx]);
-
-    // When opening the Template panel, default to the currently active chain once.
-    const prevActive3DPanelRef = useRef(active3DPanel);
-    useEffect(() => {
-        const prev = prevActive3DPanelRef.current;
-        prevActive3DPanelRef.current = active3DPanel;
-
-        if (active3DPanel !== 'template' || prev === 'template') return;
-        const n = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
-        if (!n) return;
-        const clampedActive = Math.min(Math.max(0, Number(activeSeqIdx) || 0), n - 1);
-        setTemplateMappingSeqIdx(clampedActive);
-    }, [active3DPanel, activeSeqIdx, rowMonomerLists]);
+    // (Template panel no longer selects a single chain; mappings are edited for all chains.)
 
     const [limitDialog, setLimitDialog] = useState({ open: false, message: '' });
     const { tokenCount: currentTokenCount } = useMemo(
@@ -870,7 +829,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         trySetBilnValue(newBiln);
     }
 
-    const skipNextGenerateRef = useRef(false); // to skip auto-generate after clear action
     const clearData = useCallback(() => {
         // Reset UI state expectations
         setAutoSync3DRaw(true);          // requested behavior: reset auto-sync to true
@@ -2098,42 +2056,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         Mapping
                                                     </Typography>
 
-                                                    {/* Mapping editor (always visible when a template is loaded) */}
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                                        <TextField
-                                                            select
-                                                            size="small"
-                                                            label="Chain"
-                                                            value={templateMappingSeqIdx}
-                                                            onChange={(e) => {
-                                                                const next = Number(e.target.value);
-                                                                if (!Number.isFinite(next)) return;
-                                                                setTemplateMappingSeqIdx(next);
-                                                            }}
-                                                            disabled={!scaffoldTemplate}
-                                                            sx={{
-                                                                minWidth: 120,
-                                                                '& .MuiInputLabel-root': { fontSize: 12 },
-                                                                '& .MuiInputBase-input': { fontSize: 12 },
-                                                                '& .MuiSelect-select': { fontSize: 12 },
-                                                                '& .MuiInputBase-root': { height: 30 },
-                                                                '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
-                                                            }}
-                                                        >
-                                                            {(Array.isArray(rowMonomerLists) ? rowMonomerLists : []).map((_, idx) => (
-                                                                <MenuItem key={idx} value={idx} sx={{ fontSize: 12 }}>
-                                                                    {seqLabel(idx)}
-                                                                </MenuItem>
-                                                            ))}
-                                                        </TextField>
-
+                                                    {/* Mapping editor (all designed chains) */}
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                         {(() => {
-                                                            const idx = templateMappingSeqIdx;
-                                                            const mapping = scaffoldMappings?.[idx] || {};
-                                                            const enabled = mapping?.enabled === true;
-
-                                                            const templateToggleDisabled = false;
-
                                                             const chains = scaffoldTemplate?.chainData ?? [];
                                                             const chainOptions = (chains.length ? chains : (scaffoldTemplate?.chains || [])).map((c) =>
                                                                 typeof c === 'string' ? c : c?.id
@@ -2147,79 +2072,99 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
                                                             };
 
-                                                            return (
-                                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}>
-                                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
-                                                                            Enable mapping
-                                                                        </Typography>
-                                                                        <Switch
+                                                            const designedChainCount = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
+                                                            const indices = Array.from({ length: designedChainCount }, (_, i) => i);
+
+                                                            if (!indices.length) {
+                                                                return (
+                                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                                        No designed chains.
+                                                                    </Typography>
+                                                                );
+                                                            }
+
+                                                            return indices.map((idx) => {
+                                                                const mapping = scaffoldMappings?.[idx] || {};
+                                                                const enabled = mapping?.enabled === true;
+                                                                const templateToggleDisabled = false;
+
+                                                                return (
+                                                                    <Box
+                                                                        key={idx}
+                                                                        sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
+                                                                    >
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 24 }}>
+                                                                            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                                                                Chain {seqLabel(idx)}
+                                                                            </Typography>
+                                                                            <Switch
+                                                                                size="small"
+                                                                                checked={enabled}
+                                                                                onChange={(e) => {
+                                                                                    const nextEnabled = !!e.target.checked;
+                                                                                    handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
+                                                                                }}
+                                                                                disabled={!scaffoldTemplate || templateToggleDisabled}
+                                                                                inputProps={{ 'aria-label': `toggle template mapping for chain ${seqLabel(idx)}` }}
+                                                                            />
+                                                                        </Box>
+
+                                                                        <TextField
+                                                                            select
                                                                             size="small"
-                                                                            checked={enabled}
-                                                                            onChange={(e) => {
-                                                                                const nextEnabled = !!e.target.checked;
-                                                                                handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
-                                                                            }}
-                                                                            disabled={!scaffoldTemplate || templateToggleDisabled}
-                                                                            inputProps={{ 'aria-label': 'toggle template mapping for selected chain' }}
+                                                                            label="PDB chain"
+                                                                            value={mapping.chainId ?? ''}
+                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { chainId: e.target.value || null })}
+                                                                            disabled={!scaffoldTemplate}
+                                                                            sx={commonFieldSx}
+                                                                        >
+                                                                            {chainOptions.length ? (
+                                                                                chainOptions.map((id) => (
+                                                                                    <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
+                                                                                        {id}
+                                                                                    </MenuItem>
+                                                                                ))
+                                                                            ) : (
+                                                                                <MenuItem value="" disabled sx={{ fontSize: 12 }}>
+                                                                                    No chains
+                                                                                </MenuItem>
+                                                                            )}
+                                                                        </TextField>
+
+                                                                        <TextField
+                                                                            size="small"
+                                                                            label="Start residue"
+                                                                            type="number"
+                                                                            value={mapping.start ?? ''}
+                                                                            slotProps={{ htmlInput: { min: 1 } }}
+                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { start: e.target.value ? Number(e.target.value) : null })}
+                                                                            disabled={!scaffoldTemplate}
+                                                                            sx={commonFieldSx}
+                                                                        />
+
+                                                                        <TextField
+                                                                            size="small"
+                                                                            label="End residue"
+                                                                            type="number"
+                                                                            value={mapping.end ?? ''}
+                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { end: e.target.value ? Number(e.target.value) : null })}
+                                                                            disabled={!scaffoldTemplate}
+                                                                            sx={commonFieldSx}
+                                                                        />
+
+                                                                        <TextField
+                                                                            size="small"
+                                                                            label="Offset"
+                                                                            type="number"
+                                                                            value={mapping.offset ?? 0}
+                                                                            slotProps={{ htmlInput: { min: 0 } }}
+                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { offset: Number(e.target.value) || 0 })}
+                                                                            disabled={!scaffoldTemplate}
+                                                                            sx={commonFieldSx}
                                                                         />
                                                                     </Box>
-
-                                                                    <TextField
-                                                                        select
-                                                                        size="small"
-                                                                        label="PDB chain"
-                                                                        value={mapping.chainId ?? ''}
-                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { chainId: e.target.value || null })}
-                                                                        disabled={!scaffoldTemplate}
-                                                                        sx={commonFieldSx}
-                                                                    >
-                                                                        {chainOptions.length ? (
-                                                                            chainOptions.map((id) => (
-                                                                                <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
-                                                                                    {id}
-                                                                                </MenuItem>
-                                                                            ))
-                                                                        ) : (
-                                                                            <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                                                                                No chains
-                                                                            </MenuItem>
-                                                                        )}
-                                                                    </TextField>
-
-                                                                    <TextField
-                                                                        size="small"
-                                                                        label="Start residue"
-                                                                        type="number"
-                                                                        value={mapping.start ?? ''}
-                                                                        slotProps={{ htmlInput: { min: 1 } }}
-                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { start: e.target.value ? Number(e.target.value) : null })}
-                                                                        disabled={!scaffoldTemplate}
-                                                                        sx={commonFieldSx}
-                                                                    />
-
-                                                                    <TextField
-                                                                        size="small"
-                                                                        label="End residue"
-                                                                        type="number"
-                                                                        value={mapping.end ?? ''}
-                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { end: e.target.value ? Number(e.target.value) : null })}
-                                                                        disabled={!scaffoldTemplate}
-                                                                        sx={commonFieldSx}
-                                                                    />
-
-                                                                    <TextField
-                                                                        size="small"
-                                                                        label="Offset"
-                                                                        type="number"
-                                                                        value={mapping.offset ?? 0}
-                                                                        slotProps={{ htmlInput: { min: 0 } }}
-                                                                        onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { offset: Number(e.target.value) || 0 })}
-                                                                        disabled={!scaffoldTemplate}
-                                                                        sx={commonFieldSx}
-                                                                    />
-                                                                </Box>
-                                                            );
+                                                                );
+                                                            });
                                                         })()}
                                                     </Box>
                                                 </Box>

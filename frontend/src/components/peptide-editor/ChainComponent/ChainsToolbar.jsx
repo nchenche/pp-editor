@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Button, ButtonGroup, Tooltip, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Button, ButtonGroup, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 
@@ -14,6 +14,13 @@ export default function ChainsToolbar({
     onConstraintModeChange = () => { },
     canUseTemplateMode = true,
 }) {
+
+    const [constraintModeEl, setConstraintModeEl] = useState(null);
+    const constraintMenuOpen = Boolean(constraintModeEl);
+
+    const constraintModeLabel = constraintMode === 'template'
+        ? 'Template guidance'
+        : 'Secondary structure';
 
     const btnSx = {
         textTransform: 'none',
@@ -59,26 +66,57 @@ export default function ChainsToolbar({
             {/* Global constraint system mode */}
             <Tooltip title="Constraint mode (applies to the whole peptide)" arrow>
                 <span>
-                    <ToggleButtonGroup
+                    <Button
                         size="small"
-                        exclusive
-                        value={constraintMode}
-                        onChange={(_, next) => {
-                            if (!next) return;
-                            onConstraintModeChange(next);
-                        }}
+                        variant="outlined"
+                        color="inherit"
+                        onClick={(e) => setConstraintModeEl(e.currentTarget)}
+                        aria-haspopup="menu"
+                        aria-expanded={constraintMenuOpen ? 'true' : undefined}
                         aria-label="constraint mode"
-                        sx={{ '& .MuiToggleButton-root': btnSx, '& .MuiToggleButton-root.Mui-selected': { color: 'primary.main' } }}
+                        sx={btnSx}
                     >
-                        <ToggleButton value="ss" aria-label="secondary structure mode">
-                            Secondary
-                        </ToggleButton>
-                        <ToggleButton value="template" aria-label="template guidance mode" disabled={!canUseTemplateMode}>
-                            Template
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+                            <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.1 }}>
+                                Constraint mode
+                            </Typography>
+                            {/* <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.1, color: 'text.secondary' }}>
+                                {constraintModeLabel}
+                            </Typography> */}
+                        </Box>
+                    </Button>
                 </span>
             </Tooltip>
+
+            <Menu
+                anchorEl={constraintModeEl}
+                open={constraintMenuOpen}
+                onClose={() => setConstraintModeEl(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                MenuListProps={{ dense: true, 'aria-label': 'constraint mode menu' }}
+            >
+                <MenuItem
+                    selected={constraintMode === 'ss'}
+                    onClick={() => {
+                        onConstraintModeChange('ss');
+                        setConstraintModeEl(null);
+                    }}
+                >
+                    Secondary structure constraints
+                </MenuItem>
+                <MenuItem
+                    selected={constraintMode === 'template'}
+                    disabled={!canUseTemplateMode}
+                    onClick={() => {
+                        if (!canUseTemplateMode) return;
+                        onConstraintModeChange('template');
+                        setConstraintModeEl(null);
+                    }}
+                >
+                    Template guidance
+                </MenuItem>
+            </Menu>
         </Box>
     );
 }
