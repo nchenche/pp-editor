@@ -33,6 +33,8 @@ export const ChainSlots = ({
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
     onOpenTemplatePanel = () => { },
+    onCircularizeSequence = () => { },
+    onUncircularizeSequence = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
@@ -64,6 +66,28 @@ export const ChainSlots = ({
     const showConstraintsRow = constraintMode === 'ss';
     const showTemplateRow = constraintMode === 'template';
 
+    const getHeadToTailLinkIdForRow = useCallback((sequenceOffset, listLength) => {
+        if (!Number.isFinite(Number(sequenceOffset)) || !Number.isFinite(Number(listLength))) return null;
+        if (listLength < 2) return null;
+        const nterIdx = Number(sequenceOffset);
+        const cterIdx = Number(sequenceOffset) + Number(listLength) - 1;
+
+        for (const [connId, pairs] of Object.entries(linkMap || {})) {
+            if (!Array.isArray(pairs) || pairs.length !== 2) continue;
+            const a = pairs[0];
+            const b = pairs[1];
+            const aIdx = Number(a?.monomerIdx);
+            const bIdx = Number(b?.monomerIdx);
+            const aRg = Number(a?.rgroup);
+            const bRg = Number(b?.rgroup);
+            const matches =
+                (aIdx === nterIdx && aRg === 1 && bIdx === cterIdx && bRg === 2) ||
+                (bIdx === nterIdx && bRg === 1 && aIdx === cterIdx && aRg === 2);
+            if (matches) return connId;
+        }
+        return null;
+    }, [linkMap]);
+
     const seqLabel = useCallback((idx) => {
         const n = Number(idx);
         if (!Number.isFinite(n) || n < 0) return '';
@@ -87,6 +111,9 @@ export const ChainSlots = ({
 
                 const mapping = scaffoldMappings?.[seqIdx] || {};
                 const hasAnyResidues = (list?.length || 0) > 0;
+
+                const headToTailLinkId = getHeadToTailLinkIdForRow(sequenceOffset, list.length);
+                const sequenceIsCircular = headToTailLinkId != null;
 
                 const templateSlot = (
                     <Box sx={{ width: 'fit-content' }}>
@@ -193,6 +220,9 @@ export const ChainSlots = ({
                             disableSequenceActions={!hasAnyResidues}
                             disableConstraintsActions={!hasAnyResidues}
                             disableTemplateActions={!hasAnyResidues}
+                            sequenceIsCircular={sequenceIsCircular}
+                            onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
+                            onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
                             onConstraintsFill={(letter) => {
                                 const v = normSS(letter);
                                 for (let i = 0; i < list.length; i++) {

@@ -18,7 +18,9 @@ export default function ChainContainer({
     // Header actions (optional – design only for now)
     onSequenceMenu = () => { },
     onSequenceClear = () => { },
+    sequenceIsCircular = false,
     onSequenceCircularize = () => { },
+    onSequenceUncircularize = () => { },
     onSequenceMirror = () => { },
     onSequenceHelp = () => { },
     onConstraintsFill = () => { }, // (letter: 'H' | 'E' | '-') -> parent fills cells
@@ -286,14 +288,25 @@ export default function ChainContainer({
                         Clear
                     </MenuItem>
                     <Divider />
-                    <MenuItem
-                        onClick={() => {
-                            onSequenceCircularize?.();
-                            closeSeqMenu();
-                        }}
-                    >
-                        Circularize (head-to-tail)
-                    </MenuItem>
+                    {sequenceIsCircular ? (
+                        <MenuItem
+                            onClick={() => {
+                                onSequenceUncircularize?.();
+                                closeSeqMenu();
+                            }}
+                        >
+                            Uncircularize (head-to-tail)
+                        </MenuItem>
+                    ) : (
+                        <MenuItem
+                            onClick={() => {
+                                onSequenceCircularize?.();
+                                closeSeqMenu();
+                            }}
+                        >
+                            Circularize (head-to-tail)
+                        </MenuItem>
+                    )}
                     <MenuItem
                         onClick={() => {
                             onSequenceMirror?.();

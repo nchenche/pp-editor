@@ -17,6 +17,58 @@ export function useBilnHandlers({
 }) {
     const confirm = useConfirm();
 
+    const getMonomerByGlobalIdx = useCallback((globalIdx) => {
+        const gi = Number(globalIdx);
+        if (!Number.isFinite(gi)) return undefined;
+        return (monomers || []).find(
+            (m) => parseInt(String(m?.['res-idx']).split("-")[1], 10) === gi
+        );
+    }, [monomers]);
+
+    const parseBilnSegments = useCallback((rawBiln) => {
+        const normalized = (rawBiln || '')
+            .trim()
+            .replace(/^[.\-]+|[.\-]+$/g, '')
+            .replace(/\.+/g, '.')
+            .replace(/\-+/g, '-');
+        const rawSegments = normalized ? normalized.split('.') : [];
+        const segments = rawSegments.map(seg => (seg ? seg.split('-') : []).filter(Boolean));
+        return segments;
+    }, []);
+
+    const computeOffsetForSeqIdx = useCallback((segments, seqIdx) => {
+        let offset = 0;
+        for (let i = 0; i < seqIdx; i++) offset += (segments?.[i]?.length || 0);
+        return offset;
+    }, []);
+
+    const findHeadToTailLinkId = useCallback((seqIdx, segments) => {
+        const segTokens = segments?.[seqIdx] || [];
+        if (segTokens.length < 2) return null;
+
+        const offset = computeOffsetForSeqIdx(segments, seqIdx);
+        const nterIdx = offset;
+        const cterIdx = offset + segTokens.length - 1;
+
+        for (const [connId, pairs] of Object.entries(linkMap || {})) {
+            if (!Array.isArray(pairs) || pairs.length !== 2) continue;
+
+            const a = pairs[0];
+            const b = pairs[1];
+            const aIdx = Number(a?.monomerIdx);
+            const bIdx = Number(b?.monomerIdx);
+            const aRg = Number(a?.rgroup);
+            const bRg = Number(b?.rgroup);
+
+            const matches =
+                (aIdx === nterIdx && aRg === 1 && bIdx === cterIdx && bRg === 2) ||
+                (bIdx === nterIdx && bRg === 1 && aIdx === cterIdx && aRg === 2);
+
+            if (matches) return connId;
+        }
+        return null;
+    }, [computeOffsetForSeqIdx, linkMap]);
+
     const validateDnDReorder = useCallback((candidateRows, candidateBiln) => {
         // Treat empty rows as non-existent; `buildBilnFromRowMonomerLists` drops them.
         const effectiveRows = (candidateRows || []).filter((r) => Array.isArray(r) && r.length > 0);
@@ -139,6 +191,138 @@ export function useBilnHandlers({
         );
         return !used;
     }, [linkMap]);
+
+    const handleCircularizeSequence = useCallback(async (seqIdx) => {
+        const segments = parseBilnSegments(bilnValue);
+        if (!Array.isArray(segments) || segments.length === 0) return;
+        if (!Number.isFinite(Number(seqIdx)) || seqIdx < 0 || seqIdx >= segments.length) return;
+
+        const segTokens = segments[seqIdx] || [];
+        if (segTokens.length < 2) {
+            await confirm({
+                title: 'Cannot circularize',
+                message: 'Head-to-tail circularization requires at least two residues.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        // If already circularized (including via manual BILN edits), treat action as a no-op
+        // and let the UI call the explicit uncircularize handler.
+        const existing = findHeadToTailLinkId(seqIdx, segments);
+        if (existing != null) {
+            return;
+        }
+
+        const offset = computeOffsetForSeqIdx(segments, seqIdx);
+        const nterIdx = offset;
+        const cterIdx = offset + segTokens.length - 1;
+
+        const nterMonomer = getMonomerByGlobalIdx(nterIdx);
+        const cterMonomer = getMonomerByGlobalIdx(cterIdx);
+
+        if (!nterMonomer || !cterMonomer) {
+            await confirm({
+                title: 'Cannot circularize',
+                message: 'Could not resolve the N-terminus/C-terminus monomers for this chain.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        // Disallow if terminal caps are present.
+        if (nterMonomer?.m_subtype === 'cap' || cterMonomer?.m_subtype === 'cap') {
+            await confirm({
+                title: 'Cannot circularize',
+                message: 'At least one terminus is capped. Remove the cap before circularizing.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        const nterHasR1 = nterMonomer?.m_RgroupIdx?.[0] != null;
+        const cterHasR2 = cterMonomer?.m_RgroupIdx?.[1] != null;
+        if (!nterHasR1 || !cterHasR2) {
+            await confirm({
+                title: 'Cannot circularize',
+                message: 'Circularization requires a free N-terminus R1 and a free C-terminus R2.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        const nterAvailable = isNterFree(nterIdx, nterMonomer);
+        const cterAvailable = isCterFree(cterIdx, cterMonomer);
+        if (!nterAvailable || !cterAvailable) {
+            await confirm({
+                title: 'Cannot circularize',
+                message: 'The N-terminus and/or C-terminus is already used in a bond (e.g., cyclic). Remove the bond first.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        // Pick next unused connection id.
+        const existingIds = Object.keys(linkMap || {})
+            .map((k) => parseInt(k, 10))
+            .filter((n) => Number.isFinite(n));
+        let nextId = existingIds.length ? Math.max(...existingIds) + 1 : 1;
+        while ((linkMap || {})[String(nextId)] != null) nextId += 1;
+
+        // Append annotations to the first and last token in the segment.
+        segments[seqIdx][0] = `${segments[seqIdx][0]}(${nextId},1)`;
+        segments[seqIdx][segTokens.length - 1] = `${segments[seqIdx][segTokens.length - 1]}(${nextId},2)`;
+
+        const newBiln = segments.map(seg => seg.join('-')).join('.');
+        setBilnValue(newBiln);
+    }, [bilnValue, confirm, computeOffsetForSeqIdx, findHeadToTailLinkId, getMonomerByGlobalIdx, isCterFree, isNterFree, linkMap, parseBilnSegments, setBilnValue]);
+
+    const handleUncircularizeSequence = useCallback(async (seqIdx) => {
+        const segments = parseBilnSegments(bilnValue);
+        if (!Array.isArray(segments) || segments.length === 0) return;
+        if (!Number.isFinite(Number(seqIdx)) || seqIdx < 0 || seqIdx >= segments.length) return;
+
+        const segTokens = segments[seqIdx] || [];
+        if (segTokens.length < 2) return;
+
+        const connId = findHeadToTailLinkId(seqIdx, segments);
+        const removedId = parseInt(String(connId), 10);
+        if (!Number.isFinite(removedId)) {
+            await confirm({
+                title: 'Cannot uncircularize',
+                message: 'No head-to-tail cyclic bond was found for this chain.',
+                confirmText: 'Close',
+                hideCancel: true,
+            });
+            return;
+        }
+
+        // Remove the endpoints from first/last tokens.
+        const firstTok = segments[seqIdx][0];
+        const lastTok = segments[seqIdx][segTokens.length - 1];
+        segments[seqIdx][0] = String(firstTok)
+            .replace(new RegExp(`\\(${removedId},1\\)`, 'g'), '')
+            .replace(new RegExp(`\\(${removedId},2\\)`, 'g'), '');
+        segments[seqIdx][segTokens.length - 1] = String(lastTok)
+            .replace(new RegExp(`\\(${removedId},1\\)`, 'g'), '')
+            .replace(new RegExp(`\\(${removedId},2\\)`, 'g'), '');
+
+        // Rebuild and then decrement all connection ids above removedId (keeps ids dense,
+        // matching existing bond-breaking behavior).
+        let newBiln = segments.map(seg => seg.join('-')).join('.');
+        newBiln = newBiln.replace(/\((\d+),(\d+)\)/g, (match, n, rg) => {
+            const nNum = parseInt(n, 10);
+            if (nNum > removedId) return `(${nNum - 1},${rg})`;
+            return match;
+        });
+
+        setBilnValue(newBiln);
+    }, [bilnValue, confirm, findHeadToTailLinkId, parseBilnSegments, setBilnValue]);
 
     /**
      * Add a monomer with smart handling of:
@@ -663,5 +847,7 @@ export function useBilnHandlers({
         handleDragStart,
         handleDeleteSequence,
         replaceMonomerInBiln,
+        handleCircularizeSequence,
+        handleUncircularizeSequence,
     };
 }

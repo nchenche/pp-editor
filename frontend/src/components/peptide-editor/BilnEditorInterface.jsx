@@ -85,6 +85,8 @@ export default function BilnEditorInterface({
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
     onOpenTemplatePanel = () => { },
+    onCircularizeSequence = () => { },
+    onUncircularizeSequence = () => { },
     isDragging = false,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
@@ -373,6 +375,8 @@ export default function BilnEditorInterface({
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={onEditScaffoldMapping}
                         onOpenTemplatePanel={onOpenTemplatePanel}
+                        onCircularizeSequence={onCircularizeSequence}
+                        onUncircularizeSequence={onUncircularizeSequence}
                     />
                 </Box>
             </Box>
