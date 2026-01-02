@@ -56,7 +56,6 @@ export default function BilnEditorInterface({
     activeSeqIdx,
     onSetActiveSeqIdx,
     linkMap,
-    hoveredMonomer,
     handleDeleteMonomerItem,
     onDragStart,
     onDragEnd,
@@ -359,7 +358,6 @@ export default function BilnEditorInterface({
                         activeSeqIdx={activeSeqIdx}
                         onSetActiveSeqIdx={onSetActiveSeqIdx}
                         linkMap={linkMap}
-                        hoveredMonomer={hoveredMonomer}
                         handleDeleteMonomerItem={handleDeleteMonomerItem}
                         onDragStart={onDragStart}
                         onDragEnd={onDragEnd}

@@ -1,3 +1,4 @@
+import { hoveredMonomerStore, useHoveredMonomer } from '../../state/hoveredMonomerStore';
 import { useCallback, useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useOverlayPortal } from '../../components/common/OverlayPortalContext';
@@ -367,8 +368,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
 
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
-    const [hoveredMonomer, setHoveredMonomer] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+
     const linkMap = useMemo(() => buildLinkMapFromBiln(bilnValue), [bilnValue]);
     const rowMonomerLists = useMemo(() => setMonomerSequences(committedBiln, monomers), [monomers]);
 
@@ -453,9 +454,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         uiState,
         setUiState,
         setIsDragging,
-        setHoveredMonomer
+        setHoveredMonomer: hoveredMonomerStore.set,
     });
-    const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer, isDragging });
+    const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer: hoveredMonomerStore.set, isDragging });
 
 
     // Flatten constraints to secstruct (keep '-' for "no constraint")
@@ -1022,7 +1023,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         maxMonomers={MAX_MONOMERS}
                         isAtMonomerLimit={isAtMonomerLimit}
                         onChangeBiln={handleBilnChange}
-                        hoveredResidueIdx={hoveredMonomer ? hoveredMonomer['res-idx'] : null}
+                        hoveredResidueIdx={null}
                         isDragging={isDragging}
                         canUndo={canUndo}
                         canRedo={canRedo}
@@ -1034,7 +1035,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         activeSeqIdx={uiState.activeSeqIdx}
                         onSetActiveSeqIdx={onSetActiveSeqIdx}
                         linkMap={linkMap}
-                        hoveredMonomer={hoveredMonomer}
                         handleDeleteMonomerItem={handleDeleteMonomerItem}
                         onDragStart={handleDragStart}
                         onDragEnd={handleOnDragEnd}
@@ -1216,12 +1216,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
                             {/* Canvas area */}
                             <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
-                                <Viewer2D
+                                <HoverAwareViewer2D
                                     ref={viewer2DRef}
                                     svgData={svgDepiction}
                                     isShowingAtomIndices={isShowingAtomIndices}
                                     handleShowingAtomIndices={setIsShowingAtomIndices}
-                                    hoveredMonomer={hoveredMonomer}
                                     handleMonomerEnter={handleMonomerEnter}
                                     handleMonomerLeave={handleMonomerLeave}
                                     onLinkMonomers={handleMonomerLinking}
@@ -1798,9 +1797,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             })()}
                                         </Box>
                                     )}
-                                    <Viewer3D
+                                    <HoverAwareViewer3D
                                         ref={viewer3DRef}
                                         pdbRawData={structurePDB}
+                                        depictionData={depictionData}
                                         templateKey={scaffoldTemplate?.id ?? null}
                                         templatePdbRawData={(() => {
                                             const effective = isTemplateMode && (templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw);
@@ -1813,7 +1813,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         })()}
                                         templateOpacity={Math.min(1, Math.max(0, (Number(templateOverlayOpacityPct) || 0) / 100))}
                                         templateMappings={isTemplateMode ? scaffoldMappings : []}
-                                        hoveredMonomer={hoveredMonomer}
                                         handleMonomerHover={handleMonomerHover}
                                         defaultRepresentation={DEFAULT_3D_REPRESENTATION}
                                         defaultColorScheme="element-symbol"
@@ -2341,5 +2340,54 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     );
 };
+
+const HoverAwareViewer2D = forwardRef(function HoverAwareViewer2D(props, ref) {
+    const hoveredMonomer = useHoveredMonomer();
+    return (
+        <Viewer2D
+            {...props}
+            ref={ref}
+            hoveredMonomer={hoveredMonomer}
+        />
+    );
+});
+
+const HoverAwareViewer3D = forwardRef(function HoverAwareViewer3D(props, ref) {
+    const { depictionData, ...rest } = props;
+    const hoveredMonomer = useHoveredMonomer();
+
+    const monomerNameByResIdx = useMemo(() => {
+        const map = new Map();
+        const arr = Array.isArray(depictionData?.monomers) ? depictionData.monomers : [];
+        for (const m of arr) {
+            const key = m?.['res-idx'];
+            if (!key) continue;
+            map.set(String(key), m?.pdbName);
+        }
+        return map;
+    }, [depictionData?.monomers]);
+
+    const hoveredMonomerLabel = useMemo(() => {
+        if (!hoveredMonomer) return '';
+        const raw = String(hoveredMonomer);
+        const parts = raw.split('-');
+        const chain = parts?.[0] ? String(parts[0]) : '';
+        const idx = parts?.[1] != null ? parseInt(parts[1], 10) : NaN;
+        const seq = Number.isFinite(idx) ? (idx + 1) : NaN;
+        const name = monomerNameByResIdx.get(raw);
+        if (!chain || !Number.isFinite(seq)) return '';
+        if (name) return `${chain} ${String(name).toUpperCase()} ${seq}`;
+        return `${chain} ${seq}`;
+    }, [hoveredMonomer, monomerNameByResIdx]);
+
+    return (
+        <Viewer3D
+            {...rest}
+            ref={ref}
+            hoveredMonomer={hoveredMonomer}
+            hoveredMonomerLabel={hoveredMonomerLabel}
+        />
+    );
+});
 
 export const PeptideEditorMain = forwardRef(PeptideEditorMainInner);

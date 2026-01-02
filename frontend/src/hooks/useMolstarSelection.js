@@ -13,6 +13,8 @@ export function useMolstarSelection({
     hoveredMonomer, // e.g. "A-3"
     handleMonomerHover, // callback from parent (optional)
 }) {
+    const hoverHighlightRafIdRef = useRef(null);
+    const lastHoverHighlightedResidueRef = useRef(null);
     // Keep a ref to the latest handler to avoid stale closures
     const hoverHandlerRef = useRef(handleMonomerHover);
     useEffect(() => { hoverHandlerRef.current = handleMonomerHover; }, [handleMonomerHover]);
@@ -112,27 +114,56 @@ export function useMolstarSelection({
     useEffect(() => {
         if (!pluginInitialized || !pluginRef.current) return;
         const plugin = pluginRef.current;
-        if (!hoveredMonomer) {
-            plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
-            return;
+        if (hoverHighlightRafIdRef.current) {
+            cancelAnimationFrame(hoverHighlightRafIdRef.current);
+            hoverHighlightRafIdRef.current = null;
         }
-        // Extract numeric index from monomer id, e.g. "A-3" => 3 (or your format)
-        const selectedResidue = parseInt(hoveredMonomer.split('-')[1]) + 1;
-        if (isNaN(selectedResidue)) return;
 
-        const data = structure?.cell?.obj?.data
-            || plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
-        if (!data) return;
+        // Parse target residue (or null to clear).
+        let selectedResidue = null;
+        if (hoveredMonomer) {
+            const idx = parseInt(String(hoveredMonomer).split('-')[1], 10);
+            if (Number.isFinite(idx)) selectedResidue = idx + 1;
+        }
 
-        const sel = Script.getStructureSelection((Q) =>
-            Q.struct.generator.atomGroups({
-                "residue-test": Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), selectedResidue]),
-                "group-by": Q.struct.atomProperty.macromolecular.residueKey(),
-            }),
-            data
-        );
-        const loci = StructureSelection.toLociWithSourceUnits(sel);
-        plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
+        // Skip redundant work.
+        if (selectedResidue != null && lastHoverHighlightedResidueRef.current === selectedResidue) return;
+
+        hoverHighlightRafIdRef.current = requestAnimationFrame(() => {
+            hoverHighlightRafIdRef.current = null;
+
+            if (selectedResidue == null) {
+                lastHoverHighlightedResidueRef.current = null;
+                plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
+                return;
+            }
+
+            const data = structure?.cell?.obj?.data
+                || plugin.managers.structure.hierarchy.current.structures[0]?.cell.obj?.data;
+            if (!data) return;
+
+            try {
+                const sel = Script.getStructureSelection((Q) =>
+                    Q.struct.generator.atomGroups({
+                        "residue-test": Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), selectedResidue]),
+                        "group-by": Q.struct.atomProperty.macromolecular.residueKey(),
+                    }),
+                    data
+                );
+                const loci = StructureSelection.toLociWithSourceUnits(sel);
+                lastHoverHighlightedResidueRef.current = selectedResidue;
+                plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
+            } catch {
+                // ignore
+            }
+        });
+
+        return () => {
+            if (hoverHighlightRafIdRef.current) {
+                cancelAnimationFrame(hoverHighlightRafIdRef.current);
+                hoverHighlightRafIdRef.current = null;
+            }
+        };
     }, [hoveredMonomer, pluginInitialized, pluginRef, structure]);
 
         // Select residue by position

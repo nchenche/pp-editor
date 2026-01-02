@@ -101,6 +101,10 @@ export const MonomerSequence = ({
             }}
             // for screen readers, let the item be selectable
             aria-selected={isActive || undefined}
+            onPointerLeave={() => {
+                // Ensure hover is cleared even when leaving via gaps/scroll areas.
+                handleMonomerLeave?.();
+            }}
         >
 
             {/* Middle: chips + constraints stacked and scrolled together */}

@@ -27,6 +27,7 @@ const Viewer3DInner = ({
     templateMappings = null,
 
     hoveredMonomer,
+    hoveredMonomerLabel,
     handleMonomerHover,
     defaultRepresentation = 'ball-and-stick',
     defaultColorScheme = 'chain-id',
@@ -97,59 +98,11 @@ const Viewer3DInner = ({
         handleMonomerHover,
     });
 
-    // When the user hovers a residue in the chain sequence UI, show the
-    // corresponding residue label (CHAIN RESNAME RESID) in the bottom-right.
-    // This complements (doesn't replace) the Mol* native hover label.
+    // When the user hovers a residue in the chain sequence UI, show a label
+    // computed by the parent (avoids expensive Mol* selection queries on hover).
     useEffect(() => {
-        if (!pluginInitialized) return;
-
-        if (!hoveredMonomer) {
-            setUiHoverLabel('');
-            return;
-        }
-
-        const selectedResidue = parseInt(String(hoveredMonomer).split('-')[1]) + 1;
-        if (!Number.isFinite(selectedResidue)) {
-            setUiHoverLabel('');
-            return;
-        }
-
-        const data = structure?.cell?.obj?.data;
-        if (!data) {
-            setUiHoverLabel('');
-            return;
-        }
-
-        try {
-            const sel = Script.getStructureSelection((Q) =>
-                Q.struct.generator.atomGroups({
-                    'residue-test': Q.core.rel.eq([
-                        Q.struct.atomProperty.macromolecular.label_seq_id(),
-                        selectedResidue,
-                    ]),
-                    'group-by': Q.struct.atomProperty.macromolecular.residueKey(),
-                }),
-                data,
-            );
-            const loci = StructureSelection.toLociWithSourceUnits(sel);
-            const loc = StructureElement.Loci.getFirstLocation(loci);
-            if (!loc) {
-                setUiHoverLabel('');
-                return;
-            }
-
-            const chain = StructureProperties.chain.label_asym_id(loc);
-            const comp = StructureProperties.atom.label_comp_id(loc);
-            const seq = StructureProperties.residue.label_seq_id(loc);
-            if (!chain || !comp || !seq) {
-                setUiHoverLabel('');
-                return;
-            }
-            setUiHoverLabel(`${chain} ${String(comp).toUpperCase()} ${seq}`);
-        } catch {
-            setUiHoverLabel('');
-        }
-    }, [hoveredMonomer, pluginInitialized, structure]);
+        setUiHoverLabel(hoveredMonomerLabel ? String(hoveredMonomerLabel) : '');
+    }, [hoveredMonomerLabel]);
 
     // Bottom-right hover label inside the Mol* viewer.
     useEffect(() => {

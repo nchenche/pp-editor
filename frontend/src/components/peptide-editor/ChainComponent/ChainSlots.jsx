@@ -8,6 +8,7 @@ import TemplateSequence from './TemplateSequence';
 
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
+import { useHoveredMonomer } from '../../../state/hoveredMonomerStore';
 
 const CELL_WIDTH = 32;
 const CELL_HEIGHT = 20;
@@ -19,7 +20,6 @@ export const ChainSlots = ({
     onSetActiveSeqIdx,
     linkMap,
     isDragging = false,
-    hoveredMonomer,
     handleDeleteMonomerItem,
     onDragEnd,
     onDragStart,
@@ -34,6 +34,7 @@ export const ChainSlots = ({
     onEditScaffoldMapping = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
+    const hoveredMonomer = useHoveredMonomer();
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
 
     const ALLOWED = ['H', 'E', 'C', 'T', 'B', 'I', '-'];
