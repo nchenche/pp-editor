@@ -84,6 +84,7 @@ export default function BilnEditorInterface({
     onClearScaffold = () => { },
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
+    onOpenTemplatePanel = () => { },
     isDragging = false,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
@@ -371,6 +372,7 @@ export default function BilnEditorInterface({
                         scaffoldTemplate={scaffoldTemplate}
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={onEditScaffoldMapping}
+                        onOpenTemplatePanel={onOpenTemplatePanel}
                     />
                 </Box>
             </Box>

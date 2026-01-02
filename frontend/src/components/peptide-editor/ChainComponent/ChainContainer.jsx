@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Box, Typography, Tooltip, IconButton, Button, TextField, Chip, Menu, MenuItem } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -18,34 +18,29 @@ export default function ChainContainer({
     // Header actions (optional – design only for now)
     onSequenceMenu = () => { },
     onSequenceClear = () => { },
+    onSequenceCircularize = () => { },
+    onSequenceMirror = () => { },
     onSequenceHelp = () => { },
-    onConstraintsMenu = () => { },
     onConstraintsFill = () => { }, // (letter: 'H' | 'E' | '-') -> parent fills cells
     onConstraintsClear = () => { },
     onConstraintsHelp = () => { },
+    onTemplateMaskAll = () => { },
+    onTemplateUnmaskAll = () => { },
+    onTemplateConfigure = () => { },
     onTemplateHelp = () => { },
+
+    // optional disables (useful for empty placeholder row)
+    disableSequenceActions = false,
+    disableConstraintsActions = false,
+    disableTemplateActions = false,
 }) {
-    const fileInputRef = useRef(null);
-    const [templateName, setTemplateName] = useState('');
+    const [seqMenuEl, setSeqMenuEl] = useState(null);
     const [constraintsMenuEl, setConstraintsMenuEl] = useState(null);
+    const [templateMenuEl, setTemplateMenuEl] = useState(null);
 
-    const openPicker = () => fileInputRef.current?.click();
-    const onPickFile = (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setTemplateName(file.name);
-        e.target.value = '';
-    };
-
-    const openConstraintsMenu = (e) => {
-        onConstraintsMenu?.();
-        setConstraintsMenuEl(e.currentTarget);
-    };
+    const closeSeqMenu = () => setSeqMenuEl(null);
     const closeConstraintsMenu = () => setConstraintsMenuEl(null);
-    const applyPreset = (letter) => {
-        onConstraintsFill?.(letter);
-        closeConstraintsMenu();
-    };
+    const closeTemplateMenu = () => setTemplateMenuEl(null);
 
     // Template mapping configuration is edited in the 3D viewer "Template" panel.
 
@@ -127,17 +122,19 @@ export default function ChainContainer({
                             Sequence
                         </Typography>
                         <Box sx={iconRowSx}>
-                            {/* <Tooltip title="Menu" arrow>
+                            <Tooltip title="Actions" arrow>
                                 <span>
-                                    <IconButton size="small" onClick={onSequenceMenu} sx={iconBtnSx}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                            onSequenceMenu?.();
+                                            setSeqMenuEl(e.currentTarget);
+                                        }}
+                                        sx={iconBtnSx}
+                                        aria-label="sequence actions"
+                                        disabled={disableSequenceActions}
+                                    >
                                         <MoreVertIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip> */}
-                            <Tooltip title="Clear" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={onSequenceClear} sx={iconBtnSx}>
-                                        <DeleteOutlineIcon fontSize="inherit" />
                                     </IconButton>
                                 </span>
                             </Tooltip>
@@ -161,17 +158,16 @@ export default function ChainContainer({
                                 Secondary Structure
                             </Typography>
                             <Box sx={iconRowSx}>
-                                <Tooltip title="Menu" arrow>
+                                <Tooltip title="Actions" arrow>
                                     <span>
-                                        <IconButton size="small" onClick={openConstraintsMenu} sx={iconBtnSx}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => setConstraintsMenuEl(e.currentTarget)}
+                                            sx={iconBtnSx}
+                                            aria-label="secondary structure actions"
+                                            disabled={disableConstraintsActions}
+                                        >
                                             <MoreVertIcon fontSize="inherit" />
-                                        </IconButton>
-                                    </span>
-                                </Tooltip>
-                                <Tooltip title="Clear" arrow>
-                                    <span>
-                                        <IconButton size="small" onClick={onConstraintsClear} sx={iconBtnSx}>
-                                            <DeleteOutlineIcon fontSize="inherit" />
                                         </IconButton>
                                     </span>
                                 </Tooltip>
@@ -197,7 +193,21 @@ export default function ChainContainer({
                                 3D Template
                             </Typography>
 
-                            <Box sx={iconRowSx} />
+                            <Box sx={iconRowSx}>
+                                <Tooltip title="Actions" arrow>
+                                    <span>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => setTemplateMenuEl(e.currentTarget)}
+                                            sx={iconBtnSx}
+                                            aria-label="template actions"
+                                            disabled={disableTemplateActions}
+                                        >
+                                            <MoreVertIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </Box>
 
                         </Box>
 
@@ -223,9 +233,111 @@ export default function ChainContainer({
                         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                         MenuListProps={{ dense: true }}
                     >
-                        <MenuItem onClick={() => applyPreset('H')}>All alpha (H)</MenuItem>
-                        <MenuItem onClick={() => applyPreset('E')}>All beta (E)</MenuItem>
-                        <MenuItem onClick={() => applyPreset('-')}>All random (-)</MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                onConstraintsClear?.();
+                                closeConstraintsMenu();
+                            }}
+                        >
+                            Clear
+                        </MenuItem>
+                        <Divider />
+                        <MenuItem
+                            onClick={() => {
+                                onConstraintsFill?.('H');
+                                closeConstraintsMenu();
+                            }}
+                        >
+                            All alpha (H)
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                onConstraintsFill?.('E');
+                                closeConstraintsMenu();
+                            }}
+                        >
+                            All beta (E)
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                onConstraintsFill?.('-');
+                                closeConstraintsMenu();
+                            }}
+                        >
+                            All random (-)
+                        </MenuItem>
+                    </Menu>
+                )}
+
+                <Menu
+                    anchorEl={seqMenuEl}
+                    open={Boolean(seqMenuEl)}
+                    onClose={closeSeqMenu}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                    MenuListProps={{ dense: true, 'aria-label': 'sequence actions menu' }}
+                >
+                    <MenuItem
+                        onClick={() => {
+                            onSequenceClear?.();
+                            closeSeqMenu();
+                        }}
+                    >
+                        Clear
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem
+                        onClick={() => {
+                            onSequenceCircularize?.();
+                            closeSeqMenu();
+                        }}
+                    >
+                        Circularize (head-to-tail)
+                    </MenuItem>
+                    <MenuItem
+                        onClick={() => {
+                            onSequenceMirror?.();
+                            closeSeqMenu();
+                        }}
+                    >
+                        Mirror (D-amino acids)
+                    </MenuItem>
+                </Menu>
+
+                {showTemplateRow && (
+                    <Menu
+                        anchorEl={templateMenuEl}
+                        open={Boolean(templateMenuEl)}
+                        onClose={closeTemplateMenu}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                        MenuListProps={{ dense: true, 'aria-label': 'template actions menu' }}
+                    >
+                        <MenuItem
+                            onClick={() => {
+                                onTemplateConfigure?.();
+                                closeTemplateMenu();
+                            }}
+                        >
+                            Configure
+                        </MenuItem>
+                        <Divider />
+                        <MenuItem
+                            onClick={() => {
+                                onTemplateMaskAll?.();
+                                closeTemplateMenu();
+                            }}
+                        >
+                            Mask all
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() => {
+                                onTemplateUnmaskAll?.();
+                                closeTemplateMenu();
+                            }}
+                        >
+                            Unmask all
+                        </MenuItem>
                     </Menu>
                 )}
 

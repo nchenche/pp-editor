@@ -32,6 +32,7 @@ export const ChainSlots = ({
     scaffoldTemplate = null,
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
+    onOpenTemplatePanel = () => { },
 }) => {
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
@@ -85,6 +86,7 @@ export const ChainSlots = ({
                 runningOffset += (list?.length || 0);
 
                 const mapping = scaffoldMappings?.[seqIdx] || {};
+                const hasAnyResidues = (list?.length || 0) > 0;
 
                 const templateSlot = (
                     <Box sx={{ width: 'fit-content' }}>
@@ -188,6 +190,9 @@ export const ChainSlots = ({
                         <ChainContainer
                             seqIdx={seqIdx}
                             onSequenceClear={makeDeleteHandler(seqIdx)}
+                            disableSequenceActions={!hasAnyResidues}
+                            disableConstraintsActions={!hasAnyResidues}
+                            disableTemplateActions={!hasAnyResidues}
                             onConstraintsFill={(letter) => {
                                 const v = normSS(letter);
                                 for (let i = 0; i < list.length; i++) {
@@ -198,6 +203,17 @@ export const ChainSlots = ({
                                 for (let i = 0; i < list.length; i++) {
                                     onEditConstraint?.(seqIdx, i, '-');
                                 }
+                            }}
+                            onTemplateConfigure={() => {
+                                onOpenTemplatePanel?.();
+                            }}
+                            onTemplateMaskAll={() => {
+                                const n = Array.isArray(mapping?.templateResidues) ? mapping.templateResidues.length : 0;
+                                if (n <= 0) return;
+                                onEditScaffoldMapping?.(seqIdx, { manualMasks: Array.from({ length: n }, (_, i) => i) });
+                            }}
+                            onTemplateUnmaskAll={() => {
+                                onEditScaffoldMapping?.(seqIdx, { manualMasks: [] });
                             }}
                             sequenceSlot={
                                 <Droppable

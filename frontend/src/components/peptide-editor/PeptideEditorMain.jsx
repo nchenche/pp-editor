@@ -1064,6 +1064,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onClearScaffold={handleClearScaffold}
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={handleEditScaffoldMappingNoAutoGen}
+                        onOpenTemplatePanel={() => setActive3DPanel('template')}
                     />
                 </Box>
 
