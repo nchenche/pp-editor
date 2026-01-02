@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import { Box, Button, ButtonGroup, Tooltip, FormControl, Select, Menu, MenuItem } from '@mui/material';
+import React from 'react';
+import { Box, Button, ButtonGroup, Tooltip, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
-import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-import FirstPageIcon from '@mui/icons-material/FirstPage';
-import SquareFootIcon from '@mui/icons-material/SquareFoot';
 
 export default function ChainsToolbar({
     linkMode = false,
@@ -13,6 +10,9 @@ export default function ChainsToolbar({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
+    constraintMode = 'ss',
+    onConstraintModeChange = () => { },
+    canUseTemplateMode = true,
 }) {
 
     const btnSx = {
@@ -56,20 +56,29 @@ export default function ChainsToolbar({
                 </Tooltip>
             </ButtonGroup>
 
-            {/* Bonds: Link / Unlink */}
-            {/* <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
-                <Tooltip title="Link residues (2D sketch)" arrow>
-                    <Button
-                        onClick={onToggleConstraintsMode}
-                        color="inherit"
-                        variant={constraintsMode ? 'contained' : 'outlined'}
-                        disabled={!canLink}
-                        startIcon={<SquareFootIcon fontSize="inherit" />}
+            {/* Global constraint system mode */}
+            <Tooltip title="Constraint mode (applies to the whole peptide)" arrow>
+                <span>
+                    <ToggleButtonGroup
+                        size="small"
+                        exclusive
+                        value={constraintMode}
+                        onChange={(_, next) => {
+                            if (!next) return;
+                            onConstraintModeChange(next);
+                        }}
+                        aria-label="constraint mode"
+                        sx={{ '& .MuiToggleButton-root': btnSx, '& .MuiToggleButton-root.Mui-selected': { color: 'primary.main' } }}
                     >
-                        Constraints
-                    </Button>
-                </Tooltip>
-            </ButtonGroup> */}
+                        <ToggleButton value="ss" aria-label="secondary structure mode">
+                            Secondary
+                        </ToggleButton>
+                        <ToggleButton value="template" aria-label="template guidance mode" disabled={!canUseTemplateMode}>
+                            Template
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </span>
+            </Tooltip>
         </Box>
     );
 }

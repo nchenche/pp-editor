@@ -28,6 +28,7 @@ export const ChainSlots = ({
     handleDeleteSequence,
     constraintsBySeq = [],
     onEditConstraint = () => { },
+    constraintMode = 'ss',
     scaffoldTemplate = null,
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
@@ -46,15 +47,8 @@ export const ChainSlots = ({
     const chipHeight = 20; // px; for reference only
     const cellSize = 20; // px height for constraints cells
 
-    const hasConstraintsBySeq = useMemo(() => {
-        return (constraintsBySeq || []).map((row) =>
-            (row || []).some((ch) => String(ch || '-').toUpperCase() !== '-'),
-        );
-    }, [constraintsBySeq]);
-
-    const anyTemplateEnabled = useMemo(() => {
-        return (scaffoldMappings || []).some((m) => m?.enabled === true);
-    }, [scaffoldMappings]);
+    const showConstraintsRow = constraintMode === 'ss';
+    const showTemplateRow = constraintMode === 'template';
 
     const seqLabel = useCallback((idx) => {
         const n = Number(idx);
@@ -68,11 +62,6 @@ export const ChainSlots = ({
         }
         return out;
     }, []);
-
-
-    const clearTemplate = () =>
-        onEditScaffoldMapping(seqIdx, { enabled: false, chainId: null, start: null, end: null, offset: 0 });
-
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {(() => {
@@ -83,36 +72,9 @@ export const ChainSlots = ({
                 runningOffset += (list?.length || 0);
 
                 const mapping = scaffoldMappings[seqIdx] || {};
-                const isTemplateEnabled = mapping?.enabled === true;
-
-                const hasConstraints = !!hasConstraintsBySeq[seqIdx];
-
-
-                // Mutual exclusion rule (per chain):
-                // - If ANY template is enabled (any chain), constraints are disabled everywhere.
-                const constraintsDisabled = anyTemplateEnabled;
-
-                // - Only block template due to constraints when NO template is enabled anywhere.
-                //   (avoids deadlock where constraints exist but become impossible to clear)
-                const templateDisabled = !isTemplateEnabled && hasConstraints && !anyTemplateEnabled;
-
-                const clearTemplate = () =>
-                    onEditScaffoldMapping(seqIdx, {
-                        enabled: false,
-                        chainId: null,
-                        start: null,
-                        end: null,
-                        offset: 0,
-                    });
 
                 const templateSlot = (
-                    <Box
-                        sx={{
-                            opacity: templateDisabled ? 0.55 : 1,
-                            pointerEvents: templateDisabled ? 'none' : 'auto',
-                            width: 'fit-content',
-                        }}
-                    >
+                    <Box sx={{ width: 'fit-content' }}>
                         <TemplateSequence
                             mapping={mapping}
                             maxResidueCount={list.length}
@@ -134,16 +96,9 @@ export const ChainSlots = ({
                             borderRadius: 1,
                             minHeight: CELL_HEIGHT,
                             alignItems: 'center',
-
-                            opacity: constraintsDisabled ? 0.55 : 1,
-                            pointerEvents: constraintsDisabled ? 'none' : 'auto',
                         }}
                     >
-                        {constraintsDisabled ? (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
-                                Secondary structure is disabled while template mapping is enabled for any chain.
-                            </Typography>
-                        ) : list.length === 0 ? (
+                        {list.length === 0 ? (
                             <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
                                 No residues. Add monomers to define constraints.
                             </Typography>
@@ -179,7 +134,6 @@ export const ChainSlots = ({
                                                 index={i}
                                                 value={v}
                                                 commitAt={(idx, ch) => {
-                                                    if (constraintsDisabled) return;
                                                     onEditConstraint?.(seqIdx, idx, ch);
                                                 }}
                                                 chipWidth={chipWidth}
@@ -212,14 +166,12 @@ export const ChainSlots = ({
                             seqIdx={seqIdx}
                             onSequenceClear={makeDeleteHandler(seqIdx)}
                             onConstraintsFill={(letter) => {
-                                if (constraintsDisabled) return;
                                 const v = normSS(letter);
                                 for (let i = 0; i < list.length; i++) {
                                     onEditConstraint?.(seqIdx, i, v);
                                 }
                             }}
                             onConstraintsClear={() => {
-                                if (constraintsDisabled) return;
                                 for (let i = 0; i < list.length; i++) {
                                     onEditConstraint?.(seqIdx, i, '-');
                                 }
@@ -251,19 +203,10 @@ export const ChainSlots = ({
                                     )}
                                 </Droppable>
                             }
+                            showConstraintsRow={showConstraintsRow}
+                            showTemplateRow={showTemplateRow}
                             constraintsSlot={constraintsSlot}
-                            templateSlot={
-                                templateDisabled ? (
-                                    <Tooltip
-                                        arrow
-                                        title="Template mapping is disabled while secondary-structure constraints are active. Clear constraints to enable template mapping."
-                                    >
-                                        <Box>{templateSlot}</Box>
-                                    </Tooltip>
-                                ) : (
-                                    templateSlot
-                                )
-                            }
+                            templateSlot={templateSlot}
                             onTemplateHelp={() => { }}
                         />
                     </Box>

@@ -61,6 +61,7 @@ const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity
 const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
 const TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY = 'pp-editor:template-mapping-seq-idx:v1';
+const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
 
@@ -102,6 +103,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
         } catch {
             return 0;
+        }
+    });
+
+    const [constraintMode, setConstraintMode] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(CONSTRAINT_MODE_STORAGE_KEY);
+            const v = raw == null ? '' : String(raw).trim().toLowerCase();
+            if (v === 'template') return 'template';
+            if (v === 'ss') return 'ss';
+            return 'ss';
+        } catch {
+            return 'ss';
         }
     });
 
@@ -205,6 +218,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [templateMappingSeqIdx]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(CONSTRAINT_MODE_STORAGE_KEY, String(constraintMode));
+        } catch {
+            // ignore
+        }
+    }, [constraintMode]);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -422,6 +443,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const scaffoldTemplateId = scaffoldTemplate?.id ?? null;
     const prevScaffoldTemplateIdRef = useRef(null);
+    const hadTemplateRef = useRef(false);
 
     // One-time nudge: when a template is newly loaded, open the Template panel
     // so the user immediately sees where to remove/manage it.
@@ -433,6 +455,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             setActive3DPanel('template');
         }
     }, [scaffoldTemplateId]);
+
+    // If the user removes a template during this session, automatically fall back
+    // to Secondary Structure mode to avoid being "stuck" in template mode.
+    useEffect(() => {
+        if (scaffoldTemplateId) {
+            hadTemplateRef.current = true;
+            return;
+        }
+        if (!scaffoldTemplateId && hadTemplateRef.current && constraintMode === 'template') {
+            setConstraintMode('ss');
+        }
+    }, [scaffoldTemplateId, constraintMode]);
 
     const [scaffoldErrorOpen, setScaffoldErrorOpen] = useState(false);
 
@@ -451,6 +485,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [scaffoldMessages]);
 
     const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+
+    const isTemplateMode = constraintMode === 'template';
+    const effectiveAnyScaffoldEnabled = isTemplateMode && anyScaffoldEnabled;
     const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
     const [autoSync3DRaw, setAutoSync3DRaw] = useState(() => {
         try {
@@ -462,7 +499,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return true;
         }
     });
-    const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
+    const autoSync3D = !effectiveAnyScaffoldEnabled && autoSync3DRaw;
 
     useEffect(() => {
         try {
@@ -471,22 +508,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [autoSync3DRaw]);
-
-    const clearConstraintsForSeq = useCallback((seqIdx) => {
-        setConstraintsBySeq((prev) => {
-            const lists = rowMonomerLists;
-            const targetLen = lists?.[seqIdx]?.length ?? 0;
-            const existing = Array.isArray(prev?.[seqIdx]) ? prev[seqIdx] : [];
-            const alreadyClear = existing.length === targetLen && existing.every((ch) => String(ch || '-').toUpperCase() === '-');
-            if (alreadyClear) return prev;
-
-            const next = prev.map((a) => (Array.isArray(a) ? a.slice() : []));
-            while (next.length < lists.length) next.push([]);
-            next[seqIdx] = new Array(targetLen).fill('-');
-            return next;
-        });
-    }, [rowMonomerLists]);
-
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
     const beginReplaceSelection = useCallback((mode, sourceMonomer) => {
@@ -550,7 +571,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const triggerGenerate = useCallback(
         (biln, ss) => {
-            const useTemplate = anyScaffoldEnabled && !!scaffoldMappingPayload;
+            const useTemplate = effectiveAnyScaffoldEnabled && !!scaffoldMappingPayload;
             const mappingSig =
                 useTemplate && scaffoldMappingPayload
                     ? JSON.stringify(scaffoldMappingPayload)
@@ -603,16 +624,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
         },
         // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
-        [generate3D, anyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen],
+        [generate3D, effectiveAnyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen],
     );
 
     const handleAutoSyncChange = useCallback(
         (_, checked) => {
             // If any scaffold mapping is enabled, force manual mode
-            if (anyScaffoldEnabled && checked) return;
+            if (effectiveAnyScaffoldEnabled && checked) return;
             setAutoSync3DRaw(!!checked);
         },
-        [anyScaffoldEnabled],
+        [effectiveAnyScaffoldEnabled],
     );
 
     const handleManualGenerate3D = useCallback(() => {
@@ -634,12 +655,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // We never want that toggle itself to trigger an immediate auto conformer generation.
     const handleEditScaffoldMappingNoAutoGen = useCallback(
         (seqIdx, patch) => {
+            // Editing template mappings implies template-mode for the whole peptide.
+            if (!isTemplateMode) setConstraintMode('template');
             if (patch && Object.prototype.hasOwnProperty.call(patch, 'enabled')) {
                 suppressNextAutoConformerGenRef.current = true;
             }
             handleEditScaffoldMapping(seqIdx, patch);
         },
-        [handleEditScaffoldMapping],
+        [handleEditScaffoldMapping, isTemplateMode],
     );
 
 
@@ -823,7 +846,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString, normalizeBilnForGen]);
 
     const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
-    const generateBtnTooltip = anyScaffoldEnabled
+    const generateBtnTooltip = effectiveAnyScaffoldEnabled
         ? 'Scaffold mapping is enabled: use "Generate 3D" to update the conformer.'
         : autoSync3D
             ? '3D view updates automatically while Sync is on.'
@@ -866,7 +889,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         // Reset “last generated” guard so next paste triggers generation normally
         lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
 
-        // Clear scaffold (also makes autoSync3D = true again because anyScaffoldEnabled becomes false)
+        // Clear scaffold (also makes autoSync3D = true again because effectiveAnyScaffoldEnabled becomes false)
         handleClearScaffold();
     }, [
         setAutoSync3DRaw,
@@ -1007,6 +1030,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         handleDeleteSequence={handleDeleteSequence}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={handleEditConstraint}
+                        constraintMode={constraintMode}
+                        onConstraintModeChange={(next) => {
+                            if (next === 'template' && !scaffoldTemplate) return;
+                            setConstraintMode(next);
+                        }}
+                        canUseTemplateMode={!!scaffoldTemplate}
                         // Toolbar (link/cut) wiring
                         linkMode={viewer2DModes.linkMode}
                         bondsMode={viewer2DModes.bondsMode}
@@ -1020,7 +1049,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onFetchScaffoldById={fetchScaffoldById}
                         onClearScaffold={handleClearScaffold}
                         scaffoldMappings={scaffoldMappings}
-                        onEditScaffoldMapping={handleEditScaffoldMapping}
+                        onEditScaffoldMapping={handleEditScaffoldMappingNoAutoGen}
                     />
                 </Box>
 
@@ -1282,8 +1311,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                     <Tooltip
                                         title={
-                                            anyScaffoldEnabled
-                                                ? 'Auto sync is disabled while a scaffold mapping is active.'
+                                            effectiveAnyScaffoldEnabled
+                                                ? 'Auto sync is disabled while template mode is active.'
                                                 : autoSync3D
                                                     ? 'Disable automatic updates'
                                                     : 'Enable automatic updates'
@@ -1299,7 +1328,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         checked={autoSync3D}
                                                         onChange={handleAutoSyncChange}
                                                         inputProps={{ 'aria-label': 'toggle automatic 3D sync' }}
-                                                        disabled={anyScaffoldEnabled}
+                                                        disabled={effectiveAnyScaffoldEnabled}
                                                     />
                                                 </span>
                                             }
@@ -1526,7 +1555,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         >
                                             {(() => {
                                                 const err = generate3DError;
-                                                const hasTemplateMapping = !!anyScaffoldEnabled;
+                                                const hasTemplateMapping = !!effectiveAnyScaffoldEnabled;
                                                 const hasAnyConstraints = Array.isArray(constraintsBySeq) && constraintsBySeq.some(
                                                     (row) => Array.isArray(row) && row.some((ch) => {
                                                         const v = String(ch ?? '').trim();
@@ -1761,16 +1790,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         pdbRawData={structurePDB}
                                         templateKey={scaffoldTemplate?.id ?? null}
                                         templatePdbRawData={(() => {
-                                            const effective = templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw;
+                                            const effective = isTemplateMode && (templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw);
                                             if (!effective) return null;
                                             return scaffoldTemplate?.text || null;
                                         })()}
                                         templateVisible={(() => {
-                                            const effective = templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw;
+                                            const effective = isTemplateMode && (templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw);
                                             return effective && !!scaffoldTemplate;
                                         })()}
                                         templateOpacity={Math.min(1, Math.max(0, (Number(templateOverlayOpacityPct) || 0) / 100))}
-                                        templateMappings={scaffoldMappings}
+                                        templateMappings={isTemplateMode ? scaffoldMappings : []}
                                         hoveredMonomer={hoveredMonomer}
                                         handleMonomerHover={handleMonomerHover}
                                         defaultRepresentation={DEFAULT_3D_REPRESENTATION}
@@ -2103,13 +2132,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             const mapping = scaffoldMappings?.[idx] || {};
                                                             const enabled = mapping?.enabled === true;
 
-                                                            const hasConstraints = (() => {
-                                                                const row = constraintsBySeq?.[idx] || [];
-                                                                return Array.isArray(row) && row.some((ch) => String(ch || '-').toUpperCase() !== '-');
-                                                            })();
-
-                                                            // Keep the same mutual-exclusion rule as ChainSlots:
-                                                            // template is blocked by constraints only when NO template is enabled anywhere.
                                                             const templateToggleDisabled = false;
 
                                                             const chains = scaffoldTemplate?.chainData ?? [];
@@ -2136,10 +2158,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                             checked={enabled}
                                                                             onChange={(e) => {
                                                                                 const nextEnabled = !!e.target.checked;
-                                                                                if (nextEnabled && hasConstraints) {
-                                                                                    // Seamless UX: enabling mapping clears constraints for this chain.
-                                                                                    clearConstraintsForSeq(idx);
-                                                                                }
                                                                                 handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
                                                                             }}
                                                                             disabled={!scaffoldTemplate || templateToggleDisabled}

@@ -10,6 +10,8 @@ export default function ChainContainer({
     sequenceSlot,
     constraintsSlot,
     templateSlot,
+    showConstraintsRow = true,
+    showTemplateRow = true,
     // Layout
     labelColWidth = 200,
     gapY = 0.1,
@@ -157,81 +159,80 @@ export default function ChainContainer({
                 </Box>
 
                 {/* Row 2: DSSP constraints */}
-                <Box sx={rowGridSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                            Secondary Structure
-                        </Typography>
-                        <Box sx={iconRowSx}>
-                            <Tooltip title="Menu" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={openConstraintsMenu} sx={iconBtnSx}>
-                                        <MoreVertIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                            <Tooltip title="Clear" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={onConstraintsClear} sx={iconBtnSx}>
-                                        <DeleteOutlineIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                            {/* <Tooltip title="Help" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={onConstraintsHelp} sx={iconBtnSx}>
-                                        <HelpOutlineIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip> */}
+                {showConstraintsRow && (
+                    <Box sx={rowGridSx}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                Secondary Structure
+                            </Typography>
+                            <Box sx={iconRowSx}>
+                                <Tooltip title="Menu" arrow>
+                                    <span>
+                                        <IconButton size="small" onClick={openConstraintsMenu} sx={iconBtnSx}>
+                                            <MoreVertIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                                <Tooltip title="Clear" arrow>
+                                    <span>
+                                        <IconButton size="small" onClick={onConstraintsClear} sx={iconBtnSx}>
+                                            <DeleteOutlineIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </Box>
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                            {constraintsSlot ?? (
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    No residues yet.
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                        {constraintsSlot ?? (
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                No residues yet.
-                            </Typography>
-                        )}
-                    </Box>
-                </Box>
+                )}
 
 
                 {/* Row 3: 3D template */}
-                <Box sx={rowGridSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
+                {showTemplateRow && (
+                    <Box sx={rowGridSx}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
 
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                            3D Template
-                        </Typography>
-
-                        <Box sx={iconRowSx} />
-
-                    </Box>
-
-                    <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 1, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
-                        {templateSlot ?? (
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                No template configuration yet.
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                3D Template
                             </Typography>
-                        )}
+
+                            <Box sx={iconRowSx} />
+
+                        </Box>
+
+                        <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 1, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
+                            {templateSlot ?? (
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    No template configuration yet.
+                                </Typography>
+                            )}
+                        </Box>
                     </Box>
-                </Box>
+                )}
 
 
 
                 {/* DSSP menu */}
-                <Menu
-                    anchorEl={constraintsMenuEl}
-                    open={Boolean(constraintsMenuEl)}
-                    onClose={closeConstraintsMenu}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    MenuListProps={{ dense: true }}
-                >
-                    <MenuItem onClick={() => applyPreset('H')}>All alpha (H)</MenuItem>
-                    <MenuItem onClick={() => applyPreset('E')}>All beta (E)</MenuItem>
-                    <MenuItem onClick={() => applyPreset('-')}>All random (-)</MenuItem>
-                </Menu>
+                {showConstraintsRow && (
+                    <Menu
+                        anchorEl={constraintsMenuEl}
+                        open={Boolean(constraintsMenuEl)}
+                        onClose={closeConstraintsMenu}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                        MenuListProps={{ dense: true }}
+                    >
+                        <MenuItem onClick={() => applyPreset('H')}>All alpha (H)</MenuItem>
+                        <MenuItem onClick={() => applyPreset('E')}>All beta (E)</MenuItem>
+                        <MenuItem onClick={() => applyPreset('-')}>All random (-)</MenuItem>
+                    </Menu>
+                )}
 
             </Box>
         </Box>

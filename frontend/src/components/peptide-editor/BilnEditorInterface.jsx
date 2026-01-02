@@ -73,6 +73,11 @@ export default function BilnEditorInterface({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
+
+    // Global constraint system mode
+    constraintMode = 'ss',
+    onConstraintModeChange = () => { },
+    canUseTemplateMode = true,
     // Scaffold integration
     scaffoldTemplate = null,
     onUploadScaffoldFile = () => { },
@@ -341,6 +346,10 @@ export default function BilnEditorInterface({
                         canLink={canLink}
                         canUnlink={canUnlink}
 
+                        constraintMode={constraintMode}
+                        onConstraintModeChange={onConstraintModeChange}
+                        canUseTemplateMode={canUseTemplateMode}
+
                     />
                 </Box>
 
@@ -359,6 +368,7 @@ export default function BilnEditorInterface({
                         handleDeleteSequence={handleDeleteSequence}
                         constraintsBySeq={constraintsBySeq}
                         onEditConstraint={onEditConstraint}
+                        constraintMode={constraintMode}
                         // Scaffold mapping
                         scaffoldTemplate={scaffoldTemplate}
                         scaffoldMappings={scaffoldMappings}
