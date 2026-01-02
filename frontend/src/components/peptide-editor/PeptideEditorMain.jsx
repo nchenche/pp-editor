@@ -56,6 +56,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 const MAX_MONOMERS = 40;
 const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
+const MOLSTAR_REP_STORAGE_KEY = 'pp-editor:molstar-representations:v1';
+const MOLSTAR_REP_OPACITY_STORAGE_KEY = 'pp-editor:molstar-representation-opacity:v1';
+const MOLSTAR_COLOR_BY_STORAGE_KEY = 'pp-editor:molstar-color-by:v1';
+const MOLSTAR_LABELS_STORAGE_KEY = 'pp-editor:molstar-labels:v1';
 
 const MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY = 'pp-editor:molstar-template-overlay:v1';
 const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity:v1';
@@ -211,9 +215,48 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return [];
     }, [structureLoading, conformerProgressMessage, conformerMappingMessage]);
 
-    const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(() => [DEFAULT_3D_REPRESENTATION]);
-    const [labelsEnabled, setLabelsEnabled] = useState({ element: false, residue: false, chain: false });
-    const [repOpacityPctById, setRepOpacityPctById] = useState({});
+    const [enabled3DRepresentations, setEnabled3DRepresentations] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_REP_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            const arr = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : null;
+            return (arr && arr.length > 0) ? arr : [DEFAULT_3D_REPRESENTATION];
+        } catch {
+            return [DEFAULT_3D_REPRESENTATION];
+        }
+    });
+    const [molstarColorBy, setMolstarColorBy] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_COLOR_BY_STORAGE_KEY);
+            const v = raw == null ? '' : String(raw).trim();
+            return v || 'element-symbol';
+        } catch {
+            return 'element-symbol';
+        }
+    });
+    const [labelsEnabled, setLabelsEnabled] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_LABELS_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            const obj = (parsed && typeof parsed === 'object') ? parsed : {};
+            return {
+                element: !!obj.element,
+                residue: !!obj.residue,
+                chain: !!obj.chain,
+            };
+        } catch {
+            return { element: false, residue: false, chain: false };
+        }
+    });
+    const [repOpacityPctById, setRepOpacityPctById] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_REP_OPACITY_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            return (parsed && typeof parsed === 'object') ? parsed : {};
+        } catch {
+            return {};
+        }
+    });
 
     const [molstarBackground, setMolstarBackground] = useState(() => {
         try {
@@ -257,6 +300,38 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [molstarBackground]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_REP_STORAGE_KEY, JSON.stringify(enabled3DRepresentations || []));
+        } catch {
+            // ignore
+        }
+    }, [enabled3DRepresentations]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_REP_OPACITY_STORAGE_KEY, JSON.stringify(repOpacityPctById || {}));
+        } catch {
+            // ignore
+        }
+    }, [repOpacityPctById]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_COLOR_BY_STORAGE_KEY, String(molstarColorBy || ''));
+        } catch {
+            // ignore
+        }
+    }, [molstarColorBy]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_LABELS_STORAGE_KEY, JSON.stringify(labelsEnabled || {}));
+        } catch {
+            // ignore
+        }
+    }, [labelsEnabled]);
 
     useEffect(() => {
         try {
@@ -356,9 +431,39 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // Ensure the representation menu initial state matches the viewer.
     // (Useful after changing DEFAULT_3D_REPRESENTATION, and avoids HMR stale state.)
     useEffect(() => {
-        setEnabled3DRepresentations([DEFAULT_3D_REPRESENTATION]);
-        viewer3DRef.current?.setRepresentation?.(DEFAULT_3D_REPRESENTATION);
+        if (!Array.isArray(enabled3DRepresentations) || enabled3DRepresentations.length === 0) {
+            setEnabled3DRepresentations([DEFAULT_3D_REPRESENTATION]);
+            viewer3DRef.current?.setRepresentation?.(DEFAULT_3D_REPRESENTATION);
+        }
     }, []);
+
+    useEffect(() => {
+        const v = viewer3DRef.current;
+        if (!v) return;
+        const enabled = new Set((enabled3DRepresentations || []).map(String));
+        for (const rep of MolstarSchemes.representationSchemes) {
+            try { v.setRepresentationEnabled?.(rep.id, enabled.has(rep.id)); } catch { }
+        }
+        for (const rep of MolstarSchemes.representationSchemes) {
+            const pct = Number(repOpacityPctById?.[rep.id]);
+            if (!Number.isFinite(pct)) continue;
+            try { v.setRepresentationAlphaFor?.(rep.id, Math.min(1, Math.max(0, pct / 100))); } catch { }
+        }
+    }, [enabled3DRepresentations, repOpacityPctById]);
+
+    useEffect(() => {
+        const v = viewer3DRef.current;
+        if (!v) return;
+        try { v.setColorScheme?.(molstarColorBy); } catch { }
+    }, [molstarColorBy]);
+
+    useEffect(() => {
+        const v = viewer3DRef.current;
+        if (!v) return;
+        for (const key of ['element', 'residue', 'chain']) {
+            try { v.setLabelEnabled?.(key, !!labelsEnabled?.[key]); } catch { }
+        }
+    }, [labelsEnabled]);
 
     const viewer2DColRef = useRef(null);
 
@@ -502,6 +607,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         if (!prev && scaffoldTemplateId) {
             setActive3DPanel('template');
+            setConstraintMode('template');
         }
     }, [scaffoldTemplateId]);
 
@@ -614,11 +720,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [bilnValue, helm, sdf, smiles, structurePDB, structureOutput, onOutputChange]);
 
+    const ssSignatureForGen = useMemo(() => {
+        return constraintMode === 'ss' ? secstructString : '';
+    }, [constraintMode, secstructString]);
+
     const canGenerate3D = useMemo(() => {
         if (!committedBiln) return false;
         const { tokenCount } = analyzeBiln(committedBiln);
-        return tokenCount > 0 && secstructString.length === tokenCount;
-    }, [committedBiln, secstructString]);
+        if (tokenCount <= 0) return false;
+        if (constraintMode !== 'ss') return true;
+        return secstructString.length === tokenCount;
+    }, [committedBiln, secstructString, constraintMode]);
 
     // Debounced generate3D trigger and last sent guard
     const lastGenRef = useRef({
@@ -679,11 +791,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     requestParams,
                 });
             } else {
-                generate3D(biln, constraintsBySeq, { requestParams });
+                const constraintsForGen = constraintMode === 'ss' ? constraintsBySeq : null;
+                generate3D(biln, constraintsForGen, { requestParams });
             }
         },
         // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
-        [generate3D, effectiveAnyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen],
+        [generate3D, effectiveAnyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen, constraintMode],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -707,8 +820,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         suppressNextAutoConformerGenRef.current = false;
         suppressAutoConformerAfterResumeRef.current = false;
 
-        triggerGenerate(committedBiln, secstructString);
-    }, [isActive, canGenerate3D, committedBiln, secstructString, triggerGenerate]);
+        triggerGenerate(committedBiln, ssSignatureForGen);
+    }, [isActive, canGenerate3D, committedBiln, ssSignatureForGen, triggerGenerate]);
 
     // Toggling mapping enabled/disabled changes auto-sync conditions.
     // We never want that toggle itself to trigger an immediate auto conformer generation.
@@ -901,8 +1014,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return;
         }
 
-        triggerGenerate(committedBiln, secstructString);
-    }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, secstructString, normalizeBilnForGen]);
+        triggerGenerate(committedBiln, ssSignatureForGen);
+    }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, ssSignatureForGen, normalizeBilnForGen]);
 
     const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
     const generateBtnTooltip = effectiveAnyScaffoldEnabled
@@ -1809,6 +1922,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         ref={viewer3DRef}
                                         pdbRawData={structurePDB}
                                         depictionData={depictionData}
+                                        rowMonomerLists={rowMonomerLists}
                                         templateKey={scaffoldTemplate?.id ?? null}
                                         templatePdbRawData={(() => {
                                             const effective = isTemplateMode && (templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw);
@@ -1823,7 +1937,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         templateMappings={isTemplateMode ? scaffoldMappings : []}
                                         handleMonomerHover={handleMonomerHover}
                                         defaultRepresentation={DEFAULT_3D_REPRESENTATION}
-                                        defaultColorScheme="element-symbol"
+                                        defaultColorScheme={molstarColorBy}
                                         background={molstarBackground}
                                         height="100%"
                                         width="100%"
@@ -1996,7 +2110,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         size="small"
                                                         variant="text"
                                                         color="inherit"
-                                                        onClick={() => viewer3DRef.current?.setColorScheme?.(color.id)}
+                                                        onClick={() => {
+                                                            setMolstarColorBy(color.id);
+                                                            viewer3DRef.current?.setColorScheme?.(color.id);
+                                                        }}
                                                         sx={{
                                                             justifyContent: 'flex-start',
                                                             textTransform: 'none',
@@ -2361,7 +2478,7 @@ const HoverAwareViewer2D = forwardRef(function HoverAwareViewer2D(props, ref) {
 });
 
 const HoverAwareViewer3D = forwardRef(function HoverAwareViewer3D(props, ref) {
-    const { depictionData, ...rest } = props;
+    const { depictionData, rowMonomerLists, ...rest } = props;
     const hoveredMonomer = useHoveredMonomer();
 
     const monomerNameByResIdx = useMemo(() => {
@@ -2379,14 +2496,38 @@ const HoverAwareViewer3D = forwardRef(function HoverAwareViewer3D(props, ref) {
         if (!hoveredMonomer) return '';
         const raw = String(hoveredMonomer);
         const parts = raw.split('-');
-        const chain = parts?.[0] ? String(parts[0]) : '';
         const idx = parts?.[1] != null ? parseInt(parts[1], 10) : NaN;
         const seq = Number.isFinite(idx) ? (idx + 1) : NaN;
+
+        // `res-idx` is shaped like "<symbol>-<globalIdx>" (e.g. A-0, C-1),
+        // so parts[0] is NOT the chain id. Derive the chain label from the
+        // sequence index in rowMonomerLists.
+        let chain = '';
+        if (Number.isFinite(idx)) {
+            const rows = Array.isArray(rowMonomerLists) ? rowMonomerLists : [];
+            let acc = 0;
+            for (let si = 0; si < rows.length; si++) {
+                const len = Array.isArray(rows[si]) ? rows[si].length : 0;
+                if (idx >= acc && idx < acc + len) {
+                    let x = si;
+                    let out = '';
+                    while (x >= 0) {
+                        out = String.fromCharCode(65 + (x % 26)) + out;
+                        x = Math.floor(x / 26) - 1;
+                    }
+                    chain = out;
+                    break;
+                }
+                acc += len;
+            }
+        }
+
+        if (!chain) chain = parts?.[0] ? String(parts[0]) : '';
         const name = monomerNameByResIdx.get(raw);
         if (!chain || !Number.isFinite(seq)) return '';
         if (name) return `${chain} ${String(name).toUpperCase()} ${seq}`;
         return `${chain} ${seq}`;
-    }, [hoveredMonomer, monomerNameByResIdx]);
+    }, [hoveredMonomer, monomerNameByResIdx, rowMonomerLists]);
 
     return (
         <Viewer3D
