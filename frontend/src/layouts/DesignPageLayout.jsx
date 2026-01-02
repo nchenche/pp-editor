@@ -270,6 +270,8 @@ export const DesignPageLayoutMUI = ({
                 gap: 1,
                 px: 1,
                 py: 1,
+                // Let the global page background show through between panels.
+                bgcolor: 'transparent',
                 overflow: 'hidden',
             }}
             {...rest}
@@ -298,9 +300,10 @@ export const DesignPageLayoutMUI = ({
                             height: '100%',
                             overflow: 'hidden', // prevent internal scroll
                             borderRadius: 1,
-                            pl: 1,
+                            pl: 0,
                             display: 'flex',
                             flexDirection: 'column',
+                            bgcolor: 'transparent',
                         }}
                     >
                         {viewerContainer}
@@ -353,9 +356,7 @@ export const DesignPageLayoutMUI = ({
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: '4px',
-                        // bgcolor: dragging ? 'primary.main' : 'divider',
                         bgcolor: 'divider',
-                        // borderRadius: 1,
                     },
                     '&:hover': { bgcolor: 'text.secondary' },
                     // '&': { zIndex: 1 },

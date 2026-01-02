@@ -49,11 +49,11 @@ const Documentation = () => {
     };
 
     return (
-        <Box className="flex h-[95%] w-[100%] mx-auto ml-12">
+        <Box className="flex h-full w-full mx-auto ml-12">
             {/* Side navigation */}
             <Box
                 component="nav"
-                className="w-64 shrink-0 border-r border-gray-200 bg-white sticky top-0 h-screen overflow-y-auto hidden lg:block"
+                className="w-64 shrink-0 border-r border-gray-200 bg-white sticky top-0 h-full overflow-y-auto hidden lg:block"
                 sx={{ p: 2 }}
             >
                 <Typography variant="h6" gutterBottom>
@@ -76,7 +76,7 @@ const Documentation = () => {
             {/* Main content */}
             <Box
                 component="main"
-                className="flex-1 overflow-y-auto max-w-[100%]"
+                className="flex-1 overflow-y-auto max-w-[100%] bg-white"
                 sx={{ p: { xs: 2, md: 4 }, mx: "auto" }}
             >
                 <Box sx={{ maxWidth: "80%", mx: "auto" }}>

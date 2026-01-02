@@ -127,13 +127,14 @@ function AppRoutes() {
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <Routes>
           <Route
             path="/"
             element={
-              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
                 <Documentation />
               </Box>
             }
@@ -141,7 +142,7 @@ function AppRoutes() {
           <Route
             path="/documentation"
             element={
-              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
                 <Documentation />
               </Box>
             }
@@ -159,6 +160,7 @@ function AppRoutes() {
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       {/* Other routes render normally */}
@@ -169,7 +171,7 @@ function AppRoutes() {
           path="/my-monomers"
           element={
             ownerId ? (
-              <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
                 <PersonalMonomers />
               </Box>
             ) : (
@@ -180,7 +182,7 @@ function AppRoutes() {
         <Route
           path="/submit-public-monomers"
           element={
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
               <SubmitPublicMonomers />
             </Box>
           }
@@ -189,7 +191,7 @@ function AppRoutes() {
         <Route
           path="/admin/public-monomers"
           element={
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
               <PublicMonomers />
             </Box>
           }
@@ -205,7 +207,7 @@ function AppRoutes() {
         <Route
           path="/documentation"
           element={
-            <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
               <Documentation />
             </Box>
           }
@@ -260,10 +262,11 @@ function App() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Box
         sx={{
-          height: '100%',
+          height: '100vh',
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <Header>

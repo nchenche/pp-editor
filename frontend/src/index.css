@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 /* Add any custom global styles here */
-/* body {
-  @apply bg-slate-50 text-gray-900;
-} */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-stone-50;
+  overflow: hidden;
+}

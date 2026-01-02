@@ -140,6 +140,7 @@ const Home = forwardRef((props, ref) => {
               onCancelReplaceSelection={handleCancelReplaceSelection}
             />
           }
+          height="100%"
         // outputPanel={<OutputContainer outputData={outputData} />}
         />
       </div>

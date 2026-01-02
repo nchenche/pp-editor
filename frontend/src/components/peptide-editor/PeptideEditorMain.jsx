@@ -1376,8 +1376,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         sx={{
                             width: 4,
                             cursor: 'col-resize',
-                            bgcolor: 'divider',
                             alignSelf: 'stretch',
+                            bgcolor: 'divider',
                             '&:hover': { bgcolor: 'text.secondary' },
                         }}
                     />
@@ -1972,8 +1972,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             sx={{
                                                 width: 4,
                                                 cursor: 'col-resize',
-                                                bgcolor: 'divider',
                                                 alignSelf: 'stretch',
+                                                bgcolor: 'divider',
                                                 '&:hover': { bgcolor: 'text.secondary' },
                                             }}
                                         />

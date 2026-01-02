@@ -9,7 +9,7 @@ function Footer() {
   const closePolicy = useCallback(() => setOpen(false), []);
 
   return (
-    <footer className="p-4 mt-auto">
+    <footer className="p-4 mt-auto shrink-0 bg-stone-50 border-t border-stone-200 text-stone-600">
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
         <p className="text-sm text-center">© 2025 PEP-EDIT - RPBS Platform</p>
         <button
