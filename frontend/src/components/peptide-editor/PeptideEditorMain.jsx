@@ -51,6 +51,8 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha, useTheme } from '@mui/material/styles';
 import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
+import { clearConformerJobIdFromStorage, setConformerJobIdInStorage } from '../../../src/utils/conformerJobStorage';
+import { useOwnerId } from '../../../src/hooks/useOwnerId';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
@@ -90,6 +92,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         cancelJob: cancelConformerJob,
         isCanceling: isCancelingConformerJob,
     } = useGenerate3D(API_BASE_URL);
+
+    const ownerId = useOwnerId();
 
     const [active3DPanel, setActive3DPanel] = useState(() => {
         try {
@@ -406,6 +410,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     useEffect(() => {
         const onResume = (e) => {
+            const jobId = String(e?.detail?.jobId || '').trim();
             const biln = String(e?.detail?.biln || '').trim();
             const pdb = String(e?.detail?.pdb || '').trim();
             if (!biln) return;
@@ -417,11 +422,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // If the job list already has the result, load it immediately (no compute, no polling needed).
             if (pdb) {
                 setStructureOutput({ pdb });
+            } else {
+                // Avoid showing stale structure while we refresh/poll the job.
+                setStructureOutput({ pdb: '' });
+            }
+
+            // Ensure the conformer-job hook re-polls even when the resumed job id
+            // matches the current persisted one (storage no-op updates are ignored).
+            if (jobId) {
+                clearConformerJobIdFromStorage({ dbName: 'pepedit', ownerId: ownerId ?? null });
+                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', ownerId: ownerId ?? null });
             }
         };
         window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
         return () => window.removeEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
-    }, [setBilnValue, normalizeBilnForGen]);
+    }, [setBilnValue, normalizeBilnForGen, ownerId, setStructureOutput]);
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);

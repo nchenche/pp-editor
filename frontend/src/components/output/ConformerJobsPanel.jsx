@@ -104,7 +104,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
             )}
 
             <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                <TableContainer sx={{ height: '100%', overflowX: 'hidden' }}>
+                <TableContainer sx={{ height: '100%', overflowX: 'auto' }}>
                     <Table
                         size="small"
                         stickyHeader
@@ -113,11 +113,24 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                     >
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ width: 78, px: 1, py: 0.5 }}>State</TableCell>
-                                <TableCell sx={{ width: 62, px: 1, py: 0.5, fontFamily: 'monospace' }}>Job</TableCell>
-                                <TableCell sx={{ width: 210, px: 1, py: 0.5 }}>BILN</TableCell>
-                                <TableCell sx={{ width: 180, px: 1, py: 0.5 }}>Status / Time</TableCell>
-                                <TableCell align="right" sx={{ width: 72, px: 1, py: 0.5 }}>Action</TableCell>
+                                <TableCell sx={{ width: 72, px: 1, py: 0.5 }}>State</TableCell>
+                                <TableCell sx={{ width: 56, px: 1, py: 0.5, fontFamily: 'monospace' }}>Job</TableCell>
+                                <TableCell sx={{ width: 160, px: 1, py: 0.5 }}>BILN</TableCell>
+                                <TableCell sx={{ width: 140, px: 1, py: 0.5 }}>Status / Time</TableCell>
+                                <TableCell
+                                    align="right"
+                                    sx={{
+                                        width: 76,
+                                        px: 1,
+                                        py: 0.5,
+                                        position: 'sticky',
+                                        right: 0,
+                                        zIndex: 3,
+                                        bgcolor: 'background.paper',
+                                    }}
+                                >
+                                    Action
+                                </TableCell>
                             </TableRow>
                         </TableHead>
 
@@ -199,7 +212,17 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                             </Tooltip>
                                         </TableCell>
 
-                                        <TableCell align="right" sx={{ px: 1, py: 0.5 }}>
+                                        <TableCell
+                                            align="right"
+                                            sx={{
+                                                px: 1,
+                                                py: 0.5,
+                                                position: 'sticky',
+                                                right: 0,
+                                                zIndex: 2,
+                                                bgcolor: 'background.paper',
+                                            }}
+                                        >
                                             <Button size="small" onClick={onResume} disabled={!jobId}>
                                                 Resume
                                             </Button>
