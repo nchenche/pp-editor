@@ -120,6 +120,17 @@ export default function TemplateSequence({
         );
     }
 
+    // Designed sequence is empty: keep a stable, non-collapsing placeholder.
+    if (typeof maxResidueCount === 'number' && maxResidueCount <= 0) {
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: CELL_HEIGHT + 4 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Add residues to enable template mapping preview.
+                </Typography>
+            </Box>
+        );
+    }
+
     const isEnabled = mapping?.enabled === true;
 
     const offsetCount = Math.max(0, Number(mapping.offset) || 0);

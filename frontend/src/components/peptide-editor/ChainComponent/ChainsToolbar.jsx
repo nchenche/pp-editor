@@ -20,7 +20,9 @@ export default function ChainsToolbar({
 
     const constraintModeLabel = constraintMode === 'template'
         ? 'Template guidance'
-        : 'Secondary structure';
+        : constraintMode === 'none'
+            ? 'None'
+            : 'Secondary structure';
 
     const btnSx = {
         textTransform: 'none',
@@ -96,6 +98,15 @@ export default function ChainsToolbar({
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 MenuListProps={{ dense: true, 'aria-label': 'constraint mode menu' }}
             >
+                <MenuItem
+                    selected={constraintMode === 'none'}
+                    onClick={() => {
+                        onConstraintModeChange('none');
+                        setConstraintModeEl(null);
+                    }}
+                >
+                    None
+                </MenuItem>
                 <MenuItem
                     selected={constraintMode === 'ss'}
                     onClick={() => {

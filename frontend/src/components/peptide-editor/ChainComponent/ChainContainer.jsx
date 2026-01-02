@@ -13,7 +13,7 @@ export default function ChainContainer({
     showConstraintsRow = true,
     showTemplateRow = true,
     // Layout
-    labelColWidth = 200,
+    labelColWidth = 180,
     gapY = 0.1,
     // Header actions (optional – design only for now)
     onSequenceMenu = () => { },

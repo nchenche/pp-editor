@@ -103,6 +103,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             const v = raw == null ? '' : String(raw).trim().toLowerCase();
             if (v === 'template') return 'template';
             if (v === 'ss') return 'ss';
+            if (v === 'none') return 'none';
             return 'ss';
         } catch {
             return 'ss';

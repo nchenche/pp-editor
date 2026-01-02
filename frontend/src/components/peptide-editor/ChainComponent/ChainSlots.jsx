@@ -35,6 +35,18 @@ export const ChainSlots = ({
 }) => {
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
+
+    const effectiveRowMonomerLists = useMemo(() => {
+        if (Array.isArray(rowMonomerLists) && rowMonomerLists.length > 0) return rowMonomerLists;
+        // Empty BILN: keep a single placeholder row so the Chains section isn't blank.
+        return [[]];
+    }, [rowMonomerLists]);
+
+    const safeActiveSeqIdx = useMemo(() => {
+        const n = Number(activeSeqIdx);
+        if (!Number.isFinite(n) || n < 0) return 0;
+        return Math.min(n, Math.max(0, effectiveRowMonomerLists.length - 1));
+    }, [activeSeqIdx, effectiveRowMonomerLists.length]);
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
 
     const ALLOWED = ['H', 'E', 'C', 'T', 'B', 'I', '-'];
@@ -67,12 +79,12 @@ export const ChainSlots = ({
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
             {(() => {
                 let runningOffset = 0;
-                return rowMonomerLists.map((list, seqIdx) => {
+                return effectiveRowMonomerLists.map((list, seqIdx) => {
 
                 const sequenceOffset = runningOffset;
                 runningOffset += (list?.length || 0);
 
-                const mapping = scaffoldMappings[seqIdx] || {};
+                const mapping = scaffoldMappings?.[seqIdx] || {};
 
                 const templateSlot = (
                     <Box sx={{ width: 'fit-content' }}>
@@ -91,18 +103,28 @@ export const ChainSlots = ({
                             display: 'flex',
                             gap: GRID_GAP,
                             py: 0.5,
-                            px: 1,
+                            px: 0.75,
                             border: 1,
                             borderColor: 'divider',
                             borderRadius: 1,
-                            minHeight: CELL_HEIGHT,
+                            // Match the visual height of the sequence row when empty.
+                            minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
                             alignItems: 'center',
                         }}
                     >
                         {list.length === 0 ? (
-                            <Typography variant="body2" sx={{ color: 'text.secondary', px: 0.5 }}>
-                                No residues. Add monomers to define constraints.
-                            </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: 'text.secondary',
+                                fontSize: 12,
+                                userSelect: 'none',
+                                px: 0.5,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            No residues yet. Add monomers to start.
+                        </Typography>
                         ) : (
                             list.map((m, i) => {
                                 const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
@@ -154,9 +176,9 @@ export const ChainSlots = ({
                         onClick={() => onSetActiveSeqIdx(seqIdx)}
                         sx={{
                             position: 'relative',
-                            zIndex: (t) => (overlayActive && seqIdx === activeSeqIdx) ? t.zIndex.modal + 2 : 'auto',
-                            transform: (overlayActive && seqIdx === activeSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
-                            boxShadow: (overlayActive && seqIdx === activeSeqIdx)
+                            zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 2 : 'auto',
+                            transform: (overlayActive && seqIdx === safeActiveSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
+                            boxShadow: (overlayActive && seqIdx === safeActiveSeqIdx)
                                 ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
                                 : '2',
                             transition: 'transform 180ms ease, box-shadow 180ms ease',
@@ -191,7 +213,7 @@ export const ChainSlots = ({
                                             linkMap={linkMap}
                                             isDragging={isDragging}
                                             sequenceOffset={sequenceOffset}
-                                            isActive={seqIdx === activeSeqIdx}
+                                            isActive={seqIdx === safeActiveSeqIdx}
                                             hoveredMonomer={overlayActive ? null : hoveredMonomer}
                                             onDelete={handleDeleteMonomerItem}
                                             handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}

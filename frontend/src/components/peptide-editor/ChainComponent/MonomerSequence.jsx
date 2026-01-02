@@ -134,6 +134,20 @@ export const MonomerSequence = ({
                         // no overflow here; wrapper above handles scroll
                     }}
                 >
+                    {(!Array.isArray(monomers) || monomers.length === 0) && (
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: 'text.secondary',
+                                fontSize: 12,
+                                userSelect: 'none',
+                                px: 0.5,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            No residues yet. Add monomers to start.
+                        </Typography>
+                    )}
                     {(() => {
                         let aaSeqId = 0;
                         return monomers.map((monomer, index) => {
