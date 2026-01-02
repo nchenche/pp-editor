@@ -57,6 +57,8 @@ const MAX_MONOMERS = 40;
 const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
 
 const MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY = 'pp-editor:molstar-template-overlay:v1';
+const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity:v1';
+const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
 
@@ -129,7 +131,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     });
 
-    const [templateOverlayOpacityPct, setTemplateOverlayOpacityPct] = useState(25);
+    const [templateOverlayOpacityPct, setTemplateOverlayOpacityPct] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY);
+            const n = Number(raw);
+            if (!Number.isFinite(n)) return 25;
+            return Math.min(60, Math.max(5, Math.round(n)));
+        } catch {
+            return 25;
+        }
+    });
 
     useEffect(() => {
         try {
@@ -150,6 +161,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [templateOverlayEnabledRaw]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY, String(templateOverlayOpacityPct));
+        } catch {
+            // ignore
+        }
+    }, [templateOverlayOpacityPct]);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -386,8 +405,40 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
     const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
-    const [autoSync3DRaw, setAutoSync3DRaw] = useState(true);
+    const [autoSync3DRaw, setAutoSync3DRaw] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(AUTO_SYNC_3D_STORAGE_KEY);
+            if (raw == null) return true;
+            const v = String(raw).trim().toLowerCase();
+            return v === 'false' ? false : true;
+        } catch {
+            return true;
+        }
+    });
     const autoSync3D = !anyScaffoldEnabled && autoSync3DRaw;
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(AUTO_SYNC_3D_STORAGE_KEY, String(!!autoSync3DRaw));
+        } catch {
+            // ignore
+        }
+    }, [autoSync3DRaw]);
+
+    const clearConstraintsForSeq = useCallback((seqIdx) => {
+        setConstraintsBySeq((prev) => {
+            const lists = rowMonomerLists;
+            const targetLen = lists?.[seqIdx]?.length ?? 0;
+            const existing = Array.isArray(prev?.[seqIdx]) ? prev[seqIdx] : [];
+            const alreadyClear = existing.length === targetLen && existing.every((ch) => String(ch || '-').toUpperCase() === '-');
+            if (alreadyClear) return prev;
+
+            const next = prev.map((a) => (Array.isArray(a) ? a.slice() : []));
+            while (next.length < lists.length) next.push([]);
+            next[seqIdx] = new Array(targetLen).fill('-');
+            return next;
+        });
+    }, [rowMonomerLists]);
 
 
     const [replaceSelect, setReplaceSelect] = useState({ open: false, mode: null, sourceMonomer: null });
@@ -2012,7 +2063,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                                             // Keep the same mutual-exclusion rule as ChainSlots:
                                                             // template is blocked by constraints only when NO template is enabled anywhere.
-                                                            const templateToggleDisabled = !enabled && hasConstraints && !anyScaffoldEnabled;
+                                                            const templateToggleDisabled = false;
 
                                                             const chains = scaffoldTemplate?.chainData ?? [];
                                                             const chainOptions = (chains.length ? chains : (scaffoldTemplate?.chains || [])).map((c) =>
@@ -2038,18 +2089,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                             checked={enabled}
                                                                             onChange={(e) => {
                                                                                 const nextEnabled = !!e.target.checked;
-                                                                                    handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
+                                                                                if (nextEnabled && hasConstraints) {
+                                                                                    // Seamless UX: enabling mapping clears constraints for this chain.
+                                                                                    clearConstraintsForSeq(idx);
+                                                                                }
+                                                                                handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
                                                                             }}
                                                                             disabled={!scaffoldTemplate || templateToggleDisabled}
                                                                             inputProps={{ 'aria-label': 'toggle template mapping for selected chain' }}
                                                                         />
                                                                     </Box>
-
-                                                                    {templateToggleDisabled && (
-                                                                        <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                                                            Clear secondary-structure constraints to enable template mapping.
-                                                                        </Typography>
-                                                                    )}
 
                                                                     <TextField
                                                                         select

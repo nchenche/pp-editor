@@ -1,5 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+const SCAFFOLD_MAPPINGS_STORAGE_KEY = 'pp-editor:scaffold-mappings:v1';
+
+function readPersistedRawMappings() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window?.localStorage?.getItem(SCAFFOLD_MAPPINGS_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
 const emptyMapping = {
     enabled: false,
     chainId: null,
@@ -13,7 +28,18 @@ const emptyMapping = {
 };
 
 export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
-    const [rawMappings, setRawMappings] = useState([]);
+    const [rawMappings, setRawMappings] = useState(() => {
+        const persisted = readPersistedRawMappings();
+        return Array.isArray(persisted) ? persisted : [];
+    });
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(SCAFFOLD_MAPPINGS_STORAGE_KEY, JSON.stringify(rawMappings));
+        } catch {
+            /* ignore quota errors */
+        }
+    }, [rawMappings]);
 
     // AA-only lengths for each designed chain (caps excluded)
     const designAaLengths = useMemo(

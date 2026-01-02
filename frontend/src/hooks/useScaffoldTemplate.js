@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
 
@@ -6,13 +6,68 @@ import { apiFetch } from '../utils/api';
 // Keyed by template_id returned by /api/structures/parse_pdb.
 const TEMPLATE_PDB_TEXT_CACHE = new Map();
 
+const SCAFFOLD_TEMPLATE_STORAGE_KEY = 'pp-editor:scaffold-template:v1';
+
+function readPersistedTemplate() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window?.localStorage?.getItem(SCAFFOLD_TEMPLATE_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        const id = parsed?.id ?? null;
+        if (!id) return null;
+        return {
+            id,
+            name: parsed?.name ?? null,
+            text: null,
+            chains: Array.isArray(parsed?.chains) ? parsed.chains : null,
+            chainData: Array.isArray(parsed?.chainData) ? parsed.chainData : null,
+            source: parsed?.source ?? null,
+            pdbPath: parsed?.pdbPath ?? null,
+            warnings: Array.isArray(parsed?.warnings) ? parsed.warnings : [],
+            messages: Array.isArray(parsed?.messages) ? parsed.messages : [],
+            standardization: parsed?.standardization ?? null,
+        };
+    } catch {
+        return null;
+    }
+}
+
+function persistTemplateMeta(scaffoldTemplate) {
+    if (typeof window === 'undefined') return;
+    try {
+        if (!scaffoldTemplate?.id) {
+            window?.localStorage?.removeItem(SCAFFOLD_TEMPLATE_STORAGE_KEY);
+            return;
+        }
+        // Persist metadata only; PDB text can be large and is re-fetched by template id.
+        const payload = {
+            id: scaffoldTemplate.id,
+            name: scaffoldTemplate?.name ?? null,
+            chains: scaffoldTemplate?.chains ?? null,
+            chainData: scaffoldTemplate?.chainData ?? null,
+            source: scaffoldTemplate?.source ?? null,
+            pdbPath: scaffoldTemplate?.pdbPath ?? null,
+            warnings: scaffoldTemplate?.warnings ?? [],
+            messages: scaffoldTemplate?.messages ?? [],
+            standardization: scaffoldTemplate?.standardization ?? null,
+        };
+        window?.localStorage?.setItem(SCAFFOLD_TEMPLATE_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+        /* ignore quota/serialization errors */
+    }
+}
+
 export function useScaffoldTemplate() {
-    const [scaffoldTemplate, setScaffoldTemplate] = useState(null);
+    const [scaffoldTemplate, setScaffoldTemplate] = useState(() => readPersistedTemplate());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [warnings, setWarnings] = useState([]);
     const [messages, setMessages] = useState([]);
     const [standardization, setStandardization] = useState(null);
+
+    const hydratedRef = useRef(false);
 
     const fetchTemplatePdbText = useCallback(async (templateId) => {
         const id = templateId ? String(templateId).trim() : '';
@@ -30,6 +85,33 @@ export function useScaffoldTemplate() {
         TEMPLATE_PDB_TEXT_CACHE.set(id, text);
         return text;
     }, []);
+
+    // Hydrate PDB text for persisted templates (metadata-only in localStorage).
+    useEffect(() => {
+        if (hydratedRef.current) return;
+        hydratedRef.current = true;
+
+        const templateId = scaffoldTemplate?.id ?? null;
+        if (!templateId) return;
+        if (scaffoldTemplate?.text) return;
+
+        fetchTemplatePdbText(templateId)
+            .then((pdbText) => {
+                setScaffoldTemplate((prev) => {
+                    if (!prev || prev.id !== templateId) return prev;
+                    return { ...prev, text: pdbText };
+                });
+            })
+            .catch((e) => {
+                console.warn('[scaffold] hydrate get_pdb_template failed', e);
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Persist scaffold template metadata across navigation.
+    useEffect(() => {
+        persistTemplateMeta(scaffoldTemplate);
+    }, [scaffoldTemplate]);
 
     const buildParsePdbUrl = useCallback((options = {}) => {
         const standardize = options?.standardize ?? true;
@@ -215,6 +297,11 @@ export function useScaffoldTemplate() {
             await deleteTemplateOnServer(templateId);
         }
         setScaffoldTemplate(null);
+        try {
+            window?.localStorage?.removeItem(SCAFFOLD_TEMPLATE_STORAGE_KEY);
+        } catch {
+            // ignore
+        }
         setError(null);
         setWarnings([]);
         setMessages([]);
