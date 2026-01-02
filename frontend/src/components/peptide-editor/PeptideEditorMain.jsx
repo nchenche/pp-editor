@@ -59,6 +59,8 @@ const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
 const MOLSTAR_TEMPLATE_OVERLAY_STORAGE_KEY = 'pp-editor:molstar-template-overlay:v1';
 const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity:v1';
 const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
+const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
+const TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY = 'pp-editor:template-mapping-seq-idx:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
 
@@ -83,8 +85,25 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         isCanceling: isCancelingConformerJob,
     } = useGenerate3D(API_BASE_URL);
 
-    const [active3DPanel, setActive3DPanel] = useState(null);
-    const [templateMappingSeqIdx, setTemplateMappingSeqIdx] = useState(0);
+    const [active3DPanel, setActive3DPanel] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(ACTIVE_3D_PANEL_STORAGE_KEY);
+            const v = raw == null ? '' : String(raw).trim();
+            return v ? v : null;
+        } catch {
+            return null;
+        }
+    });
+
+    const [templateMappingSeqIdx, setTemplateMappingSeqIdx] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY);
+            const n = Number(raw);
+            return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+        } catch {
+            return 0;
+        }
+    });
 
     const theme = useTheme();
 
@@ -169,6 +188,23 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [templateOverlayOpacityPct]);
+
+    useEffect(() => {
+        try {
+            if (active3DPanel) window?.localStorage?.setItem(ACTIVE_3D_PANEL_STORAGE_KEY, String(active3DPanel));
+            else window?.localStorage?.removeItem?.(ACTIVE_3D_PANEL_STORAGE_KEY);
+        } catch {
+            // ignore
+        }
+    }, [active3DPanel]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(TEMPLATE_MAPPING_SEQ_IDX_STORAGE_KEY, String(templateMappingSeqIdx));
+        } catch {
+            // ignore
+        }
+    }, [templateMappingSeqIdx]);
 
     const { initialBiln, initialConstraints } = useInitialDesignState({ fallbackBiln: initBiln });
     const {
@@ -264,18 +300,29 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return out;
     }, []);
 
-    // Keep Template panel chain selector aligned with the currently active chain.
+    // Keep Template panel chain selector valid.
     useEffect(() => {
         const n = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
         if (!n) {
             if (templateMappingSeqIdx !== 0) setTemplateMappingSeqIdx(0);
             return;
         }
+        const clamped = Math.min(Math.max(0, Number(templateMappingSeqIdx) || 0), n - 1);
+        if (clamped !== templateMappingSeqIdx) setTemplateMappingSeqIdx(clamped);
+    }, [rowMonomerLists, templateMappingSeqIdx]);
+
+    // When opening the Template panel, default to the currently active chain once.
+    const prevActive3DPanelRef = useRef(active3DPanel);
+    useEffect(() => {
+        const prev = prevActive3DPanelRef.current;
+        prevActive3DPanelRef.current = active3DPanel;
+
+        if (active3DPanel !== 'template' || prev === 'template') return;
+        const n = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
+        if (!n) return;
         const clampedActive = Math.min(Math.max(0, Number(activeSeqIdx) || 0), n - 1);
-        if (active3DPanel === 'template' && templateMappingSeqIdx !== clampedActive) {
-            setTemplateMappingSeqIdx(clampedActive);
-        }
-    }, [active3DPanel, activeSeqIdx, rowMonomerLists, templateMappingSeqIdx]);
+        setTemplateMappingSeqIdx(clampedActive);
+    }, [active3DPanel, activeSeqIdx, rowMonomerLists]);
 
     const [limitDialog, setLimitDialog] = useState({ open: false, message: '' });
     const { tokenCount: currentTokenCount } = useMemo(
