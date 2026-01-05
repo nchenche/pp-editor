@@ -180,7 +180,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                 sx={{
                     flex: 1,
                     minHeight: 0,
-                    height: "80%",
+                    height: "800%",
                     pt: 1,
                     pb: 2,
                     position: "relative",

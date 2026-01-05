@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { alpha, keyframes } from '@mui/material/styles';
 
 import { OverlayPortalProvider } from '../components/common/OverlayPortalContext';
@@ -9,6 +9,16 @@ import Tooltip from '@mui/material/Tooltip';
 import Button from '@mui/material/Button';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+
+const SidebarCollapseContext = createContext(null);
+
+export function useSidebarCollapse() {
+    const ctx = useContext(SidebarCollapseContext);
+    if (!ctx) {
+        throw new Error('useSidebarCollapse must be used within DesignPageLayoutMUI');
+    }
+    return ctx;
+}
 
 
 // Use outside the component, only defined once
@@ -377,11 +387,9 @@ export const DesignPageLayoutMUI = ({
                     minWidth: 0,
                     width: '100%',
                     overflow: 'hidden',
-                    // overflowX: 'hidden',
                     borderRadius: 1,
                     p: 1,
                     borderWidth: overlayActive ? 2 : 1,
-                    // bgcolor: '#a5aa52',
                     position: overlayActive ? 'relative' : 'static',
                     zIndex: (t) => (overlayActive ? t.zIndex.modal + 20 : 'auto'),
                     borderColor: (t) =>
@@ -394,73 +402,30 @@ export const DesignPageLayoutMUI = ({
                         overlayActive
                             ? '0 10px 22px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.16)'
                             : 'none',
-                    // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
                     willChange: 'transform, box-shadow',
                     '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
                 }}
             >
                 {/* Keep the sidebar mounted even when collapsed (prevents library/output from reloading) */}
                 <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                    {/* Hide button */}
-                    <Box sx={{ mb: 0, position: 'relative', display: sidebarCollapsed ? 'none' : 'block' }}>
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                top: -8,
-                                left: -8,
-                            }}
-                        >
-                            <Tooltip title="Hide panels" placement="left" arrow>
-                                <Button
-                                    size="small"
-                                    color="inherit"
-                                    onClick={() => setSidebarCollapsed(true)}
-                                    startIcon={<ChevronRightIcon fontSize="small" />}
-                                    sx={{
-                                        minWidth: 0,
-                                        px: 0.75,
-                                        py: 0.25,
-                                        textTransform: 'none',
-                                        fontSize: 12,
-                                        color: 'text.secondary',
-                                        borderColor: 'divider',
-                                        '&:hover': { bgcolor: 'action.hover', borderColor: 'divider' },
-                                    }}
-                                    aria-label="hide right panels"
-                                >
-                                    Hide panels
-                                </Button>
-                            </Tooltip>
-
-                            {/* icon-only fallback for narrow widths */}
-                            <Tooltip title="Hide panels" placement="left" arrow>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => setSidebarCollapsed(true)}
-                                    sx={{
-                                        display: { xs: 'inline-flex', sm: 'none' },
-                                        ml: 0.5,
-                                        color: 'text.secondary',
-                                    }}
-                                    aria-label="hide right panels (icon)"
-                                >
-                                    <ChevronRightIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
-                    </Box>
 
                     {/* Sidebar content (mounted; just hidden when collapsed) */}
                     <Box
                         sx={{
-                            mt: 3,
                             flex: 1,
                             minHeight: 0,
                             display: sidebarCollapsed ? 'none' : 'flex',
                             flexDirection: 'column',
                         }}
                     >
-                        {sidebar}
+                        <SidebarCollapseContext.Provider
+                            value={{
+                                sidebarCollapsed,
+                                setSidebarCollapsed,
+                            }}
+                        >
+                            {sidebar}
+                        </SidebarCollapseContext.Provider>
                     </Box>
                 </Box>
 

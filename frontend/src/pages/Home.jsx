@@ -3,14 +3,226 @@ import { useCallback, useRef, useState, forwardRef, startTransition } from 'reac
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import { ConfirmProvider, useConfirm } from '../components/common/ConfirmDialogProvider';
 
-import { DesignPageLayoutMUI } from '../layouts/DesignPageLayout';
+import { DesignPageLayoutMUI, useSidebarCollapse } from '../layouts/DesignPageLayout';
 import { PeptideEditorMain } from '../components/peptide-editor/PeptideEditorMain';
 import { MonomerLibraryContainer } from './designPeptide/components/monomerLibrary/MonomerLibraryContainer';
 import { OutputContainer } from '../components/output/OutputContainer';
 import { ConformerJobsPanel } from '../components/output/ConformerJobsPanel';
+
+function SidebarTabbedPanel({
+  tabIndex,
+  onTabChange,
+  handleAddingMonomer,
+  uiState,
+  setUiState,
+  replaceSelection,
+  outputData,
+}) {
+  const { setSidebarCollapsed } = useSidebarCollapse();
+
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'row',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Content area (left) */}
+      <Box sx={{ flex: 1, width: 0, minWidth: 0, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+        <Box
+          role="tabpanel"
+          sx={{
+            display: tabIndex === 0 ? 'flex' : 'none',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+          aria-hidden={tabIndex !== 0}
+        >
+          <MonomerLibraryContainer
+            filterValue=""
+            handleAddingMonomer={handleAddingMonomer}
+            uiState={uiState}
+            setUiState={setUiState}
+            replaceSelection={replaceSelection}
+          />
+        </Box>
+
+        <Box
+          role="tabpanel"
+          sx={{
+            display: tabIndex === 1 ? 'flex' : 'none',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+          aria-hidden={tabIndex !== 1}
+        >
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <OutputContainer outputData={outputData} />
+          </Box>
+        </Box>
+
+        <Box
+          role="tabpanel"
+          sx={{
+            display: tabIndex === 2 ? 'flex' : 'none',
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+          aria-hidden={tabIndex !== 2}
+        >
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <ConformerJobsPanel />
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Tab rail (right) */}
+      <Box
+        sx={{
+          flex: '0 0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          borderLeft: 1,
+          borderColor: 'divider',
+          width: 48,
+          minWidth: 48,
+        }}
+      >
+        <Box
+          sx={{
+            flex: '0 0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 0.5,
+            borderBottom: 1,
+            borderColor: 'divider',
+          }}
+        >
+          <Tooltip title="Hide panels" placement="left" arrow>
+            <IconButton
+              size="small"
+              onClick={() => setSidebarCollapsed(true)}
+              aria-label="hide right panels"
+              sx={{ color: 'text.secondary' }}
+            >
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Tabs
+          orientation="vertical"
+          value={tabIndex}
+          onChange={onTabChange}
+          variant="fullWidth"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            '& .MuiTabs-flexContainer': {
+              height: '100%',
+            },
+            '& .MuiTab-root': {
+              flex: 1,
+              minHeight: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: 0,
+              py: 0,
+              minWidth: '100%',
+              width: '100%',
+              position: 'relative',
+              overflow: 'visible',
+              textTransform: 'uppercase',
+              fontSize: 12,
+              letterSpacing: 0.6,
+              lineHeight: 1.1,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              borderRadius: 0,
+              color: 'text.secondary',
+              '&.Mui-selected': {
+                color: 'text.primary',
+                bgcolor: 'action.selected',
+                fontWeight: 600,
+              },
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              left: 0,
+              right: 'auto',
+              width: 3,
+            },
+          }}
+        >
+          <Tab
+            label={
+              <Box
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Monomer Library
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Output
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box
+                component="span"
+                sx={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Jobs
+              </Box>
+            }
+          />
+        </Tabs>
+      </Box>
+    </Box>
+  );
+}
 
 function getMonomerCode(m) {
   return m?.symbol || m?.m_abbr || m?.pdbName || '';
@@ -193,67 +405,15 @@ const HomeInner = forwardRef((props, ref) => {
     <div className="h-full min-h-0">
       <DesignPageLayoutMUI
         sidebar={
-          <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Tabs
-              value={tabIndex}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
-            >
-              <Tab label="Monomer Library" />
-              <Tab label="Output" />
-              <Tab label="Jobs" />
-            </Tabs>
-
-            <Box
-              role="tabpanel"
-              sx={{
-                display: tabIndex === 0 ? 'flex' : 'none',
-                flex: 1,
-                minHeight: 0,
-                overflow: 'hidden',
-              }}
-              aria-hidden={tabIndex !== 0}
-            >
-              <MonomerLibraryContainer
-                filterValue=""
-                handleAddingMonomer={handleAddingMonomer}
-                uiState={uiState}
-                setUiState={setUiState}
-                replaceSelection={replaceSelection}
-              />
-            </Box>
-
-            <Box
-              role="tabpanel"
-              sx={{
-                display: tabIndex === 1 ? 'flex' : 'none',
-                flex: 1,
-                minHeight: 0,
-                overflow: 'hidden',
-              }}
-              aria-hidden={tabIndex !== 1}
-            >
-              <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-                <OutputContainer outputData={outputData} />
-              </Box>
-            </Box>
-
-            <Box
-              role="tabpanel"
-              sx={{
-                display: tabIndex === 2 ? 'flex' : 'none',
-                flex: 1,
-                minHeight: 0,
-                overflow: 'hidden',
-              }}
-              aria-hidden={tabIndex !== 2}
-            >
-              <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-                <ConformerJobsPanel />
-              </Box>
-            </Box>
-          </Box>
+          <SidebarTabbedPanel
+            tabIndex={tabIndex}
+            onTabChange={handleTabChange}
+            handleAddingMonomer={handleAddingMonomer}
+            uiState={uiState}
+            setUiState={setUiState}
+            replaceSelection={replaceSelection}
+            outputData={outputData}
+          />
         }
         viewerContainer={
           <PeptideEditorMain

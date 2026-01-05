@@ -297,7 +297,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 </Typography>
             </Box> */}
 
-            <Box mt={2}>
+            <Box>
                 {/* Optional label, only visible from small screens up */}
                 <Typography
                     variant="overline"

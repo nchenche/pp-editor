@@ -60,7 +60,7 @@ const OUTPUT_FIELDS = Object.freeze([
     { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
     { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
     { key: 'xyz', label: 'XYZ', filename: 'pep-edit_structure.xyz', mime: 'chemical/x-xyz' },
-    { key: 'sdf3d', label: 'SDF 3D', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
+    // { key: 'sdf3d', label: 'SDF 3D', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
     { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
 
 ]);
@@ -190,7 +190,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
 
     return (
         <Paper
-            variant="outlined"
+            // variant="outlined"
             sx={{ p: 1, height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
             {...props}
         >
@@ -260,6 +260,7 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
                             sx={{
                                 // shrink on small widths; don't dominate the header on medium widths
                                 flex: '1 1 150px',
+                                fontSize: 12,
                                 minWidth: { xs: '100%', sm: 150, md: 150 },
                                 maxWidth: { xs: '100%', md: 200 },
                                 '& .MuiSelect-select': {
