@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { Fragment, memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Box, Typography, CircularProgress, ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 import { useLibraryFetching } from '../../../../hooks/useLibraryFetching';
@@ -80,9 +80,13 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     // Debounce the search value
     const debouncedSearch = useDebouncedValue(searchValue || filterValue || '', 220);
 
-    const filteredMonomers = useMemo(() => {
+    const filteredResult = useMemo(() => {
         if (!Array.isArray(allMonomers) || allMonomers.length === 0) return [];
         let out = allMonomers;
+
+        const replaceActive = !!replaceSelection?.active;
+        const replaceMode = replaceSelection?.mode;
+        const isAnalogMode = replaceActive && replaceMode === 'analog';
 
         const s = debouncedSearch?.trim().toLowerCase();
         if (s) {
@@ -92,17 +96,42 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         if (quickFilters.natural) out = out.filter(m => m.m_subtype === 'natural');
         if (quickFilters.nonNatural) out = out.filter(m => m.m_subtype === 'non-natural');
 
-        // Replace-selection analog filter
-        if (replaceSelection?.active && replaceSelection.mode === 'analog' && replaceSelection.sourceMonomer) {
-            const srcAnalog = replaceSelection.sourceMonomer?.['natural_analog'];
-            if (srcAnalog != null && srcAnalog !== '') {
+        // Replace-selection analog filter:
+        // Apply only when we actually have matches; otherwise fall back to showing all.
+        let analogFilter = { active: false, hasMatches: false };
+        if (isAnalogMode && replaceSelection?.sourceMonomer) {
+            const srcAnalog = replaceSelection.sourceMonomer?.['natural_analog'] ?? replaceSelection.sourceMonomer?.natAnalog;
+            if (srcAnalog != null && String(srcAnalog).trim() !== '') {
                 const key = String(srcAnalog).toLowerCase();
-                out = out.filter(m => String(m?.natAnalog ?? '').toLowerCase() === key);
+                const analogOut = out.filter(m => String(m?.natAnalog ?? m?.natural_analog ?? '').toLowerCase() === key);
+                analogFilter = { active: true, hasMatches: analogOut.length > 0 };
+                if (analogOut.length > 0) out = analogOut;
             }
         }
 
-        return out;
+        // During replacement, never show the source monomer as a candidate (applies to both analog and other).
+        if (replaceActive && replaceSelection?.sourceMonomer) {
+            const src = replaceSelection.sourceMonomer;
+            const srcId = src?._id != null ? String(src._id) : '';
+            const srcPdb = String(src?.pdbName ?? '').toLowerCase();
+            const srcSym = String(src?.symbol ?? src?.m_abbr ?? '').toLowerCase();
+            out = out.filter((m) => {
+                if (!m) return false;
+                if (srcId && m._id != null && String(m._id) === srcId) return false;
+                const mp = String(m?.pdbName ?? '').toLowerCase();
+                if (srcPdb && mp && mp === srcPdb) return false;
+                const ms = String(m?.symbol ?? m?.m_abbr ?? '').toLowerCase();
+                if (srcSym && ms && ms === srcSym) return false;
+                return true;
+            });
+        }
+
+        return { monomers: out, analogFilter };
     }, [allMonomers, debouncedSearch, quickFilters, replaceSelection]);
+
+    const filteredMonomers = filteredResult?.monomers ?? [];
+    const deferredMonomers = useDeferredValue(filteredMonomers);
+    const analogFilter = filteredResult?.analogFilter ?? { active: false, hasMatches: false };
 
     // Keep current linking settings without causing renders
     const linkingRef = useRef({
@@ -162,8 +191,16 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
             >
                 <Box sx={{ flex: '0 0 auto', px: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                        Showing {Array.isArray(filteredMonomers) ? filteredMonomers.length : 0} of {Array.isArray(allMonomers) ? allMonomers.length : 0} monomers
+                        Showing {Array.isArray(deferredMonomers) ? deferredMonomers.length : 0} of {Array.isArray(allMonomers) ? allMonomers.length : 0} monomers
                     </Typography>
+
+                    {replaceSelection?.active ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.9 }}>
+                            {analogFilter.active
+                                ? (analogFilter.hasMatches ? '(analogs only)' : '(no analogs found; showing all)')
+                                : '(pick replacement from library)'}
+                        </Typography>
+                    ) : null}
 
                     <Box sx={{ ml: 'auto' }}>
                         <ToggleButtonGroup
@@ -192,7 +229,20 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     </Box>
                 </Box>
 
-                <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflowY: 'auto' }}>
+                <Box
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        position: 'relative',
+                        overflowY: 'auto',
+                        borderRadius: 1,
+                        border: replaceSelection?.active ? 2 : 0,
+                        borderColor: replaceSelection?.active ? 'primary.main' : 'transparent',
+                        boxShadow: replaceSelection?.active
+                            ? '0 10px 22px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.14)'
+                            : 'none',
+                    }}
+                >
                     {initialLoading && (
                         <Box
                             position="absolute"
@@ -219,7 +269,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     ) : null}
 
                     <MonomerLibraryItems
-                        monomers={filteredMonomers}
+                        monomers={deferredMonomers}
                         handleAddingMonomer={handleAdd}
                         activeSeqIdx={activeSeqIdx}
                         itemSize={itemSize}

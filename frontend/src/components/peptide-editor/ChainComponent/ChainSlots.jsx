@@ -206,11 +206,15 @@ export const ChainSlots = ({
                         onClick={() => onSetActiveSeqIdx(seqIdx)}
                         sx={{
                             position: 'relative',
-                            zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 2 : 'auto',
+                            zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
                             transform: (overlayActive && seqIdx === safeActiveSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
                             boxShadow: (overlayActive && seqIdx === safeActiveSeqIdx)
                                 ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
                                 : '2',
+                            borderRadius: 1,
+                            outline: (overlayActive && seqIdx === safeActiveSeqIdx)
+                                ? (t) => `2px solid ${alpha(t.palette.secondary.main, t.palette.mode === 'dark' ? 0.55 : 0.45)}`
+                                : 'none',
                             transition: 'transform 180ms ease, box-shadow 180ms ease',
                             mb: 1,
                         }}

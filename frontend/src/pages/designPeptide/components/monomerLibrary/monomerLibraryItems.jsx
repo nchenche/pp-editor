@@ -136,6 +136,7 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
         </Box>
     );
 
+
     return (
         <Card
             variant="outlined"

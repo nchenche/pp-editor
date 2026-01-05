@@ -302,6 +302,11 @@ export const DesignPageLayoutMUI = ({
                             borderRadius: 1,
                             pl: 0,
                             display: 'flex',
+                            position: overlayActive ? 'relative' : 'static',
+                            zIndex: (t) => (overlayActive ? t.zIndex.modal + 2 : 'auto'),
+                            boxShadow: overlayActive
+                                ? '0 10px 22px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.16)'
+                                : undefined,
                             flexDirection: 'column',
                             bgcolor: 'transparent',
                         }}
@@ -378,7 +383,8 @@ export const DesignPageLayoutMUI = ({
                     p: 1,
                     borderWidth: overlayActive ? 2 : 1,
                     // bgcolor: '#a5aa52',
-                    position: 'relative',
+                    position: overlayActive ? 'relative' : 'static',
+                    zIndex: (t) => (overlayActive ? t.zIndex.modal + 20 : 'auto'),
                     borderColor: (t) =>
                         overlayActive
                             ? (t.palette.mode === 'dark'
@@ -387,8 +393,7 @@ export const DesignPageLayoutMUI = ({
                             : t.palette.divider,
                     boxShadow: (t) =>
                         overlayActive
-                            ? `
-                               inset 0 0 0 2px ${alpha(t.palette.common.black, 0.48)}`
+                            ? '0 10px 22px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.16)'
                             : 'none',
                     // animation: overlayActive ? `${ringPulse} 600ms ease-out` : 'none',
                     willChange: 'transform, box-shadow',
