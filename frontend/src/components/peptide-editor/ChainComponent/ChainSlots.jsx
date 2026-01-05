@@ -134,8 +134,8 @@ export const ChainSlots = ({
                             gap: GRID_GAP,
                             py: 0.5,
                             px: 0.75,
-                            border: 1,
-                            borderColor: 'divider',
+                            // border: 1,
+                            // borderColor: 'divider',
                             borderRadius: 1,
                             // Match the visual height of the sequence row when empty.
                             minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
@@ -207,20 +207,17 @@ export const ChainSlots = ({
                         sx={{
                             position: 'relative',
                             zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
-                            transform: (overlayActive && seqIdx === safeActiveSeqIdx) ? 'translateY(-2px) scale(1.01)' : 'none',
-                            boxShadow: (overlayActive && seqIdx === safeActiveSeqIdx)
-                                ? '0 8px 18px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18)'
-                                : '2',
+                            transform: 'none',
+                            boxShadow: '2',
                             borderRadius: 1,
-                            outline: (overlayActive && seqIdx === safeActiveSeqIdx)
-                                ? (t) => `2px solid ${alpha(t.palette.secondary.main, t.palette.mode === 'dark' ? 0.55 : 0.45)}`
-                                : 'none',
-                            transition: 'transform 180ms ease, box-shadow 180ms ease',
+                            outline: 'none',
+                            transition: 'box-shadow 180ms ease',
                             mb: 1,
                         }}
                     >
                         <ChainContainer
                             seqIdx={seqIdx}
+                            dimReplaceOverlay={overlayActive && seqIdx === safeActiveSeqIdx}
                             onSequenceClear={makeDeleteHandler(seqIdx)}
                             disableSequenceActions={!hasAnyResidues}
                             disableConstraintsActions={!hasAnyResidues}

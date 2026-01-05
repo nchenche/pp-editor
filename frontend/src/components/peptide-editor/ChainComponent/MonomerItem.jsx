@@ -56,7 +56,7 @@ const MonomerItemComponent = (props) => {
     const containerClasses = [
         containerBase,
         isHovered && "outline outline-1 outline-slate-600",
-        isSelected && "outline outline-2 outline-slate-800/80 shadow-md bg-slate-300/40"
+        isSelected && "outline outline-2 outline-slate-800/80 shadow-md bg-slate-300/40 z-20"
     ].filter(Boolean).join(" ");
 
 
@@ -169,7 +169,13 @@ const MonomerItemComponent = (props) => {
             className={containerClasses}
             ref={provided.innerRef}
             {...provided.draggableProps}
-            style={provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {}}
+            style={(() => {
+                const dndStyle = provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {};
+                if (!isSelected) return dndStyle;
+                const current = Number(dndStyle?.zIndex);
+                const boosted = Number.isFinite(current) ? Math.max(current, 3) : 3;
+                return { ...dndStyle, zIndex: boosted };
+            })()}
             onPointerEnter={() => handleMonomerEnter(monomer['res-idx'])}
             onPointerLeave={() => { if (!swapMenuOpen) handleMonomerLeave(monomer['res-idx']); }}
             onContextMenu={handleContextMenuFocus}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, forwardRef, startTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, forwardRef, startTransition } from 'react';
 
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
@@ -31,6 +31,13 @@ function SidebarTabbedPanel({
 }) {
   const { setSidebarCollapsed } = useSidebarCollapse();
   const [hideTooltipOpen, setHideTooltipOpen] = useState(false);
+
+  useEffect(() => {
+    if (!replaceSelection?.active) return;
+    // When replacement is triggered (after selecting analog/other), ensure the library is visible.
+    setSidebarCollapsed(false);
+    if (tabIndex !== 0) onTabChange?.(null, 0);
+  }, [replaceSelection?.active, setSidebarCollapsed, tabIndex, onTabChange]);
 
   return (
     <Box

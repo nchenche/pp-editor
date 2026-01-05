@@ -89,21 +89,16 @@ export const MonomerSequence = ({
                 alignItems: "stretch",
                 p: 0,
                 my: 0.125,
-                mt: 0.25,
-                border: `1px solid ${theme.palette.divider}`,
+                // border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 1,
-                minHeight: 34, // reduced height
-                bgcolor: "background.paper",
-                overflow: "visible",
-                position: "relative",
+                // Give a bit more vertical room so hover action icons (which are absolutely positioned)
+                // don't get clipped by parents that must horizontally scroll.
+                minHeight: 40,
+                bgcolor: 'background.paper',
+                overflow: 'visible',
+                position: 'relative',
                 transition: 'min-height 140ms ease',
-                ...(constraintsMode ? { minHeight: 38 + 6 + cellSize } : null), // room for micro-row
-            }}
-            // for screen readers, let the item be selectable
-            aria-selected={isActive || undefined}
-            onPointerLeave={() => {
-                // Ensure hover is cleared even when leaving via gaps/scroll areas.
-                handleMonomerLeave?.();
+                ...(constraintsMode ? { minHeight: 38 + 6 + cellSize } : null),
             }}
         >
 
@@ -128,6 +123,9 @@ export const MonomerSequence = ({
                         alignItems: "center",
                         gap: gridGap,
                         flex: '0 0 auto',
+                        // Extra top padding gives hover action buttons headroom.
+                        pt: 1,
+                        pb: 0.5,
                         minHeight: 32,
                         px: 0.75,
                         position: "relative",

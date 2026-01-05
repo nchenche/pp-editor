@@ -61,7 +61,7 @@ const MonomerItem = React.memo(({
     return (
         <div
             ref={monomerRef}
-            className={`monomer-item border-2 ${isSelected ? 'border-blue-400 border-dashed' : 'border-slate-500'} h-fit min-w-8 text-center w-fit py-1 rounded-xl ${colorClassMap[monomer.m_subtype]} font-medium text-[0.5rem] select-none cursor-move`}
+            className={`monomer-item border-2 ${isSelected ? 'border-blue-100 border-dashed z-30' : 'border-slate-500'} h-fit min-w-8 text-center w-fit py-1 rounded-xl ${colorClassMap[monomer.m_subtype]} font-medium text-[0.5rem] select-none cursor-move`}
             data-name={monomer.m_name}
             data-symbol={monomer.symbol}
             onClick={handleClick}
@@ -234,50 +234,3 @@ function PeptideEditor() {
 
 
 export default PeptideEditor;
-
-
-
-/* 
-function PeptideEditor() {
-    console.log("%c RENDERING EDITOR", "background-color: lightgreen; padding: 1em;");
-    const [inputText, setInputText] = useState('M-A-V-I-N-E-L');
-
-    const sequences = useMemo(() => {
-        console.log("input changed");
-        return inputText.split('.').map(sequenceString => {
-            const tokens = sequenceString.split('-');
-            return tokens.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
-        });
-    }, [inputText]);
-
-
-    function handleReorder(newOrder, sequenceIndex) {
-        const newSequences = [...sequences];
-
-        // retrieve monomers as object to build the new sequence
-        const reorderedSeq = newOrder.map((token) => MONOMERS.find((m) => m.symbol === token)).filter(Boolean);
-
-        newSequences[sequenceIndex] = reorderedSeq;
-        setInputText(newSequences.map(seq => seq.map(m => m.symbol).join('-')).join('.'));
-    }
-
-    return (
-        <div className='container mx-auto min-w-[600px] w-6/12 border border-slate-500 rounded-md p-2 mt-4'>
-            <SequenceInput value={inputText} onChange={setInputText} />
-            <div className="divider"></div>
-
-            <div className='flex flex-col gap-y-6 justify-center mx-auto min-w-[600px] w-9/12 min-h-[250px] border border-slate-400 rounded-md'>
-                {sequences.map((sequence, index) => (
-                    <SequenceContainer key={index} sequence={sequence} onReorder={(newOrder) => handleReorder(newOrder, index)} index={index} />
-                ))}
-            </div>
-        </div>
-    );
-}
-
-
-    const [inputText, setInputText] = useState('M-A-V-I-N-E-L');
- This is used to set an input text from which a sequence of monomers is built and display. There is a sequenceContainer in which  Monomer components are set accoding to the input text.
-
-for now, each monomer is associated with an index. Moreover, each monomer 
-*/

@@ -3,6 +3,7 @@ import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider } from '@
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { alpha } from '@mui/material/styles';
 
 export default function ChainContainer({
     seqIdx,
@@ -11,6 +12,7 @@ export default function ChainContainer({
     templateSlot,
     showConstraintsRow = true,
     showTemplateRow = true,
+    dimReplaceOverlay = false,
     // Layout
     labelColWidth = 180,
     gapY = 0.1,
@@ -70,7 +72,8 @@ export default function ChainContainer({
                 // OUTER: this is the per-chain horizontal scrollbar
                 width: '100%',
                 overflowX: 'auto',
-                overflowY: 'hidden',
+                // Allow hover UI (monomer action buttons) to render fully.
+                overflowY: 'visible',
                 // keeps scroll nice on trackpads
                 WebkitOverflowScrolling: 'touch',
                 // Firefox
@@ -111,11 +114,27 @@ export default function ChainContainer({
                     borderRadius: 1,
                     p: 1,
                     bgcolor: 'background.paper',
+                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 0.5,
                 }}
             >
+                {dimReplaceOverlay ? (
+                    <Box
+                        aria-hidden
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: 1,
+                            // Backdrop defaults around 0.5; keep this noticeably lighter.
+                            bgcolor: (t) => alpha(t.palette.common.black, t.palette.mode === 'dark' ? 0.12 : 0.12),
+                            zIndex: 1,
+                            pointerEvents: 'none',
+                        }}
+                    />
+                ) : null}
+
                 {/* Row 1: Sequence */}
                 <Box sx={rowGridSx}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0, minHeight: 34 }}>
@@ -212,7 +231,7 @@ export default function ChainContainer({
 
                         </Box>
 
-                        <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 1, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
+                        <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 0, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
                             {templateSlot ?? (
                                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     No template configuration yet.
