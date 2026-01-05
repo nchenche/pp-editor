@@ -25,6 +25,7 @@ function SidebarTabbedPanel({
   outputData,
 }) {
   const { setSidebarCollapsed } = useSidebarCollapse();
+  const [hideTooltipOpen, setHideTooltipOpen] = useState(false);
 
   return (
     <Box
@@ -112,10 +113,22 @@ function SidebarTabbedPanel({
             borderColor: 'divider',
           }}
         >
-          <Tooltip title="Hide panels" placement="left" arrow>
+          <Tooltip
+            title="Hide panel"
+            placement="left"
+            arrow
+            open={hideTooltipOpen}
+            onOpen={() => setHideTooltipOpen(true)}
+            onClose={() => setHideTooltipOpen(false)}
+            disableFocusListener
+            disableTouchListener
+          >
             <IconButton
               size="small"
-              onClick={() => setSidebarCollapsed(true)}
+              onClick={() => {
+                setHideTooltipOpen(false);
+                requestAnimationFrame(() => setSidebarCollapsed(true));
+              }}
               aria-label="hide right panels"
               sx={{ color: 'text.secondary' }}
             >

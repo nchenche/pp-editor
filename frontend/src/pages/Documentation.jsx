@@ -1240,18 +1240,17 @@ const Documentation = () => {
                         <Typography variant="body1" component="p">
                             PEP-EDIT can be used to help prepare inputs for AlphaFold 3 (or other similar models like Chai or Boltz) to model protein-peptide interactions involving modified peptides.
                             However, the predicted structures should be interpreted with caution.
+                        </Typography>
 
-                            <Typography variant="body1" component="p">
-                                The scripts used to prepare the input for AlphaFold3 from SMILES are available {" "}
-                                <MUILink
-                                    href="https://github.com/alexisdougha/smiles-fold-input-builder"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    here. {" "}
-                                </MUILink>
-                            </Typography>
-
+                        <Typography variant="body1" component="p">
+                            The scripts used to prepare the input for AlphaFold3 from SMILES are available {" "}
+                            <MUILink
+                                href="https://github.com/alexisdougha/smiles-fold-input-builder"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                here.
+                            </MUILink>
                         </Typography>
 
                         <Divider sx={{ my: 3 }} />

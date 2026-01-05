@@ -172,6 +172,7 @@ export const DesignPageLayoutMUI = ({
             return !!defaultSidebarCollapsed;
         }
     });
+    const [showPanelsTooltipOpen, setShowPanelsTooltipOpen] = useState(false);
     const [dragging, setDragging] = useState(false);
     const draggingRef = useRef(false); // NEW: source of truth for listeners
 
@@ -430,14 +431,29 @@ export const DesignPageLayoutMUI = ({
                 </Box>
 
                 {/* Collapsed handle overlay */}
-                <Tooltip title="Show panels" placement="left" arrow>
+                <Tooltip
+                    title="Show panels"
+                    placement="left"
+                    arrow
+                    open={showPanelsTooltipOpen}
+                    onOpen={() => setShowPanelsTooltipOpen(true)}
+                    onClose={() => setShowPanelsTooltipOpen(false)}
+                    disableFocusListener
+                    disableTouchListener
+                >
                     <Box
-                        onClick={() => setSidebarCollapsed(false)}
+                        onClick={() => {
+                            setShowPanelsTooltipOpen(false);
+                            requestAnimationFrame(() => setSidebarCollapsed(false));
+                        }}
                         role="button"
                         aria-label="expand right panel"
                         tabIndex={0}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') setSidebarCollapsed(false);
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                setShowPanelsTooltipOpen(false);
+                                requestAnimationFrame(() => setSidebarCollapsed(false));
+                            }
                         }}
                         sx={{
                             position: 'absolute',

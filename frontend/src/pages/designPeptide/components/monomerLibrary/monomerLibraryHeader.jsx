@@ -11,6 +11,8 @@ import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import { alpha } from '@mui/material/styles';
 
+import { useSidebarCollapse } from '../../../../layouts/DesignPageLayout';
+
 // Linking constants (unchanged)
 export const LINKING_MODES = {
     append: 'append',      // C-ter
@@ -102,6 +104,7 @@ function CompactSelect({
     optionDisabled, // optional: (opt) => boolean
 }) {
     const theme = useTheme();
+    const { sidebarCollapsed } = useSidebarCollapse();
     const [anchorEl, setAnchorEl] = useState(null);
     // Do not fall back to the first option; show placeholder when value is unset/invalid
     const current = options.find(o => o.value === value);
@@ -110,6 +113,10 @@ function CompactSelect({
     const handleOpen = (e) => setAnchorEl(e.currentTarget);
     const handleClose = () => setAnchorEl(null);
     const handleSelect = (val) => { onChange?.(val); handleClose(); };
+
+    useEffect(() => {
+        if (sidebarCollapsed) setAnchorEl(null);
+    }, [sidebarCollapsed]);
 
     const labelText = (!disabled && current) ? current.label : placeholder;
 
@@ -290,12 +297,6 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 overflowX: 'hidden',
             }}
         >
-            {/* SECTION TITLE — Search and filters */}
-            {/* <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.5px' }}>
-                    MONOMER LIBRARY
-                </Typography>
-            </Box> */}
 
             <Box>
                 {/* Optional label, only visible from small screens up */}
