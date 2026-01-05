@@ -15,6 +15,11 @@ import { MonomerLibraryContainer } from './designPeptide/components/monomerLibra
 import { OutputContainer } from '../components/output/OutputContainer';
 import { ConformerJobsPanel } from '../components/output/ConformerJobsPanel';
 
+import {
+  deriveRequiredRgroupsForReplacement,
+  isReplacementCompatible,
+} from '../utils/replacementCompatibility';
+
 function SidebarTabbedPanel({
   tabIndex,
   onTabChange,
@@ -239,93 +244,6 @@ function SidebarTabbedPanel({
 
 function getMonomerCode(m) {
   return m?.symbol || m?.m_abbr || m?.pdbName || '';
-}
-
-function normalizeBiln(biln) {
-  return (biln || '')
-    .trim()
-    .replace(/^[.\-]+|[.\-]+$/g, '')
-    .replace(/\.+/g, '.')
-    .replace(/\-+/g, '-');
-}
-
-function splitBilnTokens(biln) {
-  const normalized = normalizeBiln(biln);
-  const rawSegments = normalized ? normalized.split('.') : [];
-  return rawSegments.map((seg) => (seg ? seg.split('-') : []).filter(Boolean));
-}
-
-function parseGlobalResIdx(sourceMonomer) {
-  const raw = String(sourceMonomer?.['res-idx'] ?? '');
-  const parts = raw.split('-');
-  const idx = parseInt(parts?.[1], 10);
-  return Number.isFinite(idx) ? idx : null;
-}
-
-function locateTokenByGlobalIdx(segments, globalIdx) {
-  if (!Array.isArray(segments) || segments.length === 0) return null;
-  let acc = 0;
-  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
-    const seg = segments[segIdx] || [];
-    const len = seg.length;
-    if (globalIdx < acc + len) {
-      const idxInSeg = globalIdx - acc;
-      return { segIdx, idxInSeg, segLen: len, token: seg[idxInSeg] || '' };
-    }
-    acc += len;
-  }
-  return null;
-}
-
-function deriveRequiredRgroupsForReplacement({ biln, sourceMonomer }) {
-  const globalIdx = parseGlobalResIdx(sourceMonomer);
-  if (globalIdx == null) return [];
-
-  const segments = splitBilnTokens(biln);
-  const loc = locateTokenByGlobalIdx(segments, globalIdx);
-  if (!loc) return [];
-
-  const required = new Set();
-
-  // Implicit peptide connectivity within the segment:
-  // - if there is a previous residue, we need rgroup 1
-  // - if there is a next residue, we need rgroup 2
-  if (loc.segLen > 1) {
-    if (loc.idxInSeg > 0) required.add(1);
-    if (loc.idxInSeg < loc.segLen - 1) required.add(2);
-  }
-
-  // Explicit bond annotations in the token: (bondId,rgroup)
-  const tok = String(loc.token || '');
-  const matches = Array.from(tok.matchAll(/\((\d+),(\d+)\)/g));
-  for (const m of matches) {
-    const rg = Number(m?.[2]);
-    if (Number.isFinite(rg) && rg > 0) required.add(rg);
-  }
-
-  return Array.from(required).sort((a, b) => a - b);
-}
-
-function availableRgroupsForMonomer(m) {
-  const out = new Set();
-  const arrays = [m?.m_Rgroups, m?.m_RgroupIdx, m?.m_attachmentPointIdx];
-  for (const arr of arrays) {
-    if (!Array.isArray(arr)) continue;
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i] != null) out.add(i + 1);
-    }
-  }
-  return out;
-}
-
-function isReplacementCompatible({ candidate, requiredRgroups }) {
-  const req = Array.isArray(requiredRgroups) ? requiredRgroups : [];
-  if (req.length === 0) return true;
-  const avail = availableRgroupsForMonomer(candidate);
-  for (const r of req) {
-    if (!avail.has(r)) return false;
-  }
-  return true;
 }
 
 const HomeInner = forwardRef((props, ref) => {

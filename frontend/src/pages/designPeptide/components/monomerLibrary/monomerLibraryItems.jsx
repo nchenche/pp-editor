@@ -6,6 +6,8 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import Chip from "@mui/material/Chip";
 
+import { getMissingRequiredRgroups } from '../../../../utils/replacementCompatibility';
+
 const EMPTY_CELL_PROPS = {};
 
 
@@ -118,9 +120,30 @@ const SIZE = {
 };
 
 const MonomerLibraryItem = memo(
-    ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center' }) => {
+    ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center', replaceActive = false, replaceRequiredKey = '' }) => {
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
+
+    const requiredRgroups = useMemo(() => {
+        if (!replaceActive) return [];
+        const raw = String(replaceRequiredKey || '').trim();
+        if (!raw) return [];
+        return raw
+            .split(',')
+            .map((s) => parseInt(String(s).trim(), 10))
+            .filter((n) => Number.isFinite(n) && n > 0);
+    }, [replaceActive, replaceRequiredKey]);
+
+    const missingRgroups = useMemo(() => {
+        if (!replaceActive) return [];
+        return getMissingRequiredRgroups({ candidate: monomer, requiredRgroups });
+    }, [replaceActive, monomer, requiredRgroups]);
+
+    const addDisabled = replaceActive && missingRgroups.length > 0;
+
+    const addTooltipTitle = addDisabled
+        ? `Cannot replace here: missing required linking groups (${missingRgroups.map((r) => `R${r}`).join(', ')})`
+        : 'Add monomer';
 
     const imageBase64 = monomer?.image_binary || monomer?.image_url || monomer?.image_base64 || monomer?.imageBase64 || '';
 
@@ -155,6 +178,7 @@ const MonomerLibraryItem = memo(
                 "&:hover": { transform: "scale(1.1)", zIndex: 20 },
                 bgcolor: "background.paper",
                 position: "relative",
+                opacity: addDisabled ? 0.45 : 1,
             }}
         >
             {/* Vertical side tag (left) */}
@@ -184,16 +208,19 @@ const MonomerLibraryItem = memo(
                     borderTopRightRadius: 8,
                 }}
             >
-                <Tooltip title="Add monomer" placement="top" arrow>
-                    <IconButton
-                        size="small"
-                        color="success"
-                        onClick={() => onMonomerAdd(monomer)}
-                        sx={{ p: 0.6, color: "grey.400" }}
-                        className='hover:text-slate-200'
-                    >
-                        <AddCircleIcon fontSize="inherit" />
-                    </IconButton>
+                <Tooltip title={addTooltipTitle} placement="top" arrow>
+                    <span style={{ display: 'inline-flex' }}>
+                        <IconButton
+                            size="small"
+                            color="success"
+                            disabled={addDisabled}
+                            onClick={() => onMonomerAdd(monomer)}
+                            sx={{ p: 0.6, color: "grey.400" }}
+                            className='hover:text-slate-200'
+                        >
+                            <AddCircleIcon fontSize="inherit" />
+                        </IconButton>
+                    </span>
                 </Tooltip>
 
                 <Tooltip
@@ -281,7 +308,7 @@ const MonomerLibraryItem = memo(
     }
 );
 
-function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
+function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg', replaceActive = false, replaceRequiredKey = '' }) {
     const sz = SIZE[itemSize] || SIZE.sm;
 
     const containerRef = useRef(null);
@@ -405,6 +432,8 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                         onInfo={() => console.log("More info for", monomer?.m_name)}
                         itemSize={itemSize}
                         transformOrigin={index === 0 ? 'center top' : 'center center'}
+                        replaceActive={replaceActive}
+                        replaceRequiredKey={replaceRequiredKey}
                     />
                 ))}
             </Box>
@@ -458,5 +487,7 @@ function areEqualItems(prev, next) {
     if (prev.monomers !== next.monomers) return false;
     if (prev.handleAddingMonomer !== next.handleAddingMonomer) return false;
     if (prev.itemSize !== next.itemSize) return false;
+    if (prev.replaceActive !== next.replaceActive) return false;
+    if (prev.replaceRequiredKey !== next.replaceRequiredKey) return false;
     return true;
 }

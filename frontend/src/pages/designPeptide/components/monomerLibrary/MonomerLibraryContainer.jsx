@@ -275,6 +275,8 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                         handleAddingMonomer={handleAdd}
                         activeSeqIdx={activeSeqIdx}
                         itemSize={itemSize}
+                        replaceActive={!!replaceSelection?.active}
+                        replaceRequiredKey={replaceSelection?.active ? String((replaceSelection?.requiredRgroups || []).join(',')) : ''}
                     />
                 </Box>
             </Box>
