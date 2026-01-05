@@ -172,7 +172,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     ), [searchValue, quickFilters, onLinkingSnapshotChange, uiState, setUiState]);
 
     return (
-        <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
+        <Box display="flex" flexDirection="column" height="100%" minHeight={0} width="100%" sx={{ minWidth: 0, overflowX: 'hidden' }}>
             {/* <Box sx={{ flex: '0 0 auto' }}> */}
             {memoizedLibraryHeader}
             {/* </Box> */}
@@ -187,6 +187,8 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     overflow: "hidden",
                     display: 'flex',
                     flexDirection: 'column',
+                    width: '100%',
+                    minWidth: 0,
                 }}
             >
                 <Box sx={{ flex: '0 0 auto', px: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -234,7 +236,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                         flex: 1,
                         minHeight: 0,
                         position: 'relative',
-                        overflowY: 'auto',
+                        overflowY: 'hidden',
                         borderRadius: 1,
                         border: replaceSelection?.active ? 2 : 0,
                         borderColor: replaceSelection?.active ? 'primary.main' : 'transparent',

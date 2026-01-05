@@ -285,6 +285,9 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 borderBottom: `1px solid ${theme.palette.divider}`,
                 pb: 3,
                 backdropFilter: 'blur(8px)',
+                width: '100%',
+                minWidth: 0,
+                overflowX: 'hidden',
             }}
         >
             {/* SECTION TITLE — Search and filters */}

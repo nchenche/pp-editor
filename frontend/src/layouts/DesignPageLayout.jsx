@@ -374,9 +374,8 @@ export const DesignPageLayoutMUI = ({
                 square
                 sx={{
                     height: '100%',
-                    minWidth: sidebarCollapsed
-                        ? `${collapsedSidebarWidth}px`
-                        : `${Math.floor((window.innerWidth || 1200) * Math.min(minLeftFrac, maxLeftFrac))}px`,
+                    minWidth: 0,
+                    width: '100%',
                     overflow: 'hidden',
                     // overflowX: 'hidden',
                     borderRadius: 1,

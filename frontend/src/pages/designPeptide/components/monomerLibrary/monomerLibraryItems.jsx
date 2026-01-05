@@ -1,9 +1,12 @@
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { List, getScrollbarSize } from 'react-window';
 
 import { Card, CardContent, CardActions, IconButton, Box, Tooltip, Typography } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import Chip from "@mui/material/Chip";
+
+const EMPTY_CELL_PROPS = {};
 
 
 // Helper: derive a concise tag for the monomer
@@ -114,7 +117,8 @@ const SIZE = {
     // }
 };
 
-const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm' }) => {
+const MonomerLibraryItem = memo(
+    ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center' }) => {
     const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
 
@@ -147,7 +151,8 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                 borderRadius: 2,
                 boxShadow: 2,
                 transition: "transform 0.2s",
-                "&:hover": { transform: "scale(1.2)", zIndex: 20 },
+                transformOrigin,
+                "&:hover": { transform: "scale(1.1)", zIndex: 20 },
                 bgcolor: "background.paper",
                 position: "relative",
             }}
@@ -271,23 +276,175 @@ const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, it
                     {monomer.pdbName}
                 </Typography>
             </CardContent>
-        </Card >
+        </Card>
     );
-});
+    }
+);
 
 function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg' }) {
     const sz = SIZE[itemSize] || SIZE.sm;
+
+    const containerRef = useRef(null);
+    const measureRef = useRef(null);
+    const [viewport, setViewport] = useState({ width: 0, height: 0 });
+    const [measuredCardH, setMeasuredCardH] = useState(null);
+
+    // Keep a cheap ResizeObserver on the container so the grid adapts.
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            setViewport({ width: Math.max(0, Math.floor(r.width)), height: Math.max(0, Math.floor(r.height)) });
+        };
+
+        update();
+
+        let ro;
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(update);
+            ro.observe(el);
+        } else {
+            window.addEventListener('resize', update);
+        }
+
+        return () => {
+            ro?.disconnect?.();
+            window.removeEventListener('resize', update);
+        };
+    }, []);
+
+    const list = Array.isArray(monomers) ? monomers : [];
+
+    // Map MUI spacing-ish values to pixels; keep it stable per size.
+    const gapPx = useMemo(() => Math.max(0, Math.round(8 * (Number(sz.gap) || 2))), [sz.gap]);
+    const paddingPx = 12;
+
+    const cardW = sz.cardW;
+    const fallbackCardH = itemSize === 'lg' ? 170 : 150;
+    const cardH = Number.isFinite(measuredCardH) && measuredCardH > 0 ? measuredCardH : fallbackCardH;
+    const rowHeight = cardH + gapPx;
+
+    // Measure the actual card height once per itemSize using a hidden sample card.
+    useEffect(() => {
+        setMeasuredCardH(null);
+    }, [itemSize]);
+
+    useEffect(() => {
+        const el = measureRef.current;
+        if (!el) return;
+        if (!list || list.length === 0) return;
+
+        const update = () => {
+            const r = el.getBoundingClientRect();
+            const h = Math.max(0, Math.ceil(r.height));
+            if (h > 0) setMeasuredCardH(h);
+        };
+
+        update();
+
+        let ro;
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(update);
+            ro.observe(el);
+        } else {
+            window.addEventListener('resize', update);
+        }
+
+        return () => {
+            ro?.disconnect?.();
+            window.removeEventListener('resize', update);
+        };
+    }, [list, itemSize]);
+
+    const safeHeight = Math.max(0, (viewport.height || 0) - paddingPx * 2);
+
+    const baseSafeWidth = Math.max(0, (viewport.width || 0) - paddingPx * 2);
+    const computeColumnCount = (usableWidthPx) => {
+        const w = Math.max(0, usableWidthPx - 1); // tiny guard against fractional px + border rounding
+        return Math.max(1, Math.floor((w + gapPx) / (cardW + gapPx)));
+    };
+
+    // Two-pass sizing: a vertical scrollbar reduces usable width and can cause clipped cards
+    // if we compute the column count without accounting for it.
+    const col1 = computeColumnCount(baseSafeWidth);
+    const rows1 = Math.ceil(list.length / col1);
+    const hasVScroll1 = rows1 * rowHeight > safeHeight;
+    const scrollbarW = hasVScroll1 ? getScrollbarSize?.() || 0 : 0;
+
+    const safeWidth = Math.max(0, baseSafeWidth - scrollbarW);
+    const columnCount = computeColumnCount(safeWidth);
+    const rowCount = Math.ceil(list.length / columnCount);
+
+    const Row = ({ index, style, ariaAttributes }) => {
+        const start = index * columnCount;
+        if (start >= list.length) return null;
+        const end = Math.min(list.length, start + columnCount);
+        const rowItems = list.slice(start, end);
+
+        return (
+            <Box
+                {...ariaAttributes}
+                style={style}
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    gap: `${gapPx}px`,
+                    px: `${paddingPx}px`,
+                    boxSizing: 'border-box',
+                    overflow: 'visible',
+                }}
+            >
+                {rowItems.map((monomer, localIdx) => (
+                    <MonomerLibraryItem
+                        key={monomer?._id ?? `${start}-${localIdx}`}
+                        monomer={monomer}
+                        onMonomerAdd={handleAddingMonomer}
+                        onInfo={() => console.log("More info for", monomer?.m_name)}
+                        itemSize={itemSize}
+                        transformOrigin={index === 0 ? 'center top' : 'center center'}
+                    />
+                ))}
+            </Box>
+        );
+    };
+
     return (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: sz.gap, p: 1, pt: 2 }}>
-            {(monomers || []).map((monomer) => (
-                <MonomerLibraryItem
-                    key={monomer._id}
-                    monomer={monomer}
-                    onMonomerAdd={handleAddingMonomer}
-                    onInfo={() => console.log("More info for", monomer.m_name)}
-                    itemSize={itemSize}
+        <Box ref={containerRef} sx={{ height: '100%', width: '100%', minHeight: 0, position: 'relative' }}>
+            {/* Hidden measurer to derive the real card height (prevents huge row gaps). */}
+            {list.length > 0 ? (
+                <Box
+                    ref={measureRef}
+                    sx={{
+                        position: 'absolute',
+                        visibility: 'hidden',
+                        pointerEvents: 'none',
+                        left: 0,
+                        top: 0,
+                        zIndex: -1,
+                    }}
+                >
+                    <MonomerLibraryItem
+                        monomer={list[0]}
+                        onMonomerAdd={() => { }}
+                        onInfo={() => { }}
+                        itemSize={itemSize}
+                    />
+                </Box>
+            ) : null}
+            {viewport.width > 0 && viewport.height > 0 ? (
+                <List
+                    defaultHeight={safeHeight}
+                    rowCount={rowCount}
+                    rowHeight={rowHeight}
+                    overscanCount={3}
+                    rowProps={EMPTY_CELL_PROPS}
+                    rowComponent={Row}
+                    style={{ height: safeHeight, width: viewport.width, overflowX: 'hidden' }}
                 />
-            ))}
+            ) : null}
         </Box>
     );
 }
