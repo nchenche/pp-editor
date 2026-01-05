@@ -373,7 +373,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 direction="row"
                 alignItems="center"
                 justifyContent="space-between"
-                sx={{ mb: 0.5, cursor: 'pointer' }}
+                sx={{ cursor: 'pointer' }}
                 onClick={() => setLinkingOpen(prev => !prev)}
             >
                 <Stack direction="row" alignItems="center" gap={0.5}>
@@ -437,7 +437,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                     gap={1}
                     flex="1 1 auto"
                     flexWrap="wrap"
-                    sx={{ mt: 0.5 }}
+                    sx={{ mt: 0.1 }}
                 >
                     <CompactSelect
                         label="Mode"

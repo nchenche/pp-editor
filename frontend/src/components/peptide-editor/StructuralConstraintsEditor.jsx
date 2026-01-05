@@ -84,7 +84,7 @@ export default function StructuralConstraintsEditor({
                         Structural constraints
                     </Typography>
                     <Tooltip title="About structural constraints" arrow>
-                        <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 18 }}>
+                        <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
                             <QuestionMarkSharpIcon fontSize="inherit" />
                         </IconButton>
                     </Tooltip>

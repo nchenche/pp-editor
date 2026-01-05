@@ -66,7 +66,7 @@ export default function ChainsToolbar({
             </ButtonGroup>
 
             {/* Global constraint system mode */}
-            <Tooltip title="Constraint mode (applies to the whole peptide)" arrow>
+            <Tooltip title="Constraint mode" arrow>
                 <span>
                     <Button
                         size="small"

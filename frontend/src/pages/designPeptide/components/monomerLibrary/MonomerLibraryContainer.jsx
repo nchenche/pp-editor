@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { Box, Typography, CircularProgress } from "@mui/material";
+import { Box, Typography, CircularProgress, ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 import { useLibraryFetching } from '../../../../hooks/useLibraryFetching';
 import { MonomerLibraryHeader } from './monomerLibraryHeader';
@@ -17,6 +17,8 @@ export const LINK_CHOICES = {
     peptide: 'peptide',
     other: 'other',
 };
+
+const MONOMER_LIBRARY_ITEM_SIZE_STORAGE_KEY = 'pp.monomerLibrary.itemSize';
 
 // Simple debounce hook
 function useDebouncedValue(value, delay = 200) {
@@ -51,6 +53,25 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     const [quickFilters, setQuickFilters] = useState({
         caps: false, natural: false, nonNatural: false
     });
+
+    const [itemSize, setItemSize] = useState(() => {
+        try {
+            if (typeof window === 'undefined') return 'sm';
+            const raw = window.localStorage?.getItem(MONOMER_LIBRARY_ITEM_SIZE_STORAGE_KEY);
+            return raw === 'lg' || raw === 'sm' ? raw : 'sm';
+        } catch {
+            return 'sm';
+        }
+    }); // 'sm' | 'lg'
+
+    useEffect(() => {
+        try {
+            if (typeof window === 'undefined') return;
+            window.localStorage?.setItem(MONOMER_LIBRARY_ITEM_SIZE_STORAGE_KEY, itemSize);
+        } catch {
+            // ignore (private mode / blocked storage)
+        }
+    }, [itemSize]);
 
     // Fetch once (full list), then filter locally
     const { data: allResp, isLoading, error } = useLibraryFetching({});
@@ -139,10 +160,36 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                     flexDirection: 'column',
                 }}
             >
-                <Box sx={{ flex: '0 0 auto', px: 2, pb: 1, display: 'flex', justifyContent: 'flex-start' }}>
+                <Box sx={{ flex: '0 0 auto', px: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="caption" color="text.secondary">
                         Showing {Array.isArray(filteredMonomers) ? filteredMonomers.length : 0} of {Array.isArray(allMonomers) ? allMonomers.length : 0} monomers
                     </Typography>
+
+                    <Box sx={{ ml: 'auto' }}>
+                        <ToggleButtonGroup
+                            size="small"
+                            exclusive
+                            value={itemSize}
+                            onChange={(_, v) => {
+                                if (!v) return;
+                                setItemSize(v);
+                            }}
+                            aria-label="monomer item size"
+                            sx={{
+                                '& .MuiToggleButton-root': {
+                                    px: 1,
+                                    py: 0.25,
+                                    fontSize: 11,
+                                    textTransform: 'none',
+                                    lineHeight: 1.1,
+                                }
+                            }}
+                        >
+                            <ToggleButton value="sm" aria-label="small items">Small</ToggleButton>
+                            {/* <ToggleButton value="md" aria-label="medium items">Medium</ToggleButton> */}
+                            <ToggleButton value="lg" aria-label="large items">Large</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
                 </Box>
 
                 <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflowY: 'auto' }}>
@@ -175,7 +222,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
                         monomers={filteredMonomers}
                         handleAddingMonomer={handleAdd}
                         activeSeqIdx={activeSeqIdx}
-                        itemSize="sm"
+                        itemSize={itemSize}
                     />
                 </Box>
             </Box>

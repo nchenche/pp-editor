@@ -73,25 +73,45 @@ function sideTagSx(label, sidebarW = 22) {
 // Size tokens
 const SIZE = {
     sm: {
-        cardW: 128,
-        sidebarW: 22,
-        imgW: 100,
-        imgH: 80,
-        imgMinH: 80,
-        titleFs: '0.72rem',
-        nameFs: '0.66rem',
-        gap: 2.5,
+        cardW: 112,
+        sidebarW: 20,
+        imgW: 90,
+        imgH: 72,
+        imgMinH: 72,
+        titleFs: '0.68rem',
+        nameFs: '0.62rem',
+        gap: 2,
     },
+    // xs: {
+    //     cardW: 128,
+    //     sidebarW: 22,
+    //     imgW: 100,
+    //     imgH: 80,
+    //     imgMinH: 80,
+    //     titleFs: '0.72rem',
+    //     nameFs: '0.66rem',
+    //     gap: 2.5,
+    // },
     lg: {
-        cardW: 160,
-        sidebarW: 26,
-        imgW: 120,
+        cardW: 144,
+        sidebarW: 24,
+        imgW: 110,
         imgH: 88,
-        imgMinH: 112,
-        titleFs: '0.80rem',
-        nameFs: '0.72rem',
-        gap: 3,
-    }
+        imgMinH: 96,
+        titleFs: '0.76rem',
+        nameFs: '0.70rem',
+        gap: 2.75,
+    },
+    // lg: {
+    //     cardW: 160,
+    //     sidebarW: 26,
+    //     imgW: 120,
+    //     imgH: 96,
+    //     imgMinH: 112,
+    //     titleFs: '0.80rem',
+    //     nameFs: '0.72rem',
+    //     gap: 3,
+    // }
 };
 
 const MonomerLibraryItem = memo(({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm' }) => {
@@ -279,5 +299,6 @@ function areEqualItems(prev, next) {
     // Only re-render when data or handlers change
     if (prev.monomers !== next.monomers) return false;
     if (prev.handleAddingMonomer !== next.handleAddingMonomer) return false;
+    if (prev.itemSize !== next.itemSize) return false;
     return true;
 }
