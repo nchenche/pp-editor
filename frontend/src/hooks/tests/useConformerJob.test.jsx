@@ -255,6 +255,92 @@ describe('useConformerJob', () => {
     expect(screen.getByTestId('error').textContent).toBe('');
   });
 
+  it('restores last successful job after canceling a re-run', async () => {
+    const fetchMock = global.fetch;
+
+    fetchMock
+      // start first job
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { status: 'success', data: { job_id: 'job-10', status_url: '/api/core/molecules/conformer_jobs/job-10', cancel_url: '/api/core/molecules/conformer_jobs/job-10/cancel' } },
+          { status: 202 },
+        ),
+      )
+      // poll first job -> success
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: {
+            job_id: 'job-10',
+            state: 'success',
+            progress: { stage: 'success', message: 'Done' },
+            result_ref: { properties: { PDB: 'PDBDATA10' } },
+            error: null,
+          },
+        }),
+      )
+      // start second job (re-run)
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { status: 'success', data: { job_id: 'job-11', status_url: '/api/core/molecules/conformer_jobs/job-11', cancel_url: '/api/core/molecules/conformer_jobs/job-11/cancel' } },
+          { status: 202 },
+        ),
+      )
+      // poll second job -> running
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: { job_id: 'job-11', state: 'running', progress: { stage: 'embedding', message: 'Embedding…' }, result_ref: null, error: null },
+        }),
+      )
+      // cancel second job (ack)
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: { job_id: 'job-11', cancel_requested: true, state: 'failed', error: { message: '-241' } },
+        }),
+      )
+      // after rollback, poll previous success job again
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: {
+            job_id: 'job-10',
+            state: 'success',
+            progress: { stage: 'success', message: 'Done' },
+            result_ref: { properties: { PDB: 'PDBDATA10' } },
+            error: null,
+          },
+        }),
+      );
+
+    render(<TestComponent />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('start'));
+    });
+
+    await flushUntil(() => screen.getByTestId('state').textContent === 'success');
+    expect(screen.getByTestId('jobId').textContent).toBe('job-10');
+    expect(screen.getByTestId('pdb').textContent).toBe('PDBDATA10');
+
+    // Start re-run
+    await act(async () => {
+      fireEvent.click(screen.getByText('start'));
+    });
+
+    await flushUntil(() => screen.getByTestId('jobId').textContent === 'job-11');
+
+    // Cancel re-run; should rollback jobId to last successful one
+    await act(async () => {
+      fireEvent.click(screen.getByText('cancel'));
+    });
+
+    await flushUntil(() => screen.getByTestId('jobId').textContent === 'job-10');
+    await flushUntil(() => screen.getByTestId('state').textContent === 'success');
+    expect(screen.getByTestId('pdb').textContent).toBe('PDBDATA10');
+  });
+
   it('treats backend job failure as job errorType', async () => {
     const fetchMock = global.fetch;
 

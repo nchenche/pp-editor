@@ -392,6 +392,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const { svg: svgDepiction = '', smiles = '', helm = '', sdf = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
     const structurePDB = structureOutput?.pdb || structureOutput?.PDB || '';
 
+    const hasEverHadStructureRef = useRef(false);
+    useEffect(() => {
+        if (String(structurePDB || '').trim()) {
+            hasEverHadStructureRef.current = true;
+        }
+    }, [structurePDB]);
+
     const isConformerQueuedOrRunning = conformerJobState === 'queued' || conformerJobState === 'running';
     const isConformerTerminalFailedOrCanceled = conformerJobState === 'failed' || conformerJobState === 'canceled';
 
@@ -1695,6 +1702,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         </Box>
                                     )}
                                     {!structureLoading && !structurePDB && (
+                                        conformerJobState !== 'canceled' || !hasEverHadStructureRef.current
+                                    ) && (
                                         <Box
                                             sx={{
                                                 position: 'absolute',
@@ -1703,9 +1712,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 width: '100%',
                                                 height: '100%',
                                                 bgcolor: (() => {
-                                                    // Canceled: opaque overlay.
-                                                    if (conformerJobState === 'canceled') return theme.palette.background.paper;
-
                                                     // Error: transparent/low-opacity overlay so Mol* remains visible.
                                                     const err = committedBiln ? String(generate3DError || '').trim() : '';
                                                     if (err) {
@@ -1727,9 +1733,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         >
                                             {(() => {
                                                 const err = committedBiln ? generate3DError : null;
-                                                const isCanceled = conformerJobState === 'canceled';
                                                 const hasErr = !!String(err || '').trim();
-                                                const translucentOverlay = hasErr && !isCanceled;
+                                                const translucentOverlay = hasErr;
 
                                                 const overlayTextPrimary = translucentOverlay
                                                     ? (molstarBackground === 'dark' ? theme.palette.common.white : theme.palette.text.primary)
@@ -1754,28 +1759,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 // const showRetry = !autoSync3D && (isConformerTerminalFailedOrCanceled || !!err);
                                                 const showRetry = false;
 
-                                                if (isCanceled) {
-                                                    return (
-                                                        <Typography
-                                                            variant="body1"
-                                                            sx={{
-                                                                color: theme.palette.warning.main,
-                                                                fontSize: '1.1rem',
-                                                                lineHeight: 1.75,
-                                                                fontWeight: 500,
-                                                            }}
-                                                        >
-                                                            Canceled.
-                                                        </Typography>
-                                                    );
-                                                }
-
                                                 if (!err) {
                                                     return (
                                                         <Typography
                                                             variant="body1"
                                                             sx={{
-                                                                color: 'text.secondary',
+                                                                color: overlayTextSecondary,
                                                                 fontSize: '1.1rem',
                                                                 lineHeight: 1.75,
                                                                 fontWeight: 400,

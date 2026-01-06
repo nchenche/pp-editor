@@ -163,6 +163,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   // For UX, treat those cases as a normal cancel.
   const cancelAcknowledgedJobIdRef = useRef(null);
 
+  // Track the most recent successful job id so we can restore it if a re-run is canceled.
+  const lastSuccessfulJobIdRef = useRef(null);
+  const rollbackJobIdRef = useRef(null);
+
   const lastStartPayloadRef = useRef(null);
 
   useEffect(() => {
@@ -291,6 +295,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
           );
           const nextState = cancelAck ? 'canceled' : rawNextState;
 
+          if (nextState === 'success') {
+            lastSuccessfulJobIdRef.current = String(data?.job_id || effectiveId);
+          }
+
           // If job id changed while awaiting the network, ignore stale results.
           if ((jobIdRef.current || null) !== (effectiveId || null)) {
             return data;
@@ -395,6 +403,13 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         setJobIdAndPersist(null);
         return null;
       }
+
+      // If we already have a successful job, keep it around as the rollback target.
+      if (state === 'success' && jobIdRef.current) {
+        lastSuccessfulJobIdRef.current = String(jobIdRef.current);
+      }
+      rollbackJobIdRef.current = lastSuccessfulJobIdRef.current;
+      cancelAcknowledgedJobIdRef.current = null;
 
       cleanupTimer();
       abortInFlight();
@@ -550,6 +565,23 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         }
         const cancelData = cancelJson?.data || null;
         if (cancelData?.cancel_requested === true) {
+          const rollbackId = rollbackJobIdRef.current;
+
+          // If we had a prior successful job, restore it so refresh/navigation keeps showing the last structure.
+          if (rollbackId && String(rollbackId) !== String(effectiveId)) {
+            cancelAcknowledgedJobIdRef.current = null;
+            cleanupTimer();
+            cleanupTimeout();
+            setProgress(null);
+            setLastEmbeddingProgress(null);
+            setResultRef(null);
+            setErrorType(null);
+            setError(null);
+            setJobIdAndPersist(rollbackId);
+            pollLoop(rollbackId);
+            return true;
+          }
+
           cancelAcknowledgedJobIdRef.current = String(cancelData?.job_id || effectiveId);
           cleanupTimer();
           cleanupTimeout();
@@ -564,6 +596,25 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         // Refresh status once, then stop polling if terminal.
         const data = await fetchStatusOnce(effectiveId, { force: true });
         const next = normalizeState(data?.state || state);
+
+        // If the job ended up canceled and we have a prior successful job, restore it.
+        if (next === 'canceled') {
+          const rollbackId = rollbackJobIdRef.current;
+          if (rollbackId && String(rollbackId) !== String(effectiveId)) {
+            cancelAcknowledgedJobIdRef.current = null;
+            cleanupTimer();
+            cleanupTimeout();
+            setProgress(null);
+            setLastEmbeddingProgress(null);
+            setResultRef(null);
+            setErrorType(null);
+            setError(null);
+            setJobIdAndPersist(rollbackId);
+            pollLoop(rollbackId);
+            return true;
+          }
+        }
+
         if (!isTerminal(next)) pollLoop(effectiveId);
 
         return true;

@@ -1,5 +1,5 @@
 // src/hooks/useGenerate3D.js
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
 import { useOwnerId } from './useOwnerId';
@@ -68,7 +68,7 @@ export function useGenerate3D(baseUrlOverride) {
         };
     }, [jobId, jobState, resultRef]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!jobDerivedResult) return;
         setResult((prev) => {
             const prevObj = (prev && typeof prev === 'object') ? prev : null;
@@ -103,7 +103,9 @@ export function useGenerate3D(baseUrlOverride) {
     }, [jobError]);
 
     useEffect(() => {
-        if (jobState === 'failed' || jobState === 'canceled') {
+        // Preserve previously loaded structures on cancel so users can keep interacting with Mol*.
+        // (A canceled re-run should not clobber the last successful result.)
+        if (jobState === 'failed') {
             setResult(null);
         }
     }, [jobState]);
