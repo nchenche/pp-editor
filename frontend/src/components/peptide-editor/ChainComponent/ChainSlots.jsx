@@ -110,7 +110,7 @@ export const ChainSlots = ({
                 const sequenceOffset = runningOffset;
                 runningOffset += (list?.length || 0);
 
-                const mapping = scaffoldMappings?.[seqIdx] || {};
+                const mapping = scaffoldTemplate ? (scaffoldMappings?.[seqIdx] || {}) : null;
                 const hasAnyResidues = (list?.length || 0) > 0;
 
                 const headToTailLinkId = getHeadToTailLinkIdForRow(sequenceOffset, list.length);
@@ -121,6 +121,7 @@ export const ChainSlots = ({
                         <TemplateSequence
                             mapping={mapping}
                             maxResidueCount={list.length}
+                            hasScaffoldTemplate={!!scaffoldTemplate}
                             sequenceIndex={seqIdx}
                             onEditMapping={onEditScaffoldMapping}
                         />

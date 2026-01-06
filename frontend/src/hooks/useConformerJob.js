@@ -158,6 +158,11 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
   const jobEndpointsRef = useRef({ statusUrl: null, cancelUrl: null });
 
+  // Some backends can respond to a successful cancel request with a terminal state of "failed"
+  // (e.g., task revoked/terminated with an error payload), while still indicating cancel_requested=true.
+  // For UX, treat those cases as a normal cancel.
+  const cancelAcknowledgedJobIdRef = useRef(null);
+
   const lastStartPayloadRef = useRef(null);
 
   useEffect(() => {
@@ -272,7 +277,19 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
           }
 
           const data = json?.data || {};
-          const nextState = normalizeState(data?.state);
+
+          // If the backend indicates a cancel was requested, treat the job as canceled even if it
+          // reports state=failed with an error payload.
+          const cancelRequested = data?.cancel_requested === true;
+          if (cancelRequested) {
+            cancelAcknowledgedJobIdRef.current = String(data?.job_id || effectiveId);
+          }
+
+          const rawNextState = normalizeState(data?.state);
+          const cancelAck = cancelRequested || (
+            cancelAcknowledgedJobIdRef.current && String(cancelAcknowledgedJobIdRef.current) === String(effectiveId)
+          );
+          const nextState = cancelAck ? 'canceled' : rawNextState;
 
           // If job id changed while awaiting the network, ignore stale results.
           if ((jobIdRef.current || null) !== (effectiveId || null)) {
@@ -280,7 +297,11 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
           }
 
           setState(nextState);
-          setProgress(data?.progress ?? null);
+          setProgress(
+            cancelAck
+              ? { stage: 'canceled', message: 'Canceled by user' }
+              : (data?.progress ?? null),
+          );
           setResultRef(data?.result_ref ?? null);
 
           // Track last embedding/mapping progress so the UI can surface mapping ratios even after success.
@@ -326,6 +347,18 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
     async (id) => {
       const effectiveId = id || jobId;
       if (!effectiveId) return;
+
+      const cancelAck = cancelAcknowledgedJobIdRef.current && String(cancelAcknowledgedJobIdRef.current) === String(effectiveId);
+      if (cancelAck) {
+        // Stop polling and treat as canceled.
+        cleanupTimer();
+        cleanupTimeout();
+        setState('canceled');
+        setProgress({ stage: 'canceled', message: 'Canceled by user' });
+        setErrorType(null);
+        setError(null);
+        return;
+      }
 
       // Ensure we have a timeout armed while actively polling.
       armTimeout();
@@ -505,6 +538,27 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
             setError(msg);
             return false;
           }
+        }
+
+        // If backend explicitly acknowledges the cancel request, treat it as a successful cancel
+        // even if it reports state=failed/error in the payload.
+        let cancelJson = null;
+        try {
+          cancelJson = await res.json();
+        } catch {
+          // ignore
+        }
+        const cancelData = cancelJson?.data || null;
+        if (cancelData?.cancel_requested === true) {
+          cancelAcknowledgedJobIdRef.current = String(cancelData?.job_id || effectiveId);
+          cleanupTimer();
+          cleanupTimeout();
+          setState('canceled');
+          setProgress({ stage: 'canceled', message: 'Canceled by user' });
+          setResultRef(null);
+          setErrorType(null);
+          setError(null);
+          return true;
         }
 
         // Refresh status once, then stop polling if terminal.

@@ -991,10 +991,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             setMonomerSequences('', []); // clear sequences
             setDepictionData({ svg: '', monomers: [], smiles: '', helm: '', sdf2d: '' });
             setStructureOutput({ pdb: '' });
+            // Also clear any stale 3D error/job state from a previous generation.
+            // This prevents showing template-failure messages when the input is empty.
+            try {
+                generate3D('', null);
+            } catch {
+                // ignore
+            }
             return;
         }
         loadData(committedBiln);
-    }, [committedBiln, isActive, isShowingAtomIndices, phValue]);
+    }, [committedBiln, isActive, isShowingAtomIndices, phValue, generate3D]);
 
     useEffect(() => {
         if (!isActive) return;
@@ -1421,6 +1428,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     if (isConformerQueuedOrRunning) return () => cancelConformerJob?.();
                                                     if (autoSync3D) return undefined;
                                                     if (isConformerQueuedOrRunning) return () => cancelConformerJob?.();
+                                                    if (!canGenerate3D || !committedBiln) return undefined;
                                                     if (isConformerTerminalFailedOrCanceled) return handleManualGenerate3D;
                                                     return handleManualGenerate3D;
                                                 })()}
@@ -1428,6 +1436,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     // In auto-sync, keep this button non-actionable unless it cancels.
                                                     if (autoSync3D) return !isConformerQueuedOrRunning;
                                                     if (isConformerQueuedOrRunning) return !!isCancelingConformerJob;
+                                                    // If the input is empty/invalid, keep it disabled even after a terminal job.
+                                                    if (!canGenerate3D || !committedBiln) return true;
                                                     if (isConformerTerminalFailedOrCanceled) return false;
                                                     return manualGenerateDisabled;
                                                 })()}
@@ -1451,7 +1461,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     : autoSync3D
                                                         ? "Live Preview"
                                                         : isConformerTerminalFailedOrCanceled
-                                                            ? "Retry"
+                                                            ? "Generate 3D"// "Retry"
                                                             : "Generate 3D"}
                                             </Button>
                                         </span>
@@ -1620,7 +1630,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                             {/* Canvas area */}
                             <Box ref={molstarRightPanelRowRef} sx={{ flex: 1, minHeight: 220, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
-                                {/* Left: 3D canvas area */}
+                                {/* 3D canvas area */}
                                 <Box sx={{ position: 'relative', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                                     {structureLoading && (
                                         <Box
@@ -1692,7 +1702,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 left: 0,
                                                 width: '100%',
                                                 height: '100%',
-                                                bgcolor: 'background.paper',
+                                                bgcolor: (() => {
+                                                    // Canceled: opaque overlay.
+                                                    if (conformerJobState === 'canceled') return theme.palette.background.paper;
+
+                                                    // Error: transparent/low-opacity overlay so Mol* remains visible.
+                                                    const err = committedBiln ? String(generate3DError || '').trim() : '';
+                                                    if (err) {
+                                                        return molstarBackground === 'dark'
+                                                            ? alpha(theme.palette.common.black, 0.75)
+                                                            : alpha(theme.palette.common.white, 0.87);
+                                                    }
+
+                                                    // Default (no structure yet): keep a clean neutral backdrop.
+                                                    return theme.palette.background.paper;
+                                                })(),
                                                 zIndex: 1,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -1702,7 +1726,23 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             }}
                                         >
                                             {(() => {
-                                                const err = generate3DError;
+                                                const err = committedBiln ? generate3DError : null;
+                                                const isCanceled = conformerJobState === 'canceled';
+                                                const hasErr = !!String(err || '').trim();
+                                                const translucentOverlay = hasErr && !isCanceled;
+
+                                                const overlayTextPrimary = translucentOverlay
+                                                    ? (molstarBackground === 'dark' ? theme.palette.common.white : theme.palette.text.primary)
+                                                    : theme.palette.text.primary;
+                                                const overlayTextSecondary = translucentOverlay
+                                                    ? (molstarBackground === 'dark' ? alpha(theme.palette.common.white, 0.78) : theme.palette.text.secondary)
+                                                    : theme.palette.text.secondary;
+                                                const overlayTitleWarning = translucentOverlay
+                                                    ? (molstarBackground === 'dark' ? theme.palette.warning.light : theme.palette.warning.main)
+                                                    : theme.palette.warning.main;
+                                                const overlayTitleError = translucentOverlay
+                                                    ? (molstarBackground === 'dark' ? theme.palette.error.light : theme.palette.error.main)
+                                                    : theme.palette.error.main;
                                                 const hasTemplateMapping = !!effectiveAnyScaffoldEnabled;
                                                 const hasAnyConstraints = Array.isArray(constraintsBySeq) && constraintsBySeq.some(
                                                     (row) => Array.isArray(row) && row.some((ch) => {
@@ -1711,34 +1751,26 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     }),
                                                 );
 
-                                                const showRetry = !autoSync3D && (isConformerTerminalFailedOrCanceled || !!err);
+                                                // const showRetry = !autoSync3D && (isConformerTerminalFailedOrCanceled || !!err);
+                                                const showRetry = false;
+
+                                                if (isCanceled) {
+                                                    return (
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: theme.palette.warning.main,
+                                                                fontSize: '1.1rem',
+                                                                lineHeight: 1.75,
+                                                                fontWeight: 500,
+                                                            }}
+                                                        >
+                                                            Canceled.
+                                                        </Typography>
+                                                    );
+                                                }
 
                                                 if (!err) {
-                                                    if (conformerJobState === 'canceled') {
-                                                        return (
-                                                            <Box>
-                                                                <Typography
-                                                                    variant="body1"
-                                                                    sx={{
-                                                                        color: 'warning.main',
-                                                                        fontSize: '1.1rem',
-                                                                        lineHeight: 1.75,
-                                                                        fontWeight: 500,
-                                                                    }}
-                                                                >
-                                                                    Canceled.
-                                                                </Typography>
-                                                                {!autoSync3D && (
-                                                                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                        <Button variant="contained" size="small" onClick={handleManualGenerate3D}>
-                                                                            Retry
-                                                                        </Button>
-                                                                    </Box>
-                                                                )}
-                                                            </Box>
-                                                        );
-                                                    }
-
                                                     return (
                                                         <Typography
                                                             variant="body1"
@@ -1749,7 +1781,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 fontWeight: 400,
                                                             }}
                                                         >
-                                                            No data to display.
+                                                            No data to display
                                                         </Typography>
                                                     );
                                                 }
@@ -1760,7 +1792,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             <Typography
                                                                 variant="body1"
                                                                 sx={{
-                                                                    color: 'warning.main',
+                                                                    color: overlayTitleWarning,
                                                                     fontSize: '1.1rem',
                                                                     lineHeight: 1.75,
                                                                     fontWeight: 500,
@@ -1772,7 +1804,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 variant="body2"
                                                                 sx={{
                                                                     mt: 0.75,
-                                                                    color: 'text.secondary',
+                                                                    color: overlayTextSecondary,
                                                                     fontSize: '0.9rem',
                                                                 }}
                                                             >
@@ -1796,10 +1828,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             <Typography
                                                                 variant="body1"
                                                                 sx={{
-                                                                    color: 'warning.main',
+                                                                    color: overlayTitleWarning,
                                                                     fontSize: '1.1rem',
                                                                     lineHeight: 1.75,
-                                                                    fontWeight: 500,
+                                                                    fontWeight: 600,
                                                                     whiteSpace: 'pre-wrap',
                                                                 }}
                                                             >
@@ -1809,7 +1841,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 variant="body2"
                                                                 sx={{
                                                                     mt: 0.75,
-                                                                    color: 'text.secondary',
+                                                                    color: overlayTextSecondary,
                                                                     fontSize: '0.9rem',
                                                                     lineHeight: 1.5,
                                                                 }}
@@ -1822,7 +1854,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                     <Typography
                                                                         variant="body2"
                                                                         sx={{
-                                                                            color: 'text.primary',
+                                                                            color: overlayTextPrimary,
                                                                             fontSize: '0.9rem',
                                                                             fontWeight: 700,
                                                                         }}
@@ -1840,10 +1872,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                         }}
                                                                     >
                                                                         {[
-                                                                            'Relax topologic constraints in your designed peptide',
-                                                                            'Mask out certain residues of the template',
-                                                                            'Modify the template residue mapping (start/end, offset)',
-                                                                            'Retry with reduced template guidance if needed',
+                                                                            '- Relax topologic constraints in your designed peptide',
+                                                                            '- Mask out certain residues of the template',
+                                                                            '- Modify the template residue mapping (start/end, offset)',
+                                                                            '- Retry with reduced template guidance if needed',
                                                                         ].map((txt) => (
                                                                             <Box
                                                                                 key={txt}
@@ -1855,20 +1887,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                                     mt: 0.85,
                                                                                 }}
                                                                             >
-                                                                                <Box
-                                                                                    sx={{
-                                                                                        mt: '0.55em',
-                                                                                        width: 8,
-                                                                                        height: 2,
-                                                                                        borderRadius: 1,
-                                                                                        bgcolor: 'text.secondary',
-                                                                                        flex: '0 0 auto',
-                                                                                    }}
-                                                                                />
                                                                                 <Typography
                                                                                     variant="body2"
                                                                                     sx={{
-                                                                                        color: 'text.secondary',
+                                                                                        color: overlayTextSecondary,
                                                                                         fontSize: '0.9rem',
                                                                                         lineHeight: 1.5,
                                                                                     }}
@@ -1883,9 +1905,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                                                             {!autoSync3D && showRetry && (
                                                                 <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                    <Button variant="contained" size="small" onClick={handleManualGenerate3D}>
-                                                                        Retry
-                                                                    </Button>
                                                                 </Box>
                                                             )}
                                                         </Box>
@@ -1897,7 +1916,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         <Typography
                                                             variant="body1"
                                                             sx={{
-                                                                color: conformerErrorType === 'network' ? 'warning.main' : 'error.main',
+                                                                color: conformerErrorType === 'network' ? overlayTitleWarning : overlayTitleError,
                                                                 fontSize: '1.1rem',
                                                                 lineHeight: 1.6,
                                                                 fontWeight: 500,
@@ -1912,7 +1931,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 variant="body2"
                                                                 sx={{
                                                                     mt: 0.75,
-                                                                    color: 'text.secondary',
+                                                                    color: overlayTextSecondary,
                                                                     fontSize: '0.9rem',
                                                                     lineHeight: 1.5,
                                                                 }}
@@ -1989,460 +2008,460 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 overflowX: 'hidden',
                                             }}
                                         >
-                                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
-                                            {active3DPanel === 'representation'
-                                                ? 'Representation'
-                                                : active3DPanel === 'color'
-                                                    ? 'Color by'
-                                                    : active3DPanel === 'labels'
-                                                        ? 'Labels'
-                                                        : active3DPanel === 'background'
-                                                            ? 'Background'
-                                                            : active3DPanel === 'template'
-                                                                ? 'Template'
-                                                        : active3DPanel === 'log'
-                                                            ? 'Log'
-                                                            : 'View'}
-                                        </Typography>
-                                        <Divider sx={{ mb: 0.75 }} />
+                                            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
+                                                {active3DPanel === 'representation'
+                                                    ? 'Representation'
+                                                    : active3DPanel === 'color'
+                                                        ? 'Color by'
+                                                        : active3DPanel === 'labels'
+                                                            ? 'Labels'
+                                                            : active3DPanel === 'background'
+                                                                ? 'Background'
+                                                                : active3DPanel === 'template'
+                                                                    ? 'Template'
+                                                                    : active3DPanel === 'log'
+                                                                        ? 'Log'
+                                                                        : 'View'}
+                                            </Typography>
+                                            <Divider sx={{ mb: 0.75 }} />
 
-                                        {active3DPanel === 'representation' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                {MolstarSchemes.representationSchemes.map((rep) => {
-                                                    const checked = enabled3DRepresentations.includes(rep.id);
-                                                    const opacityPct = typeof repOpacityPctById?.[rep.id] === 'number'
-                                                        ? repOpacityPctById[rep.id]
-                                                        : 100;
+                                            {active3DPanel === 'representation' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                    {MolstarSchemes.representationSchemes.map((rep) => {
+                                                        const checked = enabled3DRepresentations.includes(rep.id);
+                                                        const opacityPct = typeof repOpacityPctById?.[rep.id] === 'number'
+                                                            ? repOpacityPctById[rep.id]
+                                                            : 100;
 
-                                                    return (
-                                                        <Box key={rep.id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                                            <Box
-                                                                sx={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'space-between',
-                                                                    gap: 1,
-                                                                    minHeight: 20,
-                                                                }}
-                                                            >
-                                                                <Typography variant="body2" sx={{ fontSize: 12, color: 'text.primary' }}>
-                                                                    {rep.label}
-                                                                </Typography>
-
-                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                <Switch
-                                                                    size="small"
-                                                                    checked={checked}
-                                                                    onChange={(e) => {
-                                                                        const nextChecked = e.target.checked;
-                                                                        viewer3DRef.current?.setRepresentationEnabled?.(rep.id, nextChecked);
-                                                                        setEnabled3DRepresentations((prev) => {
-                                                                            const arr = Array.isArray(prev) ? prev : [];
-                                                                            const has = arr.includes(rep.id);
-                                                                            if (nextChecked && has) return arr;
-                                                                            if (!nextChecked && !has) return arr;
-                                                                            if (nextChecked) return [...arr, rep.id];
-                                                                            return arr.filter((x) => x !== rep.id);
-                                                                        });
-
-                                                                        // Apply current opacity immediately when enabling.
-                                                                        if (nextChecked) {
-                                                                            viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, opacityPct / 100);
-                                                                        }
+                                                        return (
+                                                            <Box key={rep.id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'space-between',
+                                                                        gap: 1,
+                                                                        minHeight: 20,
                                                                     }}
-                                                                    inputProps={{ 'aria-label': `toggle representation ${rep.label}` }}
-                                                                />
-                                                                </Box>
-                                                            </Box>
+                                                                >
+                                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.primary' }}>
+                                                                        {rep.label}
+                                                                    </Typography>
 
-                                                            {checked && (
-                                                                <Box sx={{ px: 0.5, pr: 1.5 }}>
-                                                                    <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                                                                        <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                            Opacity
-                                                                        </Typography>
-                                                                        <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                            {opacityPct}%
-                                                                        </Typography>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                        <Switch
+                                                                            size="small"
+                                                                            checked={checked}
+                                                                            onChange={(e) => {
+                                                                                const nextChecked = e.target.checked;
+                                                                                viewer3DRef.current?.setRepresentationEnabled?.(rep.id, nextChecked);
+                                                                                setEnabled3DRepresentations((prev) => {
+                                                                                    const arr = Array.isArray(prev) ? prev : [];
+                                                                                    const has = arr.includes(rep.id);
+                                                                                    if (nextChecked && has) return arr;
+                                                                                    if (!nextChecked && !has) return arr;
+                                                                                    if (nextChecked) return [...arr, rep.id];
+                                                                                    return arr.filter((x) => x !== rep.id);
+                                                                                });
+
+                                                                                // Apply current opacity immediately when enabling.
+                                                                                if (nextChecked) {
+                                                                                    viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, opacityPct / 100);
+                                                                                }
+                                                                            }}
+                                                                            inputProps={{ 'aria-label': `toggle representation ${rep.label}` }}
+                                                                        />
                                                                     </Box>
-                                                                    <Slider
-                                                                        size="small"
-                                                                        value={opacityPct}
-                                                                        min={5}
-                                                                        max={100}
-                                                                        step={5}
-                                                                        sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
-                                                                        onChange={(_, v) => {
-                                                                            const next = Array.isArray(v) ? v[0] : v;
-                                                                            const pct = Math.min(100, Math.max(0, Number(next) || 0));
-                                                                            setRepOpacityPctById((prev) => ({ ...prev, [rep.id]: pct }));
-                                                                            viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, pct / 100);
-                                                                        }}
-                                                                        aria-label={`opacity ${rep.label}`}
-                                                                    />
                                                                 </Box>
-                                                            )}
-                                                        </Box>
-                                                    );
-                                                })}
-                                            </Box>
-                                        )}
 
-                                        {active3DPanel === 'labels' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                {[
-                                                    { key: 'element', label: 'Atom labels' },
-                                                    { key: 'residue', label: 'Residue labels' },
-                                                    { key: 'chain', label: 'Chain labels' },
-                                                ].map((row) => (
-                                                    <Box
-                                                        key={row.key}
-                                                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
-                                                    >
-                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
-                                                            {row.label}
-                                                        </Typography>
-                                                        <Switch
-                                                            size="small"
-                                                            checked={!!labelsEnabled[row.key]}
-                                                            onChange={(e) => {
-                                                                const next = e.target.checked;
-                                                                viewer3DRef.current?.setLabelEnabled?.(row.key, next);
-                                                                setLabelsEnabled((prev) => ({ ...prev, [row.key]: next }));
-                                                            }}
-                                                            inputProps={{ 'aria-label': `toggle ${row.key} labels` }}
-                                                        />
-                                                    </Box>
-                                                ))}
-                                            </Box>
-                                        )}
-
-                                        {active3DPanel === 'color' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                {MolstarSchemes.colorBySchemes.map((color) => (
-                                                    <Button
-                                                        key={color.id}
-                                                        size="small"
-                                                        variant="text"
-                                                        color="inherit"
-                                                        onClick={() => {
-                                                            setMolstarColorBy(color.id);
-                                                            viewer3DRef.current?.setColorScheme?.(color.id);
-                                                        }}
-                                                        sx={{
-                                                            justifyContent: 'flex-start',
-                                                            textTransform: 'none',
-                                                            fontSize: 12,
-                                                            lineHeight: 1.2,
-                                                            minHeight: 26,
-                                                            px: 0.5,
-                                                            color: 'text.primary',
-                                                        }}
-                                                        fullWidth
-                                                    >
-                                                        {color.label}
-                                                    </Button>
-                                                ))}
-                                            </Box>
-                                        )}
-
-                                        {active3DPanel === 'background' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                                                    <Button
-                                                        size="small"
-                                                        variant={molstarBackground === 'light' ? 'contained' : 'text'}
-                                                        color="inherit"
-                                                        onClick={() => setMolstarBackground('light')}
-                                                        sx={{
-                                                            justifyContent: 'flex-start',
-                                                            textTransform: 'none',
-                                                            fontSize: 12,
-                                                            lineHeight: 1.2,
-                                                            minHeight: 26,
-                                                            px: 0.75,
-                                                            color: 'text.primary',
-                                                        }}
-                                                    >
-                                                        Light
-                                                    </Button>
-                                                    <Button
-                                                        size="small"
-                                                        variant={molstarBackground === 'dark' ? 'contained' : 'text'}
-                                                        color="inherit"
-                                                        onClick={() => setMolstarBackground('dark')}
-                                                        sx={{
-                                                            justifyContent: 'flex-start',
-                                                            textTransform: 'none',
-                                                            fontSize: 12,
-                                                            lineHeight: 1.2,
-                                                            minHeight: 26,
-                                                            px: 0.75,
-                                                            color: 'text.primary',
-                                                        }}
-                                                    >
-                                                        Dark
-                                                    </Button>
+                                                                {checked && (
+                                                                    <Box sx={{ px: 0.5, pr: 1.5 }}>
+                                                                        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                                Opacity
+                                                                            </Typography>
+                                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                                {opacityPct}%
+                                                                            </Typography>
+                                                                        </Box>
+                                                                        <Slider
+                                                                            size="small"
+                                                                            value={opacityPct}
+                                                                            min={5}
+                                                                            max={100}
+                                                                            step={5}
+                                                                            sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
+                                                                            onChange={(_, v) => {
+                                                                                const next = Array.isArray(v) ? v[0] : v;
+                                                                                const pct = Math.min(100, Math.max(0, Number(next) || 0));
+                                                                                setRepOpacityPctById((prev) => ({ ...prev, [rep.id]: pct }));
+                                                                                viewer3DRef.current?.setRepresentationAlphaFor?.(rep.id, pct / 100);
+                                                                            }}
+                                                                            aria-label={`opacity ${rep.label}`}
+                                                                        />
+                                                                    </Box>
+                                                                )}
+                                                            </Box>
+                                                        );
+                                                    })}
                                                 </Box>
-                                            </Box>
-                                        )}
+                                            )}
 
-                                        {active3DPanel === 'template' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{ fontSize: 12, color: 'text.primary', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                                        title={scaffoldTemplate?.name || ''}
-                                                    >
-                                                        {scaffoldTemplate?.name ? scaffoldTemplate.name : 'No template'}
-                                                    </Typography>
+                                            {active3DPanel === 'labels' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                    {[
+                                                        { key: 'element', label: 'Atom labels' },
+                                                        { key: 'residue', label: 'Residue labels' },
+                                                        { key: 'chain', label: 'Chain labels' },
+                                                    ].map((row) => (
+                                                        <Box
+                                                            key={row.key}
+                                                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
+                                                        >
+                                                            <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                                {row.label}
+                                                            </Typography>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={!!labelsEnabled[row.key]}
+                                                                onChange={(e) => {
+                                                                    const next = e.target.checked;
+                                                                    viewer3DRef.current?.setLabelEnabled?.(row.key, next);
+                                                                    setLabelsEnabled((prev) => ({ ...prev, [row.key]: next }));
+                                                                }}
+                                                                inputProps={{ 'aria-label': `toggle ${row.key} labels` }}
+                                                            />
+                                                        </Box>
+                                                    ))}
+                                                </Box>
+                                            )}
 
-                                                    <span>
+                                            {active3DPanel === 'color' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                    {MolstarSchemes.colorBySchemes.map((color) => (
                                                         <Button
+                                                            key={color.id}
                                                             size="small"
                                                             variant="text"
                                                             color="inherit"
-                                                            onClick={() => handleClearScaffold()}
-                                                            disabled={!scaffoldTemplate}
-                                                            sx={{ textTransform: 'none', fontSize: 12, minHeight: 26, px: 0.75 }}
+                                                            onClick={() => {
+                                                                setMolstarColorBy(color.id);
+                                                                viewer3DRef.current?.setColorScheme?.(color.id);
+                                                            }}
+                                                            sx={{
+                                                                justifyContent: 'flex-start',
+                                                                textTransform: 'none',
+                                                                fontSize: 12,
+                                                                lineHeight: 1.2,
+                                                                minHeight: 26,
+                                                                px: 0.5,
+                                                                color: 'text.primary',
+                                                            }}
+                                                            fullWidth
                                                         >
-                                                            Remove
+                                                            {color.label}
                                                         </Button>
-                                                    </span>
+                                                    ))}
                                                 </Box>
+                                            )}
 
-                                                <Box>
-                                                    {/* Keep overlay controls on top */}
-                                                    <Box
-                                                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
-                                                    >
-                                                        <Typography variant="body2" sx={{ fontSize: 12 }}>
-                                                            Template overlay
+                                            {active3DPanel === 'background' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                                        <Button
+                                                            size="small"
+                                                            variant={molstarBackground === 'light' ? 'contained' : 'text'}
+                                                            color="inherit"
+                                                            onClick={() => setMolstarBackground('light')}
+                                                            sx={{
+                                                                justifyContent: 'flex-start',
+                                                                textTransform: 'none',
+                                                                fontSize: 12,
+                                                                lineHeight: 1.2,
+                                                                minHeight: 26,
+                                                                px: 0.75,
+                                                                color: 'text.primary',
+                                                            }}
+                                                        >
+                                                            Light
+                                                        </Button>
+                                                        <Button
+                                                            size="small"
+                                                            variant={molstarBackground === 'dark' ? 'contained' : 'text'}
+                                                            color="inherit"
+                                                            onClick={() => setMolstarBackground('dark')}
+                                                            sx={{
+                                                                justifyContent: 'flex-start',
+                                                                textTransform: 'none',
+                                                                fontSize: 12,
+                                                                lineHeight: 1.2,
+                                                                minHeight: 26,
+                                                                px: 0.75,
+                                                                color: 'text.primary',
+                                                            }}
+                                                        >
+                                                            Dark
+                                                        </Button>
+                                                    </Box>
+                                                </Box>
+                                            )}
+
+                                            {active3DPanel === 'template' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ fontSize: 12, color: 'text.primary', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                                            title={scaffoldTemplate?.name || ''}
+                                                        >
+                                                            {scaffoldTemplate?.name ? scaffoldTemplate.name : 'No template'}
                                                         </Typography>
-                                                        <Switch
-                                                            size="small"
-                                                            checked={(templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw)}
-                                                            onChange={(e) => {
-                                                                setTemplateOverlayEnabledRaw(!!e.target.checked);
-                                                            }}
-                                                            disabled={!scaffoldTemplate}
-                                                            inputProps={{ 'aria-label': 'toggle template overlay' }}
-                                                        />
+
+                                                        <span>
+                                                            <Button
+                                                                size="small"
+                                                                variant="text"
+                                                                color="inherit"
+                                                                onClick={() => handleClearScaffold()}
+                                                                disabled={!scaffoldTemplate}
+                                                                sx={{ textTransform: 'none', fontSize: 12, minHeight: 26, px: 0.75 }}
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        </span>
                                                     </Box>
 
-                                                    <Box sx={{ px: 0.5, pr: 1.5, mt: 0.25, mb: 1 }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                Opacity
+                                                    <Box>
+                                                        {/* Keep overlay controls on top */}
+                                                        <Box
+                                                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}
+                                                        >
+                                                            <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                                Template overlay
                                                             </Typography>
-                                                            <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
-                                                                {templateOverlayOpacityPct}%
-                                                            </Typography>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={(templateOverlayEnabledRaw == null ? !!scaffoldTemplate : !!templateOverlayEnabledRaw)}
+                                                                onChange={(e) => {
+                                                                    setTemplateOverlayEnabledRaw(!!e.target.checked);
+                                                                }}
+                                                                disabled={!scaffoldTemplate}
+                                                                inputProps={{ 'aria-label': 'toggle template overlay' }}
+                                                            />
                                                         </Box>
-                                                        <Slider
-                                                            size="small"
-                                                            value={templateOverlayOpacityPct}
-                                                            min={5}
-                                                            max={60}
-                                                            step={5}
-                                                            sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
-                                                            onChange={(_, v) => {
-                                                                const next = Array.isArray(v) ? v[0] : v;
-                                                                const pct = Math.min(60, Math.max(5, Number(next) || 25));
-                                                                setTemplateOverlayOpacityPct(pct);
-                                                            }}
-                                                            disabled={!scaffoldTemplate}
-                                                            aria-label="template opacity"
-                                                        />
-                                                    </Box>
 
-                                                    <Divider sx={{ my: 0.75 }} />
+                                                        <Box sx={{ px: 0.5, pr: 1.5, mt: 0.25, mb: 1 }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                    Opacity
+                                                                </Typography>
+                                                                <Typography variant="body2" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                                                                    {templateOverlayOpacityPct}%
+                                                                </Typography>
+                                                            </Box>
+                                                            <Slider
+                                                                size="small"
+                                                                value={templateOverlayOpacityPct}
+                                                                min={5}
+                                                                max={60}
+                                                                step={5}
+                                                                sx={{ width: 'calc(100% - 12px)', mx: 0.75 }}
+                                                                onChange={(_, v) => {
+                                                                    const next = Array.isArray(v) ? v[0] : v;
+                                                                    const pct = Math.min(60, Math.max(5, Number(next) || 25));
+                                                                    setTemplateOverlayOpacityPct(pct);
+                                                                }}
+                                                                disabled={!scaffoldTemplate}
+                                                                aria-label="template opacity"
+                                                            />
+                                                        </Box>
 
-                                                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 2.0 }}>
-                                                        Mapping
-                                                    </Typography>
+                                                        <Divider sx={{ my: 0.75 }} />
 
-                                                    {/* Mapping editor (all designed chains) */}
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                        {(() => {
-                                                            const chains = scaffoldTemplate?.chainData ?? [];
-                                                            const chainOptions = (chains.length ? chains : (scaffoldTemplate?.chains || [])).map((c) =>
-                                                                typeof c === 'string' ? c : c?.id
-                                                            ).filter(Boolean);
+                                                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 2.0 }}>
+                                                            Mapping
+                                                        </Typography>
 
-                                                            const commonFieldSx = {
-                                                                '& .MuiInputLabel-root': { fontSize: 12 },
-                                                                '& .MuiInputBase-input': { fontSize: 12 },
-                                                                '& .MuiSelect-select': { fontSize: 12 },
-                                                                '& .MuiInputBase-root': { height: 26 },
-                                                                '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
-                                                            };
+                                                        {/* Mapping editor (all designed chains) */}
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                            {(() => {
+                                                                const chains = scaffoldTemplate?.chainData ?? [];
+                                                                const chainOptions = (chains.length ? chains : (scaffoldTemplate?.chains || [])).map((c) =>
+                                                                    typeof c === 'string' ? c : c?.id
+                                                                ).filter(Boolean);
 
-                                                            const designedChainCount = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
-                                                            const indices = Array.from({ length: designedChainCount }, (_, i) => i);
+                                                                const commonFieldSx = {
+                                                                    '& .MuiInputLabel-root': { fontSize: 12 },
+                                                                    '& .MuiInputBase-input': { fontSize: 12 },
+                                                                    '& .MuiSelect-select': { fontSize: 12 },
+                                                                    '& .MuiInputBase-root': { height: 26 },
+                                                                    '& .MuiInputBase-input, & .MuiSelect-select': { py: '6px' },
+                                                                };
 
-                                                            if (!indices.length) {
-                                                                return (
-                                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                                                        No designed chains.
-                                                                    </Typography>
-                                                                );
-                                                            }
+                                                                const designedChainCount = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
+                                                                const indices = Array.from({ length: designedChainCount }, (_, i) => i);
 
-                                                            return indices.map((idx) => {
-                                                                const mapping = scaffoldMappings?.[idx] || {};
-                                                                const enabled = mapping?.enabled === true;
-                                                                const templateToggleDisabled = false;
+                                                                if (!indices.length) {
+                                                                    return (
+                                                                        <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                                            No designed chains.
+                                                                        </Typography>
+                                                                    );
+                                                                }
 
-                                                                return (
-                                                                    <Box
-                                                                        key={idx}
-                                                                        sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-                                                                    >
-                                                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 24 }}>
-                                                                            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12 }}>
-                                                                                Chain {seqLabel(idx)}
-                                                                            </Typography>
-                                                                            <Switch
+                                                                return indices.map((idx) => {
+                                                                    const mapping = scaffoldMappings?.[idx] || {};
+                                                                    const enabled = mapping?.enabled === true;
+                                                                    const templateToggleDisabled = false;
+
+                                                                    return (
+                                                                        <Box
+                                                                            key={idx}
+                                                                            sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
+                                                                        >
+                                                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 24 }}>
+                                                                                <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                                                                    Chain {seqLabel(idx)}
+                                                                                </Typography>
+                                                                                <Switch
+                                                                                    size="small"
+                                                                                    checked={enabled}
+                                                                                    onChange={(e) => {
+                                                                                        const nextEnabled = !!e.target.checked;
+                                                                                        handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
+                                                                                    }}
+                                                                                    disabled={!scaffoldTemplate || templateToggleDisabled}
+                                                                                    inputProps={{ 'aria-label': `toggle template mapping for chain ${seqLabel(idx)}` }}
+                                                                                />
+                                                                            </Box>
+
+                                                                            <TextField
+                                                                                select
                                                                                 size="small"
-                                                                                checked={enabled}
-                                                                                onChange={(e) => {
-                                                                                    const nextEnabled = !!e.target.checked;
-                                                                                    handleEditScaffoldMappingNoAutoGen(idx, { enabled: nextEnabled });
-                                                                                }}
-                                                                                disabled={!scaffoldTemplate || templateToggleDisabled}
-                                                                                inputProps={{ 'aria-label': `toggle template mapping for chain ${seqLabel(idx)}` }}
+                                                                                label="PDB chain"
+                                                                                value={mapping.chainId ?? ''}
+                                                                                onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { chainId: e.target.value || null })}
+                                                                                disabled={!scaffoldTemplate}
+                                                                                sx={commonFieldSx}
+                                                                            >
+                                                                                {chainOptions.length ? (
+                                                                                    chainOptions.map((id) => (
+                                                                                        <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
+                                                                                            {id}
+                                                                                        </MenuItem>
+                                                                                    ))
+                                                                                ) : (
+                                                                                    <MenuItem value="" disabled sx={{ fontSize: 12 }}>
+                                                                                        No chains
+                                                                                    </MenuItem>
+                                                                                )}
+                                                                            </TextField>
+
+                                                                            <TextField
+                                                                                size="small"
+                                                                                label="Start residue"
+                                                                                type="number"
+                                                                                value={mapping.start ?? ''}
+                                                                                slotProps={{ htmlInput: { min: 1 } }}
+                                                                                onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { start: e.target.value ? Number(e.target.value) : null })}
+                                                                                disabled={!scaffoldTemplate}
+                                                                                sx={commonFieldSx}
+                                                                            />
+
+                                                                            <TextField
+                                                                                size="small"
+                                                                                label="End residue"
+                                                                                type="number"
+                                                                                value={mapping.end ?? ''}
+                                                                                onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { end: e.target.value ? Number(e.target.value) : null })}
+                                                                                disabled={!scaffoldTemplate}
+                                                                                sx={commonFieldSx}
+                                                                            />
+
+                                                                            <TextField
+                                                                                size="small"
+                                                                                label="Offset"
+                                                                                type="number"
+                                                                                value={mapping.offset ?? 0}
+                                                                                slotProps={{ htmlInput: { min: 0 } }}
+                                                                                onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { offset: Number(e.target.value) || 0 })}
+                                                                                disabled={!scaffoldTemplate}
+                                                                                sx={commonFieldSx}
                                                                             />
                                                                         </Box>
-
-                                                                        <TextField
-                                                                            select
-                                                                            size="small"
-                                                                            label="PDB chain"
-                                                                            value={mapping.chainId ?? ''}
-                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { chainId: e.target.value || null })}
-                                                                            disabled={!scaffoldTemplate}
-                                                                            sx={commonFieldSx}
-                                                                        >
-                                                                            {chainOptions.length ? (
-                                                                                chainOptions.map((id) => (
-                                                                                    <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
-                                                                                        {id}
-                                                                                    </MenuItem>
-                                                                                ))
-                                                                            ) : (
-                                                                                <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                                                                                    No chains
-                                                                                </MenuItem>
-                                                                            )}
-                                                                        </TextField>
-
-                                                                        <TextField
-                                                                            size="small"
-                                                                            label="Start residue"
-                                                                            type="number"
-                                                                            value={mapping.start ?? ''}
-                                                                            slotProps={{ htmlInput: { min: 1 } }}
-                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { start: e.target.value ? Number(e.target.value) : null })}
-                                                                            disabled={!scaffoldTemplate}
-                                                                            sx={commonFieldSx}
-                                                                        />
-
-                                                                        <TextField
-                                                                            size="small"
-                                                                            label="End residue"
-                                                                            type="number"
-                                                                            value={mapping.end ?? ''}
-                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { end: e.target.value ? Number(e.target.value) : null })}
-                                                                            disabled={!scaffoldTemplate}
-                                                                            sx={commonFieldSx}
-                                                                        />
-
-                                                                        <TextField
-                                                                            size="small"
-                                                                            label="Offset"
-                                                                            type="number"
-                                                                            value={mapping.offset ?? 0}
-                                                                            slotProps={{ htmlInput: { min: 0 } }}
-                                                                            onChange={(e) => handleEditScaffoldMappingNoAutoGen(idx, { offset: Number(e.target.value) || 0 })}
-                                                                            disabled={!scaffoldTemplate}
-                                                                            sx={commonFieldSx}
-                                                                        />
-                                                                    </Box>
-                                                                );
-                                                            });
-                                                        })()}
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </Box>
                                                     </Box>
                                                 </Box>
-                                            </Box>
-                                        )}
+                                            )}
 
-                                        {active3DPanel === 'view' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                {MolstarSchemes.resetViewScheme.map((reset) => (
-                                                    <Button
-                                                        key={reset.id}
-                                                        size="small"
-                                                        variant="text"
-                                                        color="inherit"
-                                                        onClick={() => {
-                                                            if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
-                                                            else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
-                                                            else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
-                                                        }}
-                                                        sx={{
-                                                            justifyContent: 'flex-start',
-                                                            textTransform: 'none',
-                                                            fontSize: 12,
-                                                            lineHeight: 1.2,
-                                                            minHeight: 26,
-                                                            px: 0.5,
-                                                            color: 'text.primary',
-                                                        }}
-                                                        fullWidth
-                                                    >
-                                                        {reset.label}
-                                                    </Button>
-                                                ))}
-                                            </Box>
-                                        )}
+                                            {active3DPanel === 'view' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                    {MolstarSchemes.resetViewScheme.map((reset) => (
+                                                        <Button
+                                                            key={reset.id}
+                                                            size="small"
+                                                            variant="text"
+                                                            color="inherit"
+                                                            onClick={() => {
+                                                                if (reset.id === 'reset-zoom') viewer3DRef.current?.resetZoom?.();
+                                                                else if (reset.id === 'orient-axes') viewer3DRef.current?.orientAxes?.();
+                                                                else if (reset.id === 'reset-axes') viewer3DRef.current?.resetAxes?.();
+                                                            }}
+                                                            sx={{
+                                                                justifyContent: 'flex-start',
+                                                                textTransform: 'none',
+                                                                fontSize: 12,
+                                                                lineHeight: 1.2,
+                                                                minHeight: 26,
+                                                                px: 0.5,
+                                                                color: 'text.primary',
+                                                            }}
+                                                            fullWidth
+                                                        >
+                                                            {reset.label}
+                                                        </Button>
+                                                    ))}
+                                                </Box>
+                                            )}
 
-                                        {active3DPanel === 'log' && (
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                                                {Array.isArray(conformerProgressLog) && conformerProgressLog.length > 0 ? (
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                                        {conformerProgressLog.map((row, idx) => {
-                                                            const ts = typeof row?.ts === 'number' ? row.ts : null;
-                                                            const time = ts
-                                                                ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                                                                : '';
-                                                            const msg = row?.message ? String(row.message) : '';
-                                                            return (
-                                                                <Typography
-                                                                    key={`${ts || 't'}:${idx}`}
-                                                                    variant="caption"
-                                                                    sx={{
-                                                                        color: 'text.secondary',
-                                                                        fontFamily: 'monospace',
-                                                                        fontSize: 11,
-                                                                        lineHeight: 1.25,
-                                                                        whiteSpace: 'pre-wrap',
-                                                                        wordBreak: 'break-word',
-                                                                    }}
-                                                                >
-                                                                    {time ? `[${time}] ` : ''}{msg}
-                                                                </Typography>
-                                                            );
-                                                        })}
-                                                    </Box>
-                                                ) : (
-                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                                        No progress yet.
-                                                    </Typography>
-                                                )}
-                                            </Box>
-                                        )}
+                                            {active3DPanel === 'log' && (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                    {Array.isArray(conformerProgressLog) && conformerProgressLog.length > 0 ? (
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                                            {conformerProgressLog.map((row, idx) => {
+                                                                const ts = typeof row?.ts === 'number' ? row.ts : null;
+                                                                const time = ts
+                                                                    ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                                                                    : '';
+                                                                const msg = row?.message ? String(row.message) : '';
+                                                                return (
+                                                                    <Typography
+                                                                        key={`${ts || 't'}:${idx}`}
+                                                                        variant="caption"
+                                                                        sx={{
+                                                                            color: 'text.secondary',
+                                                                            fontFamily: 'monospace',
+                                                                            fontSize: 11,
+                                                                            lineHeight: 1.25,
+                                                                            whiteSpace: 'pre-wrap',
+                                                                            wordBreak: 'break-word',
+                                                                        }}
+                                                                    >
+                                                                        {time ? `[${time}] ` : ''}{msg}
+                                                                    </Typography>
+                                                                );
+                                                            })}
+                                                        </Box>
+                                                    ) : (
+                                                        <Typography variant="body2" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                            No progress yet.
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            )}
                                         </Box>
                                     </>
                                 )}

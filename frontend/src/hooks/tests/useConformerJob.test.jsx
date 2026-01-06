@@ -204,6 +204,57 @@ describe('useConformerJob', () => {
     expect(screen.getByTestId('state').textContent).toBe('canceled');
   });
 
+  it('treats cancel_requested=true as successful cancel even if backend reports failed', async () => {
+    const fetchMock = global.fetch;
+
+    fetchMock
+      // start
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { status: 'success', data: { job_id: 'job-5', status_url: '/api/core/molecules/conformer_jobs/job-5', cancel_url: '/api/core/molecules/conformer_jobs/job-5/cancel' } },
+          { status: 202 },
+        ),
+      )
+      // initial status: running
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: { job_id: 'job-5', state: 'running', progress: { stage: 'embedding', message: 'Embedding…' }, result_ref: null, error: null },
+        }),
+      )
+      // cancel response acknowledges cancel but reports failed/error
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: 'success',
+          data: {
+            job_id: 'job-5',
+            cancel_requested: true,
+            state: 'failed',
+            progress: { stage: 'failed', message: 'Unhandled exception' },
+            error: { message: '-241' },
+          },
+        }),
+      );
+
+    render(<TestComponent />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('start'));
+    });
+
+    await flushUntil(() => screen.getByTestId('jobId').textContent === 'job-5');
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('cancel'));
+    });
+
+    await flushUntil(() => screen.getByTestId('state').textContent === 'canceled');
+
+    expect(screen.getByTestId('state').textContent).toBe('canceled');
+    expect(screen.getByTestId('errorType').textContent).toBe('');
+    expect(screen.getByTestId('error').textContent).toBe('');
+  });
+
   it('treats backend job failure as job errorType', async () => {
     const fetchMock = global.fetch;
 

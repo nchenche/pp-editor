@@ -92,7 +92,13 @@ export function useGenerate3D(baseUrlOverride) {
     }, [jobDerivedResult, jobId]);
 
     useEffect(() => {
-        if (!jobError) return;
+        // Keep legacy error in sync with the job system.
+        // Important: clear the previous error when the job transitions to canceled/success
+        // and the job hook clears its error.
+        if (!jobError) {
+            setError(null);
+            return;
+        }
         setError(toErrorMessage(jobError));
     }, [jobError]);
 

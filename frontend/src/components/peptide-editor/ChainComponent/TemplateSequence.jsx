@@ -109,10 +109,31 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
 export default function TemplateSequence({
     mapping,
     maxResidueCount = null,
+    hasScaffoldTemplate = false,
     sequenceIndex = null,
     onEditMapping,
 }) {
-    if (!mapping || !Array.isArray(mapping.templateResidues)) {
+    // Designed sequence is empty: keep a stable, non-collapsing placeholder.
+    if (hasScaffoldTemplate && typeof maxResidueCount === 'number' && maxResidueCount <= 0) {
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: CELL_HEIGHT + 4 }}>
+                <Typography
+                    variant="body2"
+                    sx={{
+                        color: 'text.secondary',
+                        fontSize: 12,
+                        userSelect: 'none',
+                        px: 0.5,
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    Input residues are required. Add monomers to anchor template mapping.
+                </Typography>
+            </Box>
+        );
+    }
+
+    if (!hasScaffoldTemplate) {
         return (
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Upload a scaffold to enable mappings.
@@ -120,14 +141,11 @@ export default function TemplateSequence({
         );
     }
 
-    // Designed sequence is empty: keep a stable, non-collapsing placeholder.
-    if (typeof maxResidueCount === 'number' && maxResidueCount <= 0) {
+    if (!mapping || !Array.isArray(mapping.templateResidues)) {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: CELL_HEIGHT + 4 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Add residues to enable template mapping preview.
-                </Typography>
-            </Box>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Template mappings are not available yet.
+            </Typography>
         );
     }
 
@@ -158,7 +176,7 @@ export default function TemplateSequence({
         return Math.min(start, end);
     }, [isEnabled, mapping?.chainId, mapping?.start, mapping?.end]);
 
-    
+
 
     // Number of AA positions in this chain (excluding caps).
     // If parent passes it via maxResidueCount, we use that;
