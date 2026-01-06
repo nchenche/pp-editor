@@ -62,15 +62,34 @@ export function useGenerate3D(baseUrlOverride) {
     // Mirror job state into legacy { result, error, loading } shape.
     const jobDerivedResult = useMemo(() => {
         if (jobState !== 'success') return null;
-        return mapResultRefToLegacyResult(resultRef);
-    }, [jobState, resultRef]);
+        return {
+            ...mapResultRefToLegacyResult(resultRef),
+            jobId: jobId || null,
+        };
+    }, [jobId, jobState, resultRef]);
 
     useEffect(() => {
-        if (jobDerivedResult) {
-            setResult(jobDerivedResult);
-            setError(null);
-        }
-    }, [jobDerivedResult]);
+        if (!jobDerivedResult) return;
+        setResult((prev) => {
+            const prevObj = (prev && typeof prev === 'object') ? prev : null;
+            const prevPdb = prevObj?.pdb || prevObj?.PDB || '';
+            const nextPdb = jobDerivedResult?.pdb || jobDerivedResult?.PDB || '';
+            const sameJob = !!jobId && String(prevObj?.jobId || '') === String(jobId);
+
+            // If the job status payload omits large fields (like PDB), don't clobber an already-loaded
+            // structure for the same job.
+            if (sameJob && prevPdb && !nextPdb) {
+                return {
+                    ...jobDerivedResult,
+                    pdb: prevPdb,
+                    PDB: prevPdb,
+                };
+            }
+
+            return jobDerivedResult;
+        });
+        setError(null);
+    }, [jobDerivedResult, jobId]);
 
     useEffect(() => {
         if (!jobError) return;
