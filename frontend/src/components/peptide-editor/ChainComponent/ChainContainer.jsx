@@ -117,7 +117,7 @@ export default function ChainContainer({
                     // INNER: content expands to fit all monomers
                     width: 'max-content',
                     minWidth: '100%', // still fills available width when short
-                    border: 1,
+                    // border: 1,
                     borderColor: 'divider',
                     borderRadius: 1,
                     p: 1,

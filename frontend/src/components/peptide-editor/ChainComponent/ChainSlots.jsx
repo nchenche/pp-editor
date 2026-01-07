@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Box, TextField, Tooltip, Typography } from '@mui/material';
+
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useOverlayPortal } from '../../common/OverlayPortalContext';
 import ChainContainer from './ChainContainer';
 import { MonomerSequence } from './MonomerSequence';
 import TemplateSequence from './TemplateSequence';
+
+import { Box, TextField, Tooltip, Typography } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
@@ -72,13 +75,15 @@ export const ChainSlots = ({
         return [[]].concat(extras);
     })();
 
-    // Keep active selection within the *BILN-derived* chains (placeholders are UI-only).
+    // Keep active selection within the *rendered* chains (BILN-derived + UI-only placeholders).
+    // This allows selecting placeholder chains (e.g., to append monomers into a new chain).
     const safeActiveSeqIdx = useMemo(() => {
         const n = Number(activeSeqIdx);
-        if (derivedChainCount <= 0) return 0;
+        const count = Array.isArray(effectiveRowMonomerLists) ? effectiveRowMonomerLists.length : 0;
+        if (count <= 0) return 0;
         if (!Number.isFinite(n) || n < 0) return 0;
-        return Math.min(n, Math.max(0, derivedChainCount - 1));
-    }, [activeSeqIdx, derivedChainCount]);
+        return Math.min(n, Math.max(0, count - 1));
+    }, [activeSeqIdx, effectiveRowMonomerLists]);
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
 
     const ALLOWED = ['H', 'E', 'C', 'T', 'B', 'I', '-'];
@@ -89,7 +94,7 @@ export const ChainSlots = ({
 
     const gridGap = 0.5; // spacing between chips (theme spacing units)
     const chipWidth = 32; // px; matches w-8 from MonomerItem
-    const cellSize = 20; // px height for constraints cells
+    const cellSize = 24; // px height for constraints cells
 
     const showConstraintsRow = constraintMode === 'ss';
     const showTemplateRow = constraintMode === 'template';
@@ -210,13 +215,14 @@ export const ChainSlots = ({
                         <Box
                             key={seqIdx}
                             onClick={() => {
-                                if (!isVisualOnlyChainRow) onSetActiveSeqIdx(seqIdx);
+                                onSetActiveSeqIdx(seqIdx);
                             }}
                             sx={{
                                 position: 'relative',
                                 zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
                                 transform: 'none',
-                                boxShadow: '2',
+                                boxShadow: (t) => (seqIdx === safeActiveSeqIdx ? t.shadows[4] : t.shadows[1]),
+                                border: (t) => (seqIdx === safeActiveSeqIdx ? `1px solid ${t.palette.secondary.light}` : `1px solid ${t.palette.divider}`),
                                 borderRadius: 1,
                                 outline: 'none',
                                 transition: 'box-shadow 180ms ease',

@@ -29,7 +29,7 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -451,6 +451,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
     const viewer3DRef = useRef(null);
+
+    // Allow escaping the “focus 2D only” mode when linking/unlinking.
+    useEffect(() => {
+        const focus2DActive = !!viewer2DModes.linkMode || !!viewer2DModes.bondsMode;
+        if (!focus2DActive) return;
+        const onKeyDown = (e) => {
+            if (e.key !== 'Escape') return;
+            viewer2DRef.current?.setLinkMode?.(false);
+            viewer2DRef.current?.setBondsMode?.(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [viewer2DModes.linkMode, viewer2DModes.bondsMode]);
 
     // Ensure the representation menu initial state matches the viewer.
     // (Useful after changing DEFAULT_3D_REPRESENTATION, and avoids HMR stale state.)
@@ -1286,6 +1299,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
 
+                {/* Focus attention on the 2D viewer while linking */}
+                <Backdrop
+                    open={!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode}
+                    onClick={() => {
+                        viewer2DRef.current?.setLinkMode?.(false);
+                        viewer2DRef.current?.setBondsMode?.(false);
+                    }}
+                    sx={{
+                        zIndex: (t) => t.zIndex.modal - 2,
+                        bgcolor: (t) => alpha(t.palette.common.black, 0.35),
+                    }}
+                />
+
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
 
@@ -1298,6 +1324,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             display: 'flex',
                             flexDirection: 'column',
                             pr: 0.5,
+                            position: 'relative',
+                            zIndex: (t) => ((viewer2DModes.linkMode || viewer2DModes.bondsMode) ? t.zIndex.modal - 1 : 'auto'),
                         }}
                     >
                         {/* 2D viewer paper */}

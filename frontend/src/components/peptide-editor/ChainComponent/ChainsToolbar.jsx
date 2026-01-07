@@ -61,9 +61,8 @@ export default function ChainsToolbar({
                             color="inherit"
                             variant={linkMode ? 'contained' : 'outlined'}
                             disabled={!canLink}
-                            startIcon={<DeviceHubIcon fontSize="inherit" />}
                         >
-                            Link
+                            <DeviceHubIcon fontSize="inherit" />
                         </Button>
                     </span>
                 </Tooltip>
@@ -74,9 +73,9 @@ export default function ChainsToolbar({
                             color="inherit"
                             variant={bondsMode ? 'contained' : 'outlined'}
                             disabled={!canUnlink}
-                            startIcon={<LinkOffIcon fontSize="inherit" />}
+                            // startIcon={<LinkOffIcon fontSize="inherit" />}
                         >
-                            Unlink
+                            <LinkOffIcon fontSize="inherit" />
                         </Button>
                     </span>
                 </Tooltip>
