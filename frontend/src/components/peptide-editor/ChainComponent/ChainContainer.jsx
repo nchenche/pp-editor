@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { alpha } from '@mui/material/styles';
 
 export default function ChainContainer({
-    seqIdx,
     sequenceSlot,
     constraintsSlot,
     templateSlot,
@@ -15,7 +12,6 @@ export default function ChainContainer({
     dimReplaceOverlay = false,
     // Layout
     labelColWidth = 180,
-    gapY = 0.1,
     // Header actions (optional – design only for now)
     onSequenceMenu = () => { },
     onSequenceClear = () => { },
@@ -37,6 +33,7 @@ export default function ChainContainer({
     disableConstraintsActions = false,
     disableTemplateActions = false,
 }) {
+    const ROW_HEIGHT = 40;
     const [seqMenuEl, setSeqMenuEl] = useState(null);
     const [constraintsMenuEl, setConstraintsMenuEl] = useState(null);
     const [templateMenuEl, setTemplateMenuEl] = useState(null);
@@ -62,8 +59,19 @@ export default function ChainContainer({
     const rowGridSx = {
         display: 'grid',
         gridTemplateColumns: `${labelColWidth}px 1fr`, // was: 1fr
-        alignItems: 'start',
+        alignItems: 'center',
         columnGap: 1,
+    };
+
+    const rowBoxSx = {
+        minWidth: 0,
+        minHeight: ROW_HEIGHT,
+        display: 'flex',
+        alignItems: 'center',
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        borderStyle: 'dashed',
     };
 
     return (
@@ -137,7 +145,7 @@ export default function ChainContainer({
 
                 {/* Row 1: Sequence */}
                 <Box sx={rowGridSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0, minHeight: 34 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0, minHeight: ROW_HEIGHT }}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                             Sequence
                         </Typography>
@@ -158,22 +166,15 @@ export default function ChainContainer({
                                     </IconButton>
                                 </span>
                             </Tooltip>
-                            {/* <Tooltip title="Help" arrow>
-                                <span>
-                                    <IconButton size="small" onClick={onSequenceHelp} sx={iconBtnSx}>
-                                        <HelpOutlineIcon fontSize="inherit" />
-                                    </IconButton>
-                                </span>
-                            </Tooltip> */}
                         </Box>
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>{sequenceSlot}</Box>
+                    <Box sx={rowBoxSx}>{sequenceSlot}</Box>
                 </Box>
 
                 {/* Row 2: DSSP constraints */}
                 {showConstraintsRow && (
                     <Box sx={rowGridSx}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: ROW_HEIGHT }}>
                             <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                                 Secondary Structure
                             </Typography>
@@ -193,7 +194,7 @@ export default function ChainContainer({
                                 </Tooltip>
                             </Box>
                         </Box>
-                        <Box sx={{ minWidth: 0 }}>
+                        <Box sx={rowBoxSx}>
                             {constraintsSlot ?? (
                                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     No residues yet.
@@ -207,7 +208,7 @@ export default function ChainContainer({
                 {/* Row 3: 3D template */}
                 {showTemplateRow && (
                     <Box sx={rowGridSx}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 34 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: ROW_HEIGHT }}>
 
                             <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                                 3D Template
@@ -231,7 +232,7 @@ export default function ChainContainer({
 
                         </Box>
 
-                        <Box sx={{ minWidth: 0, minHeight: 34, display: 'flex', alignItems: 'center', border: 0, borderColor: 'divider', borderRadius: 0.5, px: 1 }}>
+                        <Box sx={{ ...rowBoxSx, px: 0.75 }}>
                             {templateSlot ?? (
                                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                                     No template configuration yet.

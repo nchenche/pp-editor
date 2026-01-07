@@ -54,7 +54,7 @@ export default function ChainsToolbar({
 
             {/* Bonds: Link / Unlink */}
             <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
-                <Tooltip title="Link residues (2D sketch)" arrow>
+                <Tooltip title="Link monomers" arrow>
                     <span>
                         <Button
                             onClick={onToggleLinkMode}
@@ -67,7 +67,7 @@ export default function ChainsToolbar({
                         </Button>
                     </span>
                 </Tooltip>
-                <Tooltip title="Unlink bonds (2D sketch)" arrow>
+                <Tooltip title="Unlink monomers" arrow>
                     <span>
                         <Button
                             onClick={onToggleCutMode}

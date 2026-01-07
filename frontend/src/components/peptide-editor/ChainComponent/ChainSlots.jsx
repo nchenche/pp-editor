@@ -139,7 +139,7 @@ export const ChainSlots = ({
                     const sequenceIsCircular = headToTailLinkId != null;
 
                     const templateSlot = (
-                        <Box sx={{ width: 'fit-content' }}>
+                        <Box sx={{ width: 'fit-content', display: 'flex', alignItems: 'center', py: 0.5 }}>
                             <TemplateSequence
                                 mapping={mapping}
                                 maxResidueCount={list.length}
@@ -155,10 +155,9 @@ export const ChainSlots = ({
                             sx={{
                                 display: 'flex',
                                 gap: GRID_GAP,
-                                py: 0.5,
+                                py: 0,
                                 px: 0.75,
                                 borderRadius: 1,
-                                minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
                                 alignItems: 'center',
                             }}
                         >
@@ -396,6 +395,7 @@ function ConstraintCell({ index, value, commitAt, chipWidth = 32, cellSize = 18 
             inputMode="text"
             aria-label={`Constraint at ${index + 1}`}
             style={{
+                display: 'block',
                 width: chipWidth,
                 height: cellSize,
                 lineHeight: `${cellSize}px`,

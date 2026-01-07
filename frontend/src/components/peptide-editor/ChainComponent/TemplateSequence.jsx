@@ -57,7 +57,7 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                 sx={{
                     width: '100%',
                     height: CELL_HEIGHT + 4,
-                    borderRadius: 4,
+                    borderRadius: 1.5,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',

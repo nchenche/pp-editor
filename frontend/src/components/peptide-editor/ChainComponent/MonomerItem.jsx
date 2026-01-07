@@ -16,13 +16,15 @@ import { LINK_COLORS } from './linkColors';
 // Style helpers (use classnames library if you want more dynamic combinations)
 const containerBase = [
     "monomer-item", "relative", "flex", "items-center", "justify-center",
-    "border", "border-slate-400", "h-5", "w-8", "rounded-xl", "text-[0.6rem]",
-    "select-none", "bg-lime-50/50", "cursor-pointe", "shadow-md", 
+    "border", "border-slate-400", "h-6", "w-8", "rounded-md", "text-[0.6rem]",
+    "select-none", "bg-lime-200/20", "cursor-pointer", "shadow-md", 
 ].join(" ");
 
+
+
 const capBase = [
-    "absolute", "flex", "items-center", "justify-center", "bottom-0", "translate-y-[80%]",
-    "text-white", "text-[0.5rem]", "font-medium", "rounded-full", "w-6"
+    "absolute", "flex", "items-center", "justify-center", "bottom-0", "translate-y-[90%]",
+    "text-white", "text-[0.4rem]", "font-medium", "rounded-full", "w-6"
 ].join(" ");
 
 // Main component
@@ -32,6 +34,7 @@ const MonomerItemComponent = (props) => {
         monomer,
         index,
         onDelete,
+        residueIndex = null,
         isNterCap = false,
         isCterCap = false,
         chainIdLabel = null,
@@ -99,10 +102,23 @@ const MonomerItemComponent = (props) => {
     ].join(" ");
 
     const dragAreaClasses = [
-        'px-1 py-[2px] rounded select-none',
+        'px-1 py-[2px] rounded select-none flex flex-col items-center justify-center leading-none',
         dndDisabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
         isCapped && 'opacity-60',
     ].filter(Boolean).join(' ');
+    const effectiveResidueIndex = useMemo(() => {
+        const n = Number(residueIndex);
+        if (Number.isFinite(n) && n > 0) return n;
+
+        const raw = monomer?.['res-idx'] != null ? String(monomer['res-idx']) : '';
+        if (raw.includes('-')) {
+            const parts = raw.split('-');
+            const idx = parseInt(parts?.[1], 10);
+            if (Number.isFinite(idx)) return idx + 1;
+        }
+
+        return null;
+    }, [residueIndex, monomer]);
 
     const handleDelete = useCallback((e) => {
         e.stopPropagation();
@@ -201,7 +217,10 @@ const MonomerItemComponent = (props) => {
             />
             {/* Monomer label (grab handle if draggable) */}
             <div className={dragAreaClasses} {...(!isCapped && !dndDisabled ? provided.dragHandleProps : {})}>
-                {monomer.pdbName}
+                <div>{monomer.pdbName}</div>
+                {effectiveResidueIndex != null ? (
+                    <div className="text-[0.55rem] text-slate-500 mt-[1px]">{effectiveResidueIndex}</div>
+                ) : null}
             </div>
 
             {/* Cap tag */}
@@ -209,7 +228,7 @@ const MonomerItemComponent = (props) => {
 
             {/* Bond indices display */}
             {Array.isArray(linkIndices) && linkIndices.length > 0 && (
-                <div className='flex items-center justify-around absolute bottom-0 translate-y-[50%] w-7 h-3 gap-x-[0.2em]'>
+                <div className='flex items-center justify-around absolute bottom-0 translate-y-[70%] w-7 h-3 gap-x-[0.2em]'>
                     {linkIndices.map((linkId) => {
                         const idx = linkColorIndexById?.[linkId];
                         const colorIdx = Number.isFinite(idx)
@@ -233,15 +252,10 @@ const MonomerItemComponent = (props) => {
                         position: 'absolute',
                         bottom: 0,
                         left: '50%',
-                        transform: 'translate(-50%, -60%)',
+                        transform: 'translate(-50%, -75%)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.1,
-                        bgcolor: 'none', // 'background.paper',
-                        // border: 1,
-                        // borderColor: 'divider',
-                        // borderRadius: 1,
-                        // boxShadow: 1,
                         p: 0.55,
                         pointerEvents: 'auto',
                     }}
@@ -257,7 +271,7 @@ const MonomerItemComponent = (props) => {
                                 aria-controls={swapMenuOpen ? 'swap-menu' : undefined}
                                 aria-expanded={swapMenuOpen ? 'true' : undefined}
                                 tabIndex={-1}
-                                sx={{ p: 0.2, fontSize: 16 }}
+                                sx={{ p: 0.2, fontSize: 13 }}
                             >
                                 <SwapHorizIcon fontSize="inherit" />
                             </IconButton>
@@ -291,9 +305,9 @@ const MonomerItemComponent = (props) => {
                                 size="small"
                                 aria-label="Monomer info"
                                 tabIndex={-1}
-                                sx={{ p: 0.2, fontSize: 16 }}
+                                sx={{ p: 0.2, fontSize: 13 }}
                             >
-                                <QuestionMarkSharpIcon fontSize="inherit" sx={{ fontSize: 15 }} />
+                                <QuestionMarkSharpIcon fontSize="inherit" />
                             </IconButton>
                         </span>
                     </Tooltip>
@@ -304,7 +318,7 @@ const MonomerItemComponent = (props) => {
                                 aria-label="Delete monomer"
                                 onClick={handleDelete}
                                 tabIndex={-1}
-                                sx={{ p: 0.2, fontSize: 16 }}
+                                sx={{ p: 0.2, fontSize: 13 }}
                             >
                                 <DeleteIcon fontSize="inherit" />
                             </IconButton>
@@ -367,6 +381,7 @@ const MonomerItemComponent = (props) => {
         isCapped,
         isHovered,
         monomer,
+        effectiveResidueIndex,
         linkIndices,
         linkColorIndexById,
         handleMonomerEnter,

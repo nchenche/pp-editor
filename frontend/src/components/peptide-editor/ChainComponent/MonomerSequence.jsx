@@ -86,9 +86,9 @@ export const MonomerSequence = ({
             disableGutters
             sx={{
                 display: "flex",
-                alignItems: "stretch",
+                alignItems: "center",
                 p: 0,
-                my: 0.125,
+                my: 0,
                 // border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 1,
                 // Give a bit more vertical room so hover action icons (which are absolutely positioned)
@@ -123,9 +123,8 @@ export const MonomerSequence = ({
                         alignItems: "center",
                         gap: gridGap,
                         flex: '0 0 auto',
-                        // Extra top padding gives hover action buttons headroom.
-                        pt: 1,
-                        pb: 0.5,
+                        // Symmetric padding so chips are vertically centered in a 40px row.
+                        py: 0.5,
                         minHeight: 32,
                         px: 0.75,
                         position: "relative",
@@ -172,6 +171,7 @@ export const MonomerSequence = ({
                                 key={monomer.uid || monomer._id || monomer["res-idx"] || index}
                                 index={index}
                                 monomer={monomer}
+                                residueIndex={(Number.isFinite(Number(sequenceOffset)) ? Number(sequenceOffset) : 0) + Number(index) + 1}
                                 chainIdLabel={chainIdLabel}
                                 aaSeqId={focusSeqId}
                                 handleMonomerEnter={handleMonomerEnter}
