@@ -383,6 +383,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     } = useBilnHistory(initialBiln, 20);
     const [committedBiln, setCommittedBiln] = useState(initialBiln);
 
+    // UI-only placeholder chains appended after BILN-derived chains.
+    // These do not affect BILN until a monomer is dropped into them.
+    const [extraEmptyChains, setExtraEmptyChains] = useState(0);
+
     const [phValue, setPhValue] = useState(7.4);
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
@@ -1057,13 +1061,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Keep UI seq count in sync with committed BILN
     useEffect(() => {
-        const count = deriveSeqCount(committedBiln);
+        const count = deriveSeqCount(committedBiln) + (Number(extraEmptyChains) || 0);
         setUiState(prev => {
             const nextIdx = reconcileActiveSeqIdx(prev.activeSeqIdx, count);
             if (prev.seqNumber === count && prev.activeSeqIdx === nextIdx) return prev;
             return { ...prev, seqNumber: count, activeSeqIdx: nextIdx };
         });
-    }, [committedBiln, setUiState]);
+    }, [committedBiln, extraEmptyChains, setUiState]);
 
     function handleBilnChange(newBiln) {
         trySetBilnValue(newBiln);
@@ -1174,6 +1178,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onUndo={handleUndoBiln}
                         onRedo={handleRedoBiln}
                         onClear={clearData}
+                        extraEmptyChains={extraEmptyChains}
+                        setExtraEmptyChains={setExtraEmptyChains}
                         // Chains section props
                         rowMonomerLists={rowMonomerLists}
                         activeSeqIdx={uiState.activeSeqIdx}

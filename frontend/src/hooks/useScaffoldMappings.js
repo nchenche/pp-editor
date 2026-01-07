@@ -21,6 +21,10 @@ const emptyMapping = {
     start: null,
     end: null,
     offset: 0,
+    // Internal flag: true if `offset` was auto-set to account for an N-ter cap.
+    // Allows us to revert the offset when the cap is removed without clobbering
+    // user-entered offsets.
+    offsetAutoByCap: false,
     manualMasks: [],
     source: null,
     pdbPath: null,
@@ -233,7 +237,9 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         });
     }, [autoRanges, scaffoldTemplate]);
 
-    // AUTO N-terminal offset for N-cap: if first monomer is a cap and offset is 0 → offset = 1
+    // AUTO N-terminal offset for N-cap:
+    // - if first monomer is a cap and offset is 0 → offset = 1 (and mark auto)
+    // - if cap is later removed and offset was auto-set → revert offset back to 0
     useEffect(() => {
         setRawMappings((prev) => {
             let mutated = false;
@@ -243,11 +249,36 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 const current = { ...emptyMapping, ...mapping };
 
                 if (!current.enabled || current.disabledByUser) return mapping;
-                if (!hasNTerCap) return mapping;
-                if ((current.offset ?? 0) !== 0) return mapping; // user already set offset
 
-                mutated = true;
-                return { ...current, offset: 1 };
+                const offset = Number(current.offset) || 0;
+                const wasAuto = !!current.offsetAutoByCap;
+
+                // Cap present: only auto-set when offset is still untouched.
+                if (hasNTerCap) {
+                    if (offset !== 0) return mapping; // user already set offset
+                    if (wasAuto) return mapping; // already auto-set
+                    mutated = true;
+                    return { ...current, offset: 1, offsetAutoByCap: true };
+                }
+
+                // Cap removed: revert only if we previously auto-set it.
+                if (!hasNTerCap && wasAuto) {
+                    if (offset === 0) {
+                        // Offset already cleared; just drop the flag.
+                        mutated = true;
+                        return { ...current, offsetAutoByCap: false };
+                    }
+                    if (offset === 1) {
+                        mutated = true;
+                        return { ...current, offset: 0, offsetAutoByCap: false };
+                    }
+                    // Unexpected: offset changed while still flagged auto. Be conservative and
+                    // only clear the flag (do not clobber the user's value).
+                    mutated = true;
+                    return { ...current, offsetAutoByCap: false };
+                }
+
+                return mapping;
             });
             return mutated ? next : prev;
         });
@@ -273,6 +304,11 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                     } else if (patch.enabled === true) {
                         patchWithDisableFlag = { ...patch, disabledByUser: false };
                     }
+                }
+
+                // Any explicit offset edit is considered user-driven; stop treating it as auto.
+                if (patchWithDisableFlag && Object.prototype.hasOwnProperty.call(patchWithDisableFlag, 'offset')) {
+                    patchWithDisableFlag = { ...patchWithDisableFlag, offsetAutoByCap: false };
                 }
 
                 // If enabling a chain that has no chainId/start/end yet, immediately prefill it.

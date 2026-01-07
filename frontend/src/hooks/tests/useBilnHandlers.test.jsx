@@ -33,6 +33,7 @@ function Harness({ initialBiln = '', uiInitial = { activeSeqIdx: null, seqNumber
             <div data-testid="seq">{String(uiState.activeSeqIdx)}</div>
             <button onClick={() => handlers.addMonomerToBiln({ symbol: 'A' }, { mode: 'new-sequence' })}>add-new-seq</button>
             <button onClick={() => handlers.addMonomerToBiln({ symbol: 'B' }, { mode: 'append', activeSequenceIdx: 0 })}>append-0</button>
+            <button onClick={() => handlers.addMonomerToBiln({ symbol: 'B' }, { mode: 'append', activeSequenceIdx: 1 })}>append-1</button>
             <button onClick={() => handlers.addMonomerToBiln({ symbol: 'C' }, { mode: 'prepend', activeSequenceIdx: 0 })}>prepend-0</button>
         </div>
     );
@@ -56,5 +57,14 @@ describe('useBilnHandlers.addMonomerToBiln', () => {
         const { getByTestId, getByText } = renderWithConfirm(<Harness initialBiln="A-B" uiInitial={{ activeSeqIdx: 0, seqNumber: 1 }} />);
         fireEvent.click(getByText('prepend-0'));
         expect(getByTestId('biln').textContent).toBe('C-A-B');
+    });
+
+    it('appends to a placeholder chain by creating a new BILN segment', () => {
+        const { getByTestId, getByText } = renderWithConfirm(
+            <Harness initialBiln="A" uiInitial={{ activeSeqIdx: 1, seqNumber: 2 }} />
+        );
+        fireEvent.click(getByText('append-1'));
+        expect(getByTestId('biln').textContent).toBe('A.B');
+        expect(getByTestId('seq').textContent).toBe('1');
     });
 });

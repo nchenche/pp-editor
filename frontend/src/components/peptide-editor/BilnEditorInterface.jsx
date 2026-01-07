@@ -87,13 +87,19 @@ export default function BilnEditorInterface({
     onUncircularizeSequence = () => { },
     onMirrorSequence = () => { },
     isDragging = false,
+
+    // Optional controlled state for UI-only placeholder chains
+    extraEmptyChains: extraEmptyChainsProp,
+    setExtraEmptyChains: setExtraEmptyChainsProp,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
     // UI-only placeholder chains. These are appended after BILN-derived chains.
     // They become real chains only once a monomer is placed into them.
-    const [extraEmptyChains, setExtraEmptyChains] = useState(0);
+    const [extraEmptyChainsInternal, setExtraEmptyChainsInternal] = useState(0);
+    const extraEmptyChains = extraEmptyChainsProp ?? extraEmptyChainsInternal;
+    const setExtraEmptyChains = setExtraEmptyChainsProp ?? setExtraEmptyChainsInternal;
 
     const {
         open: uploadOpen,

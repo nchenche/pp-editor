@@ -405,11 +405,17 @@ export function useBilnHandlers({
             segIdx = segments.length - 1;
             createdNewSequence = true;
         } else {
-            // Clamp to existing sequences
-            segIdx = Math.max(0, Math.min(
-                typeof selectedSeqIdx === 'number' ? selectedSeqIdx : 0,
-                Math.max(seqCount - 1, 0)
-            ));
+            // If the UI allows selecting placeholder chains (seqNumber > seqCount),
+            // we cannot create empty intermediate BILN segments. So treat any
+            // out-of-range selection as “append one new chain at the end”.
+            const desiredIdx = Number.isFinite(Number(selectedSeqIdx)) ? Number(selectedSeqIdx) : 0;
+            if (desiredIdx >= seqCount) {
+                segments.push('');
+                segIdx = segments.length - 1;
+                createdNewSequence = true;
+            } else {
+                segIdx = Math.max(0, desiredIdx);
+            }
         }
 
         // Focus the newly created sequence
