@@ -39,6 +39,31 @@ function Harness({ initialBiln = '', uiInitial = { activeSeqIdx: null, seqNumber
     );
 }
 
+function BondBreakHarness({ initialBiln, linkMap, residues, rgroups }) {
+    const [bilnValue, setBilnValue] = useState(initialBiln);
+    const [uiState, setUiState] = useState({ activeSeqIdx: 0, seqNumber: 1 });
+
+    const handlers = useBilnHandlers({
+        bilnValue,
+        setBilnValue,
+        monomers: monomersMock(bilnValue),
+        rowMonomerLists: [],
+        setRowMonomerLists: () => { },
+        linkMap,
+        uiState,
+        setUiState,
+        setIsDragging: () => { },
+        setHoveredMonomer: () => { },
+    });
+
+    return (
+        <div>
+            <div data-testid="biln">{bilnValue}</div>
+            <button onClick={() => handlers.handleBondBreaking(residues, rgroups)}>break</button>
+        </div>
+    );
+}
+
 describe('useBilnHandlers.addMonomerToBiln', () => {
     it('creates first sequence and focuses it', () => {
         const { getByTestId, getByText } = renderWithConfirm(<Harness />);
@@ -66,5 +91,30 @@ describe('useBilnHandlers.addMonomerToBiln', () => {
         fireEvent.click(getByText('append-1'));
         expect(getByTestId('biln').textContent).toBe('A.B');
         expect(getByTestId('seq').textContent).toBe('1');
+    });
+});
+
+describe('useBilnHandlers.handleBondBreaking', () => {
+    it('breaks a bond even when rgroups order is swapped', () => {
+        // Connection 1 connects residue 0 rgroup 2 with residue 1 rgroup 1
+        const initialBiln = 'A(1,2)-B(1,1)';
+        const linkMap = {
+            1: [
+                { monomerIdx: 0, rgroup: 2 },
+                { monomerIdx: 1, rgroup: 1 },
+            ],
+        };
+
+        const { getByTestId, getByText } = renderWithConfirm(
+            <BondBreakHarness
+                initialBiln={initialBiln}
+                linkMap={linkMap}
+                residues={[0, 1]}
+                rgroups={[1, 2]}
+            />
+        );
+
+        fireEvent.click(getByText('break'));
+        expect(getByTestId('biln').textContent).toBe('A-B');
     });
 });

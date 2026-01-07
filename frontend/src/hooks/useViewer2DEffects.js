@@ -3,9 +3,57 @@ import { useEffect } from "react";
 import { addClassName, removeClassName, createRect } from "../components/peptide-editor/Viewer2D/utils";
 
 
+function classListHasPrefix(classList, prefix) {
+    return Array.from(classList).some((token) => token.startsWith(prefix));
+}
+
+function getBondMetaFromClassList(groupClassList) {
+    const tokens = Array.from(groupClassList || []);
+    const residuesToken = tokens.find((t) => t.startsWith('residues_'));
+    const rgroupsToken = tokens.find((t) => t.startsWith('rgroups_'));
+    if (!residuesToken || !rgroupsToken) return null;
+
+    const residueMatches = residuesToken.match(/-(\d+)/g) || [];
+    const residueNums = residueMatches.map((s) => parseInt(s.slice(1), 10)).filter(Number.isFinite);
+    const rgroupNums = (rgroupsToken.match(/\d+/g) || []).map((s) => parseInt(s, 10)).filter(Number.isFinite);
+
+    if (residueNums.length < 2 || rgroupNums.length < 2) return null;
+    return {
+        residues: [residueNums[0], residueNums[1]],
+        rgroups: [rgroupNums[0], rgroupNums[1]],
+    };
+}
+
+function isCuttableBondGroup(groupClassList, cuttableBondPairs) {
+    if (!groupClassList?.contains?.("bond")) return false;
+    const isSupportedType = groupClassList.contains("type-other") || groupClassList.contains("type-peptide");
+    if (!isSupportedType) return false;
+    const hasResidues = classListHasPrefix(groupClassList, "residues_");
+    const hasRgroups = classListHasPrefix(groupClassList, "rgroups_");
+    if (!hasResidues || !hasRgroups) return false;
+    if (!cuttableBondPairs || cuttableBondPairs.size === 0) return false;
+
+    const meta = getBondMetaFromClassList(groupClassList);
+    if (!meta) return false;
+
+    const [r0, r1] = meta.residues;
+    const [g0, g1] = meta.rgroups;
+
+    const candidates = [
+        `${r0}-${g0}|${r1}-${g1}`,
+        `${r0}-${g1}|${r1}-${g0}`,
+        `${r1}-${g0}|${r0}-${g1}`,
+        `${r1}-${g1}|${r0}-${g0}`,
+    ];
+
+    return candidates.some((k) => cuttableBondPairs.has(k));
+}
+
+
 export function useViewer2DEffects({
     svgData,
     svgContainer,
+    cuttableBondPairs,
     onMouseEnterGroup,
     onMouseLeaveGroup,
     onRGroupClick,
@@ -23,15 +71,17 @@ export function useViewer2DEffects({
         const groups = root.querySelectorAll('svg g');
 
         groups.forEach(group => {
-            // If we've already instrumented this group (direct child overlay), skip
-            if (group.querySelector(':scope > rect[data-overlay="1"]')) {
-                return;
-            }
+            const groupClasses = group.classList;
+            const isCuttableBond = isCuttableBondGroup(groupClasses, cuttableBondPairs);
+            group.classList.toggle("cuttable-bond", isCuttableBond);
+
+            // If we've already instrumented this group (direct child overlay), don't create another.
+            const existingOverlay = group.querySelector(':scope > rect[data-overlay="1"]');
 
             const padding = 12;
-            const groupClasses = group.classList;
             const attr = { fill: "transparent" };
-            const rect = createRect(group, attr, padding);
+
+            const rect = existingOverlay || createRect(group, attr, padding);
 
             // Mark overlay so we can style and clean it up reliably
             rect.setAttribute('data-overlay', '1');
@@ -40,15 +90,26 @@ export function useViewer2DEffects({
                 // mark rect so CSS can toggle it
                 rect.classList.add("r-group");
                 group.addEventListener("click", onRGroupClick);
-            } else if (groupClasses.contains("bond") && groupClasses.contains("type-other")) {
+                group.removeEventListener("dblclick", onBondClick);
+                rect.classList.remove("extra-bond");
+            } else if (isCuttableBond) {
                 // mark rect so CSS can toggle it
                 rect.classList.add("extra-bond");
+                rect.classList.toggle("extra-bond-peptide", groupClasses.contains("type-peptide"));
+                rect.classList.toggle("extra-bond-other", groupClasses.contains("type-other"));
                 group.addEventListener("dblclick", onBondClick);
+                group.removeEventListener("click", onRGroupClick);
             } else {
                 rect.classList.add("hover-residue");
+                rect.classList.remove("extra-bond");
+                rect.classList.remove("extra-bond-peptide");
+                rect.classList.remove("extra-bond-other");
+                group.removeEventListener("dblclick", onBondClick);
             }
 
-            group.insertBefore(rect, group.firstChild);
+            if (!existingOverlay) {
+                group.insertBefore(rect, group.firstChild);
+            }
             group.addEventListener("mouseenter", onMouseEnterGroup);
             group.addEventListener("mouseleave", onMouseLeaveGroup);
         });
@@ -70,7 +131,7 @@ export function useViewer2DEffects({
                 .forEach(node => node.remove());
 
         };
-    }, [svgData, svgContainer, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
+    }, [svgData, svgContainer, cuttableBondPairs, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
 
     useEffect(() => {
         const container = svgContainer?.current;
@@ -85,7 +146,7 @@ export function useViewer2DEffects({
         if (!isShowBonds) return; // nothing to add if mode is off
 
         // For each extra-bond, mark the two atoms involved
-        const extraBondGroups = container.querySelectorAll('svg g.type-other');
+        const extraBondGroups = container.querySelectorAll('svg g.cuttable-bond');
         extraBondGroups.forEach(g => {
             const cls = g.getAttribute('class') || '';
             const m = cls.match(/atoms_(\d+)-(\d+)/);

@@ -260,9 +260,9 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
     transition: opacity 50ms ease-in-out;
 }
 
-/* Keep "type-other" bonds fully visible (reset opacity on all descendants) */
-#svg-container.bonds-on svg g.type-other,
-#svg-container.bonds-on svg g.type-other * {
+/* Keep cuttable bonds fully visible (reset opacity on all descendants) */
+#svg-container.bonds-on svg g.cuttable-bond,
+#svg-container.bonds-on svg g.cuttable-bond * {
     opacity: 1 !important;
 }
 
@@ -280,7 +280,7 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
     rx: 2%;
 } */
 
-#svg-container.bonds-on svg g.type-other rect.extra-bond {
+#svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
     stroke: #334155;
     /* inkLight */
     stroke-width: 0.67px;
@@ -293,9 +293,18 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
     pointer-events: auto;
 }
 
+/* Distinguish peptide vs other cuttable bonds */
+#svg-container.bonds-on svg g.cuttable-bond.type-peptide rect.extra-bond {
+    stroke-dasharray: none;
+}
+
+#svg-container.bonds-on svg g.cuttable-bond.type-other rect.extra-bond {
+    stroke-dasharray: 4 3;
+}
+
 
 /* Optional: ensure it’s clickable in this mode */
-#svg-container.bonds-on svg g.type-other rect.extra-bond {
+#svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
     pointer-events: auto;
     cursor: pointer;
 }

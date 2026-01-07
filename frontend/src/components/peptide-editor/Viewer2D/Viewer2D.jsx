@@ -127,6 +127,7 @@ function downloadSvgElement(svgEl, filename = 'pep-edit_2d.svg') {
 export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const {
         svgData,
+        linkMap,
         hoveredMonomer,
         handleMonomerEnter,
         handleMonomerLeave,
@@ -147,14 +148,28 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const [isShowBonds, setIsShowBonds] = useState(false);
     const [monomersToLink, setMonomersToLink] = useState([]);
 
-    // Simple: compute presence of extra bonds from the SVG text
+    const cuttableBondPairs = useMemo(() => {
+        const out = new Set();
+        const entries = Object.entries(linkMap || {});
+        for (const [, pairs] of entries) {
+            if (!Array.isArray(pairs) || pairs.length < 2) continue;
+            const a = pairs[0];
+            const b = pairs[1];
+            if (a?.monomerIdx == null || a?.rgroup == null) continue;
+            if (b?.monomerIdx == null || b?.rgroup == null) continue;
+            const key1 = `${a.monomerIdx}-${a.rgroup}|${b.monomerIdx}-${b.rgroup}`;
+            const key2 = `${b.monomerIdx}-${b.rgroup}|${a.monomerIdx}-${a.rgroup}`;
+            out.add(key1);
+            out.add(key2);
+        }
+        return out;
+    }, [linkMap]);
+
+    // Enable unlink only when there are explicit BILN connections (i.e. parentheses) to cut.
     const hasExtraBonds = useMemo(() => {
         if (!svgData) return false;
-        // Adjust if your exporter uses a different class pattern
-        return svgData.includes('class="bond type-other"')
-            || svgData.includes("class='bond type-other'")
-            || /class="[^"]*\bbond\b[^"]*\btype-other\b/.test(svgData);
-    }, [svgData]);
+        return cuttableBondPairs.size > 0;
+    }, [svgData, cuttableBondPairs]);
 
     // If none remain, auto turn off the toggle
     useEffect(() => {
@@ -186,6 +201,7 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     useViewer2DEffects({
         svgData,
         svgContainer,
+        cuttableBondPairs,
         isShowRGroups,
         isShowBonds,
         monomersToLink,

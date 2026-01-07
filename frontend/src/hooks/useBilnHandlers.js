@@ -747,24 +747,34 @@ export function useBilnHandlers({
         const rgroup1 = parseInt(rgroups[0]);
         const rgroup2 = parseInt(rgroups[1]);
 
-        // 1. Find the connectionId (linkMap key) being removed
-        const linkMapIdToRemove = Object.entries(linkMap).find(([connId, pairs]) => {
-            const ids = pairs.map(p => `${p.monomerIdx}-${p.rgroup}`);
-            const target1 = `${res_idx1}-${rgroup1}`;
-            const target2 = `${res_idx2}-${rgroup2}`;
-            return ids.includes(target1) && ids.includes(target2);
-        })?.[0];
+        // 1. Find the connectionId (linkMap key) being removed.
+        // Some depictions don't guarantee that rgroups_ ordering matches residues_ ordering,
+        // so we try both (res1-rg1 & res2-rg2) AND (res1-rg2 & res2-rg1).
+        const candidates = [
+            { a: { res: res_idx1, rg: rgroup1 }, b: { res: res_idx2, rg: rgroup2 } },
+            { a: { res: res_idx1, rg: rgroup2 }, b: { res: res_idx2, rg: rgroup1 } },
+        ];
 
-        const removedId = parseInt(linkMapIdToRemove, 10);
-        if (isNaN(removedId)) {
-            console.warn("handleBondBreaking: No connection found for these residues/rgroups.");
+        const found = candidates
+            .map((c) => {
+                const id = Object.entries(linkMap).find(([_, pairs]) => {
+                    const ids = pairs.map(p => `${p.monomerIdx}-${p.rgroup}`);
+                    return ids.includes(`${c.a.res}-${c.a.rg}`) && ids.includes(`${c.b.res}-${c.b.rg}`);
+                })?.[0];
+                return id ? { connId: id, mapping: c } : null;
+            })
+            .find(Boolean);
+
+        const removedId = parseInt(found?.connId, 10);
+        if (isNaN(removedId) || !found?.mapping) {
+            console.warn("handleBondBreaking: No connection found for these residues/rgroups.", { residues, rgroups });
             return;
         }
 
         // 2. Remove the bond from the relevant monomers in bilnParts
         const bilnParts = bilnValue.split(/([.-])/);
-        bilnParts[res_idx1 * 2] = removeGroup(bilnParts[res_idx1 * 2], rgroup1);
-        bilnParts[res_idx2 * 2] = removeGroup(bilnParts[res_idx2 * 2], rgroup2);
+        bilnParts[found.mapping.a.res * 2] = removeGroup(bilnParts[found.mapping.a.res * 2], found.mapping.a.rg);
+        bilnParts[found.mapping.b.res * 2] = removeGroup(bilnParts[found.mapping.b.res * 2], found.mapping.b.rg);
 
         // 3. Decrement all connection IDs > removedId throughout the BILN string
         let newBiln = bilnParts.join('');

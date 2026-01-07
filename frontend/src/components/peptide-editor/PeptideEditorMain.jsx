@@ -1326,8 +1326,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                                 {viewer2DModes.linkMode
-                                    ? 'Create a non‑peptidic bond by selecting two available R‑groups in the 2D sketch.'
-                                    : 'Remove a non‑peptidic bond directly in the 2D sketch.'}
+                                    ? 'Create a bond by selecting two available R‑groups in the 2D sketch.'
+                                    : 'Remove a bond directly in the 2D sketch.'}
                             </Typography>
                         </Box>
 
@@ -1360,7 +1360,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     }}
                                 >
                                     <Step>
-                                        <StepLabel>Only 1 step: Double‑click a bond to remove</StepLabel>
+                                        <StepLabel>Double‑click a bond to remove</StepLabel>
                                     </Step>
                                 </Stepper>
                             )}
@@ -1371,7 +1371,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         ? 'Step 2: Choose a second available R‑group to create the link.'
                                         : 'Step 1: Choose an available R‑group from a monomer.'
                                 ) : (
-                                    'Step 1: Double‑click a bond to remove it.'
+                                    'Double‑click a bond to remove it.'
                                 )}
                             </Typography>
 
@@ -1513,6 +1513,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 <HoverAwareViewer2D
                                     ref={viewer2DRef}
                                     svgData={svgDepiction}
+                                    linkMap={linkMap}
                                     isShowingAtomIndices={isShowingAtomIndices}
                                     handleShowingAtomIndices={setIsShowingAtomIndices}
                                     handleMonomerEnter={handleMonomerEnter}

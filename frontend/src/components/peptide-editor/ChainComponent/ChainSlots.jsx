@@ -188,7 +188,7 @@ export const ChainSlots = ({
                                     const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
                                     const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
                                     return (
-                                        <span>
+                                        <span key={`${seqIdx}-${i}`}>
                                             <ConstraintCell
                                                 index={i}
                                                 value={v}
