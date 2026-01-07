@@ -42,10 +42,11 @@ export const ChainSlots = ({
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
 
-    const derivedChainCount = useMemo(
-        () => (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0),
-        [rowMonomerLists]
-    );
+    // IMPORTANT: do not memoize by `rowMonomerLists` reference.
+    // During DnD we intentionally mutate/replace rows in-place without changing the
+    // outer array reference (to avoid forcing a full recompute). Memoizing here can
+    // freeze the chain count and reintroduce the classic “snap back then settle” flicker.
+    const derivedChainCount = Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0;
     const prevDerivedChainCountRef = useRef(derivedChainCount);
 
     // If BILN-derived chain count grows (e.g., user moved a monomer into a placeholder row),
@@ -59,14 +60,17 @@ export const ChainSlots = ({
         prevDerivedChainCountRef.current = derivedChainCount;
     }, [derivedChainCount]);
 
-    const effectiveRowMonomerLists = useMemo(() => {
+    // Also avoid memoizing this: it creates a copied array. If rows are replaced in-place
+    // during DnD, the copied array can keep pointing at stale row references until the
+    // depiction refreshes.
+    const effectiveRowMonomerLists = (() => {
         const extras = Array.from({ length: Math.max(0, Number(extraEmptyChains) || 0) }, () => []);
         if (Array.isArray(rowMonomerLists) && rowMonomerLists.length > 0) {
             return rowMonomerLists.concat(extras);
         }
         // Empty BILN: keep a single placeholder row so the Chains section isn't blank.
         return [[]].concat(extras);
-    }, [rowMonomerLists, extraEmptyChains]);
+    })();
 
     // Keep active selection within the *BILN-derived* chains (placeholders are UI-only).
     const safeActiveSeqIdx = useMemo(() => {

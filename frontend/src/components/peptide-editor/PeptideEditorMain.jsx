@@ -75,8 +75,6 @@ const DEFAULT_3D_REPRESENTATION = 'line';
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
-    // console.log('PeptideEditorMain rendered');
-
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const {
         result: structureOutput,
