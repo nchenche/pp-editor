@@ -107,82 +107,60 @@ export const ChainSlots = ({
                 let runningOffset = 0;
                 return effectiveRowMonomerLists.map((list, seqIdx) => {
 
-                const sequenceOffset = runningOffset;
-                runningOffset += (list?.length || 0);
+                    const sequenceOffset = runningOffset;
+                    runningOffset += (list?.length || 0);
 
-                const mapping = scaffoldTemplate ? (scaffoldMappings?.[seqIdx] || {}) : null;
-                const hasAnyResidues = (list?.length || 0) > 0;
+                    const mapping = scaffoldTemplate ? (scaffoldMappings?.[seqIdx] || {}) : null;
+                    const hasAnyResidues = (list?.length || 0) > 0;
 
-                const headToTailLinkId = getHeadToTailLinkIdForRow(sequenceOffset, list.length);
-                const sequenceIsCircular = headToTailLinkId != null;
+                    const headToTailLinkId = getHeadToTailLinkIdForRow(sequenceOffset, list.length);
+                    const sequenceIsCircular = headToTailLinkId != null;
 
-                const templateSlot = (
-                    <Box sx={{ width: 'fit-content' }}>
-                        <TemplateSequence
-                            mapping={mapping}
-                            maxResidueCount={list.length}
-                            hasScaffoldTemplate={!!scaffoldTemplate}
-                            sequenceIndex={seqIdx}
-                            onEditMapping={onEditScaffoldMapping}
-                        />
-                    </Box>
-                );
+                    const templateSlot = (
+                        <Box sx={{ width: 'fit-content' }}>
+                            <TemplateSequence
+                                mapping={mapping}
+                                maxResidueCount={list.length}
+                                hasScaffoldTemplate={!!scaffoldTemplate}
+                                sequenceIndex={seqIdx}
+                                onEditMapping={onEditScaffoldMapping}
+                            />
+                        </Box>
+                    );
 
-                const constraintsSlot = (
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            gap: GRID_GAP,
-                            py: 0.5,
-                            px: 0.75,
-                            // border: 1,
-                            // borderColor: 'divider',
-                            borderRadius: 1,
-                            // Match the visual height of the sequence row when empty.
-                            minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
-                            alignItems: 'center',
-                        }}
-                    >
-                        {list.length === 0 ? (
-                        <Typography
-                            variant="body2"
+                    const constraintsSlot = (
+                        <Box
                             sx={{
-                                color: 'text.secondary',
-                                fontSize: 12,
-                                userSelect: 'none',
-                                px: 0.5,
-                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                gap: GRID_GAP,
+                                py: 0.5,
+                                px: 0.75,
+                                // border: 1,
+                                // borderColor: 'divider',
+                                borderRadius: 1,
+                                // Match the visual height of the sequence row when empty.
+                                minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
+                                alignItems: 'center',
                             }}
                         >
-                            No residues yet. Add monomers to start.
-                        </Typography>
-                        ) : (
-                            list.map((m, i) => {
-                                const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
-                                const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
-                                return (
-                                    <Tooltip
-                                        key={(m.uid || m._id || m['res-idx'] || i) + '-cell'}
-                                        arrow
-                                        title={
-                                            <Box>
-                                                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                                                    Residue {i + 1} Constraint
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    Set secondary structure constraint for this residue:
-                                                </Typography>
-                                                <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: '1.2em' }}>
-                                                    <li><strong>H</strong>: Alpha-helix</li>
-                                                    <li><strong>E</strong>: Beta-sheet</li>
-                                                    <li><strong>-</strong>: No constraint (coil)</li>
-                                                </ul>
-                                                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                                    Use keyboard to edit: type H, E, -; Backspace/Delete to clear; Arrow keys to navigate.
-                                                </Typography>
-                                            </Box>
-                                        }
-                                    >
+                            {list.length === 0 ? (
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        fontSize: 12,
+                                        userSelect: 'none',
+                                        px: 0.5,
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    No residues yet. Add monomers to start.
+                                </Typography>
+                            ) : (
+                                list.map((m, i) => {
+                                    const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
+                                    const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
+                                    return (
                                         <span>
                                             <ConstraintCell
                                                 index={i}
@@ -194,98 +172,97 @@ export const ChainSlots = ({
                                                 cellSize={cellSize}
                                             />
                                         </span>
-                                    </Tooltip>
-                                );
-                            })
-                        )}
-                    </Box>
-                );
+                                    );
+                                })
+                            )}
+                        </Box>
+                    );
 
-                return (
-                    <Box
-                        key={seqIdx}
-                        onClick={() => onSetActiveSeqIdx(seqIdx)}
-                        sx={{
-                            position: 'relative',
-                            zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
-                            transform: 'none',
-                            boxShadow: '2',
-                            borderRadius: 1,
-                            outline: 'none',
-                            transition: 'box-shadow 180ms ease',
-                            mb: 1,
-                        }}
-                    >
-                        <ChainContainer
-                            seqIdx={seqIdx}
-                            dimReplaceOverlay={overlayActive && seqIdx === safeActiveSeqIdx}
-                            onSequenceClear={makeDeleteHandler(seqIdx)}
-                            disableSequenceActions={!hasAnyResidues}
-                            disableConstraintsActions={!hasAnyResidues}
-                            disableTemplateActions={!hasAnyResidues}
-                            sequenceIsCircular={sequenceIsCircular}
-                            onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
-                            onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
-                            onSequenceMirror={() => onMirrorSequence?.(seqIdx)}
-                            onConstraintsFill={(letter) => {
-                                const v = normSS(letter);
-                                for (let i = 0; i < list.length; i++) {
-                                    onEditConstraint?.(seqIdx, i, v);
+                    return (
+                        <Box
+                            key={seqIdx}
+                            onClick={() => onSetActiveSeqIdx(seqIdx)}
+                            sx={{
+                                position: 'relative',
+                                zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
+                                transform: 'none',
+                                boxShadow: '2',
+                                borderRadius: 1,
+                                outline: 'none',
+                                transition: 'box-shadow 180ms ease',
+                                mb: 1,
+                            }}
+                        >
+                            <ChainContainer
+                                seqIdx={seqIdx}
+                                dimReplaceOverlay={overlayActive && seqIdx === safeActiveSeqIdx}
+                                onSequenceClear={makeDeleteHandler(seqIdx)}
+                                disableSequenceActions={!hasAnyResidues}
+                                disableConstraintsActions={!hasAnyResidues}
+                                disableTemplateActions={!hasAnyResidues}
+                                sequenceIsCircular={sequenceIsCircular}
+                                onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
+                                onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
+                                onSequenceMirror={() => onMirrorSequence?.(seqIdx)}
+                                onConstraintsFill={(letter) => {
+                                    const v = normSS(letter);
+                                    for (let i = 0; i < list.length; i++) {
+                                        onEditConstraint?.(seqIdx, i, v);
+                                    }
+                                }}
+                                onConstraintsClear={() => {
+                                    for (let i = 0; i < list.length; i++) {
+                                        onEditConstraint?.(seqIdx, i, '-');
+                                    }
+                                }}
+                                onTemplateConfigure={() => {
+                                    onOpenTemplatePanel?.();
+                                }}
+                                onTemplateMaskAll={() => {
+                                    const n = Array.isArray(mapping?.templateResidues) ? mapping.templateResidues.length : 0;
+                                    if (n <= 0) return;
+                                    onEditScaffoldMapping?.(seqIdx, { manualMasks: Array.from({ length: n }, (_, i) => i) });
+                                }}
+                                onTemplateUnmaskAll={() => {
+                                    onEditScaffoldMapping?.(seqIdx, { manualMasks: [] });
+                                }}
+                                sequenceSlot={
+                                    <Droppable
+                                        droppableId={`${seqIdx}`}
+                                        direction="horizontal"
+                                        isDropDisabled={overlayActive}
+                                    >
+                                        {(provided) => (
+                                            <MonomerSequence
+                                                {...provided.droppableProps}
+                                                droppableRef={provided.innerRef}
+                                                monomers={list}
+                                                linkMap={linkMap}
+                                                isDragging={isDragging}
+                                                sequenceOffset={sequenceOffset}
+                                                isActive={seqIdx === safeActiveSeqIdx}
+                                                hoveredMonomer={overlayActive ? null : hoveredMonomer}
+                                                onDelete={handleDeleteMonomerItem}
+                                                handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
+                                                handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
+                                                label={`Chain ${seqLabel(seqIdx)}`}
+                                                chainIdLabel={seqLabel(seqIdx)}
+                                                dndDisabled={overlayActive}
+                                            >
+                                                {provided.placeholder}
+                                            </MonomerSequence>
+                                        )}
+                                    </Droppable>
                                 }
-                            }}
-                            onConstraintsClear={() => {
-                                for (let i = 0; i < list.length; i++) {
-                                    onEditConstraint?.(seqIdx, i, '-');
-                                }
-                            }}
-                            onTemplateConfigure={() => {
-                                onOpenTemplatePanel?.();
-                            }}
-                            onTemplateMaskAll={() => {
-                                const n = Array.isArray(mapping?.templateResidues) ? mapping.templateResidues.length : 0;
-                                if (n <= 0) return;
-                                onEditScaffoldMapping?.(seqIdx, { manualMasks: Array.from({ length: n }, (_, i) => i) });
-                            }}
-                            onTemplateUnmaskAll={() => {
-                                onEditScaffoldMapping?.(seqIdx, { manualMasks: [] });
-                            }}
-                            sequenceSlot={
-                                <Droppable
-                                    droppableId={`${seqIdx}`}
-                                    direction="horizontal"
-                                    isDropDisabled={overlayActive}
-                                >
-                                    {(provided) => (
-                                        <MonomerSequence
-                                            {...provided.droppableProps}
-                                            droppableRef={provided.innerRef}
-                                            monomers={list}
-                                            linkMap={linkMap}
-                                            isDragging={isDragging}
-                                            sequenceOffset={sequenceOffset}
-                                            isActive={seqIdx === safeActiveSeqIdx}
-                                            hoveredMonomer={overlayActive ? null : hoveredMonomer}
-                                            onDelete={handleDeleteMonomerItem}
-                                            handleMonomerEnter={overlayActive ? () => { } : handleMonomerEnter}
-                                            handleMonomerLeave={overlayActive ? () => { } : handleMonomerLeave}
-                                            label={`Chain ${seqLabel(seqIdx)}`}
-                                            chainIdLabel={seqLabel(seqIdx)}
-                                            dndDisabled={overlayActive}
-                                        >
-                                            {provided.placeholder}
-                                        </MonomerSequence>
-                                    )}
-                                </Droppable>
-                            }
-                            showConstraintsRow={showConstraintsRow}
-                            showTemplateRow={showTemplateRow}
-                            constraintsSlot={constraintsSlot}
-                            templateSlot={templateSlot}
-                            onTemplateHelp={() => { }}
-                        />
-                    </Box>
-                );
-            });
+                                showConstraintsRow={showConstraintsRow}
+                                showTemplateRow={showTemplateRow}
+                                constraintsSlot={constraintsSlot}
+                                templateSlot={templateSlot}
+                                onTemplateHelp={() => { }}
+                            />
+                        </Box>
+                    );
+                });
             })()}
         </DragDropContext>
     );
