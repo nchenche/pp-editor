@@ -29,7 +29,7 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop, Stepper, Step, StepLabel } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -38,6 +38,7 @@ import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LabelIcon from '@mui/icons-material/Label';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import DownloadIcon from '@mui/icons-material/Download';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CategoryIcon from '@mui/icons-material/Category';
 import PaletteIcon from '@mui/icons-material/Palette';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
@@ -449,7 +450,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);
-    const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false });
+    const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false, linkSelectionCount: 0 });
     const viewer3DRef = useRef(null);
 
     // Allow escaping the “focus 2D only” mode when linking/unlinking.
@@ -1298,6 +1299,117 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
+
+                {/* Link/Unlink guidance (outside the 2D sketch, centered near the BILN editor) */}
+                {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
+                    <Paper
+                        variant="outlined"
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                            position: 'absolute',
+                            top: 100,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: { xs: 'calc(100% - 24px)', sm: 560, md: 640 },
+                            maxWidth: 760,
+                            zIndex: (t) => t.zIndex.modal - 1,
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            bgcolor: (t) => alpha(t.palette.background.paper, 0.98),
+                            backdropFilter: 'blur(2px)',
+                            boxShadow: (t) => t.shadows[6],
+                        }}
+                    >
+                        <Box sx={{ px: 2, py: 1.5 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                                {viewer2DModes.linkMode ? 'Link monomers' : 'Remove a bond'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                {viewer2DModes.linkMode
+                                    ? 'Create a non‑peptidic bond by selecting two available R‑groups in the 2D sketch.'
+                                    : 'Remove a non‑peptidic bond directly in the 2D sketch.'}
+                            </Typography>
+                        </Box>
+
+                        <Divider sx={{ mb: 4}} />
+
+                        <Box sx={{ px: 2, py: 1.5 }}>
+                            {viewer2DModes.linkMode ? (
+                                <Stepper
+                                    activeStep={(viewer2DModes.linkSelectionCount || 0) > 0 ? 1 : 0}
+                                    alternativeLabel
+                                    sx={{
+                                        '& .MuiStepLabel-label': { fontSize: 12, fontWeight: 600 },
+                                        '& .MuiStepIcon-root': { fontSize: 24 },
+                                    }}
+                                >
+                                    <Step>
+                                        <StepLabel>Select first R‑group</StepLabel>
+                                    </Step>
+                                    <Step>
+                                        <StepLabel>Select second R‑group</StepLabel>
+                                    </Step>
+                                </Stepper>
+                            ) : (
+                                <Stepper
+                                    activeStep={0}
+                                    alternativeLabel
+                                    sx={{
+                                        '& .MuiStepLabel-label': { fontSize: 12, fontWeight: 600 },
+                                        '& .MuiStepIcon-root': { fontSize: 24 },
+                                    }}
+                                >
+                                    <Step>
+                                        <StepLabel>Only 1 step: Double‑click a bond to remove</StepLabel>
+                                    </Step>
+                                </Stepper>
+                            )}
+
+                            <Typography variant="body2" sx={{ mt: 3.25 }}>
+                                {viewer2DModes.linkMode ? (
+                                    (viewer2DModes.linkSelectionCount || 0) > 0
+                                        ? 'Step 2: Choose a second available R‑group to create the link.'
+                                        : 'Step 1: Choose an available R‑group from a monomer.'
+                                ) : (
+                                    'Step 1: Double‑click a bond to remove it.'
+                                )}
+                            </Typography>
+
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                                Tip: Press Esc or click outside the 2D sketch to exit.
+                            </Typography>
+                        </Box>
+
+                        <Divider />
+
+                        <Box sx={{ px: 2, py: 1.25, display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                            {viewer2DModes.linkMode && (viewer2DModes.linkSelectionCount || 0) > 0 ? (
+                                <Button
+                                    size="small"
+                                    color="inherit"
+                                    startIcon={<DeleteOutlineIcon fontSize="inherit" />}
+                                    onClick={() => viewer2DRef.current?.clearLinkSelection?.()}
+                                >
+                                    Clear selection
+                                </Button>
+                            ) : (
+                                <span />
+                            )}
+
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                color="inherit"
+                                onClick={() => {
+                                    viewer2DRef.current?.setLinkMode?.(false);
+                                    viewer2DRef.current?.setBondsMode?.(false);
+                                }}
+                            >
+                                Exit
+                            </Button>
+                        </Box>
+                    </Paper>
+                )}
 
                 {/* Focus attention on the 2D viewer while linking */}
                 <Backdrop

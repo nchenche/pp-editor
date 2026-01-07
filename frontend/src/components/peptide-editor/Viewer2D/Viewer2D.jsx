@@ -5,8 +5,6 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import Alert from '@mui/material/Alert';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import Box from "@mui/material/Box";
 
@@ -203,22 +201,29 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
 
     // Keep parent in sync for button highlight + canCut
     useEffect(() => {
-        onModesChange?.({ linkMode: isShowRGroups, bondsMode: isShowBonds, canCut: hasExtraBonds });
-    }, [isShowRGroups, isShowBonds, hasExtraBonds, onModesChange]);
+        onModesChange?.({
+            linkMode: isShowRGroups,
+            bondsMode: isShowBonds,
+            canCut: hasExtraBonds,
+            linkSelectionCount: isShowRGroups ? (monomersToLink?.length || 0) : 0,
+        });
+    }, [isShowRGroups, isShowBonds, hasExtraBonds, monomersToLink, onModesChange]);
 
-    // NEW: Cancel current linking on Escape (no focus change)
+    // Escape behavior while linking:
+    // - If a first monomer is selected, Esc clears the in-progress selection.
+    // - Otherwise, let Esc bubble so the parent can exit link mode (and remove focus backdrop).
     useEffect(() => {
         if (!isShowRGroups) return;
         const onKeyDown = (e) => {
-            if (e.key === 'Escape' || e.key === 'Esc') {
-                e.preventDefault();
-                e.stopPropagation();
-                cancelLinking?.(); // keep link mode, just clear selection
-            }
+            if (e.key !== 'Escape' && e.key !== 'Esc') return;
+            if ((monomersToLink?.length || 0) <= 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            cancelLinking?.();
         };
         window.addEventListener('keydown', onKeyDown, { capture: true });
         return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-    }, [isShowRGroups, cancelLinking]);
+    }, [isShowRGroups, cancelLinking, monomersToLink]);
 
     // Expose minimal commands
     useImperativeHandle(ref, () => ({
@@ -230,14 +235,24 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                 } else {
                     cancelLinking?.();
                 }
-                onModesChange?.({ linkMode: v, bondsMode: v ? false : isShowBonds, canCut: hasExtraBonds });
+                onModesChange?.({
+                    linkMode: v,
+                    bondsMode: v ? false : isShowBonds,
+                    canCut: hasExtraBonds,
+                    linkSelectionCount: 0,
+                });
                 return v;
             });
         },
         setBondsMode(next) {
             // Guard: do nothing if requesting ON but there are no extra bonds
             if (Boolean(next) && !hasExtraBonds) {
-                onModesChange?.({ linkMode: isShowRGroups, bondsMode: false, canCut: hasExtraBonds });
+                onModesChange?.({
+                    linkMode: isShowRGroups,
+                    bondsMode: false,
+                    canCut: hasExtraBonds,
+                    linkSelectionCount: 0,
+                });
                 return;
             }
             setIsShowBonds(prev => {
@@ -246,9 +261,17 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                     setIsShowRGroups(false);
                     cancelLinking?.();
                 }
-                onModesChange?.({ linkMode: v ? false : isShowRGroups, bondsMode: v, canCut: hasExtraBonds });
+                onModesChange?.({
+                    linkMode: v ? false : isShowRGroups,
+                    bondsMode: v,
+                    canCut: hasExtraBonds,
+                    linkSelectionCount: 0,
+                });
                 return v;
             });
+        },
+        clearLinkSelection() {
+            cancelLinking?.();
         },
         toggleLinkMode() {
             const v = !isShowRGroups;
@@ -280,17 +303,6 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         });
     }, [cancelLinking]);
 
-
-    // Palette (slate-ish)
-    const uiColors = {
-        ink: '#1e293b',           // primary text/icon
-        inkLight: '#334155',      // strokes
-        inkLighter: '#475569',    // secondary
-        inkDarker: '#030404',     // added for hover (darker)
-        surface: 'rgba(30,41,59,0.06)',     // banner bg
-        surfaceHover: 'rgba(30,41,59,0.12)',// hover bg
-    };
-
     return (
         <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px dashed #cbd5e1', borderRadius: 1, position: 'relative' }}>
             <div
@@ -309,113 +321,6 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                 ) : (
                     <div className="flex items-center justify-center h-full text-xl text-slate-500">
                         No data
-                    </div>
-                )}
-
-                {/* Instruction banner for linking monomers */}
-                {isShowRGroups && !isShowBonds && (
-                    <div className="absolute inset-x-0 top-0 z-0">
-                        <Alert
-                            severity="info"
-                            icon={false}
-                            variant="filled"
-                            sx={{
-                                borderRadius: 0,
-                                px: 1,
-                                py: 0.25,
-                                minHeight: 40,
-                                alignItems: 'center',
-                                bgcolor: uiColors.surface,
-                                color: uiColors.ink,
-                                backdropFilter: 'blur(1.5px)',
-                                borderBottom: `1px solid ${uiColors.surfaceHover}`,
-                                '.MuiAlert-message': {
-                                    p: 0,
-                                    m: 0,
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    letterSpacing: 0.2,
-                                    textAlign: 'center',
-                                },
-                            }}
-                        >
-                            {monomersToLink.length === 0 ? (
-                                'Link monomers — Click a R‑group to start'
-                            ) : (
-                                <>
-                                    1 selected — Click another R‑group to create a non‑peptidic bond (Esc to cancel)
-                                    <Tooltip title="Cancel current selection">
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => { e.stopPropagation(); cancelLinking(); }}
-                                            aria-label="cancel-linking"
-                                            disableRipple
-                                            sx={{
-                                                p: 0,
-                                                width: 24,
-                                                height: 24,
-                                                ml: 0.5,
-                                                bgcolor: 'transparent',
-                                                border: 'none',
-                                                '& .MuiSvgIcon-root': {
-                                                    fontSize: 16,
-                                                    color: uiColors.ink,
-                                                    transition: 'color 120ms ease-in-out',
-                                                },
-                                                '&:hover': { bgcolor: 'transparent' },
-                                                '&:hover .MuiSvgIcon-root': { color: uiColors.inkDarker },
-                                                '&.Mui-focusVisible': { bgcolor: 'transparent' },
-                                                '& .MuiTouchRipple-root': { display: 'none' },
-                                            }}
-                                        >
-                                            <DeleteOutlineIcon fontSize="inherit" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </>
-                            )}
-                        </Alert>
-                    </div>
-                )}
-
-                {/* Instruction banner to remove a bond */}
-                {isShowBonds && !isShowRGroups && hasExtraBonds && (
-                    <div className="absolute inset-x-0 top-0 z-0">
-                        <Alert
-                            severity="info"
-                            icon={false}
-                            variant="filled"
-                            sx={{
-                                borderRadius: 0,
-                                px: 1,
-                                py: 0.25,
-                                minHeight: 40,
-                                alignItems: 'center',
-                                bgcolor: uiColors.surface,
-                                color: uiColors.ink,
-                                backdropFilter: 'blur(1.5px)',
-                                borderBottom: `1px solid ${uiColors.surfaceHover}`,
-                                '.MuiAlert-message': {
-                                    p: 0,
-                                    m: 0,
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    letterSpacing: 0.2,
-                                    textAlign: 'center',
-                                },
-                            }}
-                        >
-                            Double click on a bond to remove it (Esc to cancel)
-                        </Alert>
                     </div>
                 )}
             </div>
