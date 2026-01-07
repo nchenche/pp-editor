@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box, TextField, Tooltip, Typography } from '@mui/material';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useOverlayPortal } from '../../common/OverlayPortalContext';
@@ -16,6 +16,8 @@ const GRID_GAP = 0.5;
 
 export const ChainSlots = ({
     rowMonomerLists,
+    extraEmptyChains = 0,
+    setExtraEmptyChains = () => { },
     activeSeqIdx,
     onSetActiveSeqIdx,
     linkMap,
@@ -40,17 +42,39 @@ export const ChainSlots = ({
     const { overlayActive } = useOverlayPortal();
     const hoveredMonomer = useHoveredMonomer();
 
-    const effectiveRowMonomerLists = useMemo(() => {
-        if (Array.isArray(rowMonomerLists) && rowMonomerLists.length > 0) return rowMonomerLists;
-        // Empty BILN: keep a single placeholder row so the Chains section isn't blank.
-        return [[]];
-    }, [rowMonomerLists]);
+    const derivedChainCount = useMemo(
+        () => (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0),
+        [rowMonomerLists]
+    );
+    const prevDerivedChainCountRef = useRef(derivedChainCount);
 
+    // If BILN-derived chain count grows (e.g., user moved a monomer into a placeholder row),
+    // consume matching UI-only placeholders so the newly-real chain replaces one placeholder.
+    useEffect(() => {
+        const prev = prevDerivedChainCountRef.current;
+        if (derivedChainCount > prev) {
+            const delta = derivedChainCount - prev;
+            setExtraEmptyChains((c) => Math.max(0, c - delta));
+        }
+        prevDerivedChainCountRef.current = derivedChainCount;
+    }, [derivedChainCount]);
+
+    const effectiveRowMonomerLists = useMemo(() => {
+        const extras = Array.from({ length: Math.max(0, Number(extraEmptyChains) || 0) }, () => []);
+        if (Array.isArray(rowMonomerLists) && rowMonomerLists.length > 0) {
+            return rowMonomerLists.concat(extras);
+        }
+        // Empty BILN: keep a single placeholder row so the Chains section isn't blank.
+        return [[]].concat(extras);
+    }, [rowMonomerLists, extraEmptyChains]);
+
+    // Keep active selection within the *BILN-derived* chains (placeholders are UI-only).
     const safeActiveSeqIdx = useMemo(() => {
         const n = Number(activeSeqIdx);
+        if (derivedChainCount <= 0) return 0;
         if (!Number.isFinite(n) || n < 0) return 0;
-        return Math.min(n, Math.max(0, effectiveRowMonomerLists.length - 1));
-    }, [activeSeqIdx, effectiveRowMonomerLists.length]);
+        return Math.min(n, Math.max(0, derivedChainCount - 1));
+    }, [activeSeqIdx, derivedChainCount]);
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
 
     const ALLOWED = ['H', 'E', 'C', 'T', 'B', 'I', '-'];
@@ -61,7 +85,6 @@ export const ChainSlots = ({
 
     const gridGap = 0.5; // spacing between chips (theme spacing units)
     const chipWidth = 32; // px; matches w-8 from MonomerItem
-    const chipHeight = 20; // px; for reference only
     const cellSize = 20; // px height for constraints cells
 
     const showConstraintsRow = constraintMode === 'ss';
@@ -106,7 +129,6 @@ export const ChainSlots = ({
             {(() => {
                 let runningOffset = 0;
                 return effectiveRowMonomerLists.map((list, seqIdx) => {
-
                     const sequenceOffset = runningOffset;
                     runningOffset += (list?.length || 0);
 
@@ -135,10 +157,7 @@ export const ChainSlots = ({
                                 gap: GRID_GAP,
                                 py: 0.5,
                                 px: 0.75,
-                                // border: 1,
-                                // borderColor: 'divider',
                                 borderRadius: 1,
-                                // Match the visual height of the sequence row when empty.
                                 minHeight: list.length === 0 ? 32 : CELL_HEIGHT,
                                 alignItems: 'center',
                             }}
@@ -178,10 +197,18 @@ export const ChainSlots = ({
                         </Box>
                     );
 
+                    const baseRowCount = Math.max(derivedChainCount, 1);
+                    const isVisualOnlyChainRow = seqIdx >= baseRowCount;
+                    const sequenceClearHandler = isVisualOnlyChainRow
+                        ? () => setExtraEmptyChains((c) => Math.max(0, c - 1))
+                        : makeDeleteHandler(seqIdx);
+
                     return (
                         <Box
                             key={seqIdx}
-                            onClick={() => onSetActiveSeqIdx(seqIdx)}
+                            onClick={() => {
+                                if (!isVisualOnlyChainRow) onSetActiveSeqIdx(seqIdx);
+                            }}
                             sx={{
                                 position: 'relative',
                                 zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
@@ -196,8 +223,8 @@ export const ChainSlots = ({
                             <ChainContainer
                                 seqIdx={seqIdx}
                                 dimReplaceOverlay={overlayActive && seqIdx === safeActiveSeqIdx}
-                                onSequenceClear={makeDeleteHandler(seqIdx)}
-                                disableSequenceActions={!hasAnyResidues}
+                                onSequenceClear={sequenceClearHandler}
+                                disableSequenceActions={!hasAnyResidues && !isVisualOnlyChainRow}
                                 disableConstraintsActions={!hasAnyResidues}
                                 disableTemplateActions={!hasAnyResidues}
                                 sequenceIsCircular={sequenceIsCircular}
@@ -268,8 +295,6 @@ export const ChainSlots = ({
     );
 };
 
-
-// helper: allowed letters and tint map
 const ALLOWED = new Set(['H', 'E', 'C', 'T', 'G', 'I', 'B', '-']);
 const letterTint = (t, ch) => {
     const map = {

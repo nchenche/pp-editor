@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Button, ButtonGroup, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 
@@ -10,6 +11,7 @@ export default function ChainsToolbar({
     onToggleCutMode = () => { },
     canLink = true,
     canUnlink = true,
+    onAddChain = () => { },
     constraintMode = 'ss',
     onConstraintModeChange = () => { },
     canUseTemplateMode = true,
@@ -35,6 +37,21 @@ export default function ChainsToolbar({
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Tooltip title="Add chain" arrow>
+                <span>
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        onClick={onAddChain}
+                        aria-label="add chain"
+                        sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                    >
+                        <AddIcon fontSize="inherit" />
+                    </Button>
+                </span>
+            </Tooltip>
+
             {/* Bonds: Link / Unlink */}
             <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                 <Tooltip title="Link residues (2D sketch)" arrow>

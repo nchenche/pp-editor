@@ -856,6 +856,10 @@ export function useBilnHandlers({
         const dstId = parseInt(String(destination.droppableId), 10);
         if (!Number.isFinite(srcId) || !Number.isFinite(dstId)) return;
 
+        // Support dropping into a UI-only placeholder chain row (dstId may be >= current chain count).
+        const needed = Math.max(srcId, dstId);
+        while (nextRows.length <= needed) nextRows.push([]);
+
         if (srcId === dstId) {
             const reorderedList = Array.from(nextRows[srcId] || []);
             const [removed] = reorderedList.splice(source.index, 1);

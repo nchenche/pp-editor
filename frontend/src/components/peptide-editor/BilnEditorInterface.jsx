@@ -91,6 +91,10 @@ export default function BilnEditorInterface({
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
 
+    // UI-only placeholder chains. These are appended after BILN-derived chains.
+    // They become real chains only once a monomer is placed into them.
+    const [extraEmptyChains, setExtraEmptyChains] = useState(0);
+
     const {
         open: uploadOpen,
         mode: uploadMode,
@@ -346,6 +350,7 @@ export default function BilnEditorInterface({
                         onToggleCutMode={onToggleCutMode}
                         canLink={canLink}
                         canUnlink={canUnlink}
+                        onAddChain={() => setExtraEmptyChains((c) => c + 1)}
 
                         constraintMode={constraintMode}
                         onConstraintModeChange={onConstraintModeChange}
@@ -357,6 +362,8 @@ export default function BilnEditorInterface({
                 <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', pr: 0.5, mt: 0.5, pt: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
+                        extraEmptyChains={extraEmptyChains}
+                        setExtraEmptyChains={setExtraEmptyChains}
                         activeSeqIdx={activeSeqIdx}
                         onSetActiveSeqIdx={onSetActiveSeqIdx}
                         linkMap={linkMap}
