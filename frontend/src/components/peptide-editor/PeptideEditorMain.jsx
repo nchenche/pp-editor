@@ -70,8 +70,21 @@ const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
 const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
 const MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY = 'pp-editor:molstar-right-panel-width:v1';
+const PH_VALUE_STORAGE_KEY = 'pp-editor:ph-value:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
+
+const DEFAULT_PH_VALUE = 7.4;
+const MIN_PH_VALUE = 0.0;
+const MAX_PH_VALUE = 12.0;
+
+function normalizePhValue(value) {
+    const n = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
+    if (!Number.isFinite(n)) return DEFAULT_PH_VALUE;
+    const clamped = Math.min(MAX_PH_VALUE, Math.max(MIN_PH_VALUE, n));
+    // Keep storage/UI stable with the slider step (0.1)
+    return Math.round(clamped * 10) / 10;
+}
 
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
@@ -388,7 +401,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // These do not affect BILN until a monomer is dropped into them.
     const [extraEmptyChains, setExtraEmptyChains] = useState(0);
 
-    const [phValue, setPhValue] = useState(7.4);
+    const [phValue, setPhValue] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(PH_VALUE_STORAGE_KEY);
+            return normalizePhValue(raw);
+        } catch {
+            return DEFAULT_PH_VALUE;
+        }
+    });
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(PH_VALUE_STORAGE_KEY, String(normalizePhValue(phValue)));
+        } catch {
+            // ignore
+        }
+    }, [phValue]);
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
     const EMPTY_ARRAY = Object.freeze([]);
@@ -773,6 +800,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         ss: null,
         useTemplate: null,
         mappingSig: null,
+        ph: null,
     });
 
     const triggerGenerate = useCallback(
@@ -793,7 +821,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             const normalizedBiln = normalizeBilnForGen(biln);
 
             if (!normalizedBiln) {
-                lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+                lastGenRef.current = { biln, ss, useTemplate, mappingSig, ph: phValue };
                 return;
             }
 
@@ -803,7 +831,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 prev.biln === biln &&
                 prev.ss === ss &&
                 prev.useTemplate === useTemplate &&
-                prev.mappingSig === mappingSig
+                prev.mappingSig === mappingSig &&
+                prev.ph === phValue
             ) {
                 return;
             }
@@ -813,7 +842,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 return;
             }
 
-            lastGenRef.current = { biln, ss, useTemplate, mappingSig };
+            lastGenRef.current = { biln, ss, useTemplate, mappingSig, ph: phValue };
 
             if (useTemplate) {
                 generate3D(biln, null, {
@@ -848,7 +877,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         // Manual runs should allow a re-run even if inputs didn't change.
         // Auto-sync keeps the lastGenRef guard to avoid unnecessary recomputation.
-        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null, ph: null };
 
         // User explicitly asked to compute: do not keep "resume suppression" active.
         suppressAutoConformerForBilnRef.current = null;
@@ -994,7 +1023,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             if (committedBiln !== '') setCommittedBiln('');
 
             // Key fix: allow re-generating if user pastes the same sequence again
-            lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+            lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null, ph: null };
 
             return;
         }
@@ -1089,6 +1118,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setAutoSync3DRaw(true);          // requested behavior: reset auto-sync to true
         setTemplateOverlapOpen(false);
 
+        // Reset global parameters
+        setPhValue(DEFAULT_PH_VALUE);
+
         // Clear editor + derived committed state
         setBilnValue('');
         setCommittedBiln('');
@@ -1100,13 +1132,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setStructureOutput({ pdb: '' });
 
         // Reset “last generated” guard so next paste triggers generation normally
-        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null };
+        lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null, ph: null };
 
         // Clear scaffold (also makes autoSync3D = true again because effectiveAnyScaffoldEnabled becomes false)
         handleClearScaffold();
     }, [
         setAutoSync3DRaw,
         setTemplateOverlapOpen,
+        setPhValue,
         setBilnValue,
         setCommittedBiln,
         setDepictionData,
@@ -1216,6 +1249,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
                         canLink={canLink}
                         canUnlink={canCut}
+                        ph={phValue}
+                        onChangePh={(next) => setPhValue(next)}
                         // Global scaffold props
                         scaffoldTemplate={scaffoldTemplate}
                         onUploadScaffoldFile={uploadScaffoldFile}

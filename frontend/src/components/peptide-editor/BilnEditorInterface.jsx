@@ -7,6 +7,7 @@ import {
     Typography,
     Tooltip,
     Button,
+    Slider,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -28,6 +29,8 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import UploadIcon from '@mui/icons-material/Upload';
 import ScienceIcon from '@mui/icons-material/Science';
+import DeviceHubIcon from '@mui/icons-material/DeviceHub';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -73,6 +76,10 @@ export default function BilnEditorInterface({
     canLink = true,
     canUnlink = true,
 
+    // Environment parameter (UI-only for now)
+    ph: phProp,
+    onChangePh,
+
     // Global constraint system mode
     constraintMode = 'ss',
     onConstraintModeChange = () => { },
@@ -102,6 +109,46 @@ export default function BilnEditorInterface({
     const [extraEmptyChainsInternal, setExtraEmptyChainsInternal] = useState(0);
     const extraEmptyChains = extraEmptyChainsProp ?? extraEmptyChainsInternal;
     const setExtraEmptyChains = setExtraEmptyChainsProp ?? setExtraEmptyChainsInternal;
+
+    const [phInternal, setPhInternal] = useState(7.4);
+    const ph = typeof phProp === 'number' ? phProp : phInternal;
+    const [phDraft, setPhDraft] = useState(() => (Number.isFinite(ph) ? ph : 7.4));
+    const [isPhDragging, setIsPhDragging] = useState(false);
+
+    // Keep local draft in sync with committed pH when not actively dragging.
+    React.useEffect(() => {
+        if (isPhDragging) return;
+        setPhDraft(Number.isFinite(ph) ? ph : 7.4);
+    }, [ph, isPhDragging]);
+
+    const normalizePh = (value) => {
+        const v = Array.isArray(value) ? value[0] : value;
+        if (typeof v !== 'number' || Number.isNaN(v)) return null;
+        // Keep it to one decimal place (step is 0.1)
+        const rounded = Math.round(v * 10) / 10;
+        return Math.min(12, Math.max(0, rounded));
+    };
+
+    const handlePhChange = (_event, value) => {
+        const next = normalizePh(value);
+        if (next == null) return;
+        setIsPhDragging(true);
+        setPhDraft(next);
+    };
+
+    const handlePhChangeCommitted = (_event, value) => {
+        const next = normalizePh(value);
+        if (next == null) return;
+        setIsPhDragging(false);
+        setPhDraft(next);
+
+        // Only commit to state (and thus trigger fetches) on release.
+        if (typeof onChangePh === 'function') {
+            onChangePh(next);
+        } else {
+            setPhInternal(next);
+        }
+    };
 
     const {
         open: uploadOpen,
@@ -143,6 +190,20 @@ export default function BilnEditorInterface({
         borderColor: 'divider',
     };
 
+    const modeBtnSx = (active) => ({
+        ...btnSx,
+        minWidth: 34,
+        px: 0.5,
+        bgcolor: active
+            ? (t) => alpha(t.palette.text.secondary, t.palette.mode === 'dark' ? 0.22 : 0.12)
+            : 'transparent',
+        '&:hover': {
+            bgcolor: active
+                ? (t) => alpha(t.palette.text.secondary, t.palette.mode === 'dark' ? 0.28 : 0.16)
+                : (t) => alpha(t.palette.action.hover, 0.8),
+        },
+    });
+
     const helpSectionSx = {
         p: { xs: 1.75, sm: 2.25 },
         borderRadius: 2,
@@ -182,6 +243,7 @@ export default function BilnEditorInterface({
 
                 {/* Global toolbar: icon-only */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+
                     <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title={'Load example BILN'} arrow>
                             <span>
@@ -198,6 +260,111 @@ export default function BilnEditorInterface({
                             </span>
                         </Tooltip>
                     </ButtonGroup>
+
+                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+
+                    {/* Bonds: Link / Cut */}
+                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
+                        <Tooltip title="Link monomers" arrow>
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={onToggleLinkMode}
+                                    disabled={!canLink}
+                                    sx={modeBtnSx(linkMode)}
+                                    aria-label="link monomers"
+                                >
+                                    <DeviceHubIcon fontSize="inherit" />
+                                </Button>
+                            </span>
+                        </Tooltip>
+                        <Tooltip title="Cut (unlink)" arrow>
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={onToggleCutMode}
+                                    disabled={!canUnlink}
+                                    sx={modeBtnSx(bondsMode)}
+                                    aria-label="cut bonds"
+                                >
+                                    <LinkOffIcon fontSize="inherit" />
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    </ButtonGroup>
+
+                    {/* pH control */}
+                    <Tooltip title="pH" arrow>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                minHeight: 28,
+                                px: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                color: 'text.secondary',
+                            }}
+                        >
+                            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+                                pH
+                            </Typography>
+                            <Slider
+                                min={0}
+                                max={12}
+                                step={0.1}
+                                value={phDraft}
+                                onChange={handlePhChange}
+                                onChangeCommitted={handlePhChangeCommitted}
+                                aria-label="pH"
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={(v) => Number(v).toFixed(1)}
+                                sx={{
+                                    width: 100,
+                                    py: 0,
+                                    '& .MuiSlider-rail': {
+                                        opacity: 1,
+                                        bgcolor: (t) => alpha(t.palette.text.secondary, t.palette.mode === 'dark' ? 0.25 : 0.22),
+                                    },
+                                    '& .MuiSlider-track': {
+                                        border: 'none',
+                                        bgcolor: (t) => t.palette.text.secondary,
+                                    },
+                                    '& .MuiSlider-thumb': {
+                                        width: 12,
+                                        height: 12,
+                                        bgcolor: (t) => t.palette.text.secondary,
+                                        boxShadow: 'none',
+                                    },
+                                    '& .MuiSlider-valueLabel': {
+                                        bgcolor: 'background.paper',
+                                        color: 'text.primary',
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                    },
+                                }}
+                            />
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    minWidth: 34,
+                                    textAlign: 'right',
+                                    fontFamily: 'monospace',
+                                    color: 'text.secondary',
+                                }}
+                            >
+                                {Number(ph).toFixed(1)}
+                            </Typography>
+                        </Box>
+                    </Tooltip>
+
+                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
                     <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title="Undo" arrow>
@@ -230,9 +397,7 @@ export default function BilnEditorInterface({
                                 </Button>
                             </span>
                         </Tooltip>
-                    </ButtonGroup>
 
-                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title="Clear sequence" arrow>
                             <span>
                                 <Button
@@ -252,7 +417,7 @@ export default function BilnEditorInterface({
                 </Box>
             </Box>
 
-            <Divider sx={{ my: 1}} />
+            <Divider sx={{ my: 1 }} />
 
             {/* Manual edit subtitle + help icon */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 1 }}>
@@ -330,12 +495,6 @@ export default function BilnEditorInterface({
                     </Box>
 
                     <ChainsToolbar
-                        linkMode={linkMode}
-                        bondsMode={bondsMode}
-                        onToggleLinkMode={onToggleLinkMode}
-                        onToggleCutMode={onToggleCutMode}
-                        canLink={canLink}
-                        canUnlink={canUnlink}
                         onAddChain={() => setExtraEmptyChains((c) => c + 1)}
 
                         constraintMode={constraintMode}
@@ -345,7 +504,7 @@ export default function BilnEditorInterface({
                     />
                 </Box>
 
-                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', pr: 0.5, mt: 0.5, pt: 0.5 }}>
+                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
                         extraEmptyChains={extraEmptyChains}
@@ -795,9 +954,9 @@ export default function BilnEditorInterface({
                     {uploadMode === 'fasta' && (
                         <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
                             Rules:
-                            <br />• One sequence per line (up to 5 lines).
-                            <br />• Only standard one-letter amino acids (A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V).
-                            <br />• Each valid line becomes a chain; chains are separated by "." in BILN.
+                            <br />- One sequence per line (up to 5 lines).
+                            <br />- Only standard one-letter amino acids (A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V).
+                            <br />- Each valid line becomes a chain; chains are separated by "." in BILN.
                         </Typography>
                     )}
 

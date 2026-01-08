@@ -1,17 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Button, ButtonGroup, Tooltip, Menu, MenuItem, IconButton } from '@mui/material';
+import { Box, Button, Tooltip, Menu, MenuItem, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeviceHubIcon from '@mui/icons-material/DeviceHub';
-import LinkOffIcon from '@mui/icons-material/LinkOff';
-import TuneIcon from '@mui/icons-material/Tune';
+import CompressIcon from '@mui/icons-material/Compress';
 
 export default function ChainsToolbar({
-    linkMode = false,
-    bondsMode = false,
-    onToggleLinkMode = () => { },
-    onToggleCutMode = () => { },
-    canLink = true,
-    canUnlink = true,
     onAddChain = () => { },
     constraintMode = 'ss',
     onConstraintModeChange = () => { },
@@ -47,54 +39,20 @@ export default function ChainsToolbar({
                 </span>
             </Tooltip>
 
-            {/* Bonds: Link / Unlink */}
-            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
-                <Tooltip title="Link monomers" arrow>
-                    <span>
-                        <Button
-                            onClick={onToggleLinkMode}
-                            color="inherit"
-                            variant={linkMode ? 'contained' : 'outlined'}
-                            disabled={!canLink}
-                        >
-                            <DeviceHubIcon fontSize="inherit" />
-                        </Button>
-                    </span>
-                </Tooltip>
-                <Tooltip title="Unlink monomers" arrow>
-                    <span>
-                        <Button
-                            onClick={onToggleCutMode}
-                            color="inherit"
-                            variant={bondsMode ? 'contained' : 'outlined'}
-                            disabled={!canUnlink}
-                            // startIcon={<LinkOffIcon fontSize="inherit" />}
-                        >
-                            <LinkOffIcon fontSize="inherit" />
-                        </Button>
-                    </span>
-                </Tooltip>
-            </ButtonGroup>
-
             {/* Global constraint system mode */}
             <Tooltip title="Constraint mode" arrow>
                 <span>
-                    <IconButton
+                    <Button
                         size="small"
+                        variant="outlined"
                         onClick={(e) => setConstraintModeEl(e.currentTarget)}
                         aria-haspopup="menu"
                         aria-expanded={constraintMenuOpen ? 'true' : undefined}
                         aria-label="constraint mode"
-                        sx={{
-                            color: 'text.secondary',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1,
-                            p: 0.65,
-                        }}
+                        sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
                     >
-                        <TuneIcon fontSize="inherit" />
-                    </IconButton>
+                        <CompressIcon fontSize="inherit" />
+                    </Button>
                 </span>
             </Tooltip>
 
