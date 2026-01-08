@@ -4,6 +4,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { alpha } from '@mui/material/styles';
 
 export default function ChainContainer({
+    seqIdx,
     sequenceSlot,
     constraintsSlot,
     templateSlot,
@@ -19,19 +20,22 @@ export default function ChainContainer({
     onSequenceCircularize = () => { },
     onSequenceUncircularize = () => { },
     onSequenceMirror = () => { },
-    onSequenceHelp = () => { },
-    onConstraintsFill = () => { }, // (letter: 'H' | 'E' | '-') -> parent fills cells
+    disableSequenceActions = false,
+
+    // DSSP / SS actions
     onConstraintsClear = () => { },
-    onConstraintsHelp = () => { },
+    onConstraintsFill = () => { },
+    disableConstraintsActions = false,
+
+    // Template actions
+    onTemplateConfigure = () => { },
+    onTemplateClearScaffold,
     onTemplateMaskAll = () => { },
     onTemplateUnmaskAll = () => { },
-    onTemplateConfigure = () => { },
-    onTemplateHelp = () => { },
-
-    // optional disables (useful for empty placeholder row)
-    disableSequenceActions = false,
-    disableConstraintsActions = false,
     disableTemplateActions = false,
+
+    // Optional; currently not used but passed from parent
+    onTemplateHelp = () => { },
 }) {
     const ROW_HEIGHT = 40;
     const [seqMenuEl, setSeqMenuEl] = useState(null);
@@ -86,8 +90,7 @@ export default function ChainContainer({
                 WebkitOverflowScrolling: 'touch',
                 // Firefox
                 scrollbarWidth: 'thin',
-                scrollbarColor: (theme) =>
-                    `${theme.palette.text.secondary}`,
+                scrollbarColor: (theme) => `${theme.palette.text.secondary}`,
 
                 // WebKit (Chrome/Edge/Safari)
                 '&::-webkit-scrollbar': {
@@ -353,6 +356,16 @@ export default function ChainContainer({
                         >
                             Configure
                         </MenuItem>
+                        {typeof onTemplateClearScaffold === 'function' && (
+                            <MenuItem
+                                onClick={() => {
+                                    onTemplateClearScaffold?.();
+                                    closeTemplateMenu();
+                                }}
+                            >
+                                Remove scaffold
+                            </MenuItem>
+                        )}
                         <Divider />
                         <MenuItem
                             onClick={() => {

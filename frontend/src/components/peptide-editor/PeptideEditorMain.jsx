@@ -649,17 +649,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [scaffoldTemplateId]);
 
-    // If the user removes a template during this session, automatically fall back
-    // to Secondary Structure mode to avoid being "stuck" in template mode.
+    // Note: template guidance is a valid mode even without a scaffold.
+    // When scaffold is removed, keep the current constraintMode and let the UI
+    // offer an upload action in the Template row.
     useEffect(() => {
         if (scaffoldTemplateId) {
             hadTemplateRef.current = true;
-            return;
         }
-        if (!scaffoldTemplateId && hadTemplateRef.current && constraintMode === 'template') {
-            setConstraintMode('ss');
-        }
-    }, [scaffoldTemplateId, constraintMode]);
+    }, [scaffoldTemplateId]);
 
     const [scaffoldErrorOpen, setScaffoldErrorOpen] = useState(false);
 
@@ -1209,10 +1206,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onEditConstraint={handleEditConstraint}
                         constraintMode={constraintMode}
                         onConstraintModeChange={(next) => {
-                            if (next === 'template' && !scaffoldTemplate) return;
                             setConstraintMode(next);
                         }}
-                        canUseTemplateMode={!!scaffoldTemplate}
+                        canUseTemplateMode={true}
                         // Toolbar (link/cut) wiring
                         linkMode={viewer2DModes.linkMode}
                         bondsMode={viewer2DModes.bondsMode}

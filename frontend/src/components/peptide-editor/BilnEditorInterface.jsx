@@ -19,6 +19,7 @@ import {
     Radio,
     FormControl,
     FormLabel,
+    Divider,
 } from '@mui/material';
 
 import UndoIcon from '@mui/icons-material/Undo';
@@ -26,6 +27,7 @@ import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import UploadIcon from '@mui/icons-material/Upload';
+import ScienceIcon from '@mui/icons-material/Science';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -177,96 +179,27 @@ export default function BilnEditorInterface({
                 <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.5px' }}>
                     BILN EDITOR INTERFACE
                 </Typography>
-            </Box>
 
-            {/* Manual edit subtitle + help icon */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 0.5, mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Manual edit</Typography>
-                    <Tooltip title="BILN format help" arrow>
-                        <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
-                            <QuestionMarkSharpIcon fontSize="inherit" />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-
-
-                {/* Right-side toolbar: Undo / Redo / Clear (neutral, outlined) */}
+                {/* Global toolbar: icon-only */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-
-                    {/* Scaffold upload + status */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        {/* Hidden file input used when in "file" mode */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".pdb,.ent,.cif,.mmcif"
-                            style={{ display: 'none' }}
-                            onChange={handleScaffoldFileChange}
-                        />
-
-                        <Tooltip title="Upload a PDB file or fetch by PDB ID to use as global scaffold template" arrow>
-                            <span>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="inherit"
-                                    onClick={openScaffoldDialog}
-                                    startIcon={<UploadIcon fontSize="inherit" />}
-                                    sx={btnSx}
-                                >
-                                    Upload Scaffold (PDB)
-                                </Button>
-                            </span>
-                        </Tooltip>
-                    </Box>
-
-                    {/* Load example */}
-                    <ButtonGroup size="small" variant="outlined">
-                        <Tooltip
-                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Load example BILN'}
-                            title={'Load example BILN'}
-                            arrow
-                        >
+                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
+                        <Tooltip title={'Load example BILN'} arrow>
                             <span>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="inherit"
                                     onClick={() => onChangeBiln('G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G')}
-                                    // disabled={isAtMonomerLimit}
-                                    sx={btnSx}
+                                    startIcon={<ScienceIcon fontSize="inherit" />}
+                                    sx={{ ...btnSx, px: 1.25 }}
                                 >
-                                    Load Example
+                                    Load example
                                 </Button>
                             </span>
                         </Tooltip>
                     </ButtonGroup>
 
-                    {/* Upload sequence */}
-                    <ButtonGroup size="small" variant="outlined">
-                        <Tooltip
-                            // title={isAtMonomerLimit ? 'Maximum monomer limit reached. Remove residues to add more.' : 'Upload sequence'}
-                            title={'Upload sequence'}
-                            arrow
-                        >
-                            <span>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="inherit"
-                                    onClick={handleOpenUpload}
-                                    disabled={isAtMonomerLimit}
-                                    sx={btnSx}
-                                >
-                                    Upload Sequence
-                                </Button>
-                            </span>
-                        </Tooltip>
-                    </ButtonGroup>
-
-                    {/* Undo / Redo / Clear */}
-                    <ButtonGroup size="small" variant="outlined">
+                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title="Undo" arrow>
                             <span>
                                 <Button
@@ -275,10 +208,10 @@ export default function BilnEditorInterface({
                                     color="inherit"
                                     onClick={onUndo}
                                     disabled={!canUndo}
-                                    startIcon={<UndoIcon fontSize="inherit" />}
-                                    sx={btnSx}
+                                    sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                                    aria-label="undo"
                                 >
-                                    Undo
+                                    <UndoIcon fontSize="inherit" />
                                 </Button>
                             </span>
                         </Tooltip>
@@ -290,13 +223,16 @@ export default function BilnEditorInterface({
                                     color="inherit"
                                     onClick={onRedo}
                                     disabled={!canRedo}
-                                    startIcon={<RedoIcon fontSize="inherit" />}
-                                    sx={btnSx}
+                                    sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                                    aria-label="redo"
                                 >
-                                    Redo
+                                    <RedoIcon fontSize="inherit" />
                                 </Button>
                             </span>
                         </Tooltip>
+                    </ButtonGroup>
+
+                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title="Clear sequence" arrow>
                             <span>
                                 <Button
@@ -305,14 +241,58 @@ export default function BilnEditorInterface({
                                     color="inherit"
                                     onClick={onClear}
                                     disabled={!biln}
-                                    startIcon={<DeleteSweepIcon fontSize="inherit" />}
-                                    sx={btnSx}
+                                    sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                                    aria-label="clear sequence"
                                 >
-                                    Clear
+                                    <DeleteSweepIcon fontSize="inherit" />
                                 </Button>
                             </span>
                         </Tooltip>
                     </ButtonGroup>
+                </Box>
+            </Box>
+
+            <Divider sx={{ my: 1}} />
+
+            {/* Manual edit subtitle + help icon */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Manual edit</Typography>
+                    <Tooltip title="BILN format help" arrow>
+                        <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
+                            <QuestionMarkSharpIcon fontSize="inherit" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+
+
+                {/* Right-side toolbar: Manual-edit scoped actions (icon-only) */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+
+                    {/* Hidden file input used when in "file" mode (scaffold dialog) */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdb,.ent,.cif,.mmcif"
+                        style={{ display: 'none' }}
+                        onChange={handleScaffoldFileChange}
+                    />
+
+                    {/* Upload sequence */}
+                    <Tooltip title={'Upload sequence'} arrow>
+                        <span>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={handleOpenUpload}
+                                disabled={isAtMonomerLimit}
+                                sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                                aria-label="upload sequence"
+                            >
+                                <UploadIcon fontSize="inherit" />
+                            </Button>
+                        </span>
+                    </Tooltip>
                 </Box>
             </Box>
 
@@ -329,14 +309,14 @@ export default function BilnEditorInterface({
             {/* CHAINS SECTION */}
             <Box
                 sx={{
-                    mt: 2,
+                    my: 1,
                     display: 'flex',
                     flexDirection: 'column',
                     minHeight: 0,
                     overflow: 'hidden', // header fixed; inner list handles its own scroll
                 }}
             >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flex: '0 0 auto' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
@@ -387,6 +367,8 @@ export default function BilnEditorInterface({
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={onEditScaffoldMapping}
                         onOpenTemplatePanel={onOpenTemplatePanel}
+                        onOpenScaffoldDialog={openScaffoldDialog}
+                        onClearScaffold={onClearScaffold}
                         onCircularizeSequence={onCircularizeSequence}
                         onUncircularizeSequence={onUncircularizeSequence}
                         onMirrorSequence={onMirrorSequence}

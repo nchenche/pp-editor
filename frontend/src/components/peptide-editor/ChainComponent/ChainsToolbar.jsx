@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Button, ButtonGroup, Tooltip, Menu, MenuItem, Typography } from '@mui/material';
+import { Box, Button, ButtonGroup, Tooltip, Menu, MenuItem, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import TuneIcon from '@mui/icons-material/Tune';
 
 export default function ChainsToolbar({
     linkMode = false,
@@ -19,12 +20,6 @@ export default function ChainsToolbar({
 
     const [constraintModeEl, setConstraintModeEl] = useState(null);
     const constraintMenuOpen = Boolean(constraintModeEl);
-
-    const constraintModeLabel = constraintMode === 'template'
-        ? 'Template guidance'
-        : constraintMode === 'none'
-            ? 'None'
-            : 'Secondary structure';
 
     const btnSx = {
         textTransform: 'none',
@@ -84,25 +79,22 @@ export default function ChainsToolbar({
             {/* Global constraint system mode */}
             <Tooltip title="Constraint mode" arrow>
                 <span>
-                    <Button
+                    <IconButton
                         size="small"
-                        variant="outlined"
-                        color="inherit"
                         onClick={(e) => setConstraintModeEl(e.currentTarget)}
                         aria-haspopup="menu"
                         aria-expanded={constraintMenuOpen ? 'true' : undefined}
                         aria-label="constraint mode"
-                        sx={btnSx}
+                        sx={{
+                            color: 'text.secondary',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            p: 0.65,
+                        }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
-                            <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.1 }}>
-                                Constraint mode
-                            </Typography>
-                            {/* <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.1, color: 'text.secondary' }}>
-                                {constraintModeLabel}
-                            </Typography> */}
-                        </Box>
-                    </Button>
+                        <TuneIcon fontSize="inherit" />
+                    </IconButton>
                 </span>
             </Tooltip>
 
@@ -134,9 +126,7 @@ export default function ChainsToolbar({
                 </MenuItem>
                 <MenuItem
                     selected={constraintMode === 'template'}
-                    disabled={!canUseTemplateMode}
                     onClick={() => {
-                        if (!canUseTemplateMode) return;
                         onConstraintModeChange('template');
                         setConstraintModeEl(null);
                     }}

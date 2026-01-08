@@ -6,8 +6,9 @@ import ChainContainer from './ChainContainer';
 import { MonomerSequence } from './MonomerSequence';
 import TemplateSequence from './TemplateSequence';
 
-import { Box, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import UploadIcon from '@mui/icons-material/Upload';
 
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
@@ -38,6 +39,8 @@ export const ChainSlots = ({
     scaffoldMappings = [],
     onEditScaffoldMapping = () => { },
     onOpenTemplatePanel = () => { },
+    onOpenScaffoldDialog = () => { },
+    onClearScaffold = () => { },
     onCircularizeSequence = () => { },
     onUncircularizeSequence = () => { },
     onMirrorSequence = () => { },
@@ -148,7 +151,21 @@ export const ChainSlots = ({
                     const sequenceIsCircular = headToTailLinkId != null;
 
                     const templateSlot = (
-                        <Box sx={{ width: 'fit-content', display: 'flex', alignItems: 'center', py: 0.5 }}>
+                        <Box sx={{ width: 'fit-content', display: 'flex', alignItems: 'center', py: 0.5, gap: 0.5 }}>
+                            {!scaffoldTemplate ? (
+                                <Tooltip title="Upload scaffold (PDB)" arrow>
+                                    <span>
+                                        <IconButton
+                                            size="small"
+                                            onClick={onOpenScaffoldDialog}
+                                            sx={{ color: 'text.secondary' }}
+                                            aria-label="upload scaffold"
+                                        >
+                                            <UploadIcon fontSize="inherit" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            ) : null}
                             <TemplateSequence
                                 mapping={mapping}
                                 maxResidueCount={list.length}
@@ -221,8 +238,8 @@ export const ChainSlots = ({
                                 position: 'relative',
                                 zIndex: (t) => (overlayActive && seqIdx === safeActiveSeqIdx) ? t.zIndex.modal + 21 : 'auto',
                                 transform: 'none',
-                                boxShadow: (t) => (seqIdx === safeActiveSeqIdx ? t.shadows[4] : t.shadows[1]),
-                                border: (t) => (seqIdx === safeActiveSeqIdx ? `1px solid ${t.palette.secondary.light}` : `1px solid ${t.palette.divider}`),
+                                boxShadow: (t) => (seqIdx === safeActiveSeqIdx ? t.shadows[4] : t.shadows[0]),
+                                border: (t) => (seqIdx === safeActiveSeqIdx ? `1px solid ${t.palette.grey[500]}` : `1px solid ${t.palette.divider}`),
                                 borderRadius: 1,
                                 outline: 'none',
                                 transition: 'box-shadow 180ms ease',
@@ -235,7 +252,8 @@ export const ChainSlots = ({
                                 onSequenceClear={sequenceClearHandler}
                                 disableSequenceActions={!hasAnyResidues && !isVisualOnlyChainRow}
                                 disableConstraintsActions={!hasAnyResidues}
-                                disableTemplateActions={!hasAnyResidues}
+                                // Template row menu should be disabled until a scaffold is uploaded.
+                                disableTemplateActions={!scaffoldTemplate}
                                 sequenceIsCircular={sequenceIsCircular}
                                 onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
                                 onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
@@ -253,6 +271,9 @@ export const ChainSlots = ({
                                 }}
                                 onTemplateConfigure={() => {
                                     onOpenTemplatePanel?.();
+                                }}
+                                onTemplateClearScaffold={() => {
+                                    onClearScaffold?.();
                                 }}
                                 onTemplateMaskAll={() => {
                                     const n = Array.isArray(mapping?.templateResidues) ? mapping.templateResidues.length : 0;
