@@ -1262,14 +1262,17 @@ const Documentation = () => {
 
                         <Typography variant="body1" component="p">
                             Cilengitide is a head-to-tail cyclized pentapeptide corresponding to the BILN sequence:
+                        </Typography>
 
-                            <Typography
-                                variant="body2"
-                                component="pre"
-                                sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                            >
-                                {`R(1,1)-G-D-dF-meV(1,2)`}
-                            </Typography>
+                        <Typography
+                            variant="body2"
+                            component="pre"
+                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
+                        >
+                            {`R(1,1)-G-D-dF-meV(1,2)`}
+                        </Typography>
+
+                        <Typography variant="body1" component="p">
                             To sample its conformational space, PEP-EDIT was used to generate a SMILES and a PDB representation that could directly be used to launch the simulations using OpenMM.
                         </Typography>
 
