@@ -1181,6 +1181,42 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         initialViewerSplitRatio: 0.5,
     });
 
+    // When entering link/unlink modes, temporarily maximize the 2D panel width
+    // so the guidance + canvas are always usable. Restore the previous split when exiting.
+    const splitRatioBeforeLinkModeRef = useRef(null);
+    const wasLinkModeActiveRef = useRef(false);
+    useEffect(() => {
+        const active = !!viewer2DModes.linkMode || !!viewer2DModes.bondsMode;
+        const wasActive = wasLinkModeActiveRef.current;
+
+        if (active && !wasActive) {
+            wasLinkModeActiveRef.current = true;
+            splitRatioBeforeLinkModeRef.current = viewerSplitRatio;
+
+            // Compute the maximum feasible ratio while keeping the 3D panel at least ~200px wide.
+            const host = viewerRowRef?.current;
+            const totalW = host?.getBoundingClientRect?.().width;
+            const minOtherPx = 200;
+            const maxRatio = (Number.isFinite(totalW) && totalW > 0)
+                ? Math.max(0, Math.min(1, (totalW - minOtherPx) / totalW))
+                : 1;
+
+            // Nudge slightly below 1 to avoid precision/rounding issues with flexBasis.
+            const target = Math.min(maxRatio, 0.98);
+            setViewerSplitRatio(target);
+            return;
+        }
+
+        if (!active && wasActive) {
+            wasLinkModeActiveRef.current = false;
+            const prev = splitRatioBeforeLinkModeRef.current;
+            splitRatioBeforeLinkModeRef.current = null;
+            if (typeof prev === 'number' && Number.isFinite(prev)) {
+                setViewerSplitRatio(prev);
+            }
+        }
+    }, [viewer2DModes.linkMode, viewer2DModes.bondsMode, viewerSplitRatio, setViewerSplitRatio, viewerRowRef]);
+
     useLayoutEffect(() => {
         // Keep the user-controlled 2D/3D split stable; only force Mol* to resize
         // when the side panel changes.
