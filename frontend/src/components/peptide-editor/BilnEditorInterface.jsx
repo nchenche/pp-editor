@@ -298,7 +298,7 @@ export default function BilnEditorInterface({
                     </ButtonGroup>
 
                     {/* pH control */}
-                    <Tooltip title="pH" arrow>
+                    {/* <Tooltip title={Number(phDraft).toFixed(1)} arrow> */}
                         <Box
                             sx={{
                                 display: 'flex',
@@ -323,8 +323,8 @@ export default function BilnEditorInterface({
                                 onChange={handlePhChange}
                                 onChangeCommitted={handlePhChangeCommitted}
                                 aria-label="pH"
-                                valueLabelDisplay="auto"
-                                valueLabelFormat={(v) => Number(v).toFixed(1)}
+                                // valueLabelDisplay="auto"
+                                // valueLabelFormat={(v) => Number(v).toFixed(1)}
                                 sx={{
                                     width: 100,
                                     py: 0,
@@ -335,10 +335,11 @@ export default function BilnEditorInterface({
                                     '& .MuiSlider-track': {
                                         border: 'none',
                                         bgcolor: (t) => t.palette.text.secondary,
+                                        height: 2,
                                     },
                                     '& .MuiSlider-thumb': {
-                                        width: 12,
-                                        height: 12,
+                                        width: 10,
+                                        height: 10,
                                         bgcolor: (t) => t.palette.text.secondary,
                                         boxShadow: 'none',
                                     },
@@ -359,10 +360,10 @@ export default function BilnEditorInterface({
                                     color: 'text.secondary',
                                 }}
                             >
-                                {Number(ph).toFixed(1)}
+                                {Number(phDraft).toFixed(1)}
                             </Typography>
                         </Box>
-                    </Tooltip>
+                    {/* </Tooltip> */}
 
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
