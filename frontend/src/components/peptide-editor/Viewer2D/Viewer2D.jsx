@@ -244,47 +244,29 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     // Expose minimal commands
     useImperativeHandle(ref, () => ({
         setLinkMode(next) {
-            setIsShowRGroups(prev => {
-                const v = Boolean(next);
-                if (v) {
-                    setIsShowBonds(false);
-                } else {
-                    cancelLinking?.();
-                }
-                onModesChange?.({
-                    linkMode: v,
-                    bondsMode: v ? false : isShowBonds,
-                    canCut: hasExtraBonds,
-                    linkSelectionCount: 0,
-                });
-                return v;
-            });
+            const v = Boolean(next);
+            // NOTE: keep state updaters free of side effects.
+            // Parent syncing happens via the useEffect below (onModesChange).
+            if (v) {
+                setIsShowBonds(false);
+            } else {
+                cancelLinking?.();
+            }
+            setIsShowRGroups(v);
         },
         setBondsMode(next) {
             // Guard: do nothing if requesting ON but there are no extra bonds
-            if (Boolean(next) && !hasExtraBonds) {
-                onModesChange?.({
-                    linkMode: isShowRGroups,
-                    bondsMode: false,
-                    canCut: hasExtraBonds,
-                    linkSelectionCount: 0,
-                });
+            const v = Boolean(next);
+            if (v && !hasExtraBonds) {
+                setIsShowBonds(false);
                 return;
             }
-            setIsShowBonds(prev => {
-                const v = Boolean(next);
-                if (v) {
-                    setIsShowRGroups(false);
-                    cancelLinking?.();
-                }
-                onModesChange?.({
-                    linkMode: v ? false : isShowRGroups,
-                    bondsMode: v,
-                    canCut: hasExtraBonds,
-                    linkSelectionCount: 0,
-                });
-                return v;
-            });
+
+            if (v) {
+                setIsShowRGroups(false);
+                cancelLinking?.();
+            }
+            setIsShowBonds(v);
         },
         clearLinkSelection() {
             cancelLinking?.();
