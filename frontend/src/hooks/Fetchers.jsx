@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '../config';
-import { log } from '../utils/dev'
 import { apiFetch } from '../utils/api';
+import { normalizeMoleculeSvgQueryParams } from '../utils/moleculeRendering';
 
 
 export const useFetchMolecule = (smiles, queryParams) => {
@@ -9,17 +9,95 @@ export const useFetchMolecule = (smiles, queryParams) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-
-    const queryKey = (() => {
+    const stableStringify = (value) => {
         try {
-            return JSON.stringify(queryParams || {});
+            if (!value || typeof value !== 'object') return JSON.stringify(value);
+            if (Array.isArray(value)) return JSON.stringify(value);
+            const keys = Object.keys(value).sort();
+            const out = {};
+            for (const k of keys) out[k] = value[k];
+            return JSON.stringify(out);
         } catch {
             return '';
         }
+    };
+
+    const formatRdkitSmilesError = (rawMessage) => {
+        const text = String(rawMessage || '').trim();
+        if (!text) return 'Request failed';
+
+        // If backend returns an HTML error page or a Python stack trace, do not expose it.
+        if (
+            /^<!doctype\s+html/i.test(text) ||
+            /^<html\b/i.test(text) ||
+            /Boost\.Python\.ArgumentError/i.test(text) ||
+            /Traceback\s*\(most\s+recent\s+call\s+last\)/i.test(text)
+        ) {
+            return 'Ensure your SMILES is valid.';
+        }
+
+        // Strip RDKit timestamps like: [15:16:39]
+        const withoutTimestamps = text.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/gm, '').trim();
+
+        // If this looks like RDKit SMILES Parse Error, return a simple message.
+        if (/SMILES\s+Parse\s+Error/i.test(withoutTimestamps)) {
+            return 'Ensure your SMILES is valid.';
+        }
+
+        // Otherwise, keep it compact.
+        const singleLine = withoutTimestamps.replace(/\s+/g, ' ').trim();
+        return singleLine.length > 220 ? `${singleLine.slice(0, 220)}…` : singleLine;
+    };
+
+    const extractResponseErrorMessage = async (response, inputSmiles) => {
+        try {
+            const contentType = response?.headers?.get?.('content-type') || '';
+            if (contentType.toLowerCase().includes('application/json')) {
+                const json = await response.json();
+                const msg =
+                    json?.error ||
+                    json?.message ||
+                    json?.detail ||
+                    json?.msg ||
+                    (typeof json === 'string' ? json : null);
+                if (msg) return formatRdkitSmilesError(msg);
+                return `Request failed (${response.status})`;
+            }
+
+            const text = await response.text();
+            if (text) return formatRdkitSmilesError(text);
+            return `Request failed (${response.status})`;
+        } catch {
+            return `Request failed (${response?.status || 'unknown'})`;
+        }
+    };
+
+    const smilesKey = (() => {
+        try {
+            if (typeof smiles === 'string') return smiles;
+            return JSON.stringify(smiles ?? null);
+        } catch {
+            return String(smiles ?? '');
+        }
     })();
 
+    const rawQueryKey = stableStringify(queryParams || {});
+
+    const normalizedQueryParams = useMemo(
+        () => normalizeMoleculeSvgQueryParams(queryParams, smiles),
+        [rawQueryKey, smilesKey],
+    );
+
+    
+
+    const queryKey = stableStringify(normalizedQueryParams || {});
+
     useEffect(() => {
-        if (!smiles) return;
+        const isEmpty =
+            smiles == null ||
+            (typeof smiles === 'string' && smiles.trim().length === 0) ||
+            (Array.isArray(smiles) && smiles.length === 0);
+        if (isEmpty) return;
 
         const controller = new AbortController();
         const signal = controller.signal;
@@ -28,7 +106,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
         const params = new URLSearchParams();
 
         // Append query parameters
-        Object.entries(queryParams).forEach(([key, value]) => {
+        Object.entries(normalizedQueryParams || {}).forEach(([key, value]) => {
             if (Array.isArray(value)) {
                 value.forEach(val => params.append(key, val));
             } else if (value !== undefined && value !== null) {
@@ -53,7 +131,8 @@ export const useFetchMolecule = (smiles, queryParams) => {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`);
+                    const msg = await extractResponseErrorMessage(response, smiles);
+                    throw new Error(msg);
                 }
 
                 const result = await response.json();
@@ -69,7 +148,7 @@ export const useFetchMolecule = (smiles, queryParams) => {
 
         fetchData();
         return () => controller.abort();
-    }, [smiles, queryKey]);
+    }, [smilesKey, queryKey]);
 
     return { data, isLoading, error };
 };

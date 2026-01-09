@@ -43,18 +43,33 @@ def generate_svg():
     if isinstance(smiles, str):
         smiles = [smiles]
 
-    # Generate the molecule from the SMILES string
-    try:
-        mols = [Chem.MolFromSmiles(x) for x in smiles]
-    except:
-        return jsonify({'error': 'Invalid SMILES string'}), 400
+    # Generate the molecule(s) from the SMILES strings
+    mols = [Chem.MolFromSmiles(x) for x in smiles]
+    if any(m is None for m in mols):
+        # Identify first invalid entry to help the user.
+        try:
+            invalid_idx = next(i for i, m in enumerate(mols) if m is None)
+            invalid_smiles = smiles[invalid_idx]
+        except Exception:
+            invalid_smiles = None
+
+        msg = 'Invalid SMILES string'
+        if invalid_smiles:
+            msg = f"Invalid SMILES string: '{invalid_smiles}'"
+        return jsonify({'error': msg}), 400
 
     if is_add_h:
-        mols = [Chem.AddHs(x, explicitOnly=is_explicit_only) for x in mols]
+        try:
+            mols = [Chem.AddHs(x, explicitOnly=is_explicit_only) for x in mols]
+        except Exception:
+            return jsonify({'error': 'Failed to add hydrogens (check SMILES input)'}), 400
 
     if is_annotate_dummy_atoms:
-        modified_mols = [annotate_dummy_atoms(x) for x in smiles]
-        metadata['r_groups'], mols = zip(*[(x['r_groups'], x['modified_mol']) for x in modified_mols])
+        try:
+            modified_mols = [annotate_dummy_atoms(x) for x in smiles]
+            metadata['r_groups'], mols = zip(*[(x['r_groups'], x['modified_mol']) for x in modified_mols])
+        except Exception:
+            return jsonify({'error': 'Failed to annotate dummy atoms (check SMILES input)'}), 400
 
     # Instantiate a drawer object
     n_cols = int(request.args.get('mols_per_row', 1))

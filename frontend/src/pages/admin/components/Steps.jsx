@@ -1,20 +1,77 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, memo } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, memo } from 'react';
 
 import { useForm, Controller } from "react-hook-form"
 
+import { Box, IconButton, Paper } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+
 import InputContainer from './InputContainer';
-import { MolDisplayer, MoleculeDisplayContainer } from './MolDisplayer';
+import { MolDisplayer, MoleculeDisplayContainer, computePreferredSizeFromSmiles } from './MolDisplayer';
 
 import { NewMonomerSettingForm } from './AddNewMoleculeForm';
-import { log } from '../../../utils/dev'
 
 
 export const TabStep1 = memo(({ smiles, handleChangeSmiles }) => {
+    const debounceMs = 450;
+    const [renderSmiles, setRenderSmiles] = useState(smiles);
+    const [previewStatus, setPreviewStatus] = useState({ isLoading: false, error: null, isEmptySmiles: true });
+    const debounceTimerRef = useRef(null);
+
+    useEffect(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+
+        debounceTimerRef.current = setTimeout(() => {
+            setRenderSmiles(smiles);
+        }, debounceMs);
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+                debounceTimerRef.current = null;
+            }
+        };
+    }, [smiles]);
+
+    const commitRenderNow = (nextSmiles) => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+        setRenderSmiles(nextSmiles);
+    };
+
     return (
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
-            <InputContainer smiles={smiles} handleChangeSmiles={handleChangeSmiles} />
-            <MoleculeDisplayContainer smiles={smiles} />
-        </div>
+        <Box
+            sx={{
+                width: '100%',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                alignItems: 'stretch',
+                // On narrow widths (single column), center the card.
+                // On wide widths, spread the two cards across the row.
+                justifyContent: { xs: 'center', md: 'space-between' },
+            }}
+        >
+            <Box sx={{ flex: '1 1 420px', minWidth: 320, maxWidth: { xs: '100%', md: '48%' } }}>
+                <InputContainer
+                    smiles={smiles}
+                    handleChangeSmiles={handleChangeSmiles}
+                    onCommitSmiles={commitRenderNow}
+                    smilesStatus={previewStatus}
+                />
+            </Box>
+            <Box sx={{ flex: '1 1 420px', minWidth: 320, maxWidth: { xs: '100%', md: '48%' } }}>
+                <MoleculeDisplayContainer
+                    smiles={renderSmiles}
+                    onStatusChange={setPreviewStatus}
+                />
+            </Box>
+        </Box>
     );
 });
 
@@ -23,44 +80,70 @@ export const TabStep2 = memo(({ smiles, handleSelectedBonds, selectedBonds, frag
     const queryParams = {
         h_explicit_only: false,
         add_bond_indices: true,
-        format_svg: true
-    }
+        format_svg: true,
+    };
+
+    const preferredSize = computePreferredSizeFromSmiles(smiles);
 
     const onBondClick = (event) => {
-        if (!event.target.classList.contains('bond-highlight-path')) return;
+        const target = event?.target;
+        if (!(target instanceof Element)) return;
 
-        const groupBond = event.target.parentNode;
+        // Resolve the bond group from either the highlight overlay path or the visible bond path.
+        const groupBond = target.closest?.('g.group-bond') || target.closest?.('g');
+        if (!(groupBond instanceof Element)) return;
         const classes = groupBond.classList;
+
+        // Determine bond index from group class (preferred).
+        const bondGroupClass = Array.from(classes).find((c) => /^group-bond-\d+$/.test(c));
+
+        // Fallback: determine bond index from the clicked path class (e.g. "bond-2 atom-2 atom-3").
+        const bondPath = target.closest?.('path') || target;
+        const bondPathClass = bondPath instanceof Element
+            ? Array.from(bondPath.classList || []).find((c) => /^bond-\d+$/.test(c))
+            : null;
+
+        const match = (bondGroupClass || bondPathClass || '').match(/(group-bond|bond)-(\d+)/);
+        if (!match) return;
+        const bondIndex = match[2];
 
         // Toggle 'selected' class
         classes.toggle('selected');
-
-        // Get selected bond indices
-        const bondClassName = Array.from(classes).find(ele => ele.includes('group-bond-'));
-        if (!bondClassName) return;
-        const bondIndex = bondClassName.split("group-bond-")[1];
-
         handleSelectedBonds(bondIndex);
     };
 
     return (
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
-            <MoleculeDisplayContainer
-                smiles={smiles}
-                queryParams={queryParams}
-                onBondClick={onBondClick}
-                selectedBonds={selectedBonds}
-                selectableBonds={true}
-            />
+        <Box
+            sx={{
+                width: '100%',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                alignItems: 'stretch',
+                justifyContent: { xs: 'center', md: 'space-between' },
+            }}
+        >
+            <Box sx={{ flex: '1', minWidth: 320, maxWidth: { xs: '100%' } }}>
+                <MoleculeDisplayContainer
+                    smiles={smiles}
+                    queryParams={queryParams}
+                    onBondClick={onBondClick}
+                    selectedBonds={selectedBonds}
+                    selectableBonds={true}
+                    defaultSize={preferredSize}
+                />
+            </Box>
 
-            <MoleculeDisplayContainer
-                smiles={fragments}
-                queryParams={{ mols_per_row: 2 }}
-                selectedBonds={selectedBonds}
-            />
-
-        </div>
-    )
+            <Box sx={{ flex: '1', minWidth: 320, maxWidth: { xs: '100%'} }}>
+                <MoleculeDisplayContainer
+                    smiles={fragments}
+                    queryParams={{ mols_per_row: 2 }}
+                    selectedBonds={selectedBonds}
+                    defaultSize={preferredSize}
+                />
+            </Box>
+        </Box>
+    );
 });
 
 
@@ -80,48 +163,170 @@ export const TabStep3 = memo(({ fragments, selectedFragmentIndex, handleSelected
         h_explicit_only: true,
         add_bond_indices: false,
         format_svg: true,
-        mols_per_row: 2
-    }
+    };
 
-    const onBondClick = (event) => {
-        const target = event.target.parentNode;
-        if (!target.classList.contains("group-molecule")) return;
+    const list = Array.isArray(fragments) ? fragments : (fragments ? [fragments] : []);
+    if (list.length === 0) return null;
 
-        const classes = target.classList;
+    const scrollerRef = useRef(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
 
-        // Remove 'selected' class to every 'group-molecule" class and add it to target only
-        document.querySelectorAll('.group-molecule').forEach(ele => ele.classList.remove('selected'));
-        classes.add('selected');
-
-        // Get fragment index
-        const moleculeClassName = Array.from(classes).find(ele => ele.includes('molecule-'));
-        if (!moleculeClassName) return;
-        const fragmentIndex = moleculeClassName.split("molecule-")[1];
-
-        const idx = parseInt(fragmentIndex);
-        const fragSmiles = fragments?.[idx];
-        if (!isFragmentAllowed(fragSmiles, 4)) {
-            if (onInvalidFragment) {
-                onInvalidFragment('This fragment has more than 4 attachment points (R-groups). Please select a different fragment.');
-            }
+    const updateScrollButtons = () => {
+        const el = scrollerRef.current;
+        if (!el) {
+            setCanScrollLeft(false);
+            setCanScrollRight(false);
             return;
         }
 
-        if (onInvalidFragment) onInvalidFragment('');
+        const maxScrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+        const left = el.scrollLeft;
+        const epsilon = 2;
+        setCanScrollLeft(left > epsilon);
+        setCanScrollRight(left < maxScrollLeft - epsilon);
+    };
+
+    useEffect(() => {
+        updateScrollButtons();
+
+        const el = scrollerRef.current;
+        if (!el) return;
+
+        const onScroll = () => updateScrollButtons();
+        el.addEventListener('scroll', onScroll, { passive: true });
+
+        let ro;
+        if (typeof ResizeObserver !== 'undefined') {
+            ro = new ResizeObserver(() => updateScrollButtons());
+            ro.observe(el);
+        } else {
+            window.addEventListener('resize', updateScrollButtons);
+        }
+
+        return () => {
+            el.removeEventListener('scroll', onScroll);
+            if (ro) ro.disconnect();
+            else window.removeEventListener('resize', updateScrollButtons);
+        };
+    }, [list.length]);
+
+    const selectFragment = (idx) => {
+        const fragSmiles = list?.[idx];
+        if (!isFragmentAllowed(fragSmiles, 4)) {
+            onInvalidFragment?.('This fragment has more than 4 attachment points (R-groups). Please select a different fragment.');
+            return;
+        }
+        onInvalidFragment?.('');
         handleSelectedFragment(idx);
     };
 
-    if (!fragments.length) return;
+    const scrollByPage = (direction) => {
+        const el = scrollerRef.current;
+        if (!el) return;
+        const delta = Math.round(el.clientWidth * 0.9);
+        el.scrollBy({ left: direction * delta, behavior: 'smooth' });
+    };
 
     return (
-        <MoleculeDisplayContainer
-            smiles={fragments}
-            queryParams={queryParams}
-            onBondClick={onBondClick}
-            selectableMolecules={true}
-            selectedFragment={selectedFragmentIndex}
-        />
-    )
+        <Box sx={{ position: 'relative', width: '100%' }}>
+            {canScrollLeft ? (
+                <IconButton
+                    aria-label="Previous fragment"
+                    onClick={() => scrollByPage(-1)}
+                    size="small"
+                    sx={{
+                        position: 'absolute',
+                        left: 4,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 2,
+                        bgcolor: 'background.paper',
+                        border: 1,
+                        borderColor: 'divider',
+                    }}
+                >
+                    <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+            ) : null}
+
+            {canScrollRight ? (
+                <IconButton
+                    aria-label="Next fragment"
+                    onClick={() => scrollByPage(1)}
+                    size="small"
+                    sx={{
+                        position: 'absolute',
+                        right: 4,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 2,
+                        bgcolor: 'background.paper',
+                        border: 1,
+                        borderColor: 'divider',
+                    }}
+                >
+                    <ChevronRightIcon fontSize="small" />
+                </IconButton>
+            ) : null}
+
+            <Box
+                ref={scrollerRef}
+                sx={{
+                    width: '100%',
+                    display: 'flex',
+                    gap: 2,
+                    overflowX: 'auto',
+                    pb: 1,
+                    scrollSnapType: 'x mandatory',
+                    WebkitOverflowScrolling: 'touch',
+                    // Keep content from going under overlay arrows.
+                    px: { xs: 0, sm: 0 },
+                }}
+            >
+                {list.map((fragSmiles, idx) => {
+                    const isSelected = idx === selectedFragmentIndex;
+
+                    return (
+                        <Box
+                            key={`${idx}-${String(fragSmiles).slice(0, 32)}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => selectFragment(idx)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    selectFragment(idx);
+                                }
+                            }}
+                            sx={{
+                                flex: '0 0 auto',
+                                scrollSnapAlign: 'start',
+                                width: {
+                                    xs: '85%',
+                                    sm: '70%',
+                                    md: '48%',
+                                },
+                                outline: 'none',
+                                cursor: 'pointer',
+                                borderRadius: 1,
+                                border: 2,
+                                borderColor: isSelected ? 'primary.main' : 'transparent',
+                            }}
+                        >
+                            <MoleculeDisplayContainer
+                                smiles={fragSmiles}
+                                queryParams={queryParams}
+                                selectableMolecules={false}
+                                enablePanZoom={true}
+                                defaultSize={420}
+                            />
+                        </Box>
+                    );
+                })}
+            </Box>
+        </Box>
+    );
 });
 
 
@@ -216,13 +421,28 @@ export const TabStep4 = memo(
         }
 
         return (
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 items-start'>
-                <MoleculeDisplayContainer smiles={fragmentSmiles} queryParams={queryParams} />
-                <div className='p-2 md:p-3'>
+            <Box
+                sx={{
+                    width: '100%',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 2,
+                    alignItems: 'flex-start',
+                    justifyContent: { xs: 'center', md: 'space-between' },
+                }}
+            >
+                <Box sx={{ flex: '1 1 420px', minWidth: 320, maxWidth: { xs: '100%', md: '48%' } }}>
+                    <MoleculeDisplayContainer
+                        smiles={fragmentSmiles}
+                        queryParams={queryParams}
+                        defaultSize={420}
+                    />
+                </Box>
+                <Box sx={{ flex: '1 1 420px', minWidth: 320, maxWidth: { xs: '100%', md: '48%' }, p: 1 }}>
                     <h3 className='text-xl font-medium border-b-2 border-cyan-800/35 pb-2 mb-2'>Molecule setting</h3>
                     <NewMonomerSettingForm formMethods={methods} groupIndices={groupIndices} pdbConfig={pdbConfig} />
-                </div>
-            </div>
+                </Box>
+            </Box>
         );
     })
 );

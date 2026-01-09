@@ -31,6 +31,7 @@ import {
 
 import FormWizard from 'react-form-wizard-component';
 import 'react-form-wizard-component/dist/style.css';
+import './styles.css'
 
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';

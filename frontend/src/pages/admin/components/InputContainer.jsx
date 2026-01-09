@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { API_BASE_URL } from '../../../config'; // adjust path if needed
 
-const CustomField = ({ descr, name, onChange, value = '', error, helperText }) => {
+const CustomField = ({ descr, name, onChange, value = '', error, helperText, onBlur, onKeyDown }) => {
   return (
     <Stack spacing={0.5} sx={{ width: '100%' }}>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -24,6 +24,8 @@ const CustomField = ({ descr, name, onChange, value = '', error, helperText }) =
         size="small"
         fullWidth
         onChange={onChange}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
         error={!!error}
         helperText={helperText}
       />
@@ -31,7 +33,7 @@ const CustomField = ({ descr, name, onChange, value = '', error, helperText }) =
   );
 };
 
-const InputContainer = ({ smiles, handleChangeSmiles }) => {
+const InputContainer = ({ smiles, handleChangeSmiles, onCommitSmiles, smilesStatus }) => {
   const [inputChemblValue, setInputChemblValue] = useState('');
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const [loadingChembl, setLoadingChembl] = useState(false);
@@ -75,6 +77,7 @@ const InputContainer = ({ smiles, handleChangeSmiles }) => {
 
       // Update SMILES field in parent
       handleChangeSmiles(smiles);
+      onCommitSmiles?.(smiles);
 
       // Switch back to SMILES tab so user sees the result
       setSelectedTabIndex(0);
@@ -119,6 +122,19 @@ const InputContainer = ({ smiles, handleChangeSmiles }) => {
             name="input_smiles"
             onChange={(e) => handleChangeSmiles(e.target.value)}
             value={smiles}
+            error={!!smilesStatus?.error}
+            helperText={
+              smilesStatus?.error
+                ? String(smilesStatus.error)
+                : (smilesStatus?.isLoading ? 'Rendering…' : ' ')
+            }
+            onBlur={() => onCommitSmiles?.(smiles)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onCommitSmiles?.(smiles);
+              }
+            }}
           />
         </Box>
       )}

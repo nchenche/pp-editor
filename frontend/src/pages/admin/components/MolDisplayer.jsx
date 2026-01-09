@@ -7,7 +7,7 @@ import { useFetchMolecule } from '../../../hooks/Fetchers'
 
 import { API_URL } from '../../../config';
 
-import { Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from '@mui/material';
+import { Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CloseIcon from '@mui/icons-material/Close';
@@ -16,6 +16,10 @@ import usePanZoom from '../../../hooks/usePanZoom';
 
 // MolDisplayer.js
 import PropTypes from 'prop-types';
+import { computePreferredSizeFromSmiles as computePreferredSizeFromSmilesImpl } from '../../../utils/moleculeRendering';
+
+// Keep the existing named export for backwards compatibility with admin steps.
+export const computePreferredSizeFromSmiles = computePreferredSizeFromSmilesImpl;
 
 
 
@@ -67,10 +71,13 @@ export const MoleculeDisplay = ({
     // Make bonds selectable
     useEffect(() => {
         if (!svgContainer.current || !selectableBonds) return;
-        addClassName('.bond-highlight-path', 'selectable');
+        // Make both the (often invisible) highlight overlay and the visible bond paths clickable/hoverable.
+        // Some SVG generators place the highlight path below the bond strokes, so the visible bond path
+        // becomes the hit target; ensure it still gets a pointer cursor and click handler.
+        addClassName('g.group-bond path', 'selectable');
 
         return () => {
-            removeClassName('.bond-highlight-path', 'selectable');
+            removeClassName('g.group-bond path', 'selectable');
         };
     }, [selectableBonds, data]);
 
@@ -121,27 +128,21 @@ export const MoleculeDisplay = ({
     //     return <p>Loading...</p>;
     // }
 
-    if (error && selectedBonds.length == 0) {
-        return (
-            <div>
-                <div className="w-full h-full border mx-auto mt-2 bg-white">
-                </div>
-                <p className="text-red-500 text-xs mt-2">No bonds selected</p>
-            </div>
-
-        )
-    } else if (error) {
-        return (
-            <div>
-            <div className="w-full h-full border mx-auto mt-2 bg-white">
-            </div>
-            <p className="text-red-500 text-xs mt-2">{error}</p>
-        </div>  
-        )
-    }
+    const errorMessage = error ? String(error) : '';
 
     return (
-        <Box sx={{ position: 'relative', width: '100%' }}>
+        <Box
+            sx={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+            }}
+        >
             {isLoading ? (
                 <Box
                     sx={{
@@ -159,15 +160,30 @@ export const MoleculeDisplay = ({
                 </Box>
             ) : null}
 
-            <Box sx={{ width: '100%', height: '100%', border: 1, borderColor: 'divider', mt: 1, bgcolor: 'background.paper' }}>
-                {data?.data && (
-                    <div
-                        ref={svgContainer}
-                        className="w-full h-full overflow-hidden"
-                        dangerouslySetInnerHTML={{ __html: data.data }}
-                    />
-                )}
-            </Box>
+            {errorMessage ? (
+                <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+                    <Typography variant="body2" color="error" sx={{ textAlign: 'center' }}>
+                        {errorMessage}
+                    </Typography>
+                </Box>
+            ) : data?.data ? (
+                <Box
+                    ref={svgContainer}
+                    sx={{
+                        width: '100%',
+                        height: '100%',
+                        overflow: 'hidden',
+                        '& svg': { width: '100%', height: '100%', display: 'block' },
+                    }}
+                    dangerouslySetInnerHTML={{ __html: data.data }}
+                />
+            ) : (
+                <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+                        No molecule to display
+                    </Typography>
+                </Box>
+            )}
         </Box>
     );
 };
@@ -190,11 +206,16 @@ export const MoleculeDisplayContainer = ({
     smiles,
     selectedBonds = [],
     queryParams = {},
+    onStatusChange = null,
     onBondClick = null,
     selectableBonds = false,
     selectableMolecules = false,
     selectedFragment = -1,
     enablePanZoom = true,
+
+    // Layout
+    defaultSize = 360,
+    reserveSpaceWhenEmpty = true,
 }) => {
 
     const isEmptySmiles =
@@ -202,60 +223,61 @@ export const MoleculeDisplayContainer = ({
         (typeof smiles === 'string' && smiles.trim().length === 0) ||
         (Array.isArray(smiles) && smiles.length === 0);
 
-    const estimateAtomCountFromSmiles = (s) => {
-        if (!s || typeof s !== 'string') return 0;
-        const str = String(s);
+    // Layout sizing: keep the container square and responsive.
+    // Do not size the container based on the SVG request width/height.
+    const layoutSize = Math.max(260, Number(defaultSize) || 360);
 
-        // Count bracket atoms first (each [...] represents one atom)
-        const bracketAtoms = (str.match(/\[[^\]]+\]/g) || []).length;
-        const withoutBrackets = str.replace(/\[[^\]]+\]/g, '');
+    const { data, isLoading, error } = useFetchMolecule(isEmptySmiles ? null : smiles, queryParams);
 
-        // Count common element tokens (2-letter first)
-        const tokens = withoutBrackets.match(/Cl|Br|Si|Se|Na|Li|Mg|Al|Ca|Zn|Fe|Cu|Mn|Co|Ni|Ag|Au|Sn|Hg|Pb|[B-IK-Z][a-z]?|[bcnops]/g);
-        const tokenAtoms = tokens ? tokens.length : 0;
+    const lastStatusRef = useRef({ isLoading: null, error: null, isEmptySmiles: null });
+    useEffect(() => {
+        if (typeof onStatusChange !== 'function') return;
+        const next = {
+            isLoading: Boolean(!isEmptySmiles && isLoading),
+            error: !isEmptySmiles ? (error || null) : null,
+            isEmptySmiles: Boolean(isEmptySmiles),
+        };
+        const prev = lastStatusRef.current;
+        const changed =
+            prev.isLoading !== next.isLoading ||
+            prev.error !== next.error ||
+            prev.isEmptySmiles !== next.isEmptySmiles;
 
-        return bracketAtoms + tokenAtoms;
-    };
-
-    const computePreferredSize = (s) => {
-        const atomCount = estimateAtomCountFromSmiles(s);
-        const base = 360;
-        const scaled = Math.round(base + atomCount * 2.5);
-        return Math.max(360, Math.min(900, scaled));
-    };
-
-    const preferredSize = computePreferredSize(typeof smiles === 'string' ? smiles : '');
-    const mergedQueryParams = {
-        ...queryParams,
-        ...(typeof smiles === 'string'
-            ? {
-                width: queryParams?.width ?? preferredSize,
-                height: queryParams?.height ?? preferredSize,
-            }
-            : {}),
-    };
-
-    const { data, isLoading, error } = useFetchMolecule(isEmptySmiles ? null : smiles, mergedQueryParams);
+        if (changed) {
+            lastStatusRef.current = next;
+            onStatusChange(next);
+        }
+    }, [onStatusChange, isLoading, error, isEmptySmiles]);
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const boxSize = preferredSize;
+
+    if (isEmptySmiles && !reserveSpaceWhenEmpty) {
+        return null;
+    }
 
     return (
-        <Box sx={{ position: 'relative', width: '100%', maxWidth: boxSize, mx: 'auto' }}>
+        <Box sx={{ position: 'relative', width: '100%', maxWidth: { xs: '100%', sm: layoutSize }, mx: 'auto' }}>
             <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 3, display: 'flex', gap: 1 }}>
                 <Tooltip title="Enlarge view">
-                    <IconButton
-                        size="small"
-                        onClick={() => setIsPreviewOpen(true)}
-                        disabled={isEmptySmiles}
-                        sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}
-                    >
-                        <ZoomInIcon fontSize="small" />
-                    </IconButton>
+                    <span>
+                        <IconButton
+                            size="small"
+                            onClick={() => setIsPreviewOpen(true)}
+                            disabled={isEmptySmiles}
+                            sx={{ bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}
+                        >
+                            <ZoomInIcon fontSize="small" />
+                        </IconButton>
+                    </span>
                 </Tooltip>
             </Box>
 
-            <Box sx={{ width: '100%', aspectRatio: '1 / 1' }}>
+            <Box
+                sx={{
+                    width: '100%',
+                    aspectRatio: '1 / 1',
+                }}
+            >
                 <MoleculeDisplay
                     data={isEmptySmiles ? null : data}
                     isLoading={isEmptySmiles ? false : isLoading}
@@ -269,18 +291,20 @@ export const MoleculeDisplayContainer = ({
                 />
             </Box>
 
-            <EnlargedMoleculePreviewDialog
-                open={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                smiles={smiles}
-                queryParams={queryParams}
-                selectedBonds={selectedBonds}
-                onBondClick={onBondClick}
-                selectableBonds={selectableBonds}
-                selectableMolecules={selectableMolecules}
-                selectedFragment={selectedFragment}
-                enablePanZoom={enablePanZoom}
-            />
+            {isPreviewOpen ? (
+                <EnlargedMoleculePreviewDialog
+                    open={isPreviewOpen}
+                    onClose={() => setIsPreviewOpen(false)}
+                    smiles={smiles}
+                    queryParams={queryParams}
+                    selectedBonds={selectedBonds}
+                    onBondClick={onBondClick}
+                    selectableBonds={selectableBonds}
+                    selectableMolecules={selectableMolecules}
+                    selectedFragment={selectedFragment}
+                    enablePanZoom={enablePanZoom}
+                />
+            ) : null}
         </Box>
     );
 };
@@ -303,37 +327,10 @@ const EnlargedMoleculePreviewDialog = ({
         (typeof smiles === 'string' && smiles.trim().length === 0) ||
         (Array.isArray(smiles) && smiles.length === 0);
 
-    const estimateAtomCountFromSmiles = (s) => {
-        if (!s || typeof s !== 'string') return 0;
-        const str = String(s);
-        const bracketAtoms = (str.match(/\[[^\]]+\]/g) || []).length;
-        const withoutBrackets = str.replace(/\[[^\]]+\]/g, '');
-        const tokens = withoutBrackets.match(/Cl|Br|Si|Se|Na|Li|Mg|Al|Ca|Zn|Fe|Cu|Mn|Co|Ni|Ag|Au|Sn|Hg|Pb|[B-IK-Z][a-z]?|[bcnops]/g);
-        const tokenAtoms = tokens ? tokens.length : 0;
-        return bracketAtoms + tokenAtoms;
-    };
-
-    const computePreferredSize = (s) => {
-        const atomCount = estimateAtomCountFromSmiles(s);
-        const base = 360;
-        const scaled = Math.round(base + atomCount * 2.5);
-        return Math.max(360, Math.min(900, scaled));
-    };
-
-    const preferredSize = computePreferredSize(typeof smiles === 'string' ? smiles : '');
+    const preferredSize = computePreferredSizeFromSmiles(typeof smiles === 'string' ? smiles : '');
     const previewSize = Math.min(1600, Math.max(900, Math.round(preferredSize * 1.8)));
 
-    const mergedQueryParams = {
-        ...queryParams,
-        ...(typeof smiles === 'string'
-            ? {
-                width: queryParams?.width ?? previewSize,
-                height: queryParams?.height ?? previewSize,
-            }
-            : {}),
-    };
-
-    const { data, isLoading, error } = useFetchMolecule(isEmptySmiles ? null : smiles, mergedQueryParams);
+    const { data, isLoading, error } = useFetchMolecule((open && !isEmptySmiles) ? smiles : null, queryParams);
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
@@ -380,6 +377,20 @@ EnlargedMoleculePreviewDialog.propTypes = {
     selectableMolecules: PropTypes.bool,
     selectedFragment: PropTypes.number,
     enablePanZoom: PropTypes.bool,
+};
+
+
+MoleculeDisplayContainer.propTypes = {
+    smiles: PropTypes.any,
+    selectedBonds: PropTypes.array,
+    queryParams: PropTypes.object,
+    onBondClick: PropTypes.func,
+    selectableBonds: PropTypes.bool,
+    selectableMolecules: PropTypes.bool,
+    selectedFragment: PropTypes.number,
+    enablePanZoom: PropTypes.bool,
+    defaultSize: PropTypes.number,
+    reserveSpaceWhenEmpty: PropTypes.bool,
 };
 
 

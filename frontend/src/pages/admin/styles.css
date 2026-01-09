@@ -32,13 +32,25 @@ svg g.group-molecule.selected rect {
     stroke: rgba(0, 0, 0, 0.781);
     stroke-width: 10px;
     stroke-linecap: round;
-    stroke-opacity: 0;
+    fill: none;
+    /* Keep this barely non-zero so it's reliably hit-testable across browsers. */
+    stroke-opacity: 0.001;
     pointer-events: stroke;
     transition: stroke-opacity 0.2s;
 }
 
+/* Make visible bond strokes feel clickable too (the highlight path can be below them). */
+.group-bond path.selectable {
+    cursor: pointer;
+}
+
 
 .group-bond:hover .bond-highlight-path.selectable {
+    stroke-opacity: 0.35;
+}
+
+/* If the highlight path itself is the hit target, highlight on direct hover too. */
+.bond-highlight-path.selectable:hover {
     stroke-opacity: 0.35;
 }
 
