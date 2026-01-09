@@ -456,7 +456,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
             // If the job list already has the result, load it immediately (no compute, no polling needed).
             if (pdb) {
-                setStructureOutput({ pdb });
+                // Include jobId so `useGenerate3D` can treat this as the same job and
+                // avoid clobbering the PDB if the subsequent status payload omits large fields.
+                setStructureOutput({ pdb, PDB: pdb, jobId: jobId || null });
             } else {
                 // Avoid showing stale structure while we refresh/poll the job.
                 setStructureOutput({ pdb: '' });
