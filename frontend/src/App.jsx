@@ -165,7 +165,16 @@ function AppRoutes() {
     >
       {/* Other routes render normally */}
       <Routes>
-        <Route path="/" element={<Home isActive={true} />} />
+        <Route
+          path="/"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                <Home isActive={true} />
+              </Box>
+            </Box>
+          }
+        />
 
         <Route
           path="/my-monomers"

@@ -128,7 +128,7 @@ export const DesignPageLayoutMUI = ({
     sidebar,           // left: Monomer library container
     viewerContainer,   // right/top: main interface (sequence input, 2D/3D viewers, tracks)
     outputPanel,       // right/bottom: output details
-    height = '85vh',   // keep page from scrolling; adjust if you have a fixed header
+    height = '100%',   // fill available space (prevents overlapping the global footer)
     minLeftFrac = 0.25,   // minimum sidebar width 
     maxLeftFrac = 0.45, // maximum sidebar width as fraction of viewport width
     handleWidth = 6,   // draggable handle width (px)
