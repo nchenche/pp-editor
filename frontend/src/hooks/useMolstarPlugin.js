@@ -23,6 +23,9 @@ export function useMolstarPlugin(options = {}) {
     const [error, setError] = useState(null);
 
     const backgroundColor = options?.backgroundColor;
+    const pickingAlphaThreshold = Number.isFinite(Number(options?.pickingAlphaThreshold))
+        ? Math.min(1, Math.max(0, Number(options.pickingAlphaThreshold)))
+        : 0.1;
 
     useEffect(() => {
         let disposed = false;
@@ -48,6 +51,22 @@ export function useMolstarPlugin(options = {}) {
                 if (!initViewer) {
                     throw new Error('Failed to initialize MolStar viewer');
                 } 
+
+                // Mol* defaults to a fairly high picking alpha threshold (~0.5), which makes
+                // semi-transparent representations (common for surfaces/overlays) effectively
+                // un-pickable. Lower it so hover/highlight continues to work even when the
+                // cartoon representation is disabled.
+                try {
+                    const prevRenderer = plugin.canvas3d?.props?.renderer || {};
+                    plugin.canvas3d?.setProps?.({
+                        renderer: {
+                            ...prevRenderer,
+                            pickingAlphaThreshold,
+                        },
+                    });
+                } catch {
+                    // ignore
+                }
 
                 pluginRef.current = plugin;
                 window.plugin = plugin; // for debugging
@@ -90,12 +109,13 @@ export function useMolstarPlugin(options = {}) {
                 renderer: {
                     ...prevRenderer,
                     backgroundColor: bg,
+                    pickingAlphaThreshold,
                 },
             });
         } catch {
             // ignore
         }
-    }, [pluginInitialized, backgroundColor]);
+    }, [pluginInitialized, backgroundColor, pickingAlphaThreshold]);
 
     return { pluginRef, canvasRef, containerRef, pluginInitialized, error };
 }
