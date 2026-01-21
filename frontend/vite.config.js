@@ -17,26 +17,10 @@ export default defineConfig(({ mode }) => {
 
             // Split Mol* out aggressively (it dominates bundle size).
             if (id.includes('node_modules/molstar/')) {
-              if (id.includes('/extensions/')) return 'molstar-extensions';
-              if (id.includes('/mol-plugin-ui/')) return 'molstar-ui';
-              if (id.includes('/mol-plugin-state/')) return 'molstar-plugin-state';
-              if (id.includes('/mol-plugin/')) return 'molstar-plugin';
-              if (id.includes('/mol-model/')) return 'molstar-model';
-              if (id.includes('/mol-model-formats/')) return 'molstar-model-formats';
-              if (id.includes('/mol-model-props/')) return 'molstar-model-props';
-              if (id.includes('/mol-repr/')) return 'molstar-repr';
-              if (id.includes('/mol-script/')) return 'molstar-script';
-              if (id.includes('/mol-canvas3d/')) return 'molstar-canvas3d';
-              if (id.includes('/mol-gl/')) return 'molstar-gl';
-              if (id.includes('/mol-geo/')) return 'molstar-geo';
-              if (id.includes('/mol-data/')) return 'molstar-data';
-              if (id.includes('/mol-math/')) return 'molstar-math';
-              if (id.includes('/mol-io/')) return 'molstar-io';
-              if (id.includes('/mol-state/')) return 'molstar-state';
-              if (id.includes('/mol-theme/')) return 'molstar-theme';
-              if (id.includes('/mol-task/')) return 'molstar-task';
-              if (id.includes('/mol-util/')) return 'molstar-util';
-              return 'molstar-core';
+              // NOTE: Mol* has some circular dependencies (e.g. mol-data <-> mol-io).
+              // Splitting into many chunks can surface runtime init-order issues in production.
+              // Keep Mol* in a single chunk to ensure stable evaluation order.
+              return 'molstar';
             }
 
             // Keep MUI together to reduce churn in the main chunk.
