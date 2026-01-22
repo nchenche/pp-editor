@@ -267,7 +267,12 @@ export function useGenerate3D(baseUrlOverride) {
         [clearJob, ownerId, startJob],
     );
 
-    const derivedLoading = loading || isJobActive || isStarting || jobState === 'queued' || jobState === 'running';
+    // Important: don't report "loading" purely based on a queued/running state unless we actually
+    // have an active job id. Otherwise a failed start request can leave the UI spinning forever.
+    const hasJob = !!jobId;
+    const derivedLoading = loading
+        || isStarting
+        || (hasJob && (isJobActive || jobState === 'queued' || jobState === 'running'));
     const derivedError = error || (jobError ? toErrorMessage(jobError) : null);
 
     return {

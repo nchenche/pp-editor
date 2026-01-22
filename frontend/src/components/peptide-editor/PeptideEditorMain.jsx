@@ -467,8 +467,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // Ensure the conformer-job hook re-polls even when the resumed job id
             // matches the current persisted one (storage no-op updates are ignored).
             if (jobId) {
-                clearConformerJobIdFromStorage({ dbName: 'pepedit', ownerId: ownerId ?? null });
-                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', ownerId: ownerId ?? null });
+                clearConformerJobIdFromStorage({ dbName: 'pepedit', ownerId: ownerId ?? null, baseUrlOverride: API_BASE_URL });
+                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', ownerId: ownerId ?? null, baseUrlOverride: API_BASE_URL });
             }
         };
         window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);

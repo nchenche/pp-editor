@@ -16,6 +16,7 @@ import {
     Typography,
 } from '@mui/material';
 
+import { API_BASE_URL } from '../../config';
 import { useOwnerId } from '../../hooks/useOwnerId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
@@ -157,7 +158,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
 
                                 const onResume = () => {
                                     if (!jobId) return;
-                                    setConformerJobIdInStorage(jobId, { dbName, ownerId });
+                                    setConformerJobIdInStorage(jobId, { dbName, ownerId, baseUrlOverride: API_BASE_URL });
                                     window.dispatchEvent(new CustomEvent(CONFORMER_JOB_RESUME_EVENT, { detail: { jobId, biln: biln || '', pdb: pdb || '' } }));
                                 };
 

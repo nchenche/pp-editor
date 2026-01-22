@@ -131,9 +131,12 @@ async function fetchConformerJobStatusShared({ jobId, statusUrl, dbName, baseUrl
  * @param {{dbName?: string, ownerId?: (string|null), baseUrlOverride?: (string|undefined)}} params
  */
 export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
-  const storageKey = useMemo(() => getConformerJobStorageKey({ dbName, ownerId }), [dbName, ownerId]);
+  const storageKey = useMemo(
+    () => getConformerJobStorageKey({ dbName, ownerId, baseUrlOverride }),
+    [dbName, ownerId, baseUrlOverride],
+  );
 
-  const [jobId, setJobId] = useState(() => getConformerJobIdFromStorage({ dbName, ownerId }));
+  const [jobId, setJobId] = useState(() => getConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride }));
   const jobIdRef = useRef(jobId);
   const [state, setState] = useState(jobId ? 'queued' : 'idle');
   const [progress, setProgress] = useState(null);
@@ -156,6 +159,10 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   const inFlightRef = useRef(null);
   const mountedRef = useRef(true);
 
+  // Some backends can briefly return 404 immediately after job submission (eventual consistency).
+  // Track short-lived 404s so we can retry a few times before declaring the job gone.
+  const notFoundRef = useRef({ jobId: null, firstTs: 0, count: 0 });
+
   const jobEndpointsRef = useRef({ statusUrl: null, cancelUrl: null });
 
   // Some backends can respond to a successful cancel request with a terminal state of "failed"
@@ -168,6 +175,32 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   const rollbackJobIdRef = useRef(null);
 
   const lastStartPayloadRef = useRef(null);
+
+  // If a job stays queued/running for a long time, it's often an infra issue (e.g. Celery worker down).
+  // Warn without changing behavior.
+  const staleWarnedJobIdRef = useRef(null);
+  useEffect(() => {
+    if (!jobId) return;
+    if (state !== 'queued' && state !== 'running') return;
+    if (staleWarnedJobIdRef.current === jobId) return;
+
+    const warnAfterMs = 2 * 60 * 1000;
+    const capturedId = String(jobId);
+    const capturedState = state;
+
+    const t = setTimeout(() => {
+      if (!mountedRef.current) return;
+      if (String(jobIdRef.current || '') !== capturedId) return;
+      if (state !== 'queued' && state !== 'running') return;
+      staleWarnedJobIdRef.current = capturedId;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pp-editor] Conformer job ${capturedId} still ${capturedState} after 2 minutes. Celery worker/broker may be offline, or the job queue is stuck.`,
+      );
+    }, warnAfterMs);
+
+    return () => clearTimeout(t);
+  }, [jobId, state]);
 
   useEffect(() => {
     jobIdRef.current = jobId;
@@ -224,7 +257,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       if (!normalized) {
         jobIdRef.current = null;
         jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
-        clearConformerJobIdFromStorage({ dbName, ownerId });
+        clearConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride });
         setJobId(null);
         setState('idle');
         setProgress(null);
@@ -238,13 +271,13 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
       // Update ref before emitting the storage change event to avoid duplicate poll loops.
       jobIdRef.current = normalized;
-      setConformerJobIdInStorage(normalized, { dbName, ownerId });
+      setConformerJobIdInStorage(normalized, { dbName, ownerId, baseUrlOverride });
       setJobId(normalized);
       setState('queued');
       clearProgressLog();
       clearError();
     },
-    [dbName, ownerId, clearError, clearProgressLog, cleanupTimeout],
+    [baseUrlOverride, dbName, ownerId, clearError, clearProgressLog, cleanupTimeout],
   );
 
   const fetchStatusOnce = useCallback(
@@ -277,7 +310,30 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
             msg = json?.message || json?.error || msg;
             setErrorType('network');
             setError(msg);
+
+            if (status === 404) {
+              const now = Date.now();
+              const cur = notFoundRef.current;
+              const same = String(cur?.jobId || '') === String(effectiveId);
+              const firstTs = same ? (cur.firstTs || now) : now;
+              const count = same ? ((cur.count || 0) + 1) : 1;
+              notFoundRef.current = { jobId: effectiveId, firstTs, count };
+
+              // Grace window: retry a few times for a freshly-started job.
+              const elapsed = now - firstTs;
+              const withinGrace = elapsed < 3000 && count <= 5;
+              if (!withinGrace) {
+                // Persisted/stale job id (or backend never created it): stop polling and clear.
+                setJobIdAndPersist(null);
+              }
+            }
+
             return null;
+          }
+
+          // Reset 404 tracking on any successful response.
+          if (notFoundRef.current?.jobId) {
+            notFoundRef.current = { jobId: null, firstTs: 0, count: 0 };
           }
 
           const data = json?.data || {};
@@ -348,7 +404,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
       return promise;
     },
-    [baseUrlOverride, dbName, jobId],
+    [baseUrlOverride, dbName, jobId, setJobIdAndPersist],
   );
 
   const pollLoop = useCallback(
@@ -377,6 +433,13 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       const desiredMinIntervalMs = 100;
 
       const data = await fetchStatusOnce(effectiveId, { minIntervalMs: desiredMinIntervalMs });
+
+      // If job id changed/cleared while awaiting the network (e.g. 404 cleanup), stop polling.
+      if ((jobIdRef.current || null) !== (effectiveId || null)) {
+        cleanupTimer();
+        cleanupTimeout();
+        return;
+      }
       const nextState = normalizeState(data?.state || state);
 
       if (!mountedRef.current) return;
@@ -666,7 +729,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   // Keep hook in sync if another component updates the persisted job id.
   useEffect(() => {
     const updateFromStorage = () => {
-      const next = getConformerJobIdFromStorage({ dbName, ownerId });
+      const next = getConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride });
 
       // Ignore no-op updates (prevents duplicate polling intervals).
       if ((next || null) === (jobIdRef.current || null)) return;
@@ -693,7 +756,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, onEvent);
       window.removeEventListener('storage', onStorage);
     };
-  }, [abortInFlight, cleanupTimer, dbName, ownerId, pollLoop, storageKey]);
+  }, [abortInFlight, baseUrlOverride, cleanupTimer, dbName, ownerId, pollLoop, storageKey]);
 
   // If we have a persisted jobId, fetch once on mount.
   useEffect(() => {

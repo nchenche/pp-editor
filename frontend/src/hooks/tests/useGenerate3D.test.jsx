@@ -18,7 +18,13 @@ import { useGenerate3D } from '../useGenerate3D';
 function TestComponent() {
   const gen = useGenerate3D('');
   const pdb = gen?.result?.pdb || gen?.result?.PDB || '';
-  return <div data-testid="pdb">{pdb}</div>;
+  const loading = !!gen?.loading;
+  return (
+    <>
+      <div data-testid="pdb">{pdb}</div>
+      <div data-testid="loading">{loading ? '1' : '0'}</div>
+    </>
+  );
 }
 
 describe('useGenerate3D', () => {
@@ -56,5 +62,31 @@ describe('useGenerate3D', () => {
 
     // Should keep showing the last success PDB.
     expect(getByTestId('pdb').textContent).toBe('PDBDATA');
+  });
+
+  it('does not report loading when queued but jobId is missing', () => {
+    // Simulate a failed start: state was set to queued, but no jobId exists.
+    mockJob = {
+      jobId: null,
+      state: 'queued',
+      progress: null,
+      progressMessage: null,
+      mappingMessage: null,
+      mappingRaw: null,
+      progressLog: null,
+      resultRef: null,
+      error: 'Start failed',
+      errorType: 'network',
+      isActive: false,
+      isStarting: false,
+      isCanceling: false,
+      start: vi.fn(),
+      cancel: vi.fn(),
+      retry: vi.fn(),
+      clear: vi.fn(),
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('loading').textContent).toBe('0');
   });
 });
