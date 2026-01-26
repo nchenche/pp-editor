@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
-import { useOwnerId } from './useOwnerId';
+import { useSessionId } from './useSessionId';
 
 
 // Simple in-memory cache (per session)
@@ -63,7 +63,8 @@ export function invalidateLibraryFetching(reason = 'updated') {
 }
 
 export function useLibraryFetching({ search = '', caps = false, natural = false, nonNatural = false }) {
-  const ownerId = useOwnerId();
+  // Use sessionId for cache scoping (apiFetch will inject owner_id from session via getOwnerId())
+  const sessionId = useSessionId();
 
   const [nonce, setNonce] = useState(libraryCacheNonce);
 
@@ -80,8 +81,8 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
     [baseUrl, search, caps, natural, nonNatural]
   );
   const cacheKey = useMemo(
-    () => makeCacheKey(requestUrl, ownerId || ''),
-    [requestUrl, ownerId]
+    () => makeCacheKey(requestUrl, sessionId || ''),
+    [requestUrl, sessionId]
   );
 
   useEffect(() => {

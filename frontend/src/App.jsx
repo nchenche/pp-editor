@@ -20,7 +20,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 
-import { useOwnerId } from './hooks/useOwnerId';
+import { useSessionId } from './hooks/useSessionId';
 
 import DataPolicyDialog from './components/common/DataPolicyDialog';
 
@@ -60,11 +60,11 @@ function CookieConsentDialog({ open, onAccept }) {
 function OwnerIdRequiredDialog({ open, onClose }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Owner ID required</DialogTitle>
+      <DialogTitle>Session required</DialogTitle>
       <DialogContent>
         <Typography variant="body1">
-          This page is only available when you’re connected with an Owner ID.
-          Please click on "Load ID" or "Create ID" in the header to connect with an Owner ID.
+          This page requires an active session. A session should be created automatically when you visit the Design page.
+          If you're seeing this, please go to the Design page first to initialize your session.
         </Typography>
       </DialogContent>
       <DialogActions>
@@ -116,7 +116,7 @@ function CookieConsentController() {
 
 
 function AppRoutes() {
-  const ownerId = useOwnerId();
+  const sessionId = useSessionId();
   const location = useLocation();
 
   if (IS_DOCS_ONLY) {
@@ -179,7 +179,7 @@ function AppRoutes() {
         <Route
           path="/my-monomers"
           element={
-            ownerId ? (
+            sessionId ? (
               <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
                 <PersonalMonomers />
               </Box>
@@ -228,7 +228,7 @@ function AppRoutes() {
 
 
 function App() {
-  const ownerId = useOwnerId();
+  const sessionId = useSessionId();
   const [isOwnerRequiredOpen, setIsOwnerRequiredOpen] = useState(false);
 
   const dataLinks = IS_DOCS_ONLY
@@ -246,8 +246,8 @@ function App() {
     {
       to: '/my-monomers',
       text: 'My monomers',
-      disabled: !ownerId,
-      disabledReason: 'Requires Owner ID connection (use Load ID / Create ID in the header).'
+      disabled: !sessionId,
+      disabledReason: 'Requires an active session (use New Session or Load Session in the header).'
     },
     {
       to: '/submit-public-monomers',

@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
-import { useOwnerId } from './useOwnerId';
+import { useSessionId } from './useSessionId';
 import { useConformerJob } from './useConformerJob';
 
 function toErrorMessage(value) {
@@ -37,7 +37,8 @@ export function useGenerate3D(baseUrlOverride) {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    const ownerId = useOwnerId();
+    // Use sessionId for job scoping (convention: session_id == owner_id)
+    const sessionId = useSessionId();
     const dbName = 'pepedit';
     const {
         jobId,
@@ -57,7 +58,7 @@ export function useGenerate3D(baseUrlOverride) {
         cancel: cancelJob,
         retry: retryJob,
         clear: clearJob,
-    } = useConformerJob({ dbName, ownerId, baseUrlOverride: baseUrlOverride ?? API_BASE_URL });
+    } = useConformerJob({ dbName, sessionId, baseUrlOverride: baseUrlOverride ?? API_BASE_URL });
 
     // Mirror job state into legacy { result, error, loading } shape.
     const jobDerivedResult = useMemo(() => {
@@ -151,8 +152,9 @@ export function useGenerate3D(baseUrlOverride) {
                 const embedParams = body.embed_params || body.embedParams || undefined;
 
                 // Template endpoint requires owner_id key even when null.
+                // Convention: session_id == owner_id
                 if (isAsyncTemplate && !Object.prototype.hasOwnProperty.call(body, 'owner_id')) {
-                    body.owner_id = ownerId ?? null;
+                    body.owner_id = sessionId ?? null;
                 }
 
                 setLoading(true);
@@ -162,7 +164,8 @@ export function useGenerate3D(baseUrlOverride) {
                         ssConstraints: body.ss_constraints ?? null,
                         embedParams,
                         requestParams,
-                        ownerId: Object.prototype.hasOwnProperty.call(body, 'owner_id') ? body.owner_id : (ownerId ?? undefined),
+                        ownerId: Object.prototype.hasOwnProperty.call(body, 'owner_id') ? body.owner_id : (sessionId ?? undefined),
+                        sessionId: sessionId ?? undefined,
                         endpoint,
                         extraBody: body,
                     });
@@ -264,7 +267,7 @@ export function useGenerate3D(baseUrlOverride) {
                 }
             }
         },
-        [clearJob, ownerId, startJob],
+        [clearJob, sessionId, startJob],
     );
 
     // Important: don't report "loading" purely based on a queued/running state unless we actually

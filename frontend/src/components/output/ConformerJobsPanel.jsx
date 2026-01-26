@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 
 import { API_BASE_URL } from '../../config';
-import { useOwnerId } from '../../hooks/useOwnerId';
+import { useSessionId } from '../../hooks/useSessionId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
 import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
@@ -68,10 +68,10 @@ function stateColor(state) {
 }
 
 export function ConformerJobsPanel({ dbName = 'pepedit' }) {
-    const ownerId = useOwnerId();
-    const { items, loading, error, refresh } = useConformerJobsList(ownerId, { dbName, limit: 50 });
+    const sessionId = useSessionId();
+    const { items, loading, error, refresh } = useConformerJobsList(sessionId, { dbName, limit: 50 });
 
-    const title = useMemo(() => (ownerId ? 'My conformer jobs' : 'Anonymous conformer jobs'), [ownerId]);
+    const title = useMemo(() => (sessionId ? 'My conformer jobs' : 'Session conformer jobs'), [sessionId]);
 
     return (
         <Paper
@@ -158,7 +158,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
 
                                 const onResume = () => {
                                     if (!jobId) return;
-                                    setConformerJobIdInStorage(jobId, { dbName, ownerId, baseUrlOverride: API_BASE_URL });
+                                    setConformerJobIdInStorage(jobId, { dbName, sessionId, baseUrlOverride: API_BASE_URL });
                                     window.dispatchEvent(new CustomEvent(CONFORMER_JOB_RESUME_EVENT, { detail: { jobId, biln: biln || '', pdb: pdb || '' } }));
                                 };
 

@@ -51,7 +51,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { alpha, useTheme } from '@mui/material/styles';
 import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 import { clearConformerJobIdFromStorage, setConformerJobIdInStorage } from '../../../src/utils/conformerJobStorage';
-import { useOwnerId } from '../../../src/hooks/useOwnerId';
+import { useSessionId } from '../../../src/hooks/useSessionId';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
@@ -103,7 +103,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         isCanceling: isCancelingConformerJob,
     } = useGenerate3D(API_BASE_URL);
 
-    const ownerId = useOwnerId();
+    const sessionId = useSessionId();
 
     const [active3DPanel, setActive3DPanel] = useState(() => {
         try {
@@ -467,13 +467,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // Ensure the conformer-job hook re-polls even when the resumed job id
             // matches the current persisted one (storage no-op updates are ignored).
             if (jobId) {
-                clearConformerJobIdFromStorage({ dbName: 'pepedit', ownerId: ownerId ?? null, baseUrlOverride: API_BASE_URL });
-                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', ownerId: ownerId ?? null, baseUrlOverride: API_BASE_URL });
+                clearConformerJobIdFromStorage({ dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
+                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
             }
         };
         window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
         return () => window.removeEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
-    }, [setBilnValue, normalizeBilnForGen, ownerId, setStructureOutput]);
+    }, [setBilnValue, normalizeBilnForGen, sessionId, setStructureOutput]);
 
     // Viewer refs and states
     const viewer2DRef = useRef(null);

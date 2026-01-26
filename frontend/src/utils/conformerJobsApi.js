@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config';
 import { apiFetch, apiFetchNoOwner } from './api';
+import { getSessionId } from './sessionApi';
 
 /**
  * @typedef {'queued'|'running'|'success'|'failed'|'canceled'} ConformerJobState
@@ -59,19 +60,29 @@ export async function startAsyncJob({
   endpoint,
   body,
   dbName = 'pepedit',
+  sessionId,
   requestParams,
   baseUrlOverride,
   signal,
 } = {}) {
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const url = buildApiUrl(endpoint, {
     baseUrlOverride,
     query: { db_name: dbName, ...(requestParams || {}) },
   });
 
+  // Include session_id in the body for conformer job endpoints
+  const bodyWithSession = {
+    ...(body ?? {}),
+    ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+  };
+
   return apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
+    body: JSON.stringify(bodyWithSession),
     signal,
   });
 }
@@ -81,66 +92,99 @@ export async function startConformerJob({
   ssConstraints,
   embedParams,
   ownerId,
+  sessionId,
   dbName = 'pepedit',
   requestParams,
   baseUrlOverride,
   signal,
 } = {}) {
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const body = {
     biln,
     ss_constraints: ssConstraints ?? null,
     embed_params: embedParams ?? undefined,
     ...(ownerId ? { owner_id: ownerId } : {}),
+    ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
   };
 
   return startAsyncJob({
     endpoint: '/api/core/molecules/generate_conformer',
     body,
     dbName,
+    sessionId: effectiveSessionId,
     requestParams,
     baseUrlOverride,
     signal,
   });
 }
 
-export async function getConformerJob({ jobId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function getConformerJob({ jobId, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const url = buildApiUrl(`/api/core/molecules/conformer_jobs/${encodeURIComponent(jobId)}`, {
     baseUrlOverride,
-    query: { db_name: dbName },
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
   });
-  // Do not inject owner_id into job status URL by default.
+  // Use apiFetchNoOwner since we're explicitly providing session_id in query
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
 
-export async function getConformerJobByUrl({ statusUrl, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function getConformerJobByUrl({ statusUrl, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
   if (!statusUrl) throw new Error('Missing statusUrl');
+
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const url = buildApiUrlFromServerUrl(statusUrl, {
     baseUrlOverride,
-    query: { db_name: dbName },
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
   });
-  // Do not inject owner_id into job status URL by default.
+  // Use apiFetchNoOwner since we're explicitly providing session_id in query
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
 
-export async function cancelConformerJob({ jobId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function cancelConformerJob({ jobId, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const url = buildApiUrl(`/api/core/molecules/conformer_jobs/${encodeURIComponent(jobId)}/cancel`, {
     baseUrlOverride,
-    query: { db_name: dbName },
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
   });
   return apiFetchNoOwner(url, { method: 'POST', signal });
 }
 
-export async function cancelConformerJobByUrl({ cancelUrl, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function cancelConformerJobByUrl({ cancelUrl, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
   if (!cancelUrl) throw new Error('Missing cancelUrl');
+
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
   const url = buildApiUrlFromServerUrl(cancelUrl, {
     baseUrlOverride,
-    query: { db_name: dbName },
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
   });
   return apiFetchNoOwner(url, { method: 'POST', signal });
 }
 
 export async function listConformerJobs({
   dbName = 'pepedit',
+  sessionId,
   ownerId,
   scope,
   limit = 50,
@@ -148,19 +192,35 @@ export async function listConformerJobs({
   baseUrlOverride,
   signal,
 } = {}) {
-  const effectiveScope = scope || (ownerId ? undefined : 'anonymous');
+  // Use provided sessionId or fall back to current session
+  const effectiveSessionId = sessionId ?? getSessionId();
+
+  // If we have a session, use session_id filter; otherwise fall back to legacy owner_id/scope
+  const query = {
+    db_name: dbName,
+    limit,
+    before,
+  };
+
+  if (effectiveSessionId) {
+    // Session-based filtering (preferred)
+    query.session_id = effectiveSessionId;
+  } else if (ownerId) {
+    // Legacy owner-based filtering
+    query.owner_id = ownerId;
+  } else if (scope) {
+    // Legacy scope-based filtering
+    query.scope = scope;
+  } else {
+    // No session, no owner: anonymous scope fallback
+    query.scope = 'anonymous';
+  }
 
   const url = buildApiUrl('/api/core/molecules/conformer_jobs', {
     baseUrlOverride,
-    query: {
-      db_name: dbName,
-      ...(ownerId ? { owner_id: ownerId } : {}),
-      ...(effectiveScope ? { scope: effectiveScope } : {}),
-      limit,
-      before,
-    },
+    query,
   });
 
-  // Keep list call deterministic: don't auto-inject owner_id.
+  // Use apiFetchNoOwner since we're explicitly providing session_id/owner_id in query
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }

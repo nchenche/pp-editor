@@ -17,6 +17,8 @@ import {
   getConformerJobStorageKey,
 } from '../utils/conformerJobStorage';
 
+import { getSessionId } from '../utils/sessionApi';
+
 import { formatConformerJobProgressMessage } from '../utils/conformerJobProgress';
 
 const TERMINAL_STATES = new Set(['success', 'failed', 'canceled']);
@@ -68,7 +70,7 @@ function getGlobalStatusKey({ jobId, statusUrl, dbName, baseUrlOverride }) {
   return `${String(dbName || 'pepedit')}::${String(base)}::${String(jobId || '')}::${status}`;
 }
 
-async function fetchConformerJobStatusShared({ jobId, statusUrl, dbName, baseUrlOverride, minIntervalMs, force } = {}) {
+async function fetchConformerJobStatusShared({ jobId, sessionId, statusUrl, dbName, baseUrlOverride, minIntervalMs, force } = {}) {
   const key = getGlobalStatusKey({ jobId, statusUrl, dbName, baseUrlOverride });
   const existing = GLOBAL_STATUS_IN_FLIGHT.get(key);
   if (existing?.promise) return existing.promise;
@@ -81,8 +83,8 @@ async function fetchConformerJobStatusShared({ jobId, statusUrl, dbName, baseUrl
 
   const promise = (async () => {
     const res = statusUrl
-      ? await getConformerJobByUrl({ statusUrl, dbName, baseUrlOverride })
-      : await getConformerJob({ jobId, dbName, baseUrlOverride });
+      ? await getConformerJobByUrl({ statusUrl, sessionId, dbName, baseUrlOverride })
+      : await getConformerJob({ jobId, sessionId, dbName, baseUrlOverride });
     let json = null;
     try {
       json = await res.json();
@@ -128,15 +130,19 @@ async function fetchConformerJobStatusShared({ jobId, statusUrl, dbName, baseUrl
 /**
  * Hook that manages an async conformer job lifecycle.
  *
- * @param {{dbName?: string, ownerId?: (string|null), baseUrlOverride?: (string|undefined)}} params
+ * @param {{dbName?: string, sessionId?: (string|null), ownerId?: (string|null), baseUrlOverride?: (string|undefined)}} params
  */
-export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
+export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+  // Prefer sessionId; fall back to ownerId for backwards compatibility
+  // Convention: session_id == owner_id
+  const effectiveSessionId = sessionId || ownerId || getSessionId();
+
   const storageKey = useMemo(
-    () => getConformerJobStorageKey({ dbName, ownerId, baseUrlOverride }),
-    [dbName, ownerId, baseUrlOverride],
+    () => getConformerJobStorageKey({ dbName, sessionId: effectiveSessionId, baseUrlOverride }),
+    [dbName, effectiveSessionId, baseUrlOverride],
   );
 
-  const [jobId, setJobId] = useState(() => getConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride }));
+  const [jobId, setJobId] = useState(() => getConformerJobIdFromStorage({ dbName, sessionId: effectiveSessionId, baseUrlOverride }));
   const jobIdRef = useRef(jobId);
   const [state, setState] = useState(jobId ? 'queued' : 'idle');
   const [progress, setProgress] = useState(null);
@@ -257,7 +263,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       if (!normalized) {
         jobIdRef.current = null;
         jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
-        clearConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride });
+        clearConformerJobIdFromStorage({ dbName, sessionId: effectiveSessionId, baseUrlOverride });
         setJobId(null);
         setState('idle');
         setProgress(null);
@@ -271,13 +277,13 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
       // Update ref before emitting the storage change event to avoid duplicate poll loops.
       jobIdRef.current = normalized;
-      setConformerJobIdInStorage(normalized, { dbName, ownerId, baseUrlOverride });
+      setConformerJobIdInStorage(normalized, { dbName, sessionId: effectiveSessionId, baseUrlOverride });
       setJobId(normalized);
       setState('queued');
       clearProgressLog();
       clearError();
     },
-    [baseUrlOverride, dbName, ownerId, clearError, clearProgressLog, cleanupTimeout],
+    [baseUrlOverride, dbName, effectiveSessionId, clearError, clearProgressLog, cleanupTimeout],
   );
 
   const fetchStatusOnce = useCallback(
@@ -299,6 +305,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         try {
           const { ok, status, json } = await fetchConformerJobStatusShared({
             jobId: effectiveId,
+            sessionId: effectiveSessionId,
             statusUrl,
             dbName,
             baseUrlOverride,
@@ -461,7 +468,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   );
 
   const start = useCallback(
-    async ({ biln, ssConstraints, embedParams, requestParams, ownerId: ownerIdOverride, endpoint, extraBody } = {}) => {
+    async ({ biln, ssConstraints, embedParams, requestParams, ownerId: ownerIdOverride, sessionId: sessionIdOverride, endpoint, extraBody } = {}) => {
       if (!biln || !String(biln).trim()) {
         setJobIdAndPersist(null);
         return null;
@@ -487,12 +494,16 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
 
       setIsStarting(true);
 
+      // Use override or effective session ID (convention: session_id == owner_id)
+      const startSessionId = sessionIdOverride ?? effectiveSessionId;
+
       const payload = {
         biln,
         ssConstraints: ssConstraints ?? null,
         embedParams: embedParams ?? undefined,
         requestParams: requestParams ?? undefined,
-        ownerId: ownerIdOverride ?? ownerId ?? undefined,
+        ownerId: ownerIdOverride ?? startSessionId ?? undefined,
+        sessionId: startSessionId ?? undefined,
         endpoint: endpoint || '/api/core/molecules/generate_conformer',
         extraBody: extraBody && typeof extraBody === 'object' ? { ...extraBody } : null,
       };
@@ -509,6 +520,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
               embedParams: payload.embedParams,
               requestParams: payload.requestParams,
               ownerId: payload.ownerId,
+              sessionId: payload.sessionId,
               dbName,
               baseUrlOverride,
             });
@@ -517,10 +529,15 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
           const body = payload.extraBody && typeof payload.extraBody === 'object' ? { ...payload.extraBody } : {};
           if (!('biln' in body) || !body.biln) body.biln = payload.biln;
 
+          // Include session_id in the body
+          if (payload.sessionId && !Object.prototype.hasOwnProperty.call(body, 'session_id')) {
+            body.session_id = payload.sessionId;
+          }
+
           // For template generation, owner_id MUST be present even if null.
           if (isTemplate) {
             if (!Object.prototype.hasOwnProperty.call(body, 'owner_id')) {
-              body.owner_id = ownerIdOverride ?? ownerId ?? null;
+              body.owner_id = ownerIdOverride ?? startSessionId ?? null;
             }
             if (body.owner_id == null) body.owner_id = null;
           } else {
@@ -537,6 +554,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
             endpoint: payload.endpoint,
             body,
             dbName,
+            sessionId: payload.sessionId,
             requestParams: payload.requestParams,
             baseUrlOverride,
           });
@@ -585,7 +603,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         if (mountedRef.current) setIsStarting(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, ownerId, pollLoop, setJobIdAndPersist],
+    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, effectiveSessionId, pollLoop, setJobIdAndPersist, state],
   );
 
   const cancel = useCallback(
@@ -600,8 +618,8 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       try {
         const cancelUrl = jobEndpointsRef.current?.cancelUrl || null;
         const res = cancelUrl
-          ? await cancelConformerJobByUrl({ cancelUrl, dbName, baseUrlOverride })
-          : await cancelConformerJob({ jobId: effectiveId, dbName, baseUrlOverride });
+          ? await cancelConformerJobByUrl({ cancelUrl, sessionId: effectiveSessionId, dbName, baseUrlOverride })
+          : await cancelConformerJob({ jobId: effectiveId, sessionId: effectiveSessionId, dbName, baseUrlOverride });
         if (!res.ok) {
           // 409 is expected when already finished; treat as non-fatal.
           if (res.status !== 409) {
@@ -690,7 +708,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
         if (mountedRef.current) setIsCanceling(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, dbName, fetchStatusOnce, jobId, pollLoop, state],
+    [abortInFlight, baseUrlOverride, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, jobId, pollLoop, setJobIdAndPersist, state],
   );
 
   const retry = useCallback(async () => {
@@ -729,7 +747,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
   // Keep hook in sync if another component updates the persisted job id.
   useEffect(() => {
     const updateFromStorage = () => {
-      const next = getConformerJobIdFromStorage({ dbName, ownerId, baseUrlOverride });
+      const next = getConformerJobIdFromStorage({ dbName, sessionId: effectiveSessionId, baseUrlOverride });
 
       // Ignore no-op updates (prevents duplicate polling intervals).
       if ((next || null) === (jobIdRef.current || null)) return;
@@ -756,7 +774,7 @@ export function useConformerJob({ dbName = 'pepedit', ownerId = null, baseUrlOve
       window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, onEvent);
       window.removeEventListener('storage', onStorage);
     };
-  }, [abortInFlight, baseUrlOverride, cleanupTimer, dbName, ownerId, pollLoop, storageKey]);
+  }, [abortInFlight, baseUrlOverride, cleanupTimer, dbName, effectiveSessionId, pollLoop, storageKey]);
 
   // If we have a persisted jobId, fetch once on mount.
   useEffect(() => {

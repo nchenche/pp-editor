@@ -1,4 +1,9 @@
-// Centralized API helpers to ensure backend calls include owner_id when connected.
+// Centralized API helpers to ensure backend calls include owner_id/session_id when connected.
+//
+// Convention: session_id == owner_id (same identifier string).
+// The session system is the primary identity mechanism; owner_id is derived from session_id.
+
+import { getSessionId } from './sessionApi';
 
 export const OWNER_ID_STORAGE_KEY = 'owner_id';
 export const OWNER_ID_CHANGED_EVENT = 'pp-owner-id-changed';
@@ -42,9 +47,15 @@ export function clearOwnerIdFromStorage() {
 }
 
 export function getOwnerId() {
+  // Primary: use session_id as owner_id (convention: session_id == owner_id)
+  const sessionId = getSessionId();
+  if (sessionId) return sessionId;
+
+  // Legacy: check env override
   const envOwner = import.meta?.env?.VITE_OWNER_ID;
   if (envOwner && String(envOwner).trim()) return String(envOwner).trim();
 
+  // Legacy: check old localStorage key (for migration)
   try {
     const lsOwner = window?.localStorage?.getItem(OWNER_ID_STORAGE_KEY);
     if (lsOwner && String(lsOwner).trim()) return String(lsOwner).trim();

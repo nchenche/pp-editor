@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { listConformerJobs } from '../utils/conformerJobsApi';
+import { getSessionId } from '../utils/sessionApi';
 
 function toErrorMessage(value) {
   if (!value) return '';
@@ -14,10 +15,12 @@ function toErrorMessage(value) {
 }
 
 /**
- * @param {(string|null)} ownerId
- * @param {{dbName?: string, limit?: number, baseUrlOverride?: string}} options
+ * Hook for listing conformer jobs, scoped by session ID.
+ *
+ * @param {(string|null)} sessionId - The session ID to filter by (preferred over ownerId)
+ * @param {{dbName?: string, limit?: number, baseUrlOverride?: string, ownerId?: string}} options
  */
-export function useConformerJobsList(ownerId, { dbName = 'pepedit', limit = 50, baseUrlOverride } = {}) {
+export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50, baseUrlOverride, ownerId } = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,7 +28,8 @@ export function useConformerJobsList(ownerId, { dbName = 'pepedit', limit = 50, 
 
   const ctrlRef = useRef(null);
 
-  const scope = useMemo(() => (ownerId ? null : 'anonymous'), [ownerId]);
+  // Use provided sessionId, fall back to ownerId (for backwards compat), or get current session
+  const effectiveSessionId = sessionId || ownerId || getSessionId();
 
   const fetchPage = useCallback(
     async ({ before: beforeIso, append } = {}) => {
@@ -39,8 +43,7 @@ export function useConformerJobsList(ownerId, { dbName = 'pepedit', limit = 50, 
       try {
         const res = await listConformerJobs({
           dbName,
-          ownerId: ownerId || undefined,
-          scope: scope || undefined,
+          sessionId: effectiveSessionId || undefined,
           limit,
           before: beforeIso || undefined,
           baseUrlOverride,
@@ -77,7 +80,7 @@ export function useConformerJobsList(ownerId, { dbName = 'pepedit', limit = 50, 
         ctrlRef.current = null;
       }
     },
-    [baseUrlOverride, dbName, limit, ownerId, scope],
+    [baseUrlOverride, dbName, effectiveSessionId, limit],
   );
 
   const refresh = useCallback(() => fetchPage({ before: null, append: false }), [fetchPage]);

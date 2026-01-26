@@ -1,7 +1,9 @@
 /**
  * Conformer job localStorage helpers.
- * Persisted per db + owner scope.
+ * Persisted per db + session scope (session_id == owner_id convention).
  */
+
+import { getSessionId } from './sessionApi';
 
 export const CONFORMER_JOB_CHANGED_EVENT = 'pp-conformer-job-changed';
 
@@ -21,15 +23,29 @@ function normalizeBackendScope(baseUrlOverride) {
   return raw;
 }
 
+// Legacy key format (for migration/cleanup)
 function getLegacyConformerJobStorageKey({ dbName = 'pepedit', ownerId = null } = {}) {
   const scope = ownerId ? String(ownerId).trim() : 'anonymous';
   return `pp-conformer-job:${String(dbName || 'pepedit')}:${scope}`;
 }
 
-export function getConformerJobStorageKey({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
+// v2 key format using ownerId (for migration/cleanup)
+function getV2ConformerJobStorageKey({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
   const scope = ownerId ? String(ownerId).trim() : 'anonymous';
   const backend = normalizeBackendScope(baseUrlOverride);
   return `pp-conformer-job:v2:${String(dbName || 'pepedit')}:${scope}:${backend}`;
+}
+
+/**
+ * Get the storage key for conformer job persistence.
+ * Uses sessionId for scoping (preferred) or falls back to ownerId for migration.
+ */
+export function getConformerJobStorageKey({ dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+  // Prefer sessionId; fall back to ownerId for backwards compatibility
+  const effectiveScope = sessionId || ownerId || getSessionId();
+  const scope = effectiveScope ? String(effectiveScope).trim() : 'anonymous';
+  const backend = normalizeBackendScope(baseUrlOverride);
+  return `pp-conformer-job:v3:${String(dbName || 'pepedit')}:${scope}:${backend}`;
 }
 
 function normalizeJobId(jobId) {
@@ -37,14 +53,18 @@ function normalizeJobId(jobId) {
   return v || null;
 }
 
-export function setConformerJobIdInStorage(jobId, { dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
+export function setConformerJobIdInStorage(jobId, { dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
   const normalized = normalizeJobId(jobId);
   if (!normalized) return null;
 
+  // Prefer sessionId; fall back to ownerId for backwards compatibility
+  const effectiveSessionId = sessionId || ownerId || getSessionId();
+
   try {
-    window?.localStorage?.setItem(getConformerJobStorageKey({ dbName, ownerId, baseUrlOverride }), normalized);
-    // Ensure legacy key can't auto-resume stale jobs after deploy/API base changes.
-    window?.localStorage?.removeItem(getLegacyConformerJobStorageKey({ dbName, ownerId }));
+    window?.localStorage?.setItem(getConformerJobStorageKey({ dbName, sessionId: effectiveSessionId, baseUrlOverride }), normalized);
+    // Clean up legacy keys to prevent stale job resumption
+    window?.localStorage?.removeItem(getLegacyConformerJobStorageKey({ dbName, ownerId: effectiveSessionId }));
+    window?.localStorage?.removeItem(getV2ConformerJobStorageKey({ dbName, ownerId: effectiveSessionId, baseUrlOverride }));
   } catch {
     // ignore
   }
@@ -58,10 +78,15 @@ export function setConformerJobIdInStorage(jobId, { dbName = 'pepedit', ownerId 
   return normalized;
 }
 
-export function clearConformerJobIdFromStorage({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
+export function clearConformerJobIdFromStorage({ dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+  // Prefer sessionId; fall back to ownerId for backwards compatibility
+  const effectiveSessionId = sessionId || ownerId || getSessionId();
+
   try {
-    window?.localStorage?.removeItem(getConformerJobStorageKey({ dbName, ownerId, baseUrlOverride }));
-    window?.localStorage?.removeItem(getLegacyConformerJobStorageKey({ dbName, ownerId }));
+    window?.localStorage?.removeItem(getConformerJobStorageKey({ dbName, sessionId: effectiveSessionId, baseUrlOverride }));
+    // Also clean up legacy keys
+    window?.localStorage?.removeItem(getLegacyConformerJobStorageKey({ dbName, ownerId: effectiveSessionId }));
+    window?.localStorage?.removeItem(getV2ConformerJobStorageKey({ dbName, ownerId: effectiveSessionId, baseUrlOverride }));
   } catch {
     // ignore
   }
@@ -73,10 +98,20 @@ export function clearConformerJobIdFromStorage({ dbName = 'pepedit', ownerId = n
   }
 }
 
-export function getConformerJobIdFromStorage({ dbName = 'pepedit', ownerId = null, baseUrlOverride } = {}) {
+export function getConformerJobIdFromStorage({ dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+  // Prefer sessionId; fall back to ownerId for backwards compatibility
+  const effectiveSessionId = sessionId || ownerId || getSessionId();
+
   try {
-    const v = window?.localStorage?.getItem(getConformerJobStorageKey({ dbName, ownerId, baseUrlOverride }));
-    return normalizeJobId(v);
+    // Try v3 key first (session-based)
+    let v = window?.localStorage?.getItem(getConformerJobStorageKey({ dbName, sessionId: effectiveSessionId, baseUrlOverride }));
+    if (normalizeJobId(v)) return normalizeJobId(v);
+
+    // Fall back to v2 key (owner-based, for migration)
+    v = window?.localStorage?.getItem(getV2ConformerJobStorageKey({ dbName, ownerId: effectiveSessionId, baseUrlOverride }));
+    if (normalizeJobId(v)) return normalizeJobId(v);
+
+    return null;
   } catch {
     return null;
   }

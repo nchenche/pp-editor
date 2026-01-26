@@ -5,8 +5,8 @@ import { render, cleanup } from '@testing-library/react';
 // Mutable mock job state that our mocked hook will read.
 let mockJob;
 
-vi.mock('../useOwnerId', () => ({
-  useOwnerId: () => null,
+vi.mock('../useSessionId', () => ({
+  useSessionId: () => null,
 }));
 
 vi.mock('../useConformerJob', () => ({
