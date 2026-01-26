@@ -515,22 +515,26 @@ const Viewer3DInner = ({
 
 
     return (
-        <div className="molstar-viewer mx-auto text-center absolute inset-0">
-            {/* Host container for Mol* plugin */}
-            <div
-                ref={containerRef}
-                className="relative w-full h-full overflow-hidden border border-dashed rounded-lg"
-                style={{ width, height }}
-            >
-                {/* Canvas is always present */}
-                <canvas
-                    ref={canvasRef}
-                    style={{ width: '100%', height: '100%'}}
-                />
+        <div className="molstar-viewer absolute inset-0">
+            <div className="relative w-full h-full">
+                {/* Host container for Mol* plugin */}
+                <div
+                    ref={containerRef}
+                    className="absolute inset-0 overflow-hidden rounded-md"
+                    style={{ minHeight: 0 }}
+                >
+                    <canvas
+                        ref={canvasRef}
+                        style={{ width: '100%', height: '100%' }}
+                    />
+                </div>
+
+                {/* Overlay frame: always stays visible above Mol* content */}
+                <div className="pointer-events-none absolute inset-0 z-20 border border-dashed rounded-md" />
 
                 {(hoverLabel || uiHoverLabel) && (
                     <div
-                        className="absolute bottom-2 right-2 px-2 py-1 text-xs rounded"
+                        className="absolute bottom-2 right-2 z-30 px-2 py-1 text-xs rounded"
                         style={{
                             background: 'rgba(0,0,0,0.55)',
                             color: 'white',

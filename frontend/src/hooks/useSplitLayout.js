@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, useCallback } from 'react';
 export function useSplitLayout({
     initialEditorHeight = 320,
     minEditorHeight = 240,
+    minViewerRowHeight = 240,  // Minimum height for the viewer row (headers + canvas areas)
     minViewerPanelWidth = 200,
     initialViewerSplitRatio = 0.5,
     storageKey = 'pp-editor:split-layout:v1',
@@ -76,7 +77,8 @@ export function useSplitLayout({
             setEditorAreaHeight((prev) => {
                 const next = Number(prev);
                 if (!Number.isFinite(next)) return Math.max(minEditorHeight, height * 0.5);
-                const clamped = Math.min(Math.max(next, minEditorHeight), Math.max(minEditorHeight, height - minEditorHeight));
+                // Clamp: at least minEditorHeight, at most height - minViewerRowHeight
+                const clamped = Math.min(Math.max(next, minEditorHeight), Math.max(minEditorHeight, height - minViewerRowHeight));
                 return clamped;
             });
             return;
@@ -84,7 +86,7 @@ export function useSplitLayout({
 
         const { height } = mainAreaRef.current.getBoundingClientRect();
         setEditorAreaHeight(Math.max(minEditorHeight, height * 0.5));
-    }, [minEditorHeight]);
+    }, [minEditorHeight, minViewerRowHeight]);
 
     // Ensure restored split ratio is valid for the current width.
     useLayoutEffect(() => {
@@ -114,10 +116,12 @@ export function useSplitLayout({
             if (type === 'horizontal') {
                 if (!mainAreaRef.current) return;
                 const rect = mainAreaRef.current.getBoundingClientRect();
+                // Clamp editor height: min editor height, max leaves room for viewer row
                 const next = Math.min(
-                    Math.max(e.clientY - rect.top, 140),
-                    rect.height - 140,
+                    Math.max(e.clientY - rect.top, minEditorHeight),
+                    rect.height - minViewerRowHeight,
                 );
+                console.log('Setting editor viewer row height:', rect.height - next);
                 setEditorAreaHeight(next);
             } else if (type === 'vertical') {
                 if (!viewerRowRef.current) return;

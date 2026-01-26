@@ -1524,7 +1524,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 </ButtonGroup>
                             </Box>
                             {/* Canvas area */}
-                            <Box sx={{ flex: 1, minHeight: 200, overflow: 'hidden' }}>
+                            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                                 <HoverAwareViewer2D
                                     ref={viewer2DRef}
                                     svgData={svgDepiction}
@@ -1796,9 +1796,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
 
                             {/* Canvas area */}
-                            <Box ref={molstarRightPanelRowRef} sx={{ flex: 1, minHeight: 220, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                            <Box ref={molstarRightPanelRowRef} sx={{ flex: 1, minHeight: 0, width: '100%', minWidth: 0, overflow: 'hidden', display: 'flex', gap: 1 }}>
                                 {/* 3D canvas area */}
-                                <Box sx={{ position: 'relative', flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                <Box sx={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
                                     {structureLoading && (
                                         <Box
                                             sx={{
