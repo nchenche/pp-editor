@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SCAFFOLD_MAPPINGS_STORAGE_KEY = 'pp-editor:scaffold-mappings:v1';
 
@@ -36,6 +36,8 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         const persisted = readPersistedRawMappings();
         return Array.isArray(persisted) ? persisted : [];
     });
+
+    const prevTemplateIdRef = useRef(null);
 
     useEffect(() => {
         try {
@@ -199,11 +201,19 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
 
     // Prefill start/end/chainId/enabled for uninitialized mappings
     useEffect(() => {
+        // Only reset mappings when a previously-loaded template is cleared.
+        // This avoids wiping restored mapping snapshots while a template is not loaded yet.
+        // (E.g. resuming a job that used a template that is missing/deleted.)
+        const prevTemplateId = prevTemplateIdRef.current;
+        const currentTemplateId = scaffoldTemplate?.id ?? null;
+        prevTemplateIdRef.current = currentTemplateId;
+
         if (!scaffoldTemplate) {
-            // reset all mappings
-            setRawMappings((prev) => prev.map(() => ({ ...emptyMapping })));
+            if (prevTemplateId) {
+                setRawMappings((prev) => prev.map(() => ({ ...emptyMapping })));
+            }
             return;
-        };
+        }
         if (!autoRanges.length) return;
 
         setRawMappings((prev) => {
@@ -378,6 +388,33 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         [scaffoldTemplate, autoRanges],
     );
 
+    const replaceRawMappings = useCallback(
+        (nextRaw) => {
+            if (!Array.isArray(nextRaw)) return;
+            setRawMappings(() => {
+                const targetLen = rowMonomerLists.length;
+                return Array.from({ length: targetLen }, (_, idx) => {
+                    const src = nextRaw[idx] && typeof nextRaw[idx] === 'object' ? nextRaw[idx] : null;
+                    return {
+                        ...emptyMapping,
+                        ...(src ? {
+                            enabled: !!src.enabled,
+                            chainId: src.chainId ?? null,
+                            start: src.start ?? null,
+                            end: src.end ?? null,
+                            offset: Number.isFinite(Number(src.offset)) ? Number(src.offset) : 0,
+                            manualMasks: Array.isArray(src.manualMasks) ? src.manualMasks : [],
+                            disabledByUser: !!src.disabledByUser,
+                            // Snapshot restore should never keep the "auto" flag.
+                            offsetAutoByCap: false,
+                        } : {}),
+                    };
+                });
+            });
+        },
+        [rowMonomerLists.length],
+    );
+
     const hasTemplateOverlap = useCallback(() => {
         // console.log('Checking template overlap for mappings:', scaffoldMappings);
         if (!Array.isArray(scaffoldMappings) || !scaffoldMappings.length) return false;
@@ -416,7 +453,7 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         return false;
     }, [scaffoldMappings]);
 
-    return { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap };
+    return { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, replaceRawMappings, hasTemplateOverlap };
 }
 
 function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {

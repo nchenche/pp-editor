@@ -17,6 +17,8 @@ import {
   getConformerJobStorageKey,
 } from '../utils/conformerJobStorage';
 
+import { setConformerJobInputsInStorage } from '../utils/conformerJobInputsStorage';
+
 import { getSessionId } from '../utils/sessionApi';
 
 import { formatConformerJobProgressMessage } from '../utils/conformerJobProgress';
@@ -275,6 +277,12 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         return;
       }
 
+      // Important: when resuming/restoring a job id from storage, we typically do NOT have
+      // a valid status_url/cancel_url for that job (those are only returned by the start call).
+      // If we keep a stale statusUrl from a previous job, polling will keep hitting that old URL
+      // regardless of the new job id, which looks like "resume always uses the same job".
+      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
+
       // Update ref before emitting the storage change event to avoid duplicate poll loops.
       jobIdRef.current = normalized;
       setConformerJobIdInStorage(normalized, { dbName, sessionId: effectiveSessionId, baseUrlOverride });
@@ -512,6 +520,25 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       try {
         const isTemplate = String(payload.endpoint || '').includes('generate_3d_from_template');
 
+        // Canonicalized representation of backend-stored inputs.
+        // Backend stores `inputs={ payload: <task_payload>, query_params: <query_params> }`,
+        // but does not return it on job GET; keep it client-side for resuming.
+        const inputsPayload = (() => {
+          if (!isTemplate && String(payload.endpoint || '').includes('generate_conformer')) {
+            return {
+              biln: payload.biln,
+              ss_constraints: payload.ssConstraints ?? null,
+              embed_params: payload.embedParams ?? undefined,
+              owner_id: payload.ownerId ?? undefined,
+              session_id: payload.sessionId ?? undefined,
+            };
+          }
+
+          const body = payload.extraBody && typeof payload.extraBody === 'object' ? { ...payload.extraBody } : {};
+          if (!('biln' in body) || !body.biln) body.biln = payload.biln;
+          return body;
+        })();
+
         const res = await (() => {
           if (!isTemplate && String(payload.endpoint || '').includes('generate_conformer')) {
             return startConformerJob({
@@ -584,6 +611,26 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         }
 
         jobEndpointsRef.current = { statusUrl, cancelUrl };
+
+        // Persist inputs best-effort for restoration (does not affect backend behavior).
+        try {
+          const stored = setConformerJobInputsInStorage(
+            id,
+            {
+              endpoint: payload.endpoint,
+              inputs: {
+                payload: inputsPayload,
+                query_params: payload.requestParams ?? undefined,
+              },
+            },
+            { dbName, sessionId: payload.sessionId || undefined, baseUrlOverride },
+          );
+          // eslint-disable-next-line no-console
+          if (!stored) console.warn('[useConformerJob] Failed to persist job inputs for', id);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('[useConformerJob] Error persisting job inputs', e);
+        }
 
         setJobIdAndPersist(id);
         setState('queued');
@@ -751,6 +798,10 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
       // Ignore no-op updates (prevents duplicate polling intervals).
       if ((next || null) === (jobIdRef.current || null)) return;
+
+      // Same rationale as in setJobIdAndPersist(): storage-driven job id updates do not carry
+      // status_url/cancel_url, so never keep stale URLs across job switches.
+      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
 
       setJobId(next);
       setState(next ? 'queued' : 'idle');

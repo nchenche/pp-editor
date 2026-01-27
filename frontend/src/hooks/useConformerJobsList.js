@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { listConformerJobs } from '../utils/conformerJobsApi';
+import { listConformerJobs, listSessionConformerJobs } from '../utils/conformerJobsApi';
 import { getSessionId } from '../utils/sessionApi';
 
 function toErrorMessage(value) {
@@ -41,14 +41,33 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
       setError(null);
 
       try {
-        const res = await listConformerJobs({
-          dbName,
-          sessionId: effectiveSessionId || undefined,
-          limit,
-          before: beforeIso || undefined,
-          baseUrlOverride,
-          signal: controller.signal,
-        });
+        const res = await (async () => {
+          if (effectiveSessionId) {
+            try {
+              const r = await listSessionConformerJobs({
+                sessionId: effectiveSessionId,
+                dbName,
+                limit,
+                before: beforeIso || undefined,
+                baseUrlOverride,
+                signal: controller.signal,
+              });
+              // If the endpoint exists but returns an error, fall back to the legacy list.
+              if (r?.ok) return r;
+            } catch {
+              // fall back
+            }
+          }
+
+          return listConformerJobs({
+            dbName,
+            sessionId: effectiveSessionId || undefined,
+            limit,
+            before: beforeIso || undefined,
+            baseUrlOverride,
+            signal: controller.signal,
+          });
+        })();
 
         if (!res.ok) {
           let msg = `List request failed (${res.status})`;

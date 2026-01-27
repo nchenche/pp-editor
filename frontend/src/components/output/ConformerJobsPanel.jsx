@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
     Box,
@@ -21,17 +21,10 @@ import { useSessionId } from '../../hooks/useSessionId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
 import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
+import { getConformerJobInputsFromStorage } from '../../utils/conformerJobInputsStorage';
+import { getConformerJob } from '../../utils/conformerJobsApi';
 
 export const CONFORMER_JOB_RESUME_EVENT = 'pp-conformer-job-resume';
-
-const JOB_ID_PREFIX_LEN = 4;
-
-function formatJobId(jobId) {
-    const id = String(jobId || '');
-    if (!id) return '(unknown id)';
-    if (id.length <= JOB_ID_PREFIX_LEN) return id;
-    return `${id.slice(0, JOB_ID_PREFIX_LEN)}…`;
-}
 
 function formatIsoTimestamp(value) {
     const v = String(value || '').trim();
@@ -67,9 +60,160 @@ function stateColor(state) {
     return 'default';
 }
 
+function isPlainObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasMeaningfulSsConstraints(ssConstraints) {
+    if (!Array.isArray(ssConstraints) || ssConstraints.length === 0) return false;
+    for (const seq of ssConstraints) {
+        if (!Array.isArray(seq)) continue;
+        for (const ch of seq) {
+            const v = String(ch || '-').toUpperCase();
+            if (v && v !== '-') return true;
+        }
+    }
+    return false;
+}
+
+function normalizeScaffoldMappings(value) {
+    if (!value) return null;
+    if (Array.isArray(value)) return value;
+    if (isPlainObject(value) && Array.isArray(value.mappings)) return value.mappings;
+    return null;
+}
+
+function toRawScaffoldMapping(value) {
+    if (!isPlainObject(value)) return null;
+
+    const enabled = value.enabled != null ? !!value.enabled : true;
+    const chainId = value.chainId ?? value.chain_id ?? null;
+    const start = value.start ?? null;
+    const end = value.end ?? null;
+    const offset = Number.isFinite(Number(value.offset)) ? Number(value.offset) : 0;
+    const manualMasks = Array.isArray(value.manualMasks)
+        ? value.manualMasks
+        : (Array.isArray(value.manual_masks) ? value.manual_masks : []);
+
+    return {
+        enabled,
+        chainId,
+        start,
+        end,
+        offset,
+        manualMasks,
+        disabledByUser: !!value.disabledByUser,
+    };
+}
+
+function extractResumeInputsFromStored(stored) {
+    const doc = stored && typeof stored === 'object' ? stored : null;
+    const inputs = doc?.inputs && typeof doc.inputs === 'object' ? doc.inputs : null;
+    const payload = inputs?.payload && typeof inputs.payload === 'object' ? inputs.payload : null;
+    const queryParams = inputs?.query_params && typeof inputs.query_params === 'object' ? inputs.query_params : null;
+
+    const ssConstraints = payload?.ss_constraints ?? null;
+    const templateId = payload?.template_id ?? null;
+
+    const scaffoldMappingsRaw = (() => {
+        const list = normalizeScaffoldMappings(payload?.scaffold_mappings ?? payload?.scaffoldMappings ?? null);
+        if (!Array.isArray(list)) return null;
+        const out = [];
+        for (const m of list) {
+            const raw = toRawScaffoldMapping(m);
+            if (!raw) continue;
+            const seqIdx = m?.seq_idx ?? m?.seqIdx ?? null;
+            const idxNum = Number(seqIdx);
+            if (Number.isFinite(idxNum)) {
+                out[idxNum] = raw;
+            } else {
+                out.push(raw);
+            }
+        }
+        return out.length ? out : null;
+    })();
+
+    return {
+        ssConstraints: Array.isArray(ssConstraints) ? ssConstraints : null,
+        templateId: templateId != null ? String(templateId).trim() : null,
+        scaffoldMappings: scaffoldMappingsRaw,
+        queryParams,
+    };
+}
+
 export function ConformerJobsPanel({ dbName = 'pepedit' }) {
     const sessionId = useSessionId();
     const { items, loading, error, refresh } = useConformerJobsList(sessionId, { dbName, limit: 50 });
+
+    // Cache per-job server details (includes inputs.payload) to drive constraints display.
+    // This avoids relying exclusively on localStorage keys, which can drift across API_BASE_URL scopes.
+    const [jobDetailsById, setJobDetailsById] = useState({});
+    const jobDetailsRef = useRef(jobDetailsById);
+    useEffect(() => {
+        jobDetailsRef.current = jobDetailsById;
+    }, [jobDetailsById]);
+
+    const detailsFetchCtrlRef = useRef(null);
+    useEffect(() => {
+        if (!Array.isArray(items) || items.length === 0) return;
+
+        const ids = items
+            .map((j) => (j?.job_id || j?.id || '') ? String(j?.job_id || j?.id || '').trim() : '')
+            .filter(Boolean);
+        if (ids.length === 0) return;
+
+        // Only fetch details for jobs we don't already have.
+        const missing = ids.filter((id) => !jobDetailsRef.current?.[id]);
+        if (missing.length === 0) return;
+
+        // Cancel any in-flight details fetch when the list changes.
+        if (detailsFetchCtrlRef.current) {
+            try { detailsFetchCtrlRef.current.abort(); } catch { /* ignore */ }
+        }
+        const controller = new AbortController();
+        detailsFetchCtrlRef.current = controller;
+
+        const maxConcurrency = 6;
+        const queue = missing.slice();
+
+        const worker = async () => {
+            while (queue.length > 0 && !controller.signal.aborted) {
+                const jobId = queue.shift();
+                if (!jobId) continue;
+                // Avoid duplicate fetches if another worker already filled it.
+                if (jobDetailsRef.current?.[jobId]) continue;
+                try {
+                    const res = await getConformerJob({
+                        jobId,
+                        sessionId: sessionId || undefined,
+                        dbName,
+                        baseUrlOverride: API_BASE_URL,
+                        signal: controller.signal,
+                    });
+                    if (!res.ok) continue;
+                    const json = await res.json().catch(() => null);
+                    const data = json?.data && typeof json.data === 'object' ? json.data : null;
+                    if (!data) continue;
+
+                    jobDetailsRef.current = { ...(jobDetailsRef.current || {}), [jobId]: data };
+                    setJobDetailsById((prev) => ({ ...(prev || {}), [jobId]: data }));
+                } catch (e) {
+                    if (e?.name === 'AbortError') return;
+                    // best-effort: ignore failures; fall back to localStorage/None
+                }
+            }
+        };
+
+        const workers = Array.from({ length: Math.min(maxConcurrency, queue.length) }, () => worker());
+        Promise.allSettled(workers).finally(() => {
+            if (detailsFetchCtrlRef.current === controller) detailsFetchCtrlRef.current = null;
+        });
+
+        return () => {
+            try { controller.abort(); } catch { /* ignore */ }
+            if (detailsFetchCtrlRef.current === controller) detailsFetchCtrlRef.current = null;
+        };
+    }, [items, sessionId, dbName]);
 
     const title = useMemo(() => (sessionId ? 'My conformer jobs' : 'Session conformer jobs'), [sessionId]);
 
@@ -115,8 +259,8 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                         <TableHead>
                             <TableRow>
                                 <TableCell sx={{ width: 72, px: 1, py: 0.5 }}>State</TableCell>
-                                <TableCell sx={{ width: 56, px: 1, py: 0.5, fontFamily: 'monospace' }}>Job</TableCell>
                                 <TableCell sx={{ width: 160, px: 1, py: 0.5 }}>BILN</TableCell>
+                                <TableCell sx={{ width: 120, px: 1, py: 0.5 }}>Constraints</TableCell>
                                 <TableCell sx={{ width: 140, px: 1, py: 0.5 }}>Status / Time</TableCell>
                                 <TableCell
                                     align="right"
@@ -148,6 +292,25 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                 const bilnPreview = formatBilnPreview(biln);
                                 const pdb = job?.result_ref?.properties?.PDB || job?.result_ref?.properties?.pdb || '';
 
+                                // Prefer server-provided inputs (job detail includes inputs.payload).
+                                // Fall back to localStorage inputs if present.
+                                const serverDetails = jobId ? (jobDetailsById?.[jobId] || null) : null;
+                                const storedInputs = jobId
+                                    ? getConformerJobInputsFromStorage(jobId, {
+                                        dbName,
+                                        sessionId: sessionId || undefined,
+                                        baseUrlOverride: API_BASE_URL,
+                                    })
+                                    : null;
+                                const inputsSource = serverDetails || (job?.inputs ? job : null) || storedInputs;
+                                const extracted = inputsSource
+                                    ? extractResumeInputsFromStored(inputsSource)
+                                    : { ssConstraints: null, templateId: null, scaffoldMappings: null, queryParams: null };
+
+                                const is3D = !!extracted.templateId || Array.isArray(extracted.scaffoldMappings);
+                                const isSS = !is3D && hasMeaningfulSsConstraints(extracted.ssConstraints);
+                                const constraintLabel = is3D ? '3D' : isSS ? 'Secondary structure' : 'None';
+
                                 const updatedAt = job?.updated_at || job?.meta?.timestamp || '';
                                 const createdAt = job?.created_at || '';
                                 const ts = formatIsoTimestamp(updatedAt || createdAt);
@@ -159,19 +322,25 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                 const onResume = () => {
                                     if (!jobId) return;
                                     setConformerJobIdInStorage(jobId, { dbName, sessionId, baseUrlOverride: API_BASE_URL });
-                                    window.dispatchEvent(new CustomEvent(CONFORMER_JOB_RESUME_EVENT, { detail: { jobId, biln: biln || '', pdb: pdb || '' } }));
+
+                                    window.dispatchEvent(new CustomEvent(CONFORMER_JOB_RESUME_EVENT, {
+                                        detail: {
+                                            jobId,
+                                            biln: biln || '',
+                                            pdb: pdb || '',
+                                            ssConstraints: extracted.ssConstraints ?? null,
+                                            templateId: extracted.templateId ?? null,
+                                            scaffoldMappings: extracted.scaffoldMappings ?? null,
+                                            requestParams: extracted.queryParams ?? null,
+                                            resumeNonce: Date.now(),
+                                        },
+                                    }));
                                 };
 
                                 return (
                                     <TableRow key={jobId || Math.random()} hover>
                                         <TableCell sx={{ px: 1, py: 0.5 }}>
                                             <Chip label={state} size="small" color={stateColor(state)} variant="outlined" />
-                                        </TableCell>
-
-                                        <TableCell sx={{ px: 1, py: 0.5, fontFamily: 'monospace', fontSize: 12, color: 'text.secondary' }}>
-                                            <Tooltip title={jobId || ''} placement="top" arrow>
-                                                <span>{formatJobId(jobId)}</span>
-                                            </Tooltip>
                                         </TableCell>
 
                                         <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
@@ -194,6 +363,18 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                                     —
                                                 </Typography>
                                             )}
+                                        </TableCell>
+
+                                        <TableCell sx={{ px: 1, py: 0.5 }}>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    color: constraintLabel === 'None' ? 'text.secondary' : 'text.primary',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                {constraintLabel}
+                                            </Typography>
                                         </TableCell>
 
                                         <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
@@ -224,7 +405,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                                 bgcolor: 'background.paper',
                                             }}
                                         >
-                                            <Button size="small" onClick={onResume} disabled={!jobId}>
+                                            <Button size="small" onClick={onResume} disabled={!jobId || state === 'failed'}>
                                                 Resume
                                             </Button>
                                         </TableCell>

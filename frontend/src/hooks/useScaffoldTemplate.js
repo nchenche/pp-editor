@@ -8,6 +8,62 @@ const TEMPLATE_PDB_TEXT_CACHE = new Map();
 
 const SCAFFOLD_TEMPLATE_STORAGE_KEY = 'pp-editor:scaffold-template:v1';
 
+const AA3_TO_1 = {
+    ALA: 'A', ARG: 'R', ASN: 'N', ASP: 'D', CYS: 'C',
+    GLN: 'Q', GLU: 'E', GLY: 'G', HIS: 'H', ILE: 'I',
+    LEU: 'L', LYS: 'K', MET: 'M', PHE: 'F', PRO: 'P',
+    SER: 'S', THR: 'T', TRP: 'W', TYR: 'Y', VAL: 'V',
+    SEC: 'U', PYL: 'O',
+};
+
+function toOneLetter(resname) {
+    const code = String(resname ?? '').trim().toUpperCase();
+    if (!code) return 'X';
+    return AA3_TO_1[code] || (code.length === 1 ? code : 'X');
+}
+
+function parsePdbChains(pdbText) {
+    const text = pdbText != null ? String(pdbText) : '';
+    if (!text.trim()) return [];
+
+    // PDB fixed columns:
+    // - record name: 1-6
+    // - resname: 18-20 (0-based slice 17..20)
+    // - chain id: 22 (0-based 21)
+    // - resseq: 23-26 (0-based 22..26)
+    const chainOrder = [];
+    const chains = new Map(); // chainId -> Map(resid -> { resid, resname, resn })
+
+    const lines = text.split(/\r?\n/);
+    for (const line of lines) {
+        if (!line) continue;
+        const rec = line.slice(0, 6).trim();
+        if (rec !== 'ATOM' && rec !== 'HETATM') continue;
+
+        const resname = line.slice(17, 20).trim();
+        const chainIdRaw = line.slice(21, 22);
+        const chainId = (chainIdRaw != null ? String(chainIdRaw) : '').trim() || '_';
+        const residStr = line.slice(22, 26).trim();
+        const resid = Number.parseInt(residStr, 10);
+        if (!Number.isFinite(resid)) continue;
+
+        if (!chains.has(chainId)) {
+            chains.set(chainId, new Map());
+            chainOrder.push(chainId);
+        }
+        const resMap = chains.get(chainId);
+        if (!resMap.has(resid)) {
+            resMap.set(resid, { resid, resname: resname || null, resn: toOneLetter(resname) });
+        }
+    }
+
+    return chainOrder.map((id) => {
+        const resMap = chains.get(id);
+        const residues = Array.from(resMap.values()).sort((a, b) => Number(a.resid) - Number(b.resid));
+        return { id, residues };
+    });
+}
+
 function readPersistedTemplate() {
     if (typeof window === 'undefined') return null;
     try {
@@ -85,6 +141,59 @@ export function useScaffoldTemplate() {
         TEMPLATE_PDB_TEXT_CACHE.set(id, text);
         return text;
     }, []);
+
+    const restoreTemplateById = useCallback(async (templateId) => {
+        const id = templateId != null ? String(templateId).trim() : '';
+        if (!id) return { ok: false, reason: 'missing_id' };
+
+        setLoading(true);
+        setError(null);
+        setWarnings([]);
+        setMessages([]);
+        setStandardization(null);
+
+        try {
+            const pdbText = await fetchTemplatePdbText(id);
+            if (!pdbText) {
+                setError('Template fetch returned empty content.');
+                return { ok: false, reason: 'empty' };
+            }
+
+            // Populate chain metadata from the PDB text so mapping UI can resolve residues.
+            const parsedChainData = parsePdbChains(pdbText);
+            const parsedChains = parsedChainData.length ? parsedChainData.map((c) => c.id) : null;
+
+            setScaffoldTemplate((prev) => {
+                const prevObj = prev && typeof prev === 'object' ? prev : null;
+                const name = prevObj?.id === id && prevObj?.name ? prevObj.name : `Template ${id.slice(0, 8)}`;
+                const next = {
+                    id,
+                    name,
+                    text: pdbText,
+                    // Restore chain metadata from parsed PDB text (preferred).
+                    // Fall back to any persisted metadata if parsing didn't yield residues.
+                    chains: parsedChains || (prevObj?.id === id ? (prevObj?.chains ?? null) : null),
+                    chainData: parsedChainData.length ? parsedChainData : (prevObj?.id === id ? (prevObj?.chainData ?? null) : null),
+                    source: prevObj?.id === id ? (prevObj?.source ?? { template_id: id }) : { template_id: id },
+                    pdbPath: prevObj?.id === id ? (prevObj?.pdbPath ?? null) : null,
+                    warnings: [],
+                    messages: [],
+                    standardization: null,
+                };
+                return next;
+            });
+
+            return { ok: true };
+        } catch (e) {
+            const msg = String(e?.message || '').toLowerCase().includes('unknown template_id')
+                ? 'This job used a template that has expired or was deleted; template constraints cannot be restored.'
+                : (e?.message || 'Failed to restore template from history.');
+            setError(msg);
+            return { ok: false, reason: 'error', error: msg };
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchTemplatePdbText]);
 
     // Hydrate PDB text for persisted templates (metadata-only in localStorage).
     useEffect(() => {
@@ -308,12 +417,29 @@ export function useScaffoldTemplate() {
         setStandardization(null);
     }, [deleteTemplateOnServer, scaffoldTemplate]);
 
+    // Soft clear: only resets local state without deleting the template from the server.
+    // Used when resuming a non-template job to clear the UI state.
+    const clearScaffoldLocal = useCallback(() => {
+        setScaffoldTemplate(null);
+        try {
+            window?.localStorage?.removeItem(SCAFFOLD_TEMPLATE_STORAGE_KEY);
+        } catch {
+            // ignore
+        }
+        setError(null);
+        setWarnings([]);
+        setMessages([]);
+        setStandardization(null);
+    }, []);
+
     return {
         scaffoldTemplate,
         setScaffoldTemplate,
         uploadScaffoldFile,
         fetchScaffoldById,
+        restoreTemplateById,
         handleClearScaffold,
+        clearScaffoldLocal,
         loading,
         error,
         warnings,

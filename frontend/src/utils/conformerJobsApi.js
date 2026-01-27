@@ -224,3 +224,28 @@ export async function listConformerJobs({
   // Use apiFetchNoOwner since we're explicitly providing session_id/owner_id in query
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
+
+export async function listSessionConformerJobs({
+  sessionId,
+  dbName = 'pepedit',
+  limit = 50,
+  before,
+  baseUrlOverride,
+  signal,
+} = {}) {
+  const sid = sessionId != null ? String(sessionId).trim() : '';
+  if (!sid) throw new Error('Missing sessionId');
+
+  const url = buildApiUrl(`/api/db/sessions/${encodeURIComponent(sid)}/conformer_jobs`, {
+    baseUrlOverride,
+    query: {
+      // Some deployments still expect db_name.
+      ...(dbName ? { db_name: dbName } : {}),
+      limit,
+      before,
+    },
+  });
+
+  // session_id is in the path; use apiFetchNoOwner to avoid legacy owner handling.
+  return apiFetchNoOwner(url, { method: 'GET', signal });
+}

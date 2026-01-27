@@ -53,7 +53,8 @@ import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 import { clearConformerJobIdFromStorage, setConformerJobIdInStorage } from '../../../src/utils/conformerJobStorage';
 import { useSessionId } from '../../../src/hooks/useSessionId';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+import { API_BASE_URL } from '../../../src/config';
+
 const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
 const MAX_MONOMERS = 40;
 const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
@@ -443,38 +444,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             .replace(/\-+/g, '-');
     }, []);
 
-    useEffect(() => {
-        const onResume = (e) => {
-            const jobId = String(e?.detail?.jobId || '').trim();
-            const biln = String(e?.detail?.biln || '').trim();
-            const pdb = String(e?.detail?.pdb || '').trim();
-            if (!biln) return;
-            suppressNextAutoConformerGenRef.current = true;
-            suppressAutoConformerForBilnRef.current = normalizeBilnForGen(biln);
-            suppressAutoConformerAfterResumeRef.current = true;
-            setBilnValue(biln);
-
-            // If the job list already has the result, load it immediately (no compute, no polling needed).
-            if (pdb) {
-                // Include jobId so `useGenerate3D` can treat this as the same job and
-                // avoid clobbering the PDB if the subsequent status payload omits large fields.
-                setStructureOutput({ pdb, PDB: pdb, jobId: jobId || null });
-            } else {
-                // Avoid showing stale structure while we refresh/poll the job.
-                setStructureOutput({ pdb: '' });
-            }
-
-            // Ensure the conformer-job hook re-polls even when the resumed job id
-            // matches the current persisted one (storage no-op updates are ignored).
-            if (jobId) {
-                clearConformerJobIdFromStorage({ dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
-                setConformerJobIdInStorage(jobId, { dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
-            }
-        };
-        window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
-        return () => window.removeEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
-    }, [setBilnValue, normalizeBilnForGen, sessionId, setStructureOutput]);
-
     // Viewer refs and states
     const viewer2DRef = useRef(null);
     const [viewer2DModes, setViewer2DModes] = useState({ linkMode: false, bondsMode: false, linkSelectionCount: 0 });
@@ -652,7 +621,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         scaffoldTemplate,
         uploadScaffoldFile,
         fetchScaffoldById,
+        restoreTemplateById,
         handleClearScaffold,
+        clearScaffoldLocal,
         loading: scaffoldLoading,
         error: scaffoldError,
         warnings: scaffoldWarnings,
@@ -701,7 +672,105 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [scaffoldMessages]);
 
-    const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+    const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, replaceRawMappings, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
+
+    useEffect(() => {
+        const onResume = (e) => {
+            const jobId = String(e?.detail?.jobId || '').trim();
+            const biln = String(e?.detail?.biln || '').trim();
+            const pdb = String(e?.detail?.pdb || '').trim();
+            const ssConstraints = e?.detail?.ssConstraints ?? null;
+            const templateIdRaw = e?.detail?.templateId ?? null;
+            const templateId = templateIdRaw != null ? String(templateIdRaw).trim() : '';
+            const scaffoldMappingsSnapshot = Array.isArray(e?.detail?.scaffoldMappings) ? e.detail.scaffoldMappings : null;
+
+            // eslint-disable-next-line no-console
+            console.log('[pp-editor] Resume event:', { jobId, biln: biln?.slice(0, 30), pdb: !!pdb, ssConstraints, templateId, scaffoldMappings: scaffoldMappingsSnapshot });
+
+            if (!biln) return;
+
+            // Resume should restore state without immediately auto-triggering a recompute.
+            suppressNextAutoConformerGenRef.current = true;
+            suppressAutoConformerForBilnRef.current = normalizeBilnForGen(biln);
+            suppressAutoConformerAfterResumeRef.current = true;
+
+            // Restore constraints (best-effort): prefer template-mode inputs when present.
+            const hasTemplateInputs = !!templateId || Array.isArray(scaffoldMappingsSnapshot);
+            const hasSsConstraints = Array.isArray(ssConstraints) && ssConstraints.length > 0;
+
+            if (hasTemplateInputs) {
+                // Template-based job: restore template mode and mappings
+                setConstraintMode('template');
+                setActive3DPanel('template');
+
+                if (templateId) {
+                    // Fetch template PDB text by template_id. Backend may return 404 if expired/purged.
+                    restoreTemplateById?.(templateId)
+                        .then((r) => {
+                            if (r?.ok) return;
+                            setScaffoldErrorOpen(true);
+                        })
+                        .catch(() => {
+                            setScaffoldErrorOpen(true);
+                        });
+                }
+
+                if (Array.isArray(scaffoldMappingsSnapshot)) {
+                    replaceRawMappings?.(scaffoldMappingsSnapshot);
+                }
+            } else {
+                // Non-template job: clear template state and switch to SS or no-constraint mode
+                // Use soft clear (doesn't delete template on server, just clears local state)
+                clearScaffoldLocal?.();
+                replaceRawMappings?.([]);
+
+                if (hasSsConstraints) {
+                    setConstraintMode('ss');
+                    setConstraintsBySeq(ssConstraints);
+                } else {
+                    // No constraints at all - keep current mode but clear SS constraints
+                    setConstraintsBySeq([]);
+                }
+            }
+
+            // Always set BILN first
+            setBilnValue(biln);
+
+            // Force structure update: use a microtask to ensure state is committed
+            // This fixes the "double-click" issue by ensuring the PDB is set after BILN state updates
+            queueMicrotask(() => {
+                if (pdb) {
+                    setStructureOutput({ pdb, PDB: pdb, jobId: jobId || null });
+                } else {
+                    setStructureOutput({ pdb: '' });
+                }
+
+                // Re-trigger job polling to ensure the job hook picks up the resumed job
+                if (jobId) {
+                    clearConformerJobIdFromStorage({ dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
+                    // Small delay to ensure storage event fires
+                    setTimeout(() => {
+                        setConformerJobIdInStorage(jobId, { dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
+                    }, 50);
+                }
+            });
+        };
+
+        window.addEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
+        return () => window.removeEventListener(CONFORMER_JOB_RESUME_EVENT, onResume);
+    }, [
+        normalizeBilnForGen,
+        replaceRawMappings,
+        restoreTemplateById,
+        clearScaffoldLocal,
+        scaffoldTemplateId,
+        sessionId,
+        setBilnValue,
+        setConstraintsBySeq,
+        setConstraintMode,
+        setActive3DPanel,
+        setStructureOutput,
+    ]);
 
     const isTemplateMode = constraintMode === 'template';
     const effectiveAnyScaffoldEnabled = isTemplateMode && anyScaffoldEnabled;
@@ -1353,7 +1422,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     maxWidth="xs"
                     fullWidth
                 >
-                    <DialogTitle>Scaffold upload failed</DialogTitle>
+                    <DialogTitle>Scaffold / template error</DialogTitle>
                     <DialogContent dividers>
                         <Typography variant="body2" color="text.secondary">
                             {String(scaffoldError || 'Failed to parse scaffold.')}
