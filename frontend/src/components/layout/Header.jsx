@@ -186,15 +186,68 @@ function Header({ children }) {
   // =====================
   // Copy functions
   // =====================
+  const copyTextFallback = useCallback((text) => {
+    try {
+      const el = document.createElement('textarea');
+      el.value = String(text ?? '');
+      el.setAttribute('readonly', '');
+      el.style.position = 'fixed';
+      el.style.top = '-1000px';
+      el.style.left = '-1000px';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+
+      const ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(el);
+      return !!ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const copySessionId = useCallback(async () => {
     if (!sessionId) return;
     try {
-      await navigator.clipboard.writeText(sessionId);
-      setSnackbar({ open: true, message: 'Session ID copied!', severity: 'success' });
-    } catch {
-      setSnackbar({ open: true, message: 'Copy failed.', severity: 'error' });
+      // Clipboard API requires a secure context (HTTPS) except on localhost.
+      // On some dev servers (http://host), it will throw even with a user gesture.
+      const canUseClipboardApi =
+        typeof window !== 'undefined' &&
+        window.isSecureContext &&
+        navigator?.clipboard &&
+        typeof navigator.clipboard.writeText === 'function';
+
+      if (canUseClipboardApi) {
+        await navigator.clipboard.writeText(sessionId);
+        setSnackbar({ open: true, message: 'Session ID copied!', severity: 'success' });
+        return;
+      }
+
+      const ok = copyTextFallback(sessionId);
+      if (ok) {
+        setSnackbar({ open: true, message: 'Session ID copied!', severity: 'success' });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Copy failed (browser blocked clipboard on non-HTTPS).',
+          severity: 'error',
+        });
+      }
+    } catch (e) {
+      const msg = e?.message ? String(e.message) : '';
+      const ok = copyTextFallback(sessionId);
+      if (ok) {
+        setSnackbar({ open: true, message: 'Session ID copied!', severity: 'success' });
+      } else {
+        setSnackbar({
+          open: true,
+          message: msg ? `Copy failed: ${msg}` : 'Copy failed.',
+          severity: 'error',
+        });
+      }
     }
-  }, [sessionId]);
+  }, [copyTextFallback, sessionId]);
 
   // =====================
   // Share tab actions
