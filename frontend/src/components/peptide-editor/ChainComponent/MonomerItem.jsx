@@ -9,16 +9,25 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 
 import { LINK_COLORS } from './linkColors';
+import { getMonomerTag, getSequenceMonomerTagSx } from '../../../utils/monomerTagStyles';
+import { CELL_WIDTH, CELL_HEIGHT } from './cellSizeTokens';
 
 // Style helpers (use classnames library if you want more dynamic combinations)
+// Uses CSS variables set by parent (ChainSlots) for width/height; falls back to tokens.
 const containerBase = [
     "monomer-item", "relative", "flex", "items-center", "justify-center",
-    "border", "border-slate-400", "h-6", "w-8", "rounded-md", "text-[0.6rem]",
-    "select-none", "bg-lime-200/20", "cursor-pointer", "shadow-md", 
+    "border", "border-slate-400", "rounded-md", "text-[0.6rem]",
+    "select-none", "cursor-pointer", "shadow-md",
 ].join(" ");
+
+// Inline style for cell sizing (applied in MonomerContent)
+const cellSizeStyle = {
+    width: `var(--pp-cell-w, ${CELL_WIDTH}px)`,
+    height: `var(--pp-cell-h, ${CELL_HEIGHT}px)`,
+};
 
 
 
@@ -29,6 +38,7 @@ const capBase = [
 
 // Main component
 const MonomerItemComponent = (props) => {
+    const theme = useTheme();
 
     const {
         monomer,
@@ -50,6 +60,13 @@ const MonomerItemComponent = (props) => {
 
     const [isSelected, setIsSelected] = useState(false);
     const isCapped = isNterCap || isCterCap;
+
+    // Derive monomer tag for type-based coloring
+    const monomerTag = useMemo(() => getMonomerTag(monomer), [monomer]);
+    const tagSx = useMemo(
+        () => getSequenceMonomerTagSx(monomerTag, theme, { isHovered, isSelected }),
+        [monomerTag, theme, isHovered, isSelected]
+    );
 
     // Swap menu state
     const swapBtnRef = useRef(null);
@@ -187,10 +204,17 @@ const MonomerItemComponent = (props) => {
             {...provided.draggableProps}
             style={(() => {
                 const dndStyle = provided && snapshot ? getStyle(provided.draggableProps, snapshot) : {};
-                if (!isSelected) return dndStyle;
-                const current = Number(dndStyle?.zIndex);
+                // Merge cell size + tag-based background/stripe with dnd styles
+                const tagStyles = {
+                    ...cellSizeStyle,
+                    backgroundColor: tagSx.backgroundColor,
+                    boxShadow: tagSx.boxShadow,
+                };
+                const merged = { ...tagStyles, ...dndStyle };
+                if (!isSelected) return merged;
+                const current = Number(merged?.zIndex);
                 const boosted = Number.isFinite(current) ? Math.max(current, 3) : 3;
-                return { ...dndStyle, zIndex: boosted };
+                return { ...merged, zIndex: boosted };
             })()}
             onPointerEnter={() => handleMonomerEnter(monomer['res-idx'])}
             onPointerLeave={() => { if (!swapMenuOpen) handleMonomerLeave(monomer['res-idx']); }}
@@ -217,9 +241,31 @@ const MonomerItemComponent = (props) => {
             />
             {/* Monomer label (grab handle if draggable) */}
             <div className={dragAreaClasses} {...(!isCapped && !dndDisabled ? provided.dragHandleProps : {})}>
-                <div>{monomer.pdbName}</div>
+                <Typography
+                    variant="caption"
+                    component="div"
+                    sx={{
+                        fontWeight: 700,
+                        fontSize: '0.62rem',
+                        lineHeight: 1.15,
+                        color: 'text.primary',
+                    }}
+                >
+                    {monomer.pdbName}
+                </Typography>
                 {effectiveResidueIndex != null ? (
-                    <div className="text-[0.55rem] text-slate-500 mt-[1px]">{effectiveResidueIndex}</div>
+                    <Typography
+                        variant="caption"
+                        component="div"
+                        sx={{
+                            fontSize: '0.46rem',
+                            lineHeight: 1,
+                            color: 'text.secondary',
+                            mt: '1px',
+                        }}
+                    >
+                        {effectiveResidueIndex}
+                    </Typography>
                 ) : null}
             </div>
 

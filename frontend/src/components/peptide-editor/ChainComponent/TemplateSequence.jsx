@@ -2,9 +2,8 @@ import React, { useMemo, useCallback } from 'react';
 import { Box, Typography, Tooltip, IconButton } from '@mui/material';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { CELL_WIDTH, CELL_HEIGHT, CELL_GAP } from './cellSizeTokens';
 
-const CELL_WIDTH = 32;
-const CELL_HEIGHT = 20;
 const GRID_GAP = 0.5;
 
 const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle, onContextMenu }) => {
@@ -13,8 +12,8 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
     return (
         <Box
             sx={{
-                width: CELL_WIDTH,
-                minWidth: CELL_WIDTH,
+                width: `var(--pp-cell-w, ${CELL_WIDTH}px)`,
+                minWidth: `var(--pp-cell-w, ${CELL_WIDTH}px)`,
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
@@ -56,7 +55,7 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
             <Box
                 sx={{
                     width: '100%',
-                    height: CELL_HEIGHT + 4,
+                    height: `var(--pp-cell-h, ${CELL_HEIGHT}px)`,
                     borderRadius: 1.5,
                     display: 'flex',
                     flexDirection: 'column',

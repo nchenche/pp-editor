@@ -13,9 +13,8 @@ import UploadIcon from '@mui/icons-material/Upload';
 import { alpha } from "@mui/material/styles";
 import { useTheme } from '@mui/material/styles';
 import { useHoveredMonomer } from '../../../state/hoveredMonomerStore';
+import { CELL_WIDTH, CELL_HEIGHT, CELL_GAP, CELL_CSS_VARS } from './cellSizeTokens';
 
-const CELL_WIDTH = 32;
-const CELL_HEIGHT = 20;
 const GRID_GAP = 0.5;
 
 export const ChainSlots = ({
@@ -138,6 +137,7 @@ export const ChainSlots = ({
     }, []);
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
+            <Box style={CELL_CSS_VARS}>
             {(() => {
                 let runningOffset = 0;
                 return effectiveRowMonomerLists.map((list, seqIdx) => {
@@ -321,6 +321,7 @@ export const ChainSlots = ({
                     );
                 });
             })()}
+            </Box>
         </DragDropContext>
     );
 };
@@ -341,7 +342,7 @@ const letterTint = (t, ch) => {
 };
 
 // place near bottom of file
-function ConstraintCell({ index, value, commitAt, chipWidth = 32, cellSize = 18 }) {
+function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSize = CELL_HEIGHT }) {
     const ref = useRef(null);
     const theme = useTheme();
 
@@ -427,9 +428,9 @@ function ConstraintCell({ index, value, commitAt, chipWidth = 32, cellSize = 18 
             aria-label={`Constraint at ${index + 1}`}
             style={{
                 display: 'block',
-                width: chipWidth,
-                height: cellSize,
-                lineHeight: `${cellSize}px`,
+                width: `var(--pp-cell-w, ${chipWidth}px)`,
+                height: `var(--pp-cell-h, ${cellSize}px)`,
+                lineHeight: `var(--pp-cell-h, ${cellSize}px)`,
                 textAlign: 'center',
                 borderRadius: 6,
                 border: `1px solid ${tint.bd}`,

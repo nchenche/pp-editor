@@ -7,73 +7,9 @@ import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import Chip from "@mui/material/Chip";
 
 import { getMissingRequiredRgroups } from '../../../../utils/replacementCompatibility';
+import { getMonomerTag, sideTagSx } from '../../../../utils/monomerTagStyles';
 
 const EMPTY_CELL_PROPS = {};
-
-
-// Helper: derive a concise tag for the monomer
-function deriveMonomerTag(m) {
-    const subtype = m?.m_subtype || m?.m_type;
-
-    // Caps: prefer m_RgroupIdx to determine N-ter vs C-ter
-    if (subtype === 'cap') {
-        const rg = m?.m_RgroupIdx;
-        const hasIdx = Array.isArray(rg);
-        const isNterCap = hasIdx && rg[1] != null; // N-ter uses index 1
-        const isCterCap = hasIdx && rg[0] != null; // C-ter uses index 0
-
-        if (isNterCap && !isCterCap) return 'N-cap';
-        if (!isNterCap && isCterCap) return 'C-cap';
-        if (isNterCap && isCterCap) return 'Cap'; // both present (fallback label)
-
-        // Fallback heuristics (name/capSide) if m_RgroupIdx is absent
-        const name = (m?.m_name || '').toLowerCase();
-        if (name.includes('n-cap') || name.includes('ncap') || m?.capSide === 'N' || m?.cap_side === 'N') return 'N-cap';
-        if (name.includes('c-cap') || name.includes('ccap') || m?.capSide === 'C' || m?.cap_side === 'C') return 'C-cap';
-        return 'Cap';
-    }
-
-    // Natural / non-natural
-    if (m?.m_subtype === 'natural' || m?.natural === true) return 'Natural';
-    if (m?.m_subtype === 'non-natural' || m?.nonNatural === true) return 'Non-natural';
-
-    return null;
-}
-
-// Themed styles for the vertical side tag, now parameterized by width
-function sideTagSx(label, sidebarW = 22) {
-    const base = {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        width: sidebarW, // sidebar width
-        zIndex: 4,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        writingMode: 'vertical-rl',
-        textOrientation: 'mixed',
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.6,
-        textTransform: 'uppercase',
-        userSelect: 'none',
-        pointerEvents: 'none',
-        borderTopRightRadius: 8,
-        borderBottomRightRadius: 8,
-        transform: 'translateY(10%) rotate(180deg)',
-    };
-    let color = '#1e293b', bg = 'rgba(30,41,59,0.08)'; // slate
-    if (label === 'Natural') {
-        color = '#166534'; bg = 'rgba(22,101,52,0.10)';
-    } else if (label === 'Non-natural') {
-        color = '#7c2d12'; bg = 'rgba(124,45,18,0.10)';
-    } else if (label === 'N-cap' || label === 'C-cap' || label === 'Cap') {
-        color = '#334155'; bg = 'rgba(51,65,85,0.10)';
-    }
-    return { ...base, color, backgroundColor: bg };
-}
 
 // Size tokens
 const SIZE = {
@@ -121,7 +57,7 @@ const SIZE = {
 
 const MonomerLibraryItem = memo(
     ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center', replaceActive = false, replaceRequiredKey = '' }) => {
-    const tag = useMemo(() => deriveMonomerTag(monomer), [monomer]);
+    const tag = useMemo(() => getMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
 
     const requiredRgroups = useMemo(() => {
