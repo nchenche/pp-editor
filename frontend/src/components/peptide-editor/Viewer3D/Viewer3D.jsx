@@ -32,6 +32,7 @@ const Viewer3DInner = ({
     defaultRepresentation = 'ball-and-stick',
     defaultColorScheme = 'chain-id',
     background = 'light',
+    lockCamera = false,
     height = '20rem',
     width = '100%',
     isGenerating3D = false,
@@ -62,6 +63,7 @@ const Viewer3DInner = ({
         labelsEnabled,
         representationAlphaByRep,
         tagPrefix: 'main',
+        lockCamera,
     });
 
     const templateEnabledReps = useMemo(() => {
@@ -298,6 +300,20 @@ const Viewer3DInner = ({
             try {
                 // Mol* defaults the filename to a placeholder; pass an explicit name.
                 pluginRef.current?.helpers?.viewportScreenshot?.download?.('pep-edit_3d.png');
+            } catch {
+                // ignore
+            }
+        },
+        getCameraSnapshot: () => {
+            try {
+                return pluginRef.current?.canvas3d?.camera?.getSnapshot?.() ?? null;
+            } catch {
+                return null;
+            }
+        },
+        setCameraSnapshot: (snapshot, duration = 0) => {
+            try {
+                pluginRef.current?.managers?.camera?.setSnapshot?.(snapshot, duration);
             } catch {
                 // ignore
             }

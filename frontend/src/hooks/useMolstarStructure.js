@@ -104,6 +104,7 @@ export function useMolstarStructure(pluginRef, {
     labelsEnabled = null,
     representationAlphaByRep = null,
     tagPrefix = 'ui',
+    lockCamera = false,
 } = {}) {
     const [structure, setStructure] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -113,6 +114,26 @@ export function useMolstarStructure(pluginRef, {
     // then delete it. This avoids a blank canvas during parsing and reduces flicker.
     const dataRootRef = useRef(null);
     const loadReqIdRef = useRef(0);
+
+    // Helper: capture camera snapshot if lockCamera is enabled
+    const captureCamera = useCallback(() => {
+        if (!lockCamera || !pluginRef.current?.canvas3d?.camera?.getSnapshot) return null;
+        try {
+            return pluginRef.current.canvas3d.camera.getSnapshot();
+        } catch {
+            return null;
+        }
+    }, [lockCamera, pluginRef]);
+
+    // Helper: restore camera snapshot after structure load
+    const restoreCamera = useCallback((snapshot) => {
+        if (!snapshot || !pluginRef.current?.managers?.camera?.setSnapshot) return;
+        try {
+            pluginRef.current.managers.camera.setSnapshot(snapshot, 0);
+        } catch {
+            // ignore
+        }
+    }, [pluginRef]);
 
     // Always use latest representation/color scheme (in case they are made dynamic)
     const processStructureData = useCallback(async (fileData, format) => {
@@ -206,6 +227,10 @@ export function useMolstarStructure(pluginRef, {
         const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
+
+        // Capture camera before load if lockCamera is enabled
+        const cameraSnapshot = captureCamera();
+
         try {
             const plugin = pluginRef.current;
             const prevRoot = dataRootRef.current;
@@ -221,12 +246,18 @@ export function useMolstarStructure(pluginRef, {
             if (prevRoot) {
                 await deleteSubtreeByRef(prevRoot);
             }
+
+            // Restore camera after load if we captured one
+            if (cameraSnapshot) {
+                restoreCamera(cameraSnapshot);
+            }
+
             setLoading(false);
         } catch (err) {
             setError(`Failed to load raw data: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef, captureCamera, restoreCamera]);
 
     // Loader: PDB ID
     const loadFromPdbId = useCallback(async (id) => {
@@ -234,6 +265,10 @@ export function useMolstarStructure(pluginRef, {
         const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
+
+        // Capture camera before load if lockCamera is enabled
+        const cameraSnapshot = captureCamera();
+
         try {
             const plugin = pluginRef.current;
             const prevRoot = dataRootRef.current;
@@ -249,12 +284,18 @@ export function useMolstarStructure(pluginRef, {
             if (prevRoot) {
                 await deleteSubtreeByRef(prevRoot);
             }
+
+            // Restore camera after load if we captured one
+            if (cameraSnapshot) {
+                restoreCamera(cameraSnapshot);
+            }
+
             setLoading(false);
         } catch (err) {
             setError(`Failed to load PDB ID: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef, captureCamera, restoreCamera]);
 
     // Loader: File (input[type=file])
     const loadFromPdbFile = useCallback(async (file) => {
@@ -262,6 +303,10 @@ export function useMolstarStructure(pluginRef, {
         const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
+
+        // Capture camera before load if lockCamera is enabled
+        const cameraSnapshot = captureCamera();
+
         try {
             const plugin = pluginRef.current;
             const prevRoot = dataRootRef.current;
@@ -277,12 +322,18 @@ export function useMolstarStructure(pluginRef, {
             if (prevRoot) {
                 await deleteSubtreeByRef(prevRoot);
             }
+
+            // Restore camera after load if we captured one
+            if (cameraSnapshot) {
+                restoreCamera(cameraSnapshot);
+            }
+
             setLoading(false);
         } catch (err) {
             setError(`Failed to load file: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef, captureCamera, restoreCamera]);
 
     // Loader: URL
     const loadFromURL = useCallback(async (url) => {
@@ -290,6 +341,10 @@ export function useMolstarStructure(pluginRef, {
         const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
+
+        // Capture camera before load if lockCamera is enabled
+        const cameraSnapshot = captureCamera();
+
         try {
             const plugin = pluginRef.current;
             const prevRoot = dataRootRef.current;
@@ -304,12 +359,18 @@ export function useMolstarStructure(pluginRef, {
             if (prevRoot) {
                 await deleteSubtreeByRef(prevRoot);
             }
+
+            // Restore camera after load if we captured one
+            if (cameraSnapshot) {
+                restoreCamera(cameraSnapshot);
+            }
+
             setLoading(false);
         } catch (err) {
             setError(`Failed to load URL: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef, captureCamera, restoreCamera]);
 
     // Loader: Blob (for drag & drop)
     const loadFromBlob = useCallback(async (blob) => {
@@ -317,6 +378,10 @@ export function useMolstarStructure(pluginRef, {
         const myReqId = ++loadReqIdRef.current;
         setLoading(true);
         setError(null);
+
+        // Capture camera before load if lockCamera is enabled
+        const cameraSnapshot = captureCamera();
+
         try {
             const plugin = pluginRef.current;
             const prevRoot = dataRootRef.current;
@@ -332,12 +397,18 @@ export function useMolstarStructure(pluginRef, {
             if (prevRoot) {
                 await deleteSubtreeByRef(prevRoot);
             }
+
+            // Restore camera after load if we captured one
+            if (cameraSnapshot) {
+                restoreCamera(cameraSnapshot);
+            }
+
             setLoading(false);
         } catch (err) {
             setError(`Failed to load blob: ${err.message}`);
             setLoading(false);
         }
-    }, [pluginRef, processStructureData, deleteSubtreeByRef]);
+    }, [pluginRef, processStructureData, deleteSubtreeByRef, captureCamera, restoreCamera]);
 
 
     // Reconcile multiple representations (toggle on/off) and keep colors in sync.

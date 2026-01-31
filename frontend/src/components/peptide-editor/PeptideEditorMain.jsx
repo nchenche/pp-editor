@@ -69,6 +69,7 @@ const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
 const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
 const MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY = 'pp-editor:molstar-right-panel-width:v1';
+const MOLSTAR_LOCK_CAMERA_STORAGE_KEY = 'pp-editor:molstar-lock-camera:v1';
 const PH_VALUE_STORAGE_KEY = 'pp-editor:ph-value:v1';
 
 const DEFAULT_3D_REPRESENTATION = 'line';
@@ -308,6 +309,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     });
 
+    const [lockCamera, setLockCamera] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_LOCK_CAMERA_STORAGE_KEY);
+            return raw === 'true';
+        } catch {
+            return false;
+        }
+    });
+
     useEffect(() => {
         try {
             window?.localStorage?.setItem(MOLSTAR_BG_STORAGE_KEY, String(molstarBackground));
@@ -367,6 +377,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [templateOverlayOpacityPct]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_LOCK_CAMERA_STORAGE_KEY, String(lockCamera));
+        } catch {
+            // ignore
+        }
+    }, [lockCamera]);
 
     useEffect(() => {
         try {
@@ -2193,6 +2211,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         defaultRepresentation={DEFAULT_3D_REPRESENTATION}
                                         defaultColorScheme={molstarColorBy}
                                         background={molstarBackground}
+                                        lockCamera={lockCamera}
                                         height="100%"
                                         width="100%"
                                         error={generate3DError}
@@ -2493,6 +2512,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                 }}
                                                                 disabled={!scaffoldTemplate}
                                                                 aria-label="template opacity"
+                                                            />
+                                                        </Box>
+
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}>
+                                                            <Typography variant="body2" sx={{ fontSize: 12 }}>
+                                                                Lock camera
+                                                            </Typography>
+                                                            <Switch
+                                                                size="small"
+                                                                checked={lockCamera}
+                                                                onChange={(e) => setLockCamera(e.target.checked)}
+                                                                disabled={!scaffoldTemplate}
+                                                                inputProps={{ 'aria-label': 'toggle camera lock' }}
                                                             />
                                                         </Box>
 
