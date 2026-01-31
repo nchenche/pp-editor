@@ -60,8 +60,9 @@ const OUTPUT_FIELDS = Object.freeze([
     { key: 'inchiKey', label: 'InChIKey', filename: 'pep-edit_inchikey.txt', mime: 'text/plain' },
     { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
     { key: 'xyz', label: 'XYZ', filename: 'pep-edit_structure.xyz', mime: 'chemical/x-xyz' },
-    // { key: 'sdf3d', label: 'SDF 3D', filename: 'pep-edit_structure.sdf', mime: 'chemical/x-mdl-sdfile' },
-    { key: 'mol2', label: 'MOL2', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
+    { key: 'sdf3d', label: 'SDF 3D', filename: 'pep-edit_structure_3d.sdf', mime: 'chemical/x-mdl-sdfile' },
+    { key: 'mol2_tripos', label: 'MOL2 Tripos', filename: 'pep-edit_structure.mol2', mime: 'chemical/x-mol2' },
+    { key: 'pdbqt', label: 'PDBQT', filename: 'pep-edit_structure.pdbqt', mime: 'chemical/x-pdbqt' },
 
 ]);
 
