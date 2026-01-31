@@ -6,7 +6,7 @@ import { Viewer2D } from './Viewer2D/Viewer2D';
 import { Viewer3D } from './Viewer3D/Viewer3D';
 import { MolstarSchemes } from './Viewer3D/molstar/Schemes';
 import { ReplaceOverlay } from './ReplaceOverlay';
-import { ScaffoldWarningsDialog } from './ScaffoldWarningsDialog';
+// ScaffoldWarningsDialog intentionally kept in codebase but not shown (informational-only).
 
 import { useFetchDepiction } from '../../../src/hooks/useFetchDepiction';
 import { useGenerate3D } from '../../../src/hooks/useGenerate3D';
@@ -27,7 +27,7 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop, Snackbar, Alert } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -653,6 +653,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const prevScaffoldTemplateIdRef = useRef(null);
     const hadTemplateRef = useRef(false);
 
+    const [scaffoldToast, setScaffoldToast] = useState({ open: false, severity: 'info', message: '' });
+    const prevScaffoldLoadingRef = useRef(false);
+
     // One-time nudge: when a template is newly loaded, open the Template panel
     // so the user immediately sees where to remove/manage it.
     useEffect(() => {
@@ -680,15 +683,40 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setScaffoldErrorOpen(!!scaffoldError);
     }, [scaffoldError]);
 
-    const [scaffoldWarningsOpen, setScaffoldWarningsOpen] = useState(false);
-
+    // Non-intrusive scaffold feedback: show a short snackbar when an upload/fetch completes.
+    // Avoid showing on initial mount (no loading transition).
     useEffect(() => {
-        if (Array.isArray(scaffoldMessages) && scaffoldMessages.length > 0) {
-            setScaffoldWarningsOpen(true);
-        } else {
-            setScaffoldWarningsOpen(false);
-        }
-    }, [scaffoldMessages]);
+        const prevLoading = !!prevScaffoldLoadingRef.current;
+        const nextLoading = !!scaffoldLoading;
+        prevScaffoldLoadingRef.current = nextLoading;
+
+        // Only react to loading -> idle transitions.
+        if (!prevLoading || nextLoading) return;
+        if (scaffoldError) return;
+        if (!scaffoldTemplateId) return;
+
+        const warningsCount = Array.isArray(scaffoldWarnings) ? scaffoldWarnings.length : 0;
+        const standardizationMessage = scaffoldStandardization?.applied && scaffoldStandardization?.message
+            ? String(scaffoldStandardization.message)
+            : '';
+        const infoCount = Array.isArray(scaffoldMessages) ? scaffoldMessages.length : 0;
+
+        // Only toast when there's something to say (warnings, standardization, or backend info messages).
+        if (warningsCount <= 0 && !standardizationMessage && infoCount <= 0) return;
+
+        const base = warningsCount > 0
+            ? `Template loaded with ${warningsCount} warning${warningsCount === 1 ? '' : 's'}.`
+            : 'Template loaded.';
+        const withStd = standardizationMessage ? `${base} Standardization applied.` : base;
+
+        setScaffoldToast({
+            open: true,
+            severity: warningsCount > 0 ? 'warning' : 'success',
+            message: withStd,
+        });
+    }, [scaffoldLoading, scaffoldError, scaffoldTemplateId, scaffoldWarnings, scaffoldMessages, scaffoldStandardization]);
+
+    // Scaffold upload messages are informational; avoid interrupting users with a modal.
 
     const { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, replaceRawMappings, hasTemplateOverlap } = useScaffoldMappings(rowMonomerLists, scaffoldTemplate);
 
@@ -1427,15 +1455,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     </DialogActions>
                 </Dialog>
 
-                <ScaffoldWarningsDialog
-                    open={scaffoldWarningsOpen}
-                    warnings={scaffoldWarnings}
-                    messages={scaffoldMessages}
-                    standardization={scaffoldStandardization}
-                    scaffoldName={scaffoldTemplate?.name}
-                    onAcknowledge={() => setScaffoldWarningsOpen(false)}
-                />
-
                 <Dialog
                     open={scaffoldErrorOpen}
                     onClose={() => setScaffoldErrorOpen(false)}
@@ -1454,6 +1473,25 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         </Button>
                     </DialogActions>
                 </Dialog>
+
+                <Snackbar
+                    open={!!scaffoldToast.open}
+                    autoHideDuration={1750}
+                    onClose={(_, reason) => {
+                        if (reason === 'clickaway') return;
+                        setScaffoldToast((prev) => ({ ...prev, open: false }));
+                    }}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert
+                        severity={scaffoldToast.severity}
+                        variant="filled"
+                        onClose={() => setScaffoldToast((prev) => ({ ...prev, open: false }))}
+                        sx={{ fontSize: 12, py: 0.5, alignItems: 'center' }}
+                    >
+                        {scaffoldToast.message}
+                    </Alert>
+                </Snackbar>
 
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
