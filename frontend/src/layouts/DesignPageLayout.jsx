@@ -130,7 +130,7 @@ export const DesignPageLayoutMUI = ({
     outputPanel,       // right/bottom: output details
     height = '100%',   // fill available space (prevents overlapping the global footer)
     minLeftFrac = 0.25,   // minimum sidebar width 
-    maxLeftFrac = 0.45, // maximum sidebar width as fraction of viewport width
+    maxLeftFrac = 0.6, // maximum sidebar width as fraction of viewport width
     handleWidth = 6,   // draggable handle width (px)
     defaultLeftFrac = 0.3,
     defaultSidebarCollapsed = false,
@@ -181,6 +181,8 @@ export const DesignPageLayoutMUI = ({
         leftPxRef.current = leftPx;
     }, [leftPx]);
 
+    const lastNonMaxWidthRef = useRef(null);
+
     const clampLeft = useCallback((px) => {
         const vw = window.innerWidth || document.documentElement.clientWidth || 1200;
         const minLeft = Math.floor(vw * Math.min(minLeftFrac, maxLeftFrac));
@@ -230,6 +232,27 @@ export const DesignPageLayoutMUI = ({
             // ignore
         }
     }, [onMouseMove, widthStorageKey]);
+
+    const toggleMaximizeSidebar = useCallback(() => {
+        if (sidebarCollapsed) return;
+        const vw = window.innerWidth || document.documentElement.clientWidth || 1200;
+        const maxPx = clampLeft(Math.floor(vw * maxLeftFrac));
+        const isAtMax = leftPxRef.current >= maxPx - 2;
+
+        userResizedRef.current = true;
+
+        if (isAtMax) {
+            const restore = lastNonMaxWidthRef.current
+                ?? clampLeft(Math.floor(vw * defaultLeftFrac));
+            setLeftPx(restore);
+            try { window?.localStorage?.setItem(widthStorageKey, String(restore)); } catch { }
+            return;
+        }
+
+        lastNonMaxWidthRef.current = leftPxRef.current;
+        setLeftPx(maxPx);
+        try { window?.localStorage?.setItem(widthStorageKey, String(maxPx)); } catch { }
+    }, [sidebarCollapsed, clampLeft, maxLeftFrac, defaultLeftFrac, widthStorageKey]);
 
     const startDrag = useCallback((e) => {
         if (sidebarCollapsed) return;
@@ -423,6 +446,7 @@ export const DesignPageLayoutMUI = ({
                             value={{
                                 sidebarCollapsed,
                                 setSidebarCollapsed,
+                                toggleMaximizeSidebar,
                             }}
                         >
                             {sidebar}

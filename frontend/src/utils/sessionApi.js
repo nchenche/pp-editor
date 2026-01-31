@@ -9,7 +9,12 @@ import { API_BASE_URL } from '../config';
 
 export const SESSION_ID_STORAGE_KEY = 'pp-editor:session-id:v1';
 export const SESSION_ID_CHANGED_EVENT = 'pp-session-id-changed';
+export const SESSION_META_CHANGED_EVENT = 'pp-session-meta-changed';
 export const SESSION_ID_URL_PARAM = 'session_id';
+
+// Local-only aliases for session metadata (ownership-safe fallback).
+// Stored as a map: { [sessionId]: { name?: string|null, description?: string|null } }
+export const SESSION_META_STORAGE_KEY = 'pp-editor:session-meta:v1';
 
 // Default session TTL is 15 days on the server; we touch on each load to extend.
 export const SESSION_TTL_DAYS = 15;
@@ -195,6 +200,125 @@ export async function getSession(sessionId, { dbName = 'pepedit', touch = true, 
   } catch (e) {
     return { ok: false, error: e?.message || 'Network error' };
   }
+}
+
+/**
+ * Update session metadata (name, description).
+ * Uses PATCH /api/db/sessions/<session_id>
+ *
+ * Only the session owner (current session) can update their own session name.
+ * Include X-Session-Id header to prove ownership.
+ *
+ * @param {string} sessionId
+ * @param {{name?: string|null, description?: string|null}} updates
+ * @param {{dbName?: string, baseUrlOverride?: string}} options
+ * @returns {Promise<{ok: boolean, session?: object, error?: string}>}
+ */
+export async function patchSession(sessionId, updates, { dbName = 'pepedit', baseUrlOverride } = {}) {
+  if (!sessionId) return { ok: false, error: 'Session ID is required' };
+
+  const base = baseUrlOverride ?? API_BASE_URL ?? '';
+  const url = `${base}/api/db/sessions/${encodeURIComponent(sessionId)}?db_name=${encodeURIComponent(dbName)}`;
+
+  // Only include fields that are explicitly provided
+  const body = {};
+  if (updates?.name !== undefined) body.name = updates.name;
+  if (updates?.description !== undefined) body.description = updates.description;
+
+  try {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        // Include session ID header to prove ownership
+        'X-Session-Id': sessionId,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const msg = json?.message || json?.error || `Failed to update session (status ${res.status})`;
+      return { ok: false, error: String(msg) };
+    }
+
+    const data = json?.data || json;
+    return { ok: true, session: data };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Network error' };
+  }
+}
+
+function readSessionMetaMap() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window?.localStorage?.getItem(SESSION_META_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSessionMetaMap(next) {
+  if (typeof window === 'undefined') return;
+  try {
+    window?.localStorage?.setItem(SESSION_META_STORAGE_KEY, JSON.stringify(next || {}));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Get locally stored session metadata (name/description) for a session.
+ * This is an ownership-safe alias (works even if server doesn't support PATCH).
+ */
+export function getLocalSessionMeta(sessionId) {
+  const sid = String(sessionId ?? '').trim();
+  if (!sid) return null;
+  const map = readSessionMetaMap();
+  const v = map?.[sid];
+  if (!v || typeof v !== 'object') return null;
+  return {
+    name: v?.name ?? null,
+    description: v?.description ?? null,
+  };
+}
+
+/**
+ * Set locally stored session metadata (name/description) for a session.
+ * Passing empty-string values is normalized to null.
+ */
+export function setLocalSessionMeta(sessionId, updates) {
+  const sid = String(sessionId ?? '').trim();
+  if (!sid) return null;
+
+  const map = readSessionMetaMap();
+  const prev = map?.[sid] && typeof map[sid] === 'object' ? map[sid] : {};
+
+  const nextEntry = {
+    ...prev,
+    ...(updates?.name !== undefined
+      ? { name: String(updates.name ?? '').trim() || null }
+      : null),
+    ...(updates?.description !== undefined
+      ? { description: String(updates.description ?? '').trim() || null }
+      : null),
+  };
+
+  const nextMap = { ...(map || {}), [sid]: nextEntry };
+  writeSessionMetaMap(nextMap);
+
+  // Dispatch event so other components can react to meta changes
+  try {
+    window?.dispatchEvent?.(new CustomEvent(SESSION_META_CHANGED_EVENT, { detail: { sessionId: sid, ...nextEntry } }));
+  } catch {
+    // ignore
+  }
+
+  return nextEntry;
 }
 
 // =====================================================

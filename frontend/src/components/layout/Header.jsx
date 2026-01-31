@@ -38,6 +38,7 @@ import { useSessionLoader, SESSION_LOAD_STATE } from '../../hooks/useSessionLoad
 import {
   getSession,
   getEmailStatus,
+  patchSession,
   requestEmailAttach,
   requestEmailChange,
   resendEmailAttach,
@@ -47,7 +48,10 @@ import {
   recoverSessionsByEmail,
   formatSessionIdShort,
   normalizeEmail,
+  getLocalSessionMeta,
+  setLocalSessionMeta,
 } from '../../utils/sessionApi';
+import { InlineSessionNameEditor } from './InlineSessionNameEditor';
 
 /**
  * Header component with automatic session loading and management UI.
@@ -71,6 +75,11 @@ function Header({ children }) {
   // Email status state (fetched from /email/status endpoint)
   const [emailStatus, setEmailStatus] = useState(null);
   const [emailStatusLoading, setEmailStatusLoading] = useState(false);
+
+  // Session name/description state (persisted to localStorage)
+  const [sessionName, setSessionName] = useState(null);
+  const [sessionDescription, setSessionDescription] = useState(null);
+  const [sessionNameSaving, setSessionNameSaving] = useState(false);
 
   // Share tab state
   const [shareRecipientEmail, setShareRecipientEmail] = useState('');
@@ -114,6 +123,7 @@ function Header({ children }) {
   const fetchEmailStatus = useCallback(async () => {
     if (!sessionId) {
       setEmailStatus(null);
+      setSessionName(null);
       return;
     }
     setEmailStatusLoading(true);
@@ -130,6 +140,10 @@ function Header({ children }) {
             email_verified: sessionResult.session?.email_verified || false,
             has_pending_verification: false,
           });
+          // Also grab session name if available
+          if (sessionResult.session?.name !== undefined) {
+            setSessionName(sessionResult.session.name);
+          }
         } else {
           setEmailStatus(null);
         }
@@ -141,10 +155,101 @@ function Header({ children }) {
     }
   }, [sessionId]);
 
-  // Fetch email status when sessionId changes
+  // Fetch session name/description when sessionId changes
+  // Server is source of truth; localStorage is cache for faster initial load
+  const fetchSessionMeta = useCallback(async () => {
+    if (!sessionId) {
+      setSessionName(null);
+      setSessionDescription(null);
+      return;
+    }
+    // Load from localStorage first for immediate UI (cache)
+    const localMeta = getLocalSessionMeta(sessionId);
+    if (localMeta) {
+      setSessionName(localMeta.name);
+      setSessionDescription(localMeta.description);
+    }
+    // Then fetch from server (source of truth)
+    try {
+      const result = await getSession(sessionId, { touch: false });
+      if (result.ok && result.session) {
+        // Server is source of truth - always use server values
+        const serverName = result.session.name ?? null;
+        const serverDesc = result.session.description ?? null;
+        setSessionName(serverName);
+        setSessionDescription(serverDesc);
+        // Cache to localStorage for next load
+        setLocalSessionMeta(sessionId, { name: serverName, description: serverDesc });
+      }
+    } catch {
+      // Network error - localStorage values remain as fallback
+    }
+  }, [sessionId]);
+
+  // Fetch email status and session meta when sessionId changes
   useEffect(() => {
     fetchEmailStatus();
-  }, [fetchEmailStatus]);
+    fetchSessionMeta();
+  }, [fetchEmailStatus, fetchSessionMeta]);
+
+  // Save session name handler - server is source of truth, localStorage is cache
+  const handleSaveSessionName = useCallback(async (newName) => {
+    if (!sessionId) return;
+
+    // Optimistic update + cache to localStorage
+    const previousName = sessionName;
+    setSessionName(newName);
+    setSessionNameSaving(true);
+
+    try {
+      const result = await patchSession(sessionId, { name: newName || null });
+      if (result.ok) {
+        // Server is source of truth - use server response
+        const serverName = result.session?.name ?? null;
+        setSessionName(serverName);
+        setLocalSessionMeta(sessionId, { name: serverName });
+        setSnackbar({ open: true, message: 'Session renamed', severity: 'success' });
+      } else {
+        // Server error - rollback optimistic update
+        setSessionName(previousName);
+        setSnackbar({ open: true, message: result.error || 'Failed to rename session', severity: 'error' });
+      }
+    } catch (e) {
+      // Network error - rollback optimistic update
+      setSessionName(previousName);
+      setSnackbar({ open: true, message: e?.message || 'Network error', severity: 'error' });
+    } finally {
+      setSessionNameSaving(false);
+    }
+  }, [sessionId, sessionName]);
+
+  // Save session description handler - server is source of truth, localStorage is cache
+  const handleSaveSessionDescription = useCallback(async (newDescription) => {
+    if (!sessionId) return;
+
+    // Optimistic update
+    const previousDescription = sessionDescription;
+    setSessionDescription(newDescription);
+
+    try {
+      const result = await patchSession(sessionId, { description: newDescription || null });
+      if (result.ok) {
+        // Server is source of truth - use server response
+        const serverDesc = result.session?.description ?? null;
+        setSessionDescription(serverDesc);
+        setLocalSessionMeta(sessionId, { description: serverDesc });
+        setSnackbar({ open: true, message: 'Session notes saved', severity: 'success' });
+      } else {
+        // Server error - rollback
+        setSessionDescription(previousDescription);
+        setSnackbar({ open: true, message: result.error || 'Failed to save notes', severity: 'error' });
+      }
+    } catch (e) {
+      // Network error - rollback
+      setSessionDescription(previousDescription);
+      setSnackbar({ open: true, message: e?.message || 'Network error', severity: 'error' });
+    }
+  }, [sessionId, sessionDescription]);
 
   // Poll email status when there's a pending verification
   useEffect(() => {
@@ -674,6 +779,16 @@ function Header({ children }) {
                         }}
                       />
                     </Tooltip>
+
+                    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(148, 163, 184, 0.4)', mx: 0.5 }} />
+
+                    {/* Session name (editable) */}
+                    <InlineSessionNameEditor
+                      name={sessionName}
+                      onSave={handleSaveSessionName}
+                      saving={sessionNameSaving}
+                      editable={true}
+                    />
                   </Stack>
 
                   <Typography
@@ -1017,6 +1132,45 @@ function Header({ children }) {
                       Your email is linked but not verified. If you didn’t receive the email, resend the verification.
                     </Alert>
                   )}
+
+                  <Divider />
+
+                  {/* Session notes (name & description) */}
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>Session notes</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                      Add a name and notes to help identify this session. Saved locally.
+                    </Typography>
+                    <Stack spacing={1.5}>
+                      <TextField
+                        size="small"
+                        label="Session name"
+                        value={sessionName || ''}
+                        onChange={(e) => setSessionName(e.target.value.slice(0, 200))}
+                        onBlur={(e) => handleSaveSessionName(e.target.value.trim() || null)}
+                        placeholder="My peptide design"
+                        fullWidth
+                        slotProps={{
+                          htmlInput: { maxLength: 200 },
+                        }}
+                      />
+                      <TextField
+                        size="small"
+                        label="Description / notes"
+                        value={sessionDescription || ''}
+                        onChange={(e) => setSessionDescription(e.target.value.slice(0, 2000))}
+                        onBlur={(e) => handleSaveSessionDescription(e.target.value.trim() || null)}
+                        placeholder="Add notes about this session…"
+                        multiline
+                        minRows={2}
+                        maxRows={4}
+                        fullWidth
+                        slotProps={{
+                          htmlInput: { maxLength: 2000 },
+                        }}
+                      />
+                    </Stack>
+                  </Box>
                 </Stack>
               )}
 
@@ -1046,7 +1200,7 @@ function Header({ children }) {
         {/* Snackbar for quick feedback */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={2500}
+          autoHideDuration={2000}
           onClose={closeSnackbar}
           anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         >

@@ -108,6 +108,24 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
     fetchPage({ before, append: true });
   }, [before, fetchPage]);
 
+  /**
+   * Optimistically update a job item in the list.
+   * @param {string} jobId - The job ID to update
+   * @param {object} updates - Partial job data to merge (e.g., { name, description })
+   */
+  const updateItem = useCallback((jobId, updates) => {
+    if (!jobId || !updates) return;
+    setItems((prev) =>
+      prev.map((job) => {
+        const id = job?.job_id || job?.id;
+        if (id === jobId) {
+          return { ...job, ...updates };
+        }
+        return job;
+      }),
+    );
+  }, []);
+
   useEffect(() => {
     refresh();
     return () => {
@@ -116,5 +134,5 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
     };
   }, [refresh]);
 
-  return { items, loading, error, refresh, loadMore };
+  return { items, loading, error, refresh, loadMore, updateItem };
 }

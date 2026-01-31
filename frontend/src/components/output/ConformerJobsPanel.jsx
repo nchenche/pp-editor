@@ -1,11 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 
 import {
     Box,
     Button,
     Chip,
     Divider,
+    IconButton,
+    Menu,
+    MenuItem,
+    ListItemIcon,
+    ListItemText,
     Paper,
+    Snackbar,
+    Alert,
     Table,
     TableBody,
     TableCell,
@@ -14,17 +21,30 @@ import {
     TableRow,
     Tooltip,
     Typography,
+    Checkbox,
+    FormControlLabel,
 } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 import { API_BASE_URL } from '../../config';
 import { useSessionId } from '../../hooks/useSessionId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
+import { getLocalSessionMeta, formatSessionIdShort, SESSION_META_CHANGED_EVENT } from '../../utils/sessionApi';
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
 import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
 import { getConformerJobInputsFromStorage } from '../../utils/conformerJobInputsStorage';
-import { getConformerJob } from '../../utils/conformerJobsApi';
+import { getConformerJob, patchConformerJob } from '../../utils/conformerJobsApi';
+import { InlineJobNameEditor } from './InlineJobNameEditor';
+import { JobDetailsDialog } from './JobDetailsDialog';
 
 export const CONFORMER_JOB_RESUME_EVENT = 'pp-conformer-job-resume';
+
+// LocalStorage keys for column/view preferences
+const JOBS_COLUMNS_STORAGE_KEY = 'pp-editor:jobs-columns:v1';
+const JOBS_SHOW_DESCRIPTIONS_KEY = 'pp-editor:jobs-show-descriptions:v1';
 
 function formatIsoTimestamp(value) {
     const v = String(value || '').trim();
@@ -141,12 +161,97 @@ function extractResumeInputsFromStored(stored) {
     };
 }
 
+// Default column visibility
+const DEFAULT_VISIBLE_COLUMNS = {
+    biln: true,
+    date: true,
+    state: true,
+};
+
+function loadColumnPrefs() {
+    try {
+        const raw = window?.localStorage?.getItem(JOBS_COLUMNS_STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return { ...DEFAULT_VISIBLE_COLUMNS, ...parsed };
+        }
+    } catch { /* ignore */ }
+    return { ...DEFAULT_VISIBLE_COLUMNS };
+}
+
+function saveColumnPrefs(prefs) {
+    try {
+        window?.localStorage?.setItem(JOBS_COLUMNS_STORAGE_KEY, JSON.stringify(prefs));
+    } catch { /* ignore */ }
+}
+
+function loadShowDescriptions() {
+    try {
+        const raw = window?.localStorage?.getItem(JOBS_SHOW_DESCRIPTIONS_KEY);
+        return raw === 'true' || raw === '1';
+    } catch { /* ignore */ }
+    return false;
+}
+
+function saveShowDescriptions(value) {
+    try {
+        window?.localStorage?.setItem(JOBS_SHOW_DESCRIPTIONS_KEY, value ? '1' : '0');
+    } catch { /* ignore */ }
+}
+
 export function ConformerJobsPanel({ dbName = 'pepedit' }) {
     const sessionId = useSessionId();
-    const { items, loading, error, refresh } = useConformerJobsList(sessionId, { dbName, limit: 50 });
+    const { items, loading, error, refresh, updateItem } = useConformerJobsList(sessionId, { dbName, limit: 50 });
+
+    // Session metadata state - reactive to changes via event
+    const [sessionMeta, setSessionMeta] = useState(() => {
+        if (!sessionId) return null;
+        return getLocalSessionMeta(sessionId);
+    });
+
+    // Listen for session meta changes (e.g., when user renames session in Header)
+    useEffect(() => {
+        // Re-read on sessionId change
+        setSessionMeta(sessionId ? getLocalSessionMeta(sessionId) : null);
+
+        const handleMetaChange = (e) => {
+            const detail = e?.detail;
+            // Only update if it's for our session
+            if (detail?.sessionId === sessionId) {
+                setSessionMeta({ name: detail?.name ?? null, description: detail?.description ?? null });
+            }
+        };
+
+        window.addEventListener(SESSION_META_CHANGED_EVENT, handleMetaChange);
+        return () => window.removeEventListener(SESSION_META_CHANGED_EVENT, handleMetaChange);
+    }, [sessionId]);
+
+    const shortSessionId = useMemo(() => formatSessionIdShort(sessionId), [sessionId]);
+
+    // Column visibility state
+    const [visibleColumns, setVisibleColumns] = useState(loadColumnPrefs);
+    const [showDescriptions, setShowDescriptions] = useState(loadShowDescriptions);
+
+    // Column menu anchor
+    const [columnMenuAnchor, setColumnMenuAnchor] = useState(null);
+
+    // Row menu state
+    const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
+    const [rowMenuJob, setRowMenuJob] = useState(null);
+
+    // Details dialog state
+    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+    const [detailsDialogJob, setDetailsDialogJob] = useState(null);
+    const [detailsDialogSaving, setDetailsDialogSaving] = useState(false);
+    const [detailsDialogError, setDetailsDialogError] = useState(null);
+
+    // Inline saving state (jobId -> true while saving)
+    const [savingJobs, setSavingJobs] = useState({});
+
+    // Snackbar state
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     // Cache per-job server details (includes inputs.payload) to drive constraints display.
-    // This avoids relying exclusively on localStorage keys, which can drift across API_BASE_URL scopes.
     const [jobDetailsById, setJobDetailsById] = useState({});
     const jobDetailsRef = useRef(jobDetailsById);
     useEffect(() => {
@@ -215,7 +320,147 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
         };
     }, [items, sessionId, dbName]);
 
-    const title = useMemo(() => (sessionId ? 'My conformer jobs' : 'Session conformer jobs'), [sessionId]);
+    // Persist column preferences
+    useEffect(() => {
+        saveColumnPrefs(visibleColumns);
+    }, [visibleColumns]);
+
+    useEffect(() => {
+        saveShowDescriptions(showDescriptions);
+    }, [showDescriptions]);
+
+    const handleColumnToggle = useCallback((col) => {
+        setVisibleColumns((prev) => ({ ...prev, [col]: !prev[col] }));
+    }, []);
+
+    const handleOpenRowMenu = useCallback((event, job) => {
+        event.stopPropagation();
+        setRowMenuAnchor(event.currentTarget);
+        setRowMenuJob(job);
+    }, []);
+
+    const handleCloseRowMenu = useCallback(() => {
+        setRowMenuAnchor(null);
+        setRowMenuJob(null);
+    }, []);
+
+    const handleOpenDetailsDialog = useCallback(() => {
+        if (rowMenuJob) {
+            setDetailsDialogJob(rowMenuJob);
+            setDetailsDialogError(null);
+            setDetailsDialogOpen(true);
+        }
+        handleCloseRowMenu();
+    }, [rowMenuJob, handleCloseRowMenu]);
+
+    const handleCopyBiln = useCallback(async () => {
+        const biln = rowMenuJob?.result_ref?.properties?.BILN || rowMenuJob?.biln || rowMenuJob?.properties?.BILN || '';
+        if (biln) {
+            try {
+                await navigator.clipboard.writeText(biln);
+                setSnackbar({ open: true, message: 'BILN copied', severity: 'success' });
+            } catch {
+                setSnackbar({ open: true, message: 'Failed to copy', severity: 'error' });
+            }
+        }
+        handleCloseRowMenu();
+    }, [rowMenuJob, handleCloseRowMenu]);
+
+    // Save job name/description via PATCH
+    const saveJobMetadata = useCallback(async (jobId, updates, { showSnackbar = true, isDialog = false } = {}) => {
+        if (!jobId) return;
+
+        // Optimistic update
+        const oldJob = items?.find((j) => (j.job_id || j.id) === jobId);
+        if (updateItem) {
+            updateItem(jobId, updates);
+        }
+
+        setSavingJobs((prev) => ({ ...prev, [jobId]: true }));
+        if (isDialog) setDetailsDialogSaving(true);
+
+        try {
+            const res = await patchConformerJob({
+                jobId,
+                ...updates,
+                sessionId: sessionId || undefined,
+                dbName,
+                baseUrlOverride: API_BASE_URL,
+            });
+
+            if (!res.ok) {
+                const json = await res.json().catch(() => null);
+                const msg = json?.message || json?.error || `Failed to update job (${res.status})`;
+                throw new Error(msg);
+            }
+
+            const json = await res.json().catch(() => null);
+            const data = json?.data && typeof json.data === 'object' ? json.data : null;
+
+            // Update with server response
+            if (data && updateItem) {
+                updateItem(jobId, { name: data.name, description: data.description });
+            }
+
+            if (showSnackbar) {
+                setSnackbar({ open: true, message: 'Job updated', severity: 'success' });
+            }
+
+            if (isDialog) {
+                setDetailsDialogOpen(false);
+                setDetailsDialogJob(null);
+            }
+        } catch (e) {
+            // Revert optimistic update
+            if (oldJob && updateItem) {
+                updateItem(jobId, { name: oldJob.name, description: oldJob.description });
+            }
+
+            const errorMsg = e?.message || 'Failed to update job';
+            if (isDialog) {
+                setDetailsDialogError(errorMsg);
+            } else {
+                setSnackbar({ open: true, message: errorMsg, severity: 'error' });
+            }
+        } finally {
+            setSavingJobs((prev) => {
+                const next = { ...prev };
+                delete next[jobId];
+                return next;
+            });
+            if (isDialog) setDetailsDialogSaving(false);
+        }
+    }, [items, sessionId, dbName, updateItem]);
+
+    const handleInlineNameSave = useCallback((jobId, newName) => {
+        saveJobMetadata(jobId, { name: newName }, { showSnackbar: false });
+    }, [saveJobMetadata]);
+
+    const handleDialogSave = useCallback((updates) => {
+        const jobId = detailsDialogJob?.job_id || detailsDialogJob?.id;
+        if (jobId) {
+            saveJobMetadata(jobId, updates, { showSnackbar: true, isDialog: true });
+        }
+    }, [detailsDialogJob, saveJobMetadata]);
+
+    // Dynamic title: "{session name} jobs" or "{short id} jobs" (ID only when no name)
+    const title = useMemo(() => {
+        if (!sessionId) return 'Conformer jobs';
+        const name = sessionMeta?.name;
+        if (name) {
+            // Session has a name - show name only (no ID)
+            const truncatedName = name.length > 24 ? `${name.slice(0, 24)}…` : name;
+            return `${truncatedName} jobs`;
+        }
+        // No name - show short session ID
+        return `${shortSessionId} jobs`;
+    }, [sessionId, sessionMeta?.name, shortSessionId]);
+
+    // Count visible columns for colspan
+    const visibleColCount = 2 + // Name (always) + Resume (always)
+        (visibleColumns.biln ? 1 : 0) +
+        (visibleColumns.date ? 1 : 0) +
+        (visibleColumns.state ? 1 : 0);
 
     return (
         <Paper
@@ -235,10 +480,51 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                     {title} ({(items || []).length})
                 </Typography>
-                <Button size="small" onClick={refresh} disabled={loading}>
-                    Refresh
-                </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title="Columns & view">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => setColumnMenuAnchor(e.currentTarget)}
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            <ViewColumnIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Button size="small" onClick={refresh} disabled={loading}>
+                        Refresh
+                    </Button>
+                </Box>
             </Box>
+
+            {/* Column visibility menu */}
+            <Menu
+                anchorEl={columnMenuAnchor}
+                open={Boolean(columnMenuAnchor)}
+                onClose={() => setColumnMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <MenuItem dense disabled sx={{ opacity: 1, fontWeight: 600, fontSize: 12 }}>
+                    Columns
+                </MenuItem>
+                <MenuItem dense onClick={() => handleColumnToggle('biln')}>
+                    <Checkbox checked={visibleColumns.biln} size="small" sx={{ p: 0, mr: 1 }} />
+                    <ListItemText primary="BILN" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+                <MenuItem dense onClick={() => handleColumnToggle('date')}>
+                    <Checkbox checked={visibleColumns.date} size="small" sx={{ p: 0, mr: 1 }} />
+                    <ListItemText primary="Date" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+                <MenuItem dense onClick={() => handleColumnToggle('state')}>
+                    <Checkbox checked={visibleColumns.state} size="small" sx={{ p: 0, mr: 1 }} />
+                    <ListItemText primary="State" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem dense onClick={() => setShowDescriptions((v) => !v)}>
+                    <Checkbox checked={showDescriptions} size="small" sx={{ p: 0, mr: 1 }} />
+                    <ListItemText primary="Show descriptions" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+            </Menu>
 
             <Divider />
 
@@ -258,14 +544,20 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                     >
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ width: 72, px: 1, py: 0.5 }}>State</TableCell>
-                                <TableCell sx={{ width: 160, px: 1, py: 0.5 }}>BILN</TableCell>
-                                <TableCell sx={{ width: 120, px: 1, py: 0.5 }}>Constraints</TableCell>
-                                <TableCell sx={{ width: 140, px: 1, py: 0.5 }}>Status / Time</TableCell>
+                                <TableCell sx={{ width: 160, px: 1, py: 0.5 }}>Name</TableCell>
+                                {visibleColumns.biln && (
+                                    <TableCell sx={{ width: 140, px: 1, py: 0.5 }}>BILN</TableCell>
+                                )}
+                                {visibleColumns.date && (
+                                    <TableCell sx={{ width: 120, px: 1, py: 0.5 }}>Date</TableCell>
+                                )}
+                                {visibleColumns.state && (
+                                    <TableCell sx={{ width: 72, px: 1, py: 0.5 }}>State</TableCell>
+                                )}
                                 <TableCell
                                     align="right"
                                     sx={{
-                                        width: 76,
+                                        width: 100,
                                         px: 1,
                                         py: 0.5,
                                         position: 'sticky',
@@ -283,14 +575,14 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                             {(items || []).map((job) => {
                                 const jobId = job?.job_id || job?.id || '';
                                 const state = formatState(job?.state);
-                                const progressMsg =
-                                    formatConformerJobProgressMessage(job?.progress, { compact: true }) ||
-                                    job?.progress?.message ||
-                                    job?.progress_message ||
-                                    '';
                                 const biln = job?.result_ref?.properties?.BILN || job?.biln || job?.properties?.BILN || '';
                                 const bilnPreview = formatBilnPreview(biln);
                                 const pdb = job?.result_ref?.properties?.PDB || job?.result_ref?.properties?.pdb || '';
+
+                                // Job name/description
+                                const jobName = job?.name ?? null;
+                                const jobDescription = job?.description ?? null;
+                                const isSaving = !!savingJobs[jobId];
 
                                 // Prefer server-provided inputs (job detail includes inputs.payload).
                                 // Fall back to localStorage inputs if present.
@@ -307,17 +599,9 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                     ? extractResumeInputsFromStored(inputsSource)
                                     : { ssConstraints: null, templateId: null, scaffoldMappings: null, queryParams: null };
 
-                                const is3D = !!extracted.templateId || Array.isArray(extracted.scaffoldMappings);
-                                const isSS = !is3D && hasMeaningfulSsConstraints(extracted.ssConstraints);
-                                const constraintLabel = is3D ? '3D' : isSS ? 'Secondary structure' : 'None';
-
                                 const updatedAt = job?.updated_at || job?.meta?.timestamp || '';
                                 const createdAt = job?.created_at || '';
                                 const ts = formatIsoTimestamp(updatedAt || createdAt);
-
-                                const progressText = progressMsg ? String(progressMsg) : '';
-                                const hideDone = progressText.trim().toLowerCase() === 'done';
-                                const statusOrTime = (!hideDone && progressText) ? progressText : (ts || '');
 
                                 const onResume = () => {
                                     if (!jobId) return;
@@ -339,61 +623,71 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
 
                                 return (
                                     <TableRow key={jobId || Math.random()} hover>
-                                        <TableCell sx={{ px: 1, py: 0.5 }}>
-                                            <Chip label={state} size="small" color={stateColor(state)} variant="outlined" />
+                                        {/* Name cell (always visible, editable) */}
+                                        <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
+                                            <InlineJobNameEditor
+                                                name={jobName}
+                                                description={jobDescription}
+                                                showDescription={showDescriptions}
+                                                saving={isSaving}
+                                                onSave={(newName) => handleInlineNameSave(jobId, newName)}
+                                            />
                                         </TableCell>
 
-                                        <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
-                                            {bilnPreview ? (
-                                                <Tooltip title={biln} placement="top" arrow>
+                                        {/* BILN cell (optional) */}
+                                        {visibleColumns.biln && (
+                                            <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
+                                                {bilnPreview ? (
+                                                    <Tooltip title={biln} placement="top" arrow>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                fontSize: 12,
+                                                                fontFamily: 'monospace',
+                                                                whiteSpace: 'nowrap',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                            }}
+                                                        >
+                                                            {bilnPreview}
+                                                        </Typography>
+                                                    </Tooltip>
+                                                ) : (
+                                                    <Typography variant="body2" sx={{ fontSize: 12, color: 'text.disabled' }}>
+                                                        —
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+                                        )}
+
+                                        {/* Date cell (optional) */}
+                                        {visibleColumns.date && (
+                                            <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
+                                                <Tooltip title={ts || ''} placement="top" arrow>
                                                     <Typography
-                                                        variant="body2"
+                                                        variant="caption"
                                                         sx={{
-                                                            fontSize: 12,
+                                                            color: 'text.secondary',
                                                             whiteSpace: 'nowrap',
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
+                                                            display: 'block',
                                                         }}
                                                     >
-                                                        {bilnPreview}
+                                                        {ts || '—'}
                                                     </Typography>
                                                 </Tooltip>
-                                            ) : (
-                                                <Typography variant="body2" sx={{ fontSize: 12, color: 'text.disabled' }}>
-                                                    —
-                                                </Typography>
-                                            )}
-                                        </TableCell>
+                                            </TableCell>
+                                        )}
 
-                                        <TableCell sx={{ px: 1, py: 0.5 }}>
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    color: constraintLabel === 'None' ? 'text.secondary' : 'text.primary',
-                                                    whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {constraintLabel}
-                                            </Typography>
-                                        </TableCell>
+                                        {/* State cell (optional) */}
+                                        {visibleColumns.state && (
+                                            <TableCell sx={{ px: 1, py: 0.5 }}>
+                                                <Chip label={state} size="small" color={stateColor(state)} variant="outlined" />
+                                            </TableCell>
+                                        )}
 
-                                        <TableCell sx={{ px: 1, py: 0.5, minWidth: 0 }}>
-                                            <Tooltip title={statusOrTime || ''} placement="top" arrow>
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        color: 'text.secondary',
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        display: 'block',
-                                                    }}
-                                                >
-                                                    {statusOrTime || '—'}
-                                                </Typography>
-                                            </Tooltip>
-                                        </TableCell>
-
+                                        {/* Action cell (always visible) */}
                                         <TableCell
                                             align="right"
                                             sx={{
@@ -405,9 +699,22 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                                                 bgcolor: 'background.paper',
                                             }}
                                         >
-                                            <Button size="small" onClick={onResume} disabled={!jobId || state === 'failed'}>
-                                                Resume
-                                            </Button>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                <Button
+                                                    size="small"
+                                                    onClick={onResume}
+                                                    disabled={!jobId || state === 'failed' || isSaving}
+                                                >
+                                                    Resume
+                                                </Button>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => handleOpenRowMenu(e, job)}
+                                                    sx={{ color: 'text.secondary' }}
+                                                >
+                                                    <MoreVertIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -415,7 +722,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
 
                             {!loading && (!items || items.length === 0) && (
                                 <TableRow>
-                                    <TableCell colSpan={5}>
+                                    <TableCell colSpan={visibleColCount}>
                                         <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
                                             No jobs found.
                                         </Typography>
@@ -425,7 +732,7 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
 
                             {loading && (
                                 <TableRow>
-                                    <TableCell colSpan={5}>
+                                    <TableCell colSpan={visibleColCount}>
                                         <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
                                             Loading…
                                         </Typography>
@@ -436,6 +743,62 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                     </Table>
                 </TableContainer>
             </Box>
+
+            {/* Row context menu */}
+            <Menu
+                anchorEl={rowMenuAnchor}
+                open={Boolean(rowMenuAnchor)}
+                onClose={handleCloseRowMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <MenuItem dense onClick={handleOpenDetailsDialog}>
+                    <ListItemIcon>
+                        <EditIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Edit details" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+                <MenuItem dense onClick={handleCopyBiln}>
+                    <ListItemIcon>
+                        <ContentCopyIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Copy BILN" primaryTypographyProps={{ fontSize: 13 }} />
+                </MenuItem>
+            </Menu>
+
+            {/* Edit details dialog */}
+            <JobDetailsDialog
+                open={detailsDialogOpen}
+                onClose={() => {
+                    setDetailsDialogOpen(false);
+                    setDetailsDialogJob(null);
+                    setDetailsDialogError(null);
+                }}
+                job={detailsDialogJob}
+                onSave={handleDialogSave}
+                saving={detailsDialogSaving}
+                error={detailsDialogError}
+            />
+
+            {/* Feedback snackbar */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={2000}
+                onClose={(_, reason) => {
+                    if (reason === 'clickaway') return;
+                    setSnackbar((s) => ({ ...s, open: false }));
+                }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    severity={snackbar.severity}
+                    variant="filled"
+                    onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+                    sx={{ fontSize: 12 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Paper>
     );
 }

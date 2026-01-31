@@ -249,3 +249,51 @@ export async function listSessionConformerJobs({
   // session_id is in the path; use apiFetchNoOwner to avoid legacy owner handling.
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
+/**
+ * Update a conformer job's metadata (name, description).
+ * Uses PATCH /api/core/molecules/conformer_jobs/<job_id>
+ *
+ * @param {{
+ *   jobId: string,
+ *   name?: string | null,
+ *   description?: string | null,
+ *   sessionId?: string,
+ *   dbName?: string,
+ *   baseUrlOverride?: string,
+ *   signal?: AbortSignal
+ * }} options
+ * @returns {Promise<Response>}
+ */
+export async function patchConformerJob({
+  jobId,
+  name,
+  description,
+  sessionId,
+  dbName = 'pepedit',
+  baseUrlOverride,
+  signal,
+} = {}) {
+  if (!jobId) throw new Error('Missing jobId');
+
+  const effectiveSessionId = sessionId ?? getSessionId();
+
+  const url = buildApiUrl(`/api/core/molecules/conformer_jobs/${encodeURIComponent(jobId)}`, {
+    baseUrlOverride,
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
+  });
+
+  // Only include keys that are explicitly provided (allow null to clear)
+  const body = {};
+  if (name !== undefined) body.name = name;
+  if (description !== undefined) body.description = description;
+
+  return apiFetchNoOwner(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  });
+}

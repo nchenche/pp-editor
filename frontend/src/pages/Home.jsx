@@ -6,6 +6,7 @@ import Tab from '@mui/material/Tab';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 
 import { ConfirmProvider, useConfirm } from '../components/common/ConfirmDialogProvider';
 
@@ -29,7 +30,7 @@ function SidebarTabbedPanel({
   replaceSelection,
   outputData,
 }) {
-  const { setSidebarCollapsed } = useSidebarCollapse();
+  const { setSidebarCollapsed, toggleMaximizeSidebar } = useSidebarCollapse();
   const [hideTooltipOpen, setHideTooltipOpen] = useState(false);
 
   useEffect(() => {
@@ -118,13 +119,25 @@ function SidebarTabbedPanel({
           sx={{
             flex: '0 0 auto',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: 0.25,
             py: 0.5,
             borderBottom: 1,
             borderColor: 'divider',
           }}
         >
+          <Tooltip title="Maximize width" placement="left" arrow>
+            <IconButton
+              size="small"
+              onClick={() => toggleMaximizeSidebar?.()}
+              aria-label="maximize right panels"
+              sx={{ color: 'text.secondary', p: 0.5 }}
+            >
+              <OpenInFullIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip
             title="Hide panel"
             placement="left"
@@ -142,9 +155,9 @@ function SidebarTabbedPanel({
                 requestAnimationFrame(() => setSidebarCollapsed(true));
               }}
               aria-label="hide right panels"
-              sx={{ color: 'text.secondary' }}
+              sx={{ color: 'text.secondary', p: 0.5 }}
             >
-              <ChevronRightIcon fontSize="small" />
+              <ChevronRightIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
         </Box>
