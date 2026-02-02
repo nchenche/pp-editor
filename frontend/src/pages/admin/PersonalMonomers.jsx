@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Paper,
+  Collapse,
   Typography,
   Divider,
   TextField,
@@ -57,6 +58,41 @@ function isValidEmail(value) {
   const v = String(value || '').trim();
   if (!v) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+function parseCollisionSymbolsFromMessage(message) {
+  const msg = String(message || '');
+  if (!msg) return null;
+  if (!msg.toLowerCase().includes('collide with public symbols')) return null;
+
+  const symbols = [];
+
+  // Most backends return a Python-like repr: ['A', 'B', ...]
+  const singleQuoteMatches = msg.match(/'([^']+)'/g) || [];
+  for (const m of singleQuoteMatches) {
+    const v = m.slice(1, -1).trim();
+    if (v) symbols.push(v);
+  }
+
+  // Fallback: JSON-ish list: ["A", "B"]
+  if (symbols.length === 0) {
+    const doubleQuoteMatches = msg.match(/"([^"]+)"/g) || [];
+    for (const m of doubleQuoteMatches) {
+      const v = m.slice(1, -1).trim();
+      if (v) symbols.push(v);
+    }
+  }
+
+  // De-dup while preserving order
+  const seen = new Set();
+  const uniq = [];
+  for (const s of symbols) {
+    if (seen.has(s)) continue;
+    seen.add(s);
+    uniq.push(s);
+  }
+
+  return uniq;
 }
 
 const NEVER_VISIBLE_KEYS = new Set([
@@ -307,6 +343,11 @@ export default function PersonalMonomers() {
 
   const [deleteDialog, setDeleteDialog] = useState({ open: false, monomer: null });
 
+  // Bulk delete dialog state
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState({ open: false, symbols: [] });
+  const [bulkDeleteIsDeleting, setBulkDeleteIsDeleting] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState('');
+
   // Selection state for bulk actions
   const [selectedSymbols, setSelectedSymbols] = useState(new Set());
 
@@ -324,6 +365,7 @@ export default function PersonalMonomers() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createMode, setCreateMode] = useState(null); // null | 'upload-sdf' | 'scratch'
   const [createError, setCreateError] = useState('');
+  const [createErrorDetailsOpen, setCreateErrorDetailsOpen] = useState(false);
   const [createIsUploading, setCreateIsUploading] = useState(false);
   const [createFileName, setCreateFileName] = useState('');
   const [createRecords, setCreateRecords] = useState([]); // [{ id, text }]
@@ -339,6 +381,7 @@ export default function PersonalMonomers() {
 
   const wizardRef = useRef(null);
   const formRef = useRef(null);
+  const createDialogContentRef = useRef(null);
 
   const [scratchFragments] = useFragments(scratchSmiles, scratchSelectedBonds);
   const [handleScratchFormSubmit, scratchMolBlock] = useFormSubmission(
@@ -408,6 +451,7 @@ export default function PersonalMonomers() {
   const resetCreateDialog = useCallback(() => {
     setCreateMode(null);
     setCreateError('');
+    setCreateErrorDetailsOpen(false);
     setCreateIsUploading(false);
     setCreateFileName('');
     setCreateRecords([]);
@@ -425,6 +469,23 @@ export default function PersonalMonomers() {
     setCreateDialogOpen(false);
     resetCreateDialog();
   }, [resetCreateDialog]);
+
+  const createErrorCollisions = useMemo(() => parseCollisionSymbolsFromMessage(createError), [createError]);
+
+  useEffect(() => {
+    if (!createError) {
+      setCreateErrorDetailsOpen(false);
+      return;
+    }
+    // Make sure the user sees the error even if the dialog content is scrolled.
+    if (createDialogOpen && createDialogContentRef.current) {
+      try {
+        createDialogContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch {
+        // ignore
+      }
+    }
+  }, [createError, createDialogOpen]);
 
   const StepGuideline = useCallback(({ title, children }) => {
     return (
@@ -989,6 +1050,77 @@ export default function PersonalMonomers() {
     return visibleSymbols.length > 0 && visibleSymbols.every((s) => selectedSymbols.has(s));
   }, [sortedFiltered, selectedSymbols]);
 
+  const openBulkDeleteDialog = useCallback(() => {
+    const symbols = Array.from(selectedSymbols || []).filter(Boolean);
+    if (symbols.length === 0) return;
+    setBulkDeleteError('');
+    setBulkDeleteDialog({ open: true, symbols });
+  }, [selectedSymbols]);
+
+  const closeBulkDeleteDialog = useCallback(() => {
+    setBulkDeleteDialog({ open: false, symbols: [] });
+    setBulkDeleteError('');
+    setBulkDeleteIsDeleting(false);
+  }, []);
+
+  const confirmBulkDelete = useCallback(async () => {
+    const symbols = (bulkDeleteDialog.symbols || []).map((s) => String(s || '').trim()).filter(Boolean);
+    if (symbols.length === 0) return;
+
+    setBulkDeleteError('');
+    setBulkDeleteIsDeleting(true);
+    setError('');
+
+    const deleteOne = async (symbol) => {
+      const url = `${API_DB_URL}/monomers/personal?db_name=pepedit&symbols=${encodeURIComponent(symbol)}`;
+      const res = await apiFetch(url, { method: 'DELETE' });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message || json?.error || `Failed to delete ${symbol} (status ${res.status})`;
+        throw new Error(String(msg));
+      }
+      return true;
+    };
+
+    try {
+      // Prefer one request for all symbols if backend supports it.
+      const url = `${API_DB_URL}/monomers/personal?db_name=pepedit&symbols=${encodeURIComponent(symbols.join(','))}`;
+      const res = await apiFetch(url, { method: 'DELETE' });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        // Fallback: delete individually (covers backends that don't accept comma-separated lists)
+        if (symbols.length > 1) {
+          const failed = [];
+          for (const s of symbols) {
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              await deleteOne(s);
+            } catch {
+              failed.push(s);
+            }
+          }
+
+          if (failed.length > 0) {
+            throw new Error(`Failed to delete: ${failed.join(', ')}`);
+          }
+        } else {
+          const msg = json?.message || json?.error || `Failed to delete monomer (status ${res.status})`;
+          throw new Error(String(msg));
+        }
+      }
+
+      invalidateLibraryFetching('personal-monomers-deleted');
+      setSelectedSymbols(new Set());
+      closeBulkDeleteDialog();
+      await load();
+    } catch (e) {
+      setBulkDeleteError(e?.message || 'Failed to delete selected monomers.');
+    } finally {
+      setBulkDeleteIsDeleting(false);
+    }
+  }, [bulkDeleteDialog.symbols, closeBulkDeleteDialog, load]);
+
   // Row menu handlers
   const openRowMenu = useCallback((event, m) => {
     event.stopPropagation();
@@ -1177,7 +1309,22 @@ export default function PersonalMonomers() {
                   onClick={() => openSubmitDialog(Array.from(selectedSymbols))}
                   disabled={selectionCount === 0}
                 >
-                  Submit for Review…
+                  Submit for Review
+                </Button>
+              </span>
+            </Tooltip>
+
+            <Tooltip title={selectionCount === 0 ? 'Select monomers first' : `Delete ${selectionCount} selected monomer${selectionCount > 1 ? 's' : ''}`}>
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon fontSize="small" />}
+                  onClick={openBulkDeleteDialog}
+                  disabled={selectionCount === 0}
+                >
+                  Delete
                 </Button>
               </span>
             </Tooltip>
@@ -1775,13 +1922,99 @@ export default function PersonalMonomers() {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={bulkDeleteDialog.open} onClose={closeBulkDeleteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete selected monomers</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {bulkDeleteError ? <Alert severity="error">{bulkDeleteError}</Alert> : null}
+
+            <Typography variant="body2">
+              Delete {bulkDeleteDialog.symbols?.length || 0} personal monomer{(bulkDeleteDialog.symbols?.length || 0) !== 1 ? 's' : ''}? This cannot be undone.
+            </Typography>
+
+            {bulkDeleteDialog.symbols?.length ? (
+              <TextField
+                label="Monomers to delete"
+                value={(bulkDeleteDialog.symbols || []).join(', ')}
+                multiline
+                minRows={3}
+                maxRows={6}
+                fullWidth
+                size="small"
+                slotProps={{ input: { readOnly: true } }}
+              />
+            ) : null}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeBulkDeleteDialog} disabled={bulkDeleteIsDeleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmBulkDelete}
+            color="error"
+            variant="contained"
+            disabled={bulkDeleteIsDeleting || (bulkDeleteDialog.symbols?.length || 0) === 0}
+            startIcon={bulkDeleteIsDeleting ? <CircularProgress size={18} /> : <DeleteIcon />}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={createDialogOpen} onClose={closeCreateDialog} maxWidth="md" fullWidth>
         <DialogTitle>Create monomer</DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers ref={createDialogContentRef}>
           {createError ? (
-            <Typography variant="body2" sx={{ color: 'error.main', mb: 1 }}>
-              {createError}
-            </Typography>
+            <Box sx={{ mb: 1 }}>
+              <Alert
+                severity="error"
+                variant="outlined"
+                action={
+                  createErrorCollisions && createErrorCollisions.length > 0 ? (
+                    <Button
+                      size="small"
+                      color="inherit"
+                      onClick={() => setCreateErrorDetailsOpen((v) => !v)}
+                    >
+                      {createErrorDetailsOpen ? 'Hide details' : 'Show details'}
+                    </Button>
+                  ) : null
+                }
+              >
+                {createErrorCollisions && createErrorCollisions.length > 0 ? (
+                  <Typography variant="body2">
+                    Some monomer symbols already exist in the public library. Please rename the conflicting symbols and try again.
+                  </Typography>
+                ) : (
+                  <Typography variant="body2">{createError}</Typography>
+                )}
+
+                {createErrorCollisions && createErrorCollisions.length > 0 ? (
+                  <Typography variant="body2" sx={{ mt: 0.75, color: 'text.secondary' }}>
+                    Conflicts: {createErrorCollisions.slice(0, 12).join(', ')}
+                    {createErrorCollisions.length > 12 ? ` … (+${createErrorCollisions.length - 12} more)` : ''}
+                  </Typography>
+                ) : null}
+              </Alert>
+
+              {createErrorCollisions && createErrorCollisions.length > 0 ? (
+                <Collapse in={createErrorDetailsOpen}>
+                  <Box sx={{ mt: 1 }}>
+                    <TextField
+                      label="Conflicting symbols"
+                      value={createErrorCollisions.join('\n')}
+                      multiline
+                      minRows={6}
+                      maxRows={12}
+                      fullWidth
+                      size="small"
+                      slotProps={{ input: { readOnly: true } }}
+                    />
+                  </Box>
+                </Collapse>
+              ) : null}
+            </Box>
           ) : null}
 
           {createMode == null ? (
