@@ -40,13 +40,24 @@ import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ImageIcon from '@mui/icons-material/ImageOutlined';
 import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
 import DownloadIcon from '@mui/icons-material/DownloadOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SendIcon from '@mui/icons-material/Send';
+import Alert from '@mui/material/Alert';
 
-import { API_DB_URL } from '../../config';
+import { API_DB_URL, API_MAIL_URL } from '../../config';
 import { apiFetch } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks';
 import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
+
+const MAX_SDF_BYTES = 2 * 1024 * 1024; // aligns with backend default MAIL_MAX_SDF_BYTES
+
+function isValidEmail(value) {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 
 const NEVER_VISIBLE_KEYS = new Set([
   'owner_id',
@@ -295,6 +306,20 @@ export default function PersonalMonomers() {
   const capInvalid = (capForbidden && editForm.type === 'cap') || (capRequired && editForm.type !== 'cap');
 
   const [deleteDialog, setDeleteDialog] = useState({ open: false, monomer: null });
+
+  // Selection state for bulk actions
+  const [selectedSymbols, setSelectedSymbols] = useState(new Set());
+
+  // Submit for review dialog state
+  const [submitDialog, setSubmitDialog] = useState({ open: false, symbols: [] }); // symbols to submit
+  const [submitEmail, setSubmitEmail] = useState('');
+  const [submitIsSubmitting, setSubmitIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
+
+  // Row kebab menu state
+  const [rowMenuAnchor, setRowMenuAnchor] = useState(null);
+  const [rowMenuMonomer, setRowMenuMonomer] = useState(null);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createMode, setCreateMode] = useState(null); // null | 'upload-sdf' | 'scratch'
@@ -927,6 +952,147 @@ export default function PersonalMonomers() {
     downloadTextFile(`personal_monomers_${stamp}.sdf`, content);
   }, [normalized]);
 
+  // Selection handlers
+  const toggleSelectMonomer = useCallback((symbol) => {
+    setSelectedSymbols((prev) => {
+      const next = new Set(prev);
+      if (next.has(symbol)) {
+        next.delete(symbol);
+      } else {
+        next.add(symbol);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    const allSymbols = sortedFiltered.map((m) => m.symbol).filter(Boolean);
+    setSelectedSymbols((prev) => {
+      const allSelected = allSymbols.length > 0 && allSymbols.every((s) => prev.has(s));
+      if (allSelected) {
+        // Deselect all visible
+        const next = new Set(prev);
+        for (const s of allSymbols) next.delete(s);
+        return next;
+      } else {
+        // Select all visible
+        const next = new Set(prev);
+        for (const s of allSymbols) next.add(s);
+        return next;
+      }
+    });
+  }, [sortedFiltered]);
+
+  const selectionCount = selectedSymbols.size;
+  const allVisibleSelected = useMemo(() => {
+    const visibleSymbols = sortedFiltered.map((m) => m.symbol).filter(Boolean);
+    return visibleSymbols.length > 0 && visibleSymbols.every((s) => selectedSymbols.has(s));
+  }, [sortedFiltered, selectedSymbols]);
+
+  // Row menu handlers
+  const openRowMenu = useCallback((event, m) => {
+    event.stopPropagation();
+    setRowMenuAnchor(event.currentTarget);
+    setRowMenuMonomer(m);
+  }, []);
+
+  const closeRowMenu = useCallback(() => {
+    setRowMenuAnchor(null);
+    setRowMenuMonomer(null);
+  }, []);
+
+  // Submit for review dialog handlers
+  const openSubmitDialog = useCallback((symbols) => {
+    const symbolList = Array.isArray(symbols) ? symbols : [symbols];
+    setSubmitDialog({ open: true, symbols: symbolList });
+    setSubmitEmail('');
+    setSubmitError('');
+    setSubmitSuccess('');
+  }, []);
+
+  const closeSubmitDialog = useCallback(() => {
+    setSubmitDialog({ open: false, symbols: [] });
+    setSubmitEmail('');
+    setSubmitError('');
+    setSubmitSuccess('');
+  }, []);
+
+  const handleSubmitForReview = useCallback(async () => {
+    setSubmitError('');
+    setSubmitSuccess('');
+
+    if (!isValidEmail(submitEmail)) {
+      setSubmitError('Please enter a valid email address.');
+      return;
+    }
+
+    const symbols = submitDialog.symbols || [];
+    if (symbols.length === 0) {
+      setSubmitError('No monomers selected.');
+      return;
+    }
+
+    // Gather SDF data for selected monomers
+    const selectedMonomers = (normalized || [])
+      .filter((m) => symbols.includes(m.symbol))
+      .map((m) => m.raw)
+      .filter(Boolean);
+
+    const sdfs = selectedMonomers
+      .map((m) => (m?.sdf && String(m.sdf).trim() ? String(m.sdf) : ''))
+      .filter(Boolean);
+
+    if (sdfs.length === 0) {
+      setSubmitError('No SDF data available for the selected monomers.');
+      return;
+    }
+
+    const sdfContent = sdfs.join('');
+    if (sdfContent.length > MAX_SDF_BYTES) {
+      setSubmitError(`Combined SDF is too large. Please keep submissions under ${Math.round(MAX_SDF_BYTES / (1024 * 1024))} MB.`);
+      return;
+    }
+
+    setSubmitIsSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('from_email', String(submitEmail).trim());
+      form.append('attach_sdf', 'true');
+      const blob = new Blob([sdfContent], { type: 'chemical/x-mdl-sdfile' });
+      const filename = symbols.length === 1 ? `${symbols[0]}.sdf` : `monomers_${symbols.length}.sdf`;
+      form.append('sdf_file', blob, filename);
+
+      const res = await apiFetch(`${API_MAIL_URL}/monomers/submit`, {
+        method: 'POST',
+        body: form,
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message || json?.error || `Submission failed (status ${res.status})`;
+        throw new Error(String(msg));
+      }
+
+      setSubmitSuccess('Thanks! Your request has been sent to the maintainers for review.');
+      // Clear selection after successful submission
+      setSelectedSymbols(new Set());
+    } catch (e) {
+      setSubmitError(e?.message || 'Failed to submit request.');
+    } finally {
+      setSubmitIsSubmitting(false);
+    }
+  }, [submitEmail, submitDialog.symbols, normalized]);
+
+  const handleRowMenuSubmit = useCallback(() => {
+    if (rowMenuMonomer) {
+      const symbol = rowMenuMonomer.symbol || rowMenuMonomer.raw?.symbol;
+      if (symbol) {
+        openSubmitDialog([symbol]);
+      }
+    }
+    closeRowMenu();
+  }, [rowMenuMonomer, openSubmitDialog, closeRowMenu]);
+
   const handleCreateFilePicked = useCallback(async (file) => {
     if (!file) return;
     setCreateError('');
@@ -998,10 +1164,36 @@ export default function PersonalMonomers() {
           overflow: 'hidden',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary', letterSpacing: '0.5px' }}>
-            MY MONOMERS
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 1, flexWrap: 'wrap' }}>
+          {/* Selection indicator + submit action */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+            <Tooltip title={selectionCount === 0 ? 'Select monomers first' : `Submit ${selectionCount} monomer${selectionCount > 1 ? 's' : ''} for review`}>
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<SendIcon fontSize="small" />}
+                  onClick={() => openSubmitDialog(Array.from(selectedSymbols))}
+                  disabled={selectionCount === 0}
+                >
+                  Submit for Review…
+                </Button>
+              </span>
+            </Tooltip>
+
+            {selectionCount > 0 ? (
+              <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                {selectionCount} selected
+              </Typography>
+            ) : (
+              <Typography variant="body2" sx={{ color: 'text.disabled', whiteSpace: 'nowrap' }}>
+                {/* Select monomers to submit */}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Right-side actions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Refresh">
               <span>
@@ -1098,17 +1290,36 @@ export default function PersonalMonomers() {
               stickyHeader
               sx={{
                 tableLayout: 'fixed',
-                minWidth: Math.max(900, ACTIONS_COL_WIDTH + IMG_COL_WIDTH + (visibleColumns.length * 180)),
+                minWidth: Math.max(900, 48 + ACTIONS_COL_WIDTH + IMG_COL_WIDTH + (visibleColumns.length * 180)),
               }}
             >
               <TableHead>
                 <TableRow>
+                  {/* Checkbox column */}
+                  <TableCell
+                    padding="checkbox"
+                    sx={{
+                      width: 48,
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 3,
+                      backgroundColor: 'background.paper',
+                    }}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={allVisibleSelected && sortedFiltered.length > 0}
+                      indeterminate={selectionCount > 0 && !allVisibleSelected}
+                      onChange={toggleSelectAll}
+                      disabled={sortedFiltered.length === 0}
+                    />
+                  </TableCell>
                   <TableCell
                     sx={{
                       fontWeight: 600,
                       width: ACTIONS_COL_WIDTH,
                       position: 'sticky',
-                      left: 0,
+                      left: 48,
                       zIndex: 3,
                       backgroundColor: 'background.paper',
                       whiteSpace: 'nowrap',
@@ -1163,7 +1374,7 @@ export default function PersonalMonomers() {
               <TableBody>
                 {sortedFiltered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={visibleColumns.length + 2}>
+                    <TableCell colSpan={visibleColumns.length + 3}>
                       <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 2 }}>
                         No personal monomers found.
                       </Typography>
@@ -1171,11 +1382,31 @@ export default function PersonalMonomers() {
                   </TableRow>
                 ) : (
                   sortedFiltered.map((m, idx) => (
-                    <TableRow key={m?.raw?._id ?? m?.raw?.id ?? m?.symbol ?? `row-${idx}`} hover>
+                    <TableRow
+                      key={m?.raw?._id ?? m?.raw?.id ?? m?.symbol ?? `row-${idx}`}
+                      hover
+                      selected={selectedSymbols.has(m.symbol)}
+                    >
+                      {/* Checkbox cell */}
                       <TableCell
+                        padding="checkbox"
                         sx={{
                           position: 'sticky',
                           left: 0,
+                          zIndex: 2,
+                          backgroundColor: 'background.paper',
+                        }}
+                      >
+                        <Checkbox
+                          size="small"
+                          checked={selectedSymbols.has(m.symbol)}
+                          onChange={() => toggleSelectMonomer(m.symbol)}
+                        />
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          position: 'sticky',
+                          left: 48,
                           zIndex: 2,
                           backgroundColor: 'background.paper',
                           whiteSpace: 'nowrap',
@@ -1195,6 +1426,11 @@ export default function PersonalMonomers() {
                         <Tooltip title="Delete">
                           <IconButton size="small" color="error" onClick={() => requestDelete(m.raw)}>
                             <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="More actions">
+                          <IconButton size="small" onClick={(e) => openRowMenu(e, m)}>
+                            <MoreVertIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
@@ -1271,6 +1507,82 @@ export default function PersonalMonomers() {
           </MenuItem>
         ))}
       </Menu>
+
+      {/* Row kebab menu */}
+      <Menu
+        anchorEl={rowMenuAnchor}
+        open={Boolean(rowMenuAnchor)}
+        onClose={closeRowMenu}
+      >
+        <MenuItem onClick={handleRowMenuSubmit}>
+          <ListItemText primary="Submit for Review…" />
+        </MenuItem>
+      </Menu>
+
+      {/* Submit for review dialog */}
+      <Dialog open={submitDialog.open} onClose={closeSubmitDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Submit monomers for review</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {submitError ? <Alert severity="error">{submitError}</Alert> : null}
+            {submitSuccess ? <Alert severity="success">{submitSuccess}</Alert> : null}
+
+            {!submitSuccess && (
+              <>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Submit {submitDialog.symbols?.length || 0} monomer{(submitDialog.symbols?.length || 0) !== 1 ? 's' : ''} to the public library for review.
+                  The maintainers will review your submission before publishing.
+                </Typography>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    Monomers to submit
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+                    {(submitDialog.symbols || []).join(', ') || '—'}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    Your email address
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                    We use your email only to reply to your submission. It is not stored.
+                  </Typography>
+                  <TextField
+                    value={submitEmail}
+                    onChange={(e) => {
+                      setSubmitError('');
+                      setSubmitEmail(e.target.value);
+                    }}
+                    placeholder="name@domain.org"
+                    size="small"
+                    fullWidth
+                    disabled={submitIsSubmitting}
+                    error={Boolean(submitEmail) && !isValidEmail(submitEmail)}
+                  />
+                </Box>
+              </>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeSubmitDialog} disabled={submitIsSubmitting}>
+            {submitSuccess ? 'Close' : 'Cancel'}
+          </Button>
+          {!submitSuccess && (
+            <Button
+              variant="contained"
+              onClick={handleSubmitForReview}
+              disabled={!isValidEmail(submitEmail) || submitIsSubmitting || (submitDialog.symbols?.length || 0) === 0}
+              startIcon={submitIsSubmitting ? <CircularProgress size={18} /> : <SendIcon />}
+            >
+              Submit request
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={imagePreview.open} onClose={closeImage} maxWidth="md" fullWidth>
         <DialogTitle>Structure: {imagePreview.symbol}</DialogTitle>
