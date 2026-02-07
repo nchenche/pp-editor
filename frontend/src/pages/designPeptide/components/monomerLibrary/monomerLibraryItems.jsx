@@ -3,7 +3,7 @@ import { List, getScrollbarSize } from 'react-window';
 
 import { Card, CardContent, CardActions, IconButton, Box, Tooltip, Typography } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Chip from "@mui/material/Chip";
 
 import { getMissingRequiredRgroups } from '../../../../utils/replacementCompatibility';
@@ -154,7 +154,7 @@ const MonomerLibraryItem = memo(
                             sx={{ p: 0.6, color: "grey.400" }}
                             className='hover:text-slate-200'
                         >
-                            <AddCircleIcon fontSize="inherit" />
+                            <AddCircleIcon fontSize="small" sx={{ fontSize: 15 }} />
                         </IconButton>
                     </span>
                 </Tooltip>
@@ -172,7 +172,7 @@ const MonomerLibraryItem = memo(
                         sx={{ p: 0.6, color: "grey.400" }}
                         className="hover:text-slate-200"
                     >
-                        <QuestionMarkSharpIcon fontSize="small" sx={{ fontSize: 15 }} />
+                        <InfoOutlinedIcon fontSize="small" sx={{ fontSize: 15 }} />
                     </IconButton>
                 </Tooltip>
             </CardActions>
