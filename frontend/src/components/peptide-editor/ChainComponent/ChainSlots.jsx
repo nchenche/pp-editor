@@ -8,6 +8,7 @@ import TemplateSequence from './TemplateSequence';
 
 import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import CloseIcon from '@mui/icons-material/Close';
 import UploadIcon from '@mui/icons-material/Upload';
 
 import { alpha } from "@mui/material/styles";
@@ -137,7 +138,7 @@ export const ChainSlots = ({
     }, []);
     return (
         <DragDropContext onDragEnd={onDragEnd} onDragStart={onDragStart}>
-            <Box style={CELL_CSS_VARS}>
+            <Box style={CELL_CSS_VARS} sx={{ pt: 0.75, pr: 0.75 }}>
             {(() => {
                 let runningOffset = 0;
                 return effectiveRowMonomerLists.map((list, seqIdx) => {
@@ -246,6 +247,37 @@ export const ChainSlots = ({
                                 mb: 1,
                             }}
                         >
+                            {/* Chain removal icon – top-right corner, overlaps border */}
+                            <Tooltip title="Remove chain" arrow>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        sequenceClearHandler();
+                                    }}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: -6,
+                                        right: -6,
+                                        zIndex: 3,
+                                        width: 16,
+                                        height: 16,
+                                        p: 0,
+                                        borderRadius: '50%',
+                                        color: '#fff',
+                                        bgcolor: (t) => seqIdx === safeActiveSeqIdx
+                                            ? t.palette.grey[700]
+                                            : t.palette.grey[600],
+                                        boxShadow: 1,
+                                        '&:hover': {
+                                            bgcolor: 'error.main',
+                                        },
+                                    }}
+                                    aria-label="remove chain"
+                                >
+                                    <CloseIcon sx={{ fontSize: 10 }} />
+                                </IconButton>
+                            </Tooltip>
                             <ChainContainer
                                 seqIdx={seqIdx}
                                 dimReplaceOverlay={overlayActive && seqIdx === safeActiveSeqIdx}
