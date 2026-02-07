@@ -36,8 +36,11 @@ import AddIcon from '@mui/icons-material/Add';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import PendingIcon from '@mui/icons-material/HourglassEmpty';
 import SendIcon from '@mui/icons-material/Send';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 
 import { useSessionLoader, SESSION_LOAD_STATE } from '../../hooks/useSessionLoader';
+import { useShellTheme } from '../../theme/ShellThemeProvider';
 import {
   getSession,
   getEmailStatus,
@@ -679,9 +682,11 @@ function Header({ children }) {
     return { icon: <EmailIcon sx={{ fontSize: 16 }} />, tooltip: `${emailStatus?.email} (unverified)`, color: 'warning' };
   }, [emailStatusLoading, hasEmail, hasPendingVerification, emailVerified, emailStatus?.email, pendingTargetEmail]);
 
+  const { shell, mode, toggleMode } = useShellTheme();
+
   return (
     <>
-      <header className="bg-slate-800 px-3 py-2 sm:px-4">
+      <header className="px-3 py-2 sm:px-4" style={{ backgroundColor: shell.headerBg }}>
         {/* ── Top row: Brand + (nav if wide enough) + Session widget ── */}
         <Box
           sx={{
@@ -753,6 +758,23 @@ function Header({ children }) {
 
           {/* Spacer when nav is hidden (pushes session widget right) */}
           {!isMd && <Box sx={{ flex: 1 }} />}
+
+          {/* ── Theme toggle ── */}
+          <Tooltip title={mode === 'dark' ? 'Switch to light shell' : 'Switch to dark shell'} arrow>
+            <IconButton
+              size="small"
+              onClick={toggleMode}
+              sx={{
+                color: 'rgba(226, 232, 240, 0.75)',
+                '&:hover': { color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' },
+              }}
+            >
+              {mode === 'dark'
+                ? <LightModeIcon sx={{ fontSize: 18 }} />
+                : <DarkModeIcon sx={{ fontSize: 18 }} />
+              }
+            </IconButton>
+          </Tooltip>
 
           {/* ── Right: Session widget ── */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>

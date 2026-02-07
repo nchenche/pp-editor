@@ -11,6 +11,6 @@ body,
 }
 
 body {
-  @apply bg-stone-50;
+  background-color: var(--shell-bg, #1e293b);
   overflow: hidden;
 }

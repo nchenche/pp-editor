@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, createContext, useCo
 import { alpha, keyframes } from '@mui/material/styles';
 
 import { OverlayPortalProvider } from '../components/common/OverlayPortalContext';
+import { useShellTheme } from '../theme/ShellThemeProvider';
 
 import { Box, Paper } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
@@ -142,6 +143,7 @@ export const DesignPageLayoutMUI = ({
     const containerRef = useRef(null);
     const overlayRootRef = useRef(null); // right-panel root for overlays
     const [overlayActive, setOverlayActive] = useState(false);
+    const { shell } = useShellTheme();
 
     const userResizedRef = useRef(false);
 
@@ -395,10 +397,10 @@ export const DesignPageLayoutMUI = ({
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: '4px',
-                        bgcolor: 'divider',
+                        borderRadius: '2px',
+                        bgcolor: shell.resizeBar,
                     },
-                    '&:hover': { bgcolor: 'text.secondary' },
-                    // '&': { zIndex: 1 },
+                    '&:hover::before': { bgcolor: shell.resizeBarHover },
                 }}
             />
 

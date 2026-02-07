@@ -49,6 +49,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CircularProgress from '@mui/material/CircularProgress';
 import { alpha, useTheme } from '@mui/material/styles';
+import { useShellTheme } from '../../theme/ShellThemeProvider';
 import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 import { clearConformerJobIdFromStorage, setConformerJobIdInStorage } from '../../../src/utils/conformerJobStorage';
 import { useSessionId } from '../../../src/hooks/useSessionId';
@@ -89,6 +90,7 @@ function normalizePhValue(value) {
 
 const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState, onBeginReplaceSelection, onCancelReplaceSelection }, ref) => {
 
+    const { shell } = useShellTheme();
     const { data: depictionData, error: depictionError, loading: depictionLoading, fetchDepiction, setData: setDepictionData } = useFetchDepiction();
     const {
         result: structureOutput,
@@ -1428,8 +1430,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     sx={{
                         height: 4,
                         cursor: 'row-resize',
-                        bgcolor: 'divider',
-                        '&:hover': { bgcolor: 'text.secondary' },
+                        borderRadius: '2px',
+                        bgcolor: shell.resizeBar,
+                        '&:hover': { bgcolor: shell.resizeBarHover },
                     }}
                 />
 
@@ -1679,8 +1682,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             width: 4,
                             cursor: 'col-resize',
                             alignSelf: 'stretch',
-                            bgcolor: 'divider',
-                            '&:hover': { bgcolor: 'text.secondary' },
+                            borderRadius: '2px',
+                            bgcolor: shell.resizeBar,
+                            '&:hover': { bgcolor: shell.resizeBarHover },
                         }}
                     />
 
@@ -2270,8 +2274,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 width: 4,
                                                 cursor: 'col-resize',
                                                 alignSelf: 'stretch',
-                                                bgcolor: 'divider',
-                                                '&:hover': { bgcolor: 'text.secondary' },
+                                                borderRadius: '2px',
+                                                bgcolor: shell.resizeBar,
+                                                '&:hover': { bgcolor: shell.resizeBarHover },
                                             }}
                                         />
 
