@@ -249,10 +249,10 @@ function App() {
       disabled: !sessionId,
       disabledReason: 'Requires an active session (use New Session or Load Session in the header).'
     },
-    {
-      to: '/submit-public-monomers',
-      text: 'Submit to public library'
-    },
+    // {
+    //   to: '/submit-public-monomers',
+    //   text: 'Submit to public library'
+    // },
     {
       to: '/documentation',
       text: 'Documentation'

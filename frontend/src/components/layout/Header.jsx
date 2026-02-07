@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { NavLink as RouterNavLink } from 'react-router-dom';
 
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -99,6 +102,12 @@ function Header({ children }) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Responsive breakpoints
+  const theme = useTheme();
+  const isLg = useMediaQuery(theme.breakpoints.up(1024));   // full layout
+  const isMd = useMediaQuery(theme.breakpoints.up(768));    // compact session widget
+  // below 768 → nav wraps to second row
 
   // Polling for email status when pending verification
   const pollIntervalRef = useRef(null);
@@ -642,15 +651,6 @@ function Header({ children }) {
   const isLoading = loadState === SESSION_LOAD_STATE.LOADING;
   const hasError = loadState === SESSION_LOAD_STATE.ERROR;
 
-  // Email status display
-  const emailStatusDisplay = useMemo(() => {
-    if (emailStatusLoading) return { text: 'Loading...', color: 'rgba(226, 232, 240, 0.7)' };
-    if (!hasEmail) return { text: 'No email linked', color: 'rgba(226, 232, 240, 0.7)' };
-    if (hasPendingVerification) return { text: `Pending: ${pendingTargetEmail || emailStatus?.email}`, color: 'warning.light' };
-    if (emailVerified) return { text: `✓ ${emailStatus?.email}`, color: 'success.light' };
-    return { text: `${emailStatus?.email} (unverified)`, color: 'warning.light' };
-  }, [emailStatusLoading, hasEmail, hasPendingVerification, emailVerified, emailStatus?.email, pendingTargetEmail]);
-
   // Pending verification message
   const pendingVerificationMessage = useMemo(() => {
     if (!hasPendingVerification) return null;
@@ -670,153 +670,245 @@ function Header({ children }) {
   // Render
   // =====================
 
+  // Email status icon for compact display
+  const emailStatusIcon = useMemo(() => {
+    if (emailStatusLoading) return { icon: <CircularProgress size={14} sx={{ color: 'rgba(226, 232, 240, 0.7)' }} />, tooltip: 'Loading email status…', color: 'default' };
+    if (!hasEmail) return { icon: <EmailIcon sx={{ fontSize: 16 }} />, tooltip: 'No email linked – click Session to set up', color: 'default' };
+    if (hasPendingVerification) return { icon: <PendingIcon sx={{ fontSize: 16 }} />, tooltip: `Pending verification: ${pendingTargetEmail || emailStatus?.email}`, color: 'warning' };
+    if (emailVerified) return { icon: <VerifiedIcon sx={{ fontSize: 16 }} />, tooltip: `Verified: ${emailStatus?.email}`, color: 'success' };
+    return { icon: <EmailIcon sx={{ fontSize: 16 }} />, tooltip: `${emailStatus?.email} (unverified)`, color: 'warning' };
+  }, [emailStatusLoading, hasEmail, hasPendingVerification, emailVerified, emailStatus?.email, pendingTargetEmail]);
+
   return (
     <>
-      <header className="bg-slate-800 p-4 min-h-28">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ width: 120 }} />
+      <header className="bg-slate-800 px-3 py-2 sm:px-4">
+        {/* ── Top row: Brand + (nav if wide enough) + Session widget ── */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1, sm: 1.5, md: 2 },
+            minHeight: 40,
+            flexWrap: 'nowrap',
+          }}
+        >
+          {/* ── Left: Brand ── */}
+          <Box
+            component={RouterNavLink}
+            to="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              textDecoration: 'none',
+              flexShrink: 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 30,
+                height: 30,
+                borderRadius: '7px',
+                bgcolor: 'rgba(255, 255, 255, 0.92)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                overflow: 'hidden',
+                p: '2px',
+              }}
+            >
+              <Box
+                component="img"
+                src="/pepedit_logo_28x32.png"
+                alt="PEP-EDIT logo"
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: 'common.white',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+                fontSize: { xs: '0.85rem', sm: '1rem' },
+              }}
+            >
+              PEP-EDIT
+            </Typography>
+          </Box>
 
-          <h1 className="text-white text-2xl text-center flex-1">PEP-EDIT</h1>
+          {/* ── Center: Navigation (inline on md+) ── */}
+          {isMd && (
+            <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+              {children}
+            </Box>
+          )}
 
-          <Box sx={{ width: 380, display: 'flex', justifyContent: 'flex-end' }}>
-            <Stack spacing={0.5} alignItems="flex-end">
-              {isLoading ? (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <CircularProgress size={16} sx={{ color: 'common.white' }} />
-                  <Typography variant="caption" sx={{ color: 'rgba(226, 232, 240, 0.85)' }}>
-                    Loading session…
+          {/* Spacer when nav is hidden (pushes session widget right) */}
+          {!isMd && <Box sx={{ flex: 1 }} />}
+
+          {/* ── Right: Session widget ── */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+            {isLoading ? (
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <CircularProgress size={14} sx={{ color: 'common.white' }} />
+                {isMd && (
+                  <Typography variant="caption" sx={{ color: 'rgba(226, 232, 240, 0.85)', whiteSpace: 'nowrap' }}>
+                    Loading…
                   </Typography>
-                </Stack>
-              ) : sessionId ? (
-                <>
-                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexWrap: 'nowrap' }}>
-                    <Tooltip title="Start a new session">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={handleStartNewSession}
-                          aria-label="Start new session"
-                          sx={{
-                            color: 'common.white',
-                            border: '1px solid rgba(148, 163, 184, 0.5)',
-                            borderRadius: 1,
-                            p: 0.5,
-                            '&:hover': { borderColor: 'rgba(148, 163, 184, 0.8)' },
-                          }}
-                        >
-                          <AddIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-
-                    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(148, 163, 184, 0.4)', mx: 0.5 }} />
-
-                    <Tooltip title="Share session">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => openSessionDialog(0)}
-                          aria-label="Share session"
-                          sx={{ color: 'common.white' }}
-                        >
-                          <ShareIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-
-                    <Tooltip title="Recover a session">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => openSessionDialog(1)}
-                          aria-label="Recover session"
-                          sx={{ color: 'common.white' }}
-                        >
-                          <RefreshIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-
-                    <Tooltip title="Email & settings">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={() => openSessionDialog(2)}
-                          aria-label="Session settings"
-                          sx={{ color: 'common.white' }}
-                        >
-                          <SettingsIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-
-                    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(148, 163, 184, 0.4)', mx: 0.5 }} />
-
-                    <Tooltip
-                      title={
-                        <Box>
-                          <Typography variant="caption">Click to copy full ID</Typography>
-                          <Typography variant="caption" sx={{ display: 'block', opacity: 0.8, fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                            {sessionId}
-                          </Typography>
-                        </Box>
-                      }
-                    >
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        icon={<ContentCopyIcon sx={{ fontSize: '0.875rem !important' }} />}
-                        label={shortSessionId}
-                        onClick={copySessionId}
-                        sx={{
-                          color: 'common.white',
-                          borderColor: 'rgba(148, 163, 184, 0.5)',
-                          fontFamily: 'monospace',
-                          fontSize: '0.75rem',
-                          '& .MuiChip-label': { px: 1.25 },
-                          '& .MuiChip-icon': { color: 'inherit' },
-                          '&:hover': { borderColor: 'rgba(148, 163, 184, 0.8)' },
-                        }}
-                      />
-                    </Tooltip>
-
-                    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(148, 163, 184, 0.4)', mx: 0.5 }} />
-
-                    {/* Session name (editable) */}
+                )}
+              </Stack>
+            ) : sessionId ? (
+              <>
+                {/* Inline session name — only on lg+ */}
+                {isLg && (
+                  <>
                     <InlineSessionNameEditor
                       name={sessionName}
                       onSave={handleSaveSessionName}
                       saving={sessionNameSaving}
                       editable={true}
                     />
-                  </Stack>
+                    <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(148, 163, 184, 0.3)', mx: 0.25 }} />
+                  </>
+                )}
 
-                  <Typography
-                    variant="caption"
+                {/* Session ID chip — only on md+ */}
+                {isMd && (
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="caption">Click to copy full ID</Typography>
+                        <Typography variant="caption" sx={{ display: 'block', opacity: 0.8, fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                          {sessionId}
+                        </Typography>
+                      </Box>
+                    }
+                  >
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      icon={<ContentCopyIcon sx={{ fontSize: '0.8rem !important' }} />}
+                      label={shortSessionId}
+                      onClick={copySessionId}
+                      sx={{
+                        color: 'common.white',
+                        borderColor: 'rgba(148, 163, 184, 0.4)',
+                        fontFamily: 'monospace',
+                        fontSize: '0.7rem',
+                        height: 24,
+                        '& .MuiChip-label': { px: 0.75 },
+                        '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+                        '&:hover': { borderColor: 'rgba(148, 163, 184, 0.7)' },
+                      }}
+                    />
+                  </Tooltip>
+                )}
+
+                {/* Email status indicator — always visible */}
+                <Tooltip title={emailStatusIcon.tooltip} arrow>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    icon={emailStatusIcon.icon}
+                    label=""
+                    onClick={() => openSessionDialog(2)}
+                    color={emailStatusIcon.color}
                     sx={{
-                      color: emailStatusDisplay.color,
-                      lineHeight: 1,
-                      whiteSpace: 'nowrap',
-                      maxWidth: 280,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      height: 24,
+                      minWidth: 0,
+                      '& .MuiChip-label': { display: 'none' },
+                      '& .MuiChip-icon': { mx: 0.5 },
+                      borderColor: 'rgba(148, 163, 184, 0.4)',
+                      '&:hover': { borderColor: 'rgba(148, 163, 184, 0.7)' },
+                    }}
+                  />
+                </Tooltip>
+
+                {/* New session button — always visible */}
+                <Tooltip title="Start a new session">
+                  <IconButton
+                    size="small"
+                    onClick={handleStartNewSession}
+                    aria-label="Start new session"
+                    sx={{
+                      color: 'common.white',
+                      p: 0.5,
+                      '&:hover': { bgcolor: 'rgba(148, 163, 184, 0.15)' },
                     }}
                   >
-                    {emailStatusDisplay.text}
-                  </Typography>
-                </>
-              ) : (
-                <Typography variant="caption" sx={{ color: 'error.light' }}>
-                  No session
-                </Typography>
-              )}
-            </Stack>
+                    <AddIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Session menu button — label visible on md+, icon-only on small */}
+                <Tooltip title="Session settings, sharing & recovery">
+                  {isMd ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => openSessionDialog(0)}
+                      startIcon={<SettingsIcon sx={{ fontSize: '16px !important' }} />}
+                      sx={{
+                        color: 'common.white',
+                        borderColor: 'rgba(148, 163, 184, 0.4)',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        py: 0.25,
+                        px: 1.25,
+                        minWidth: 0,
+                        whiteSpace: 'nowrap',
+                        '&:hover': {
+                          borderColor: 'rgba(148, 163, 184, 0.7)',
+                          bgcolor: 'rgba(148, 163, 184, 0.1)',
+                        },
+                      }}
+                    >
+                      Session
+                    </Button>
+                  ) : (
+                    <IconButton
+                      size="small"
+                      onClick={() => openSessionDialog(0)}
+                      aria-label="Session settings"
+                      sx={{
+                        color: 'common.white',
+                        border: '1px solid rgba(148, 163, 184, 0.4)',
+                        borderRadius: 1,
+                        p: 0.5,
+                        '&:hover': {
+                          borderColor: 'rgba(148, 163, 184, 0.7)',
+                          bgcolor: 'rgba(148, 163, 184, 0.1)',
+                        },
+                      }}
+                    >
+                      <SettingsIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  )}
+                </Tooltip>
+              </>
+            ) : (
+              <Typography variant="caption" sx={{ color: 'error.light' }}>
+                No session
+              </Typography>
+            )}
           </Box>
         </Box>
 
-        <div className="mt-3">
-          {children}
-        </div>
+        {/* ── Nav on second row when screen < md ── */}
+        {!isMd && (
+          <Box sx={{ mt: 1, overflow: 'auto' }}>
+            {children}
+          </Box>
+        )}
 
         {/* Session Management Dialog */}
         <Dialog open={isSessionDialogOpen} onClose={closeSessionDialog} maxWidth="sm" fullWidth>

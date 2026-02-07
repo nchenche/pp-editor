@@ -1,12 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink as RouterNavLink } from 'react-router-dom';
 
 
-function NavLink({ to, children, isDisabled, disabledReason, onDisabledClick }) {
-    const baseClassName = 'inline-flex items-center leading-none p-2 px-4 rounded-md font-bold';
-    const className = isDisabled
-        ? `${baseClassName} text-gray-500 opacity-60 cursor-not-allowed bg-transparent border-0 appearance-none`
-        : `${baseClassName} text-gray-400 hover:text-gray-200 transition-colors duration-500`;
+function NavItemLink({ to, children, isDisabled, disabledReason, onDisabledClick }) {
+    const baseClassName = 'inline-flex items-center leading-none py-1.5 px-3 rounded-md font-semibold text-sm whitespace-nowrap';
+    const disabledClassName = `${baseClassName} text-gray-500 opacity-60 cursor-not-allowed bg-transparent border-0 appearance-none`;
+
+    const classNameForLink = ({ isActive }) => {
+        if (isActive) {
+            return `${baseClassName} text-gray-100 bg-slate-700/60 ring-1 ring-slate-500/40`;
+        }
+        return `${baseClassName} text-gray-400 hover:text-gray-200 hover:bg-slate-800/40 transition-colors duration-100`;
+    };
 
     return (
         <li>
@@ -15,18 +20,15 @@ function NavLink({ to, children, isDisabled, disabledReason, onDisabledClick }) 
                     type="button"
                     aria-disabled="true"
                     title={disabledReason || 'Requires Owner ID'}
-                    className={className}
+                    className={disabledClassName}
                     onClick={() => onDisabledClick?.({ to, reason: disabledReason })}
                 >
                     {children}
                 </button>
             ) : (
-                <Link
-                    to={to}
-                    className={className}
-                >
+                <RouterNavLink to={to} end={to === '/'} className={classNameForLink}>
                     {children}
-                </Link>
+                </RouterNavLink>
             )}
         </li>
     );
@@ -35,12 +37,12 @@ function NavLink({ to, children, isDisabled, disabledReason, onDisabledClick }) 
 function NavBar({ dataLinks, onDisabledLinkClick }) {
     return (
         <>
-            <nav className='text-gray-300 text-sm font-normal mt-4'>
-                <ul className='flex justify-center space-x-5'>
+            <nav className='text-gray-300 text-sm font-normal'>
+                <ul className='flex items-center space-x-1 flex-nowrap'>
                     {
                         dataLinks.map((ele, idx) => {
                             return (
-                                <NavLink
+                                <NavItemLink
                                     key={`nav-${idx}`}
                                     to={ele.to}
                                     isDisabled={Boolean(ele.disabled)}
@@ -48,7 +50,7 @@ function NavBar({ dataLinks, onDisabledLinkClick }) {
                                     onDisabledClick={onDisabledLinkClick}
                                 >
                                     {ele.text}
-                                </NavLink>
+                                </NavItemLink>
                             );
                         })
                     }

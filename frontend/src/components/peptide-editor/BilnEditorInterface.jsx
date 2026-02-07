@@ -237,8 +237,8 @@ export default function BilnEditorInterface({
         >
             {/* Header: title (left) + neutral toolbar (right) */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.5px' }}>
-                    BILN EDITOR INTERFACE
+                <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px' }}>
+                    Editor interface
                 </Typography>
 
                 {/* Global toolbar: icon-only */}
