@@ -2,7 +2,8 @@ import React, { useMemo, useState, useRef, memo, useEffect } from "react";
 import {
     Box, Typography, IconButton, InputBase, ToggleButtonGroup, ToggleButton,
     Popover, Slider, Divider, useTheme,
-    MenuItem, Stack, Tooltip, Menu, ButtonBase, Collapse
+    MenuItem, Stack, Tooltip, Menu, ButtonBase, Collapse,
+    Dialog, DialogTitle, DialogContent, DialogActions, Button, Paper,
 } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
@@ -212,6 +213,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
     const [popoverAnchor, setPopoverAnchor] = useState(null);
 
     const [linkingOpen, setLinkingOpen] = useState(true);
+    const [linkingHelpOpen, setLinkingHelpOpen] = useState(false);
 
     // Keep mode/link as local state
     const [modeState, setModeState] = useState(defaultLinkingSnapshot?.mode ?? LINKING_MODES.append);
@@ -380,40 +382,19 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                 sx={{ cursor: 'pointer' }}
                 onClick={() => setLinkingOpen(prev => !prev)}
             >
-                <Stack direction="row" alignItems="center" gap={0.5}>
+                <Stack direction="row" alignItems="center" gap={0.25}>
                     <Typography
                         variant="overline"
-                        sx={{ color: 'text.secondary', letterSpacing: 0.6 }}
+                        sx={{ color: 'text.secondary', letterSpacing: 0.6, lineHeight: 1 }}
                     >
                         Linking process mode
                     </Typography>
-                    <Tooltip
-                        arrow
-                        title={
-                            <Box sx={{ maxWidth: 260, lineHeight: 1.35 }}>
-                                <Typography
-                                    variant="subtitle2"
-                                    sx={{ mb: 0.75, fontWeight: 600 }}
-                                >
-                                    What happens when you click “+”
-                                </Typography>
-
-                                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                    Choose how the library monomer is placed:
-                                    <br />
-                                    <strong>append</strong>, <strong>prepend</strong>, or{' '}
-                                    <strong>new chain</strong>.
-                                </Typography>
-                            </Box>
-                        }
+                    <IconButton
+                        onClick={(e) => { e.stopPropagation(); setLinkingHelpOpen(true); }}
+                        sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}
                     >
-                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
-                            <QuestionMarkSharpIcon
-                                fontSize="small"
-                                sx={{ color: 'text.secondary', fontSize: 15, transform: 'translateY(-2px)' }}
-                            />
-                        </Box>
-                    </Tooltip>
+                        <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
+                    </IconButton>
                 </Stack>
 
                 <IconButton
@@ -432,6 +413,174 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                     <ExpandMoreIcon fontSize="small" />
                 </IconButton>
             </Stack>
+
+            {/* Linking-help dialog */}
+            <Dialog
+                open={linkingHelpOpen}
+                onClose={() => setLinkingHelpOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Linking process mode</DialogTitle>
+                <DialogContent
+                    dividers
+                    sx={{
+                        typography: 'body2',
+                        p: { xs: 2, sm: 3 },
+                        lineHeight: 1.8,
+                        '& strong': { fontWeight: 800 },
+                        '& ul': {
+                            margin: 0,
+                            paddingLeft: 2.75,
+                            listStylePosition: 'outside',
+                            listStyleType: 'disc',
+                        },
+                        '& li': { marginBottom: 1 },
+                        '& li::marker': { color: 'text.secondary', fontWeight: 700 },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {/* ── Placement mode ── */}
+                        <Paper
+                            variant="outlined"
+                            sx={(theme) => ({
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                borderColor: 'info.main',
+                                backgroundColor: alpha(
+                                    theme.palette.info.main,
+                                    theme.palette.mode === 'dark' ? 0.14 : 0.08
+                                ),
+                            })}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                Placement mode
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Controls where the monomer is placed when you click the
+                                <strong> + </strong> button next to a library monomer.
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Append</strong> — adds the monomer at the
+                                        C-terminus (end) of the selected chain.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Prepend</strong> — inserts the monomer at the
+                                        N-terminus (beginning) of the selected chain.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>New chain</strong> — starts a brand-new chain
+                                        with the selected monomer. This is the only available
+                                        option when the editor is empty.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                        {/* ── Chain selector ── */}
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                bgcolor: 'background.default',
+                            }}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                Chain selector
+                            </Typography>
+                            <Typography>
+                                When multiple chains exist, the <strong>Chain</strong> selector
+                                lets you choose which chain receives the monomer.
+                                The currently active chain is pre-selected, but you can
+                                switch to any existing chain.
+                            </Typography>
+                        </Paper>
+
+                        {/* ── Tips ── */}
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                bgcolor: 'background.default',
+                            }}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                Tips
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Drag-and-drop:</strong> You can drag a monomer
+                                        from the library directly onto the 2D graph for
+                                        precise placement.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Persistent mode:</strong> The linking mode
+                                        persists across clicks — append several monomers in a
+                                        row without re-selecting the mode each time.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Auto-switch:</strong> When the first chain
+                                        appears, the mode switches from <em>New chain</em> to
+                                        <em> Append</em> automatically.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setLinkingHelpOpen(false)} size="small">Close</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* SECTION 2 — One-line compact selectors (wrap if needed) */}
             <Collapse in={linkingOpen} timeout="auto" unmountOnExit={false}>

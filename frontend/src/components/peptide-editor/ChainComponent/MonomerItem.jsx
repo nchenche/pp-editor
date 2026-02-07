@@ -4,7 +4,7 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Close';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Box, Tooltip } from "@mui/material";
-import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
@@ -353,7 +353,7 @@ const MonomerItemComponent = (props) => {
                                 tabIndex={-1}
                                 sx={{ p: 0.2, fontSize: 13 }}
                             >
-                                <QuestionMarkSharpIcon fontSize="inherit" />
+                                <InfoOutlinedIcon fontSize="inherit" />
                             </IconButton>
                         </span>
                     </Tooltip>

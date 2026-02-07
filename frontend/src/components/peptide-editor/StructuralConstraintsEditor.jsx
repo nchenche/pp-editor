@@ -79,13 +79,13 @@ export default function StructuralConstraintsEditor({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             {/* Header: subtitle + help + right-side icons */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>
                         Structural constraints
                     </Typography>
                     <Tooltip title="About structural constraints" arrow>
-                        <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
-                            <QuestionMarkSharpIcon fontSize="inherit" />
+                        <IconButton onClick={() => setHelpOpen(true)} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                            <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
                         </IconButton>
                     </Tooltip>
                 </Box>

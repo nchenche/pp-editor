@@ -613,11 +613,11 @@ export default function BilnEditorInterface({
 
             {/* Manual edit subtitle + help icon */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>Manual edit</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edit</Typography>
                     <Tooltip title="BILN format help" arrow>
-                        <IconButton size="small" onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
-                            <QuestionMarkSharpIcon fontSize="inherit" />
+                        <IconButton onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                            <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
                         </IconButton>
                     </Tooltip>
                 </Box>
@@ -675,13 +675,13 @@ export default function BilnEditorInterface({
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>
                             Chains
                         </Typography>
                         <Tooltip title="Chains help" arrow>
-                            <IconButton size="small" onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.secondary', fontSize: 15 }}>
-                                <QuestionMarkSharpIcon fontSize="inherit" />
+                            <IconButton onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                                <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
                             </IconButton>
                         </Tooltip>
                     </Box>
@@ -1087,17 +1087,532 @@ export default function BilnEditorInterface({
                 </DialogActions>
             </Dialog>
 
-            {/* Sequences help dialog */}
-            <Dialog open={seqHelpOpen} onClose={() => setSeqHelpOpen(false)} maxWidth="sm" fullWidth>
+            {/* Sequences / chains help dialog */}
+            <Dialog
+                open={seqHelpOpen}
+                onClose={() => setSeqHelpOpen(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{ sx: { maxWidth: 900 } }}
+            >
                 <DialogTitle>Working with chains</DialogTitle>
-                <DialogContent dividers sx={{ typography: 'body2' }}>
-                    <ul>
-                        <li>Append adds monomers at the end; Prepend at the start; New creates a new chain.</li>
-                        <li>Use Link to connect residues and Cut to break bonds in the 2D sketch.</li>
-                        <li>Choose the active chain to receive new monomers from the library.</li>
-                        <li>Per-residue secondary structure letters (H/E/-) can guide 3D generation.</li>
-                        <li>Optionally provide a 3D template from a PDB/mmCIF file.</li>
-                    </ul>
+                <DialogContent
+                    dividers
+                    sx={{
+                        typography: 'body2',
+                        p: { xs: 2, sm: 3 },
+                        lineHeight: 1.8,
+                        '& strong': { fontWeight: 800 },
+                        '& ul': {
+                            margin: 0,
+                            paddingLeft: 2.75,
+                            listStylePosition: 'outside',
+                            listStyleType: 'disc',
+                        },
+                        '& ul ul': { listStyleType: 'circle', marginTop: 0.5 },
+                        '& li': { marginBottom: 1 },
+                        '& li::marker': { color: 'text.secondary', fontWeight: 700 },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 840, mx: 'auto' }}>
+
+                        {/* ── Chain management ── */}
+                        <Paper
+                            variant="outlined"
+                            sx={(theme) => ({
+                                ...helpSectionSx,
+                                borderColor: 'info.main',
+                                backgroundColor: alpha(
+                                    theme.palette.info.main,
+                                    theme.palette.mode === 'dark' ? 0.14 : 0.08
+                                ),
+                            })}
+                        >
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Chain management
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Each chain represents an independent peptide sequence. Multiple chains
+                                can be designed side-by-side to build branched or more complex topologies
+                                &#8202;&#8212;&#8202;for example, two chains each containing a cysteine can later be connected by a
+                                disulfide bridge.
+                            </Typography>
+
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Add chain</strong> &#8212; the{' '}
+                                        <code>+</code> button in the toolbar creates a new empty chain.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Remove chain</strong> &#8212; each chain has a dedicated
+                                        <strong> &#10005;</strong> icon in the top-right corner to delete it.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Active chain</strong> &#8212; a subtle border highlight indicates
+                                        which chain is currently active. Clicking a chain selects it. New monomers
+                                        added from the monomer library (via the <strong>+</strong> button) are placed into the
+                                        active chain, following the linking mode configured in the library panel.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                        {/* ── Constraints mode ── */}
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Constraints mode
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                A toolbar button next to the <strong>Add chain</strong> button lets you choose
+                                which constraint track is visible below the sequence:
+                            </Typography>
+                            <Box
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflow: 'hidden',
+                                    backgroundColor: 'background.paper',
+                                }}
+                            >
+                                <Box
+                                    component="table"
+                                    sx={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        '& th, & td': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            px: 1.25,
+                                            py: 0.75,
+                                            verticalAlign: 'middle',
+                                        },
+                                        '& th': {
+                                            textAlign: 'left',
+                                            fontWeight: 800,
+                                            color: 'text.secondary',
+                                            backgroundColor: 'background.default',
+                                        },
+                                        '& tr:last-child td': { borderBottom: 'none' },
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '30%' }}>Mode</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>None</strong></td>
+                                            <td>Only the sequence track is visible &#8212; no constraints applied.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Secondary structure</strong></td>
+                                            <td>Shows a per-residue secondary structure track (H&#8201;/&#8201;E&#8201;/&#8201;-).</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Template guidance</strong></td>
+                                            <td>Shows a 3D template residue track sourced from an uploaded PDB&#8201;/&#8201;mmCIF file.</td>
+                                        </tr>
+                                    </tbody>
+                                </Box>
+                            </Box>
+                            <Box
+                                sx={{
+                                    mt: 2,
+                                    p: 1.25,
+                                    border: '1px solid',
+                                    borderColor: 'warning.main',
+                                    borderRadius: 1.5,
+                                    backgroundColor: (theme) =>
+                                        alpha(
+                                            theme.palette.warning.main,
+                                            theme.palette.mode === 'dark' ? 0.12 : 0.07
+                                        ),
+                                }}
+                            >
+                                <Typography component="div" sx={{ color: 'text.secondary' }}>
+                                    <strong>Note:</strong> Secondary structure constraints and 3D template
+                                    constraints are mutually exclusive &#8212; enabling one disables the other.
+                                </Typography>
+                            </Box>
+                        </Paper>
+
+                        {/* ── Sequence track ── */}
+                        <Paper
+                            variant="outlined"
+                            sx={(theme) => ({
+                                ...helpSectionSx,
+                                borderColor: 'success.main',
+                                backgroundColor: alpha(
+                                    theme.palette.success.main,
+                                    theme.palette.mode === 'dark' ? 0.10 : 0.06
+                                ),
+                            })}
+                        >
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Sequence track
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Each chain displays a horizontal row of monomer blocks. Every block shows the
+                                monomer&#8217;s <strong>3-letter PDB code</strong> and its <strong>residue number</strong> (position in the chain).
+                            </Typography>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Color coding</Typography>
+                            <Box
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflow: 'hidden',
+                                    backgroundColor: 'background.paper',
+                                    mb: 2,
+                                }}
+                            >
+                                <Box
+                                    component="table"
+                                    sx={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        '& th, & td': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            px: 1.25,
+                                            py: 0.75,
+                                            verticalAlign: 'middle',
+                                        },
+                                        '& th': {
+                                            textAlign: 'left',
+                                            fontWeight: 800,
+                                            color: 'text.secondary',
+                                            backgroundColor: (t) =>
+                                                alpha(t.palette.success.main, t.palette.mode === 'dark' ? 0.15 : 0.08),
+                                        },
+                                        '& tr:last-child td': { borderBottom: 'none' },
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '10%' }}>Color</th>
+                                            <th style={{ width: '30%' }}>Monomer type</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: '#8FB3A5', border: '1px solid', borderColor: 'divider' }} />
+                                            </td>
+                                            <td><strong>Natural</strong></td>
+                                            <td>Standard proteinogenic amino acids (Ala, Gly, Leu, &#8230;).</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: '#E0A387', border: '1px solid', borderColor: 'divider' }} />
+                                            </td>
+                                            <td><strong>Non-natural</strong></td>
+                                            <td>Modified or non-standard amino acids and custom monomers.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: '#6B7B8C', border: '1px solid', borderColor: 'divider' }} />
+                                            </td>
+                                            <td><strong>Cap</strong></td>
+                                            <td>N-terminal or C-terminal capping groups (e.g. acetyl, amide).</td>
+                                        </tr>
+                                    </tbody>
+                                </Box>
+                            </Box>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Hover actions</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1 }}>
+                                Hovering over a monomer highlights it on both the 2D sketch and the 3D structure.
+                                Three action icons appear:
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Replace</strong> &#8212; mutate the monomer with an analog or any other monomer.
+                                        The monomer library opens in the right panel so you can pick the replacement.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Info</strong> &#8212; shows the monomer&#8217;s full name and BILN symbol
+                                        (useful for identifying it in the BILN sequence).
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Delete</strong> &#8212; removes the monomer from the chain.
+                                    </Typography>
+                                </li>
+                            </ul>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Drag-and-drop reordering</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1 }}>
+                                Monomers can be dragged within the sequence to swap positions. Changes are immediately
+                                reflected on the 2D sketch and 3D structure when auto-sync is enabled.
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        Swaps are guarded by connection rules: if a bond would become invalid at the
+                                        target position, you will be prompted before proceeding.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        Capping groups cannot be reordered.
+                                    </Typography>
+                                </li>
+                            </ul>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Bond indicators</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Monomers involved in non-backbone bonds (e.g. disulfide bridges, side-chain links) display
+                                small colored dots at the bottom. Monomers sharing the same bond have matching dot colors.
+                            </Typography>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Menu</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1 }}>
+                                A &#8942; menu on the sequence row provides quick actions:
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Clear</strong> &#8212; removes all monomers from the chain.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Cyclize / Uncyclize</strong> &#8212; toggles head-to-tail cyclization
+                                        (connects the N-terminus to the C-terminus).
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Mirror</strong> &#8212; swaps L- and D-amino acid forms
+                                        (e.g. Ala &#8596; dAla). Only applies to natural amino acids.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                        {/* ── Secondary structure track ── */}
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                Secondary structure track
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Visible when the constraints mode is set to <strong>Secondary structure</strong>.
+                                A track appears below the sequence, aligned monomer-by-monomer, where you can
+                                assign a per-residue preference to guide 3D conformation generation.
+                            </Typography>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Codes</Typography>
+                            <Box
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    overflow: 'hidden',
+                                    backgroundColor: 'background.paper',
+                                    mb: 2,
+                                }}
+                            >
+                                <Box
+                                    component="table"
+                                    sx={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        '& th, & td': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            px: 1.25,
+                                            py: 0.75,
+                                            verticalAlign: 'middle',
+                                        },
+                                        '& th': {
+                                            textAlign: 'left',
+                                            fontWeight: 700,
+                                            color: 'text.secondary',
+                                            backgroundColor: 'background.default',
+                                        },
+                                        '& tr:last-child td': { borderBottom: 'none' },
+                                    }}
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '15%' }}>Code</th>
+                                            <th style={{ width: '30%' }}>Structure</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code style={{ fontWeight: 800 }}>H</code></td>
+                                            <td><strong>Alpha helix</strong></td>
+                                            <td>The residue is constrained to a helical conformation.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code style={{ fontWeight: 800 }}>E</code></td>
+                                            <td><strong>Beta strand</strong></td>
+                                            <td>The residue is constrained to an extended strand conformation.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code style={{ fontWeight: 800 }}>-</code></td>
+                                            <td><strong>Random / coil</strong></td>
+                                            <td>No structural preference &#8212; the residue is free to adopt any conformation.</td>
+                                        </tr>
+                                    </tbody>
+                                </Box>
+                            </Box>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Menu</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1 }}>
+                                A &#8942; menu on the secondary structure row provides quick actions:
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Clear</strong> &#8212; removes all constraints.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>All alpha (H)</strong> &#8212; fills every position with a helix constraint.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>All beta (E)</strong> &#8212; fills every position with a strand constraint.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>All random (-)</strong> &#8212; leaves every position unconstrained.
+                                    </Typography>
+                                </li>
+                            </ul>
+
+                            <Box
+                                sx={{
+                                    mt: 1,
+                                    p: 1.25,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    borderRadius: 1.5,
+                                    backgroundColor: 'background.paper',
+                                }}
+                            >
+                                <Typography component="div" sx={{ color: 'text.secondary' }}>
+                                    <strong>Example:</strong> For a 5-residue peptide
+                                    {' '}
+                                    <code>A - G - S - F - R</code>, assigning
+                                    {' '}
+                                    <code>H H - E E</code>
+                                    {' '}
+                                    constrains the first two residues to a helix, leaves the third free, and
+                                    places the last two in a strand.
+                                </Typography>
+                            </Box>
+                        </Paper>
+
+                        {/* ── 3D template track ── */}
+                        <Paper variant="outlined" sx={helpSectionSx}>
+                            <Typography variant="h6" sx={helpSectionTitleSx}>
+                                3D template track (scaffold)
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                Visible when the constraints mode is set to <strong>Template guidance</strong>.
+                                Upload a <strong>PDB or mmCIF</strong> file to use an existing 3D structure as a
+                                conformational scaffold. Backbone atoms
+                                (<code>N</code>, <code>C&#945;</code>, <code>C</code>, <code>O</code>) of your
+                                designed peptide are matched against the corresponding backbone atoms of the
+                                selected template residues.
+                            </Typography>
+
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Automatic selection:</strong> When a template is uploaded, residues are
+                                        automatically picked from the first chain (usually chain A), starting at
+                                        residue 1, up to the length of your current peptide.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>3D preview:</strong> The template structure immediately appears in the
+                                        3D viewer. Selected residues are highlighted in
+                                        {' '}
+                                        <Box
+                                            component="span"
+                                            sx={{
+                                                display: 'inline-block',
+                                                width: 12,
+                                                height: 12,
+                                                borderRadius: '50%',
+                                                bgcolor: '#ffb300',
+                                                border: '1px solid',
+                                                borderColor: 'divider',
+                                                verticalAlign: 'middle',
+                                                mx: 0.5,
+                                            }}
+                                        />
+                                        <strong>amber</strong>.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Configuration panel:</strong> A panel opens beside the 3D viewer
+                                        where you can adjust the <strong>chain</strong>, <strong>start</strong> and
+                                        {' '}<strong>end</strong> residue numbers, and an optional
+                                        {' '}<strong>offset</strong> &#8212; the number of leading peptide positions
+                                        left unconstrained.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Masking residues:</strong> In the template track, each residue can be
+                                        individually <em>masked</em> (excluded from constraints) or <em>unmasked</em>.
+                                        This is useful to relax constraints on specific positions when 3D generation
+                                        is too tightly constrained.
+                                    </Typography>
+                                </li>
+                            </ul>
+
+                            <Typography sx={{ mb: 0.75, mt: 0.5, fontWeight: 700 }}>Menu</Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1 }}>
+                                A &#8942; menu on the template row provides quick actions:
+                            </Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Configure</strong> &#8212; open the template configuration panel.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Remove scaffold</strong> &#8212; discard the uploaded template entirely.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Mask all / Unmask all</strong> &#8212; toggle constraints on or off
+                                        for every template residue at once.
+                                    </Typography>
+                                </li>
+                            </ul>
+                        </Paper>
+
+                    </Box>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setSeqHelpOpen(false)} size="small">Close</Button>
