@@ -28,9 +28,10 @@ import RedoIcon from '@mui/icons-material/Redo';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import QuestionMarkSharpIcon from '@mui/icons-material/QuestionMarkSharp';
 import UploadIcon from '@mui/icons-material/Upload';
-import ScienceIcon from '@mui/icons-material/Science';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import Chip from '@mui/material/Chip';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -97,12 +98,198 @@ export default function BilnEditorInterface({
     onMirrorSequence = () => { },
     isDragging = false,
 
+    // Bulk constraints setter for loading examples with pre-filled constraints
+    onBulkSetConstraints,
+
     // Optional controlled state for UI-only placeholder chains
     extraEmptyChains: extraEmptyChainsProp,
     setExtraEmptyChains: setExtraEmptyChainsProp,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
+    const [examplesDialogOpen, setExamplesDialogOpen] = useState(false);
+    const [pendingExample, setPendingExample] = useState(null); // for confirm guard
+
+    // ── Example categories shown in the "Examples" dialog ──
+    const EXAMPLE_CATEGORIES = React.useMemo(() => [
+        {
+            title: 'Linear peptides',
+            description: 'Simple backbone-connected sequences.',
+            examples: [
+                {
+                    label: 'Short peptide (7 residues)',
+                    biln: 'P-E-P-T-I-D-E',
+                    note: 'Standard amino acids joined by backbone bonds.',
+                },
+                {
+                    label: 'Longer peptide with disulfide bridge',
+                    biln: 'G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G',
+                    note: 'Contains an explicit bond between residues.',
+                },
+            ],
+        },
+        {
+            title: 'Cyclic peptides',
+            description: 'Head-to-tail cyclization via R1/R2 bond.',
+            examples: [
+                {
+                    label: 'Cyclic hexapeptide (L-amino acids)',
+                    biln: 'C(1,1)-Y-C-L-I-C(1,2)',
+                    note: 'Bond 1 connects R1 of the first residue to R2 of the last.',
+                },
+                {
+                    label: 'Cyclic octapeptide (all L)',
+                    biln: 'G(1,1)-T-V-A-V-Q-F-L(1,2)',
+                    note: 'Head-to-tail cyclization of 8 residues.',
+                },
+                {
+                    label: 'Cyclic octapeptide with D-amino acids',
+                    biln: 'D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)',
+                    note: 'Contains three D-amino acids (dP, dR, dQ).',
+                },
+            ],
+        },
+        {
+            title: 'Capped peptides',
+            description: 'N-terminal and/or C-terminal capping groups.',
+            examples: [
+                {
+                    label: 'N-terminal acetyl cap',
+                    biln: 'ac-G-A-D',
+                    note: 'Acetyl (ac) cap on the N-terminus.',
+                },
+                {
+                    label: 'C-terminal amide cap',
+                    biln: 'G-A-D-am',
+                    note: 'Amide (am) cap on the C-terminus.',
+                },
+                {
+                    label: 'Both caps',
+                    biln: 'ac-G-A-F-V-D-am',
+                    note: 'Acetyl at N-terminus + amide at C-terminus.',
+                },
+                {
+                    label: 'Side-chain capping',
+                    biln: 'A-G-K(1,3)-D.ac(1,2)',
+                    note: 'Acetyl attached to the side chain of Lysine.',
+                },
+            ],
+        },
+        {
+            title: 'Non-natural amino acids',
+            description: 'Peptides containing non-standard residues from the library.',
+            examples: [
+                {
+                    label: 'Semaglutide backbone',
+                    biln: 'H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K-E-F-I-A-W-L-V-R-G-R-G',
+                    note: 'Contains Aib (α-aminoisobutyric acid). Lipid moiety (SemaB) can be linked after loading.',
+                },
+                {
+                    label: 'Semaglutide with lipid linker',
+                    biln: 'H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)',
+                    note: 'SemaB linked to Lys20 side chain (R3).',
+                },
+                {
+                    label: 'Cyclic peptide with D-amino acids',
+                    biln: 'dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)',
+                    note: 'Four D-amino acids (dR, dP, dQ, dE) in a cyclic arrangement.',
+                },
+            ],
+        },
+        {
+            title: 'Secondary structure constraints',
+            description: 'Constraints are pre-filled in the constraint track below each chain to guide 3D generation.',
+            examples: [
+                {
+                    label: 'Full alpha-helix',
+                    biln: 'A-E-A-A-K-A-E-A-A-K-A-E-A-A-K-A',
+                    ssConstraints: [['H','H','H','H','H','H','H','H','H','H','H','H','H','H','H','H']],
+                    constraintMode: 'ss',
+                    note: 'All 16 positions set to H (helix).',
+                },
+                {
+                    label: 'Helix–loop–helix motif',
+                    biln: 'A-E-K-L-A-E-K-L-G-G-G-A-E-K-L-A-E-K-L',
+                    ssConstraints: [['H','H','H','H','H','H','H','H','-','-','-','H','H','H','H','H','H','H','H']],
+                    constraintMode: 'ss',
+                    note: 'Helix on residues 1–8 and 12–19, coil in between.',
+                },
+                {
+                    label: 'Beta-strand (extended)',
+                    biln: 'V-T-V-T-V-T-V-T',
+                    ssConstraints: [['E','E','E','E','E','E','E','E']],
+                    constraintMode: 'ss',
+                    note: 'All positions set to E (extended / β-strand).',
+                },
+                {
+                    label: 'Mixed helix + strand',
+                    biln: 'A-E-A-L-K-G-G-V-T-V-T-V',
+                    ssConstraints: [['H','H','H','H','H','-','-','E','E','E','E','E']],
+                    constraintMode: 'ss',
+                    note: 'Helix on residues 1–5, loop, then strand on 8–12.',
+                },
+            ],
+        },
+        {
+            title: '3D template constraints',
+            description: 'A PDB structure is automatically fetched and loaded as backbone template.',
+            examples: [
+                {
+                    label: 'Somatostatin (PDB: 2MI1)',
+                    biln: 'A-G-C(1,3)-K-N-F-F-W-K-T-F-T-S-C(1,3)',
+                    templatePdbId: '2MI1',
+                    constraintMode: 'template',
+                    note: 'Cyclic somatostatin analog. The 3D template (2MI1) is loaded to constrain the backbone.',
+                },
+            ],
+        },
+    ], []);
+
+    const applyExample = React.useCallback((example) => {
+        onChangeBiln(example.biln);
+
+        // Switch constraint mode if specified
+        if (example.constraintMode) {
+            onConstraintModeChange(example.constraintMode);
+        }
+
+        // Apply SS constraints after a tick (BILN state needs to propagate first)
+        if (example.ssConstraints && onBulkSetConstraints) {
+            setTimeout(() => {
+                onBulkSetConstraints(example.ssConstraints);
+            }, 50);
+        }
+
+        // Fetch 3D template by PDB ID
+        if (example.templatePdbId) {
+            // Small delay to let BILN propagate before scaffold fetch
+            setTimeout(() => {
+                onFetchScaffoldById(example.templatePdbId);
+            }, 100);
+        }
+
+        setExamplesDialogOpen(false);
+    }, [onChangeBiln, onConstraintModeChange, onBulkSetConstraints, onFetchScaffoldById]);
+
+    const handleLoadExample = React.useCallback((example) => {
+        if (biln && biln.trim()) {
+            // Editor has content → ask for confirmation
+            setPendingExample(example);
+        } else {
+            applyExample(example);
+        }
+    }, [biln, applyExample]);
+
+    const confirmLoadExample = React.useCallback(() => {
+        if (pendingExample) {
+            applyExample(pendingExample);
+            setPendingExample(null);
+        }
+    }, [pendingExample, applyExample]);
+
+    const cancelLoadExample = React.useCallback(() => {
+        setPendingExample(null);
+    }, []);
 
     // UI-only placeholder chains. These are appended after BILN-derived chains.
     // They become real chains only once a monomer is placed into them.
@@ -237,32 +424,36 @@ export default function BilnEditorInterface({
         >
             {/* Header: title (left) + neutral toolbar (right) */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px' }}>
-                    Editor interface
-                </Typography>
 
-                {/* Global toolbar: icon-only */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-
-                    <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
-                        <Tooltip title={'Load example BILN'} arrow>
-                            <span>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="inherit"
-                                    onClick={() => onChangeBiln('G(1,1)-G-A-G-H-V-P-E(1,3)-Y-F-V-G-I-G-T-P-I-S-F-Y-G')}
-                                    startIcon={<ScienceIcon fontSize="inherit" />}
-                                    sx={{ ...btnSx, px: 1.25 }}
-                                >
-                                    Load example
-                                </Button>
-                            </span>
-                        </Tooltip>
-                    </ButtonGroup>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="subtitle4" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px' }}>
+                        Editor interface
+                    </Typography>
 
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
+                    <Button
+                        size="small"
+                        variant="text"
+                        color="inherit"
+                        onClick={() => setExamplesDialogOpen(true)}
+                        startIcon={<PlayArrowIcon sx={{ fontSize: '14px !important' }} />}
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            fontSize: '0.8rem',
+                            color: 'text.secondary',
+                            px: 1,
+                            minHeight: 28,
+                            '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                    >
+                        Examples…
+                    </Button>
+                </Box>
+
+                {/* Global toolbar: icon-only */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {/* Bonds: Link / Cut */}
                     <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': btnSx }}>
                         <Tooltip title="Link monomers" arrow>
@@ -299,70 +490,70 @@ export default function BilnEditorInterface({
 
                     {/* pH control */}
                     {/* <Tooltip title={Number(phDraft).toFixed(1)} arrow> */}
-                        <Box
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            minHeight: 28,
+                            px: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            color: 'text.secondary',
+                        }}
+                    >
+                        <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
+                            pH
+                        </Typography>
+                        <Slider
+                            min={0}
+                            max={12}
+                            step={0.1}
+                            value={phDraft}
+                            onChange={handlePhChange}
+                            onChangeCommitted={handlePhChangeCommitted}
+                            aria-label="pH"
+                            // valueLabelDisplay="auto"
+                            // valueLabelFormat={(v) => Number(v).toFixed(1)}
                             sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                minHeight: 28,
-                                px: 1,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 1,
+                                width: 100,
+                                py: 0,
+                                '& .MuiSlider-rail': {
+                                    opacity: 1,
+                                    bgcolor: (t) => alpha(t.palette.text.secondary, t.palette.mode === 'dark' ? 0.25 : 0.22),
+                                },
+                                '& .MuiSlider-track': {
+                                    border: 'none',
+                                    bgcolor: (t) => t.palette.text.secondary,
+                                    height: 2,
+                                },
+                                '& .MuiSlider-thumb': {
+                                    width: 10,
+                                    height: 10,
+                                    bgcolor: (t) => t.palette.text.secondary,
+                                    boxShadow: 'none',
+                                },
+                                '& .MuiSlider-valueLabel': {
+                                    bgcolor: 'background.paper',
+                                    color: 'text.primary',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                },
+                            }}
+                        />
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                minWidth: 34,
+                                textAlign: 'right',
+                                fontFamily: 'monospace',
                                 color: 'text.secondary',
                             }}
                         >
-                            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
-                                pH
-                            </Typography>
-                            <Slider
-                                min={0}
-                                max={12}
-                                step={0.1}
-                                value={phDraft}
-                                onChange={handlePhChange}
-                                onChangeCommitted={handlePhChangeCommitted}
-                                aria-label="pH"
-                                // valueLabelDisplay="auto"
-                                // valueLabelFormat={(v) => Number(v).toFixed(1)}
-                                sx={{
-                                    width: 100,
-                                    py: 0,
-                                    '& .MuiSlider-rail': {
-                                        opacity: 1,
-                                        bgcolor: (t) => alpha(t.palette.text.secondary, t.palette.mode === 'dark' ? 0.25 : 0.22),
-                                    },
-                                    '& .MuiSlider-track': {
-                                        border: 'none',
-                                        bgcolor: (t) => t.palette.text.secondary,
-                                        height: 2,
-                                    },
-                                    '& .MuiSlider-thumb': {
-                                        width: 10,
-                                        height: 10,
-                                        bgcolor: (t) => t.palette.text.secondary,
-                                        boxShadow: 'none',
-                                    },
-                                    '& .MuiSlider-valueLabel': {
-                                        bgcolor: 'background.paper',
-                                        color: 'text.primary',
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                    },
-                                }}
-                            />
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    minWidth: 34,
-                                    textAlign: 'right',
-                                    fontFamily: 'monospace',
-                                    color: 'text.secondary',
-                                }}
-                            >
-                                {Number(phDraft).toFixed(1)}
-                            </Typography>
-                        </Box>
+                            {Number(phDraft).toFixed(1)}
+                        </Typography>
+                    </Box>
                     {/* </Tooltip> */}
 
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
@@ -979,6 +1170,231 @@ export default function BilnEditorInterface({
                     >
                         {uploadLoading ? 'Processing…' : 'Apply'}
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Examples dialog */}
+            <Dialog
+                open={examplesDialogOpen}
+                onClose={() => { setExamplesDialogOpen(false); setPendingExample(null); }}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{ sx: { maxWidth: 920, height: '80vh' } }}
+            >
+                <DialogTitle sx={{ pb: 1 }}>Load an example</DialogTitle>
+                <DialogContent dividers sx={{ p: 0, display: 'flex', overflow: 'hidden' }}>
+                    {/* ── Left sidebar nav ── */}
+                    <Box
+                        sx={{
+                            width: 180,
+                            flexShrink: 0,
+                            borderRight: '1px solid',
+                            borderColor: 'divider',
+                            overflowY: 'auto',
+                            py: 1.5,
+                            display: { xs: 'none', sm: 'block' },
+                        }}
+                    >
+                        <Typography
+                            variant="overline"
+                            sx={{
+                                px: 2,
+                                pb: 0.5,
+                                display: 'block',
+                                color: 'text.disabled',
+                                fontSize: '0.65rem',
+                                letterSpacing: '0.08em',
+                            }}
+                        >
+                            Categories
+                        </Typography>
+                        {EXAMPLE_CATEGORIES.map((cat, idx) => (
+                            <Box
+                                key={cat.title}
+                                component="button"
+                                onClick={() => {
+                                    const el = document.getElementById(`example-cat-${idx}`);
+                                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                                sx={{
+                                    display: 'block',
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    px: 2,
+                                    py: 0.75,
+                                    border: 'none',
+                                    bgcolor: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 600,
+                                    color: 'text.secondary',
+                                    lineHeight: 1.3,
+                                    borderLeft: '3px solid transparent',
+                                    transition: 'all 0.15s',
+                                    '&:hover': {
+                                        bgcolor: 'action.hover',
+                                        color: 'text.primary',
+                                        borderLeftColor: 'primary.light',
+                                    },
+                                    fontFamily: 'inherit',
+                                }}
+                            >
+                                {cat.title}
+                            </Box>
+                        ))}
+                    </Box>
+
+                    {/* ── Right: scrollable content ── */}
+                    <Box
+                        sx={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            px: { xs: 2, sm: 3 },
+                            py: 2,
+                        }}
+                    >
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                            Pick a starting point. The BILN sequence will be loaded into the editor.
+                            For constraint-based examples, constraints are pre-filled automatically.
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {EXAMPLE_CATEGORIES.map((cat, catIdx) => (
+                                <Paper
+                                    key={cat.title}
+                                    id={`example-cat-${catIdx}`}
+                                    variant="outlined"
+                                    sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, bgcolor: 'background.default', scrollMarginTop: 8 }}
+                                >
+                                <Typography
+                                    variant="subtitle1"
+                                    sx={{
+                                        fontWeight: 700,
+                                        mb: 0.25,
+                                        fontSize: '0.95rem',
+                                    }}
+                                >
+                                    {cat.title}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.8rem' }}>
+                                    {cat.description}
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    {cat.examples.map((ex) => (
+                                        <Paper
+                                            key={ex.label}
+                                            variant="outlined"
+                                            sx={{
+                                                p: 1.25,
+                                                pl: 1.5,
+                                                borderRadius: 1.5,
+                                                display: 'flex',
+                                                alignItems: { xs: 'flex-start', sm: 'center' },
+                                                flexDirection: { xs: 'column', sm: 'row' },
+                                                gap: 1,
+                                                '&:hover': {
+                                                    borderColor: 'primary.main',
+                                                    bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
+                                                },
+                                                transition: 'border-color 0.15s, background-color 0.15s',
+                                            }}
+                                        >
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.82rem', lineHeight: 1.3 }}>
+                                                    {ex.label}
+                                                </Typography>
+                                                {(ex.ssConstraints || ex.templatePdbId) && (
+                                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                                        {ex.ssConstraints && (
+                                                            <Chip
+                                                                size="small"
+                                                                label="Auto-fills SS constraints"
+                                                                variant="outlined"
+                                                                color="info"
+                                                                sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-label': { px: 0.75 } }}
+                                                            />
+                                                        )}
+                                                        {ex.templatePdbId && (
+                                                            <Chip
+                                                                size="small"
+                                                                label={`Auto-loads PDB ${ex.templatePdbId}`}
+                                                                variant="outlined"
+                                                                color="secondary"
+                                                                sx={{ height: 18, fontSize: '0.65rem', '& .MuiChip-label': { px: 0.75 } }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                )}
+                                                <Typography
+                                                    variant="caption"
+                                                    component="pre"
+                                                    sx={{
+                                                        fontFamily: 'monospace',
+                                                        fontSize: '0.72rem',
+                                                        color: 'text.secondary',
+                                                        whiteSpace: 'pre-wrap',
+                                                        wordBreak: 'break-all',
+                                                        m: 0,
+                                                        mt: 0.25,
+                                                        lineHeight: 1.4,
+                                                    }}
+                                                >
+                                                    {ex.biln}
+                                                </Typography>
+                                                {ex.note && (
+                                                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5, fontSize: '0.72rem', lineHeight: 1.35 }}>
+                                                        {ex.note}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                onClick={() => handleLoadExample(ex)}
+                                                startIcon={<PlayArrowIcon sx={{ fontSize: '14px !important' }} />}
+                                                sx={{
+                                                    textTransform: 'none',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.75rem',
+                                                    flexShrink: 0,
+                                                    px: 1.5,
+                                                    minHeight: 28,
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                Load
+                                            </Button>
+                                        </Paper>
+                                    ))}
+                                </Box>
+                            </Paper>
+                        ))}
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => { setExamplesDialogOpen(false); setPendingExample(null); }} size="small">
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Confirm replace dialog */}
+            <Dialog
+                open={!!pendingExample}
+                onClose={cancelLoadExample}
+                maxWidth="xs"
+            >
+                <DialogTitle>Replace current sequence?</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Loading this example will replace the current editor content. This action can be undone with Ctrl+Z.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={cancelLoadExample} size="small">Cancel</Button>
+                    <Button onClick={confirmLoadExample} size="small" variant="contained" color="primary">Load example</Button>
                 </DialogActions>
             </Dialog>
 

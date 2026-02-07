@@ -1412,6 +1412,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         scaffoldMappings={scaffoldMappings}
                         onEditScaffoldMapping={handleEditScaffoldMappingNoAutoGen}
                         onOpenTemplatePanel={() => setActive3DPanel('template')}
+                        onBulkSetConstraints={setConstraintsBySeq}
                         onCircularizeSequence={handleCircularizeSequence}
                         onUncircularizeSequence={handleUncircularizeSequence}
                         onMirrorSequence={handleMirrorSequence}
