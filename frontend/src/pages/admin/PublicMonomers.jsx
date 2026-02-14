@@ -41,12 +41,13 @@ import ImageIcon from '@mui/icons-material/ImageOutlined';
 import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
 import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 
-import { API_DB_URL } from '../../config';
-import { apiFetchNoOwner } from '../../utils/api';
+import { API_DB_URL, API_URL } from '../../config';
+import { apiFetch, apiFetchNoOwner } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks';
 import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
+import TabStepStereo from './components/StereoStep';
 
 const ADMIN_TOKEN_STORAGE_KEY = 'pp-editor:public-admin-token:v1';
 
@@ -326,6 +327,9 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
 
     const wizardRef = useRef(null);
     const scratchFormRef = useRef(null);
+    const stereoRef = useRef(null);
+    const [stereoMolBlock, setStereoMolBlock] = useState('');
+    const [scratchStereoMap, setScratchStereoMap] = useState({});
 
     const [scratchFragments] = useFragments(scratchSmiles, scratchSelectedBonds);
     const [handleScratchFormSubmit, scratchMolBlock] = useFormSubmission(scratchFormData, scratchFragments, scratchSelectedFragmentIndex);
@@ -344,6 +348,8 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
         setScratchCurrentIndex(0);
         setScratchFormData({});
         setScratchStepError('');
+        setStereoMolBlock('');
+        setScratchStereoMap({});
     }, []);
 
     useEffect(() => {
@@ -558,7 +564,43 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                 handleScratchFormSubmit();
                 return true;
             }
-            case 4:
+            case 4: {
+                // Stereochemistry confirmation step
+                if (!stereoRef.current) return true;
+                if (stereoRef.current.isLoading()) return false;
+
+                if (!stereoRef.current.hasCenters()) {
+                    // No chiral centers — skip stereo/apply, keep original molblock
+                    setStereoMolBlock('');
+                    return true;
+                }
+
+                try {
+                    const stereoMap = stereoRef.current.getStereoMap();
+                    const fragmentSmiles = scratchFragments?.[scratchSelectedFragmentIndex] || '';
+                    const res = await apiFetch(`${API_URL}/molecules/stereo/apply`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            smiles: fragmentSmiles,
+                            form: scratchFormData,
+                            stereo: stereoMap,
+                        }),
+                    });
+                    const json = await res.json().catch(() => null);
+                    if (!res.ok) {
+                        setScratchStepError(json?.error || `Stereo apply failed (status ${res.status})`);
+                        return false;
+                    }
+                    setStereoMolBlock(String(json?.data?.molblock || ''));
+                    setScratchStepError('');
+                    return true;
+                } catch (err) {
+                    setScratchStepError(err?.message || 'Failed to apply stereo configuration.');
+                    return false;
+                }
+            }
+            case 5:
                 return true;
             default:
                 return true;
@@ -575,7 +617,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
     }, []);
 
     const handleScratchComplete = useCallback(async () => {
-        const mol = String(scratchMolBlock || '');
+        const mol = String(stereoMolBlock || scratchMolBlock || '');
         if (!mol.trim()) {
             setCreateError('No molblock generated. Please complete the previous steps first.');
             return;
@@ -612,7 +654,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
         } finally {
             setCreateIsUploading(false);
         }
-    }, [apiDbFetch, close, dbName, load, scratchMolBlock]);
+    }, [apiDbFetch, close, dbName, load, stereoMolBlock, scratchMolBlock]);
 
     return (
         <Dialog open={open} onClose={close} maxWidth="md" fullWidth>
@@ -733,7 +775,25 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                                                     .slice(0, 4),
                                             minLengthMessage: 'Minimum length is 3 characters',
                                             maxLengthMessage: 'Maximum length is 4 characters',
+                                            maxLengthMessage: 'Maximum length is 4 characters',
                                         }}
+                                    />
+                                </Box>
+                            </FormWizard.TabContent>
+
+                            <FormWizard.TabContent title="Stereochemistry" icon="ti-check">
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <StepGuideline title="Guideline">
+                                        Review and confirm the stereochemistry assignments for chiral centers.
+                                        The server has analyzed the capped molecule. You may override R / S
+                                        before proceeding.
+                                    </StepGuideline>
+                                    <TabStepStereo
+                                        ref={stereoRef}
+                                        smiles={scratchFragments?.[scratchSelectedFragmentIndex] || ''}
+                                        form={scratchFormData}
+                                        savedStereoMap={scratchStereoMap}
+                                        onStereoMapChange={setScratchStereoMap}
                                     />
                                 </Box>
                             </FormWizard.TabContent>
@@ -741,18 +801,22 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                             <FormWizard.TabContent title="Validate" icon="ti-check">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <StepGuideline title="Guideline">
-                                        Review the generated molblock. If it looks correct, click “Complete” to upload this monomer into the public library.
+                                        Review the generated molblock. If anything looks wrong you can edit it
+                                        directly below before clicking "Complete" to upload this monomer into the public library.
                                     </StepGuideline>
+                                    <Alert severity="info" variant="outlined" sx={{ py: 0.5 }}>
+                                        This molblock is editable &mdash; feel free to make corrections before uploading.
+                                    </Alert>
                                     <TextField
-                                        label="Generated molblock (read-only)"
-                                        value={scratchMolBlock || ''}
+                                        label="Generated molblock"
+                                        value={stereoMolBlock || scratchMolBlock || ''}
+                                        onChange={(e) => setStereoMolBlock(e.target.value)}
                                         multiline
                                         minRows={10}
                                         maxRows={18}
                                         fullWidth
                                         slotProps={{
                                             input: {
-                                                readOnly: true,
                                                 sx: { fontFamily: 'monospace', '& textarea': { overflow: 'auto' } },
                                             },
                                         }}

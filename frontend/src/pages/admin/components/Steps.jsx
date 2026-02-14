@@ -407,11 +407,74 @@ export const TabStep4 = memo(
         useImperativeHandle(ref, () => ({
             getFormData: () => methods.getValues(),
             isValid: async () => {
-                await methods.trigger();
-                return methods.formState.isValid;
+                const fieldNames = Array.isArray(groupIndices)
+                    ? groupIndices.map((idx) => `groupLabel_${idx}`)
+                    : [];
+
+                // Clear any previous manual errors so trigger() can re-populate required errors.
+                if (fieldNames.length > 0) methods.clearErrors(fieldNames);
+
+                const baseOk = await methods.trigger();
+                if (!baseOk) return false;
+
+                // Custom validation: R-group labels must be unique.
+                const values = fieldNames.length > 0 ? methods.getValues(fieldNames) : [];
+                const seen = new Map();
+                for (let i = 0; i < fieldNames.length; i += 1) {
+                    const raw = Array.isArray(values) ? values[i] : methods.getValues(fieldNames[i]);
+                    const v = String(raw || '').trim();
+                    if (!v) continue;
+                    if (!seen.has(v)) seen.set(v, []);
+                    seen.get(v).push(fieldNames[i]);
+                }
+
+                let uniqueOk = true;
+                for (const [, fields] of seen.entries()) {
+                    if (fields.length <= 1) continue;
+                    uniqueOk = false;
+                    for (const name of fields) {
+                        methods.setError(name, {
+                            type: 'validate',
+                            message: 'R-group labels must be unique (no duplicates).',
+                        });
+                    }
+                }
+
+                return uniqueOk;
             },
-            validateForm: () => methods.trigger(),
-        }), []);
+            validateForm: async () => {
+                const fieldNames = Array.isArray(groupIndices)
+                    ? groupIndices.map((idx) => `groupLabel_${idx}`)
+                    : [];
+                if (fieldNames.length > 0) methods.clearErrors(fieldNames);
+                const baseOk = await methods.trigger();
+                if (!baseOk) return false;
+
+                const values = fieldNames.length > 0 ? methods.getValues(fieldNames) : [];
+                const seen = new Map();
+                for (let i = 0; i < fieldNames.length; i += 1) {
+                    const raw = Array.isArray(values) ? values[i] : methods.getValues(fieldNames[i]);
+                    const v = String(raw || '').trim();
+                    if (!v) continue;
+                    if (!seen.has(v)) seen.set(v, []);
+                    seen.get(v).push(fieldNames[i]);
+                }
+
+                let uniqueOk = true;
+                for (const [, fields] of seen.entries()) {
+                    if (fields.length <= 1) continue;
+                    uniqueOk = false;
+                    for (const name of fields) {
+                        methods.setError(name, {
+                            type: 'validate',
+                            message: 'R-group labels must be unique (no duplicates).',
+                        });
+                    }
+                }
+
+                return uniqueOk;
+            },
+        }), [methods, groupIndices]);
 
         const queryParams = {
             h_explicit_only: true,

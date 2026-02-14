@@ -26,6 +26,14 @@ import {
 
 import createPalette from "@mui/material/styles/createPalette";
 
+const NATURAL_ANALOG_OPTIONS = [
+    'A', 'C', 'D', 'E', 'F',
+    'G', 'H', 'I', 'K', 'L',
+    'M', 'N', 'P', 'Q', 'R',
+    'S', 'T', 'V', 'W', 'Y',
+    'X',
+];
+
 
 export const MolNameForm = ({ sxOptions, control }) => {
     return (
@@ -69,21 +77,39 @@ export const MolSymbolForm = ({ sxOptions, control }) => {
     )
 }
 
-export const MolAnalogForm = ({ sxOptions, control }) => {
+export const MolAnalogForm = ({ sxOptions, control, error, disabled }) => {
     return (
-        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small">
+        <FormControl sx={sxOptions} fullWidth variant="outlined" margin="dense" size="small" error={!!error}>
             <Controller
                 name="naturalAnalog"
                 control={control}
+                defaultValue=""
+                rules={{ required: 'Natural analog is required (use X for none).' }}
                 render={({ field }) => (
                     <TextField
+                        select
                         label="Natural analog"
                         {...field}
                         size="small"
                         fullWidth
-                    />
+                        error={!!error}
+                        disabled={!!disabled}
+                    >
+                        {NATURAL_ANALOG_OPTIONS.map((aa) => (
+                            <MenuItem key={aa} value={aa}>
+                                {aa}
+                            </MenuItem>
+                        ))}
+                    </TextField>
                 )}
             />
+            {error ? (
+                <FormHelperText error>{error.message}</FormHelperText>
+            ) : (
+                <FormHelperText>
+                    {disabled ? 'For type “cap”, natural analog is forced to X.' : 'Use X when no natural analog exists.'}
+                </FormHelperText>
+            )}
         </FormControl>
     )
 }

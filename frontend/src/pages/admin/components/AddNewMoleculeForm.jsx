@@ -1,7 +1,4 @@
-import { Fragment, memo, forwardRef, useImperativeHandle, useMemo, useEffect, useState } from 'react';
-import { log } from '../../../utils/dev'
-
-import { useForm, Controller } from "react-hook-form"
+import { Fragment, useEffect, useMemo } from 'react';
 
 import Grid from '@mui/material/Grid2';
 
@@ -15,8 +12,6 @@ import {
     GroupLabelForm,
     GroupLeavingForm
 } from './MoleculeSettingForms/Forms'
-
-import createPalette from "@mui/material/styles/createPalette";
 
 
 export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) => {
@@ -49,26 +44,21 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
         ];
     }, [selectedType]);
 
-    // Keep selectSubType in sync when type changes to "cap"
+    // Keep selectSubType in sync when type changes
     useEffect(() => {
         if (selectedType === 'cap') {
-            // When type is cap, force subtype to 'cap'
-            setValue('selectSubType', 'cap', {
-                shouldValidate: true,
-                shouldDirty: true,
-            });
+            setValue('selectSubType', 'cap', { shouldValidate: true, shouldDirty: true });
         } else if (selectedType) {
-            // For any non-cap type (e.g. amino-acid), default to 'natural'
-            setValue('selectSubType', 'natural', {
-                shouldValidate: true,
-                shouldDirty: true,
-            });
+            setValue('selectSubType', 'natural', { shouldValidate: true, shouldDirty: true });
         } else {
-            // No type selected yet -> keep it empty so required rule can fire later
-            setValue('selectSubType', '', {
-                shouldValidate: true,
-                shouldDirty: true,
-            });
+            setValue('selectSubType', '', { shouldValidate: true, shouldDirty: true });
+        }
+    }, [selectedType, setValue]);
+
+    // When type is cap, force natural analog to X.
+    useEffect(() => {
+        if (selectedType === 'cap') {
+            setValue('naturalAnalog', 'X', { shouldValidate: true, shouldDirty: true });
         }
     }, [selectedType, setValue]);
 
@@ -108,6 +98,8 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
                     <MolAnalogForm
                         sxOptions={sxOptions}
                         control={control}
+                        error={errors.naturalAnalog}
+                        disabled={selectedType === 'cap'}
                     />
                 </Grid>
 
@@ -164,5 +156,5 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
             </Grid>
 
         </>
-    )
+    );
 };
