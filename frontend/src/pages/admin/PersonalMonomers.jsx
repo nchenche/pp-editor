@@ -50,7 +50,7 @@ import { apiFetch } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission } from './hooks/CustomHooks';
-import { TabStep1, TabStep2, TabStep3, TabStep4, isFragmentAllowed } from './components/Steps';
+import { TabStep1, TabStep2, TabStep3, TabStep4, TabStepBondsAndFragment, isFragmentAllowed } from './components/Steps';
 import TabStepStereo from './components/StereoStep';
 
 const MAX_SDF_BYTES = 2 * 1024 * 1024; // aligns with backend default MAIL_MAX_SDF_BYTES
@@ -591,13 +591,14 @@ export default function PersonalMonomers() {
     switch (scratchCurrentIndex) {
       case 0:
         return Boolean(String(scratchSmiles || '').trim());
-      case 1:
-        return Array.isArray(scratchSelectedBonds) && scratchSelectedBonds.length > 0;
-      case 2:
+      case 1: {
+        // Merged bond-selection + fragment-selection step
+        if (!Array.isArray(scratchSelectedBonds) || scratchSelectedBonds.length === 0) return false;
         if (scratchSelectedFragmentIndex === -1) return false;
         if (!isFragmentAllowed(scratchFragments?.[scratchSelectedFragmentIndex], 4)) return false;
         return true;
-      case 3: {
+      }
+      case 2: {
         if (!formRef.current) return false;
         const isValid = await formRef.current.isValid();
         if (!isValid) return false;
@@ -617,7 +618,7 @@ export default function PersonalMonomers() {
         handleScratchFormSubmit();
         return true;
       }
-      case 4: {
+      case 3: {
         // Stereochemistry confirmation step
         if (!stereoRef.current) return true;
         if (stereoRef.current.isLoading()) return false;
@@ -653,7 +654,7 @@ export default function PersonalMonomers() {
           return false;
         }
       }
-      case 5:
+      case 4:
         return true;
       default:
         return true;
@@ -2117,26 +2118,16 @@ export default function PersonalMonomers() {
                   </Box>
                 </FormWizard.TabContent>
 
-                <FormWizard.TabContent title="Select bond(s)" icon="ti-settings">
+                <FormWizard.TabContent title="Fragment & select core" icon="ti-settings">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <StepGuideline title="Guideline">
-                      Click one or more bonds to choose cut points. The right-hand 2D view is only an illustrative preview of the fragments produced by those cuts; you will choose the actual fragment in the next step.
-                    </StepGuideline>
-                    <TabStep2
+                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>
+                      Click one or more bonds on the left to cut the molecule into fragments.{' '}
+                      Then select the fragment that will become the monomer core from the carousel on the right. A maximum of 4 attachment points ("*") is allowed.
+                    </StepGuidelineWithError>
+                    <TabStepBondsAndFragment
                       smiles={scratchSmiles}
                       handleSelectedBonds={handleScratchSelectedBonds}
                       selectedBonds={scratchSelectedBonds}
-                      fragments={scratchFragments}
-                    />
-                  </Box>
-                </FormWizard.TabContent>
-
-                <FormWizard.TabContent title="Select a fragment" icon="ti-check">
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>
-                      Choose the fragment that will become the monomer core. A maximum of 4 attachment points ("*") is allowed.
-                    </StepGuidelineWithError>
-                    <TabStep3
                       fragments={scratchFragments}
                       selectedFragmentIndex={scratchSelectedFragmentIndex}
                       handleSelectedFragment={handleScratchSelectedFragment}
