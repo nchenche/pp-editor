@@ -190,6 +190,7 @@ export const MolTypeForm = ({ sxOptions, control, error, capDisabled, aaDisabled
                         >
                             <MenuItem value="aa" disabled={!!aaDisabled}>Amino acid</MenuItem>
                             <MenuItem value="cap" disabled={!!capDisabled}>Cap</MenuItem>
+                            <MenuItem value="other">Other</MenuItem>
                         </Select>
                     </>
                 )}

@@ -595,8 +595,12 @@ export const TabStep4 = memo(
         const defaultValues = useMemo(
             () => {
                 const rGroupCount = Array.isArray(groupIndices) ? groupIndices.length : 0;
-                const selectType = rGroupCount === 1 ? 'cap' : 'aa';
-                const selectSubType = selectType === 'cap' ? 'cap' : 'natural';
+                // If initialData already has a classify-based type, respect it;
+                // otherwise fall back to rGroup heuristic (cap if 1, aa otherwise).
+                const selectType = initialData?.selectType
+                    ? initialData.selectType
+                    : (rGroupCount === 1 ? 'cap' : 'aa');
+                const selectSubType = selectType === 'cap' ? 'cap' : 'non-natural';
                 return {
                     name: '',
                     symbol: '',

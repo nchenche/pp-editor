@@ -49,7 +49,7 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
         if (selectedType === 'cap') {
             setValue('selectSubType', 'cap', { shouldValidate: true, shouldDirty: true });
         } else if (selectedType) {
-            setValue('selectSubType', 'natural', { shouldValidate: true, shouldDirty: true });
+            setValue('selectSubType', 'non-natural', { shouldValidate: true, shouldDirty: true });
         } else {
             setValue('selectSubType', '', { shouldValidate: true, shouldDirty: true });
         }

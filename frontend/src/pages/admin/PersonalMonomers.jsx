@@ -49,7 +49,7 @@ import { API_DB_URL, API_MAIL_URL, API_URL } from '../../config';
 import { apiFetch } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
-import { useFragments, useFormSubmission } from './hooks/CustomHooks';
+import { useFragments, useFormSubmission, classifyMolecule } from './hooks/CustomHooks';
 import { TabStep1, TabStep2, TabStep3, TabStep4, TabStepBondsAndFragment, isFragmentAllowed } from './components/Steps';
 import TabStepStereo from './components/StereoStep';
 
@@ -385,6 +385,7 @@ export default function PersonalMonomers() {
   const stereoRef = useRef(null);
   const [stereoMolBlock, setStereoMolBlock] = useState('');
   const [scratchStereoMap, setScratchStereoMap] = useState({});
+  const lastClassifiedRef = useRef({ smiles: '', data: null });
   const createDialogContentRef = useRef(null);
 
   const [scratchFragments] = useFragments(scratchSmiles, scratchSelectedBonds);
@@ -469,6 +470,7 @@ export default function PersonalMonomers() {
     setScratchFormData({});
     setStereoMolBlock('');
     setScratchStereoMap({});
+    lastClassifiedRef.current = { smiles: '', data: null };
   }, []);
 
   const closeCreateDialog = useCallback(() => {
@@ -596,6 +598,32 @@ export default function PersonalMonomers() {
         if (!Array.isArray(scratchSelectedBonds) || scratchSelectedBonds.length === 0) return false;
         if (scratchSelectedFragmentIndex === -1) return false;
         if (!isFragmentAllowed(scratchFragments?.[scratchSelectedFragmentIndex], 4)) return false;
+
+        // Classify the selected fragment to prefill Step 4 (type + R-group labels)
+        const fragmentSmiles = scratchFragments?.[scratchSelectedFragmentIndex] || '';
+        if (fragmentSmiles && fragmentSmiles !== lastClassifiedRef.current.smiles) {
+          try {
+            const classifyData = await classifyMolecule(fragmentSmiles);
+            lastClassifiedRef.current = { smiles: fragmentSmiles, data: classifyData };
+            if (classifyData) {
+              const prefill = {};
+              // Type
+              if (classifyData.type) {
+                prefill.selectType = classifyData.type;
+                prefill.selectSubType = classifyData.type === 'cap' ? 'cap' : 'non-natural';
+                prefill.naturalAnalog = classifyData.type === 'cap' ? 'X' : '';
+              }
+              // R-group labels & leaving groups from server
+              if (classifyData.form_prefill && typeof classifyData.form_prefill === 'object') {
+                Object.assign(prefill, classifyData.form_prefill);
+              }
+              setScratchFormData((prev) => ({ ...prev, ...prefill }));
+            }
+          } catch (err) {
+            // Classification is best-effort; don't block navigation
+            if (err?.name === 'AbortError') throw err;
+          }
+        }
         return true;
       }
       case 2: {

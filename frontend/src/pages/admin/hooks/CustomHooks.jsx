@@ -89,3 +89,30 @@ export const useFormSubmission = (formData, fragments, selectedFragmentIndex) =>
 
   return [handleFormSubmit, molBlock];
 };
+
+
+/**
+ * Classify a molecule from its SMILES (aa / cap / other) and get optional form prefill.
+ * Returns the `data` object from the response, or null on error.
+ */
+export async function classifyMolecule(smiles, { signal } = {}) {
+  if (!smiles || !String(smiles).trim()) return null;
+
+  try {
+    const response = await apiFetch(`${API_URL}/molecules/classify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ smiles: String(smiles).trim() }),
+      ...(signal ? { signal } : {}),
+    });
+
+    if (!response.ok) return null;
+
+    const json = await response.json();
+    return json?.data ?? null;
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err;
+    console.warn('[classifyMolecule] classification failed:', err?.message);
+    return null;
+  }
+}
