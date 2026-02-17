@@ -51,6 +51,7 @@ import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission, classifyMolecule, validateSdf } from './hooks/CustomHooks';
 import SdfValidationDialog from './components/SdfValidationDialog';
+import SdfFormatHelp from './components/SdfFormatHelp';
 import { TabStep1, TabStep2, TabStep3, TabStep4, TabStepBondsAndFragment, isFragmentAllowed } from './components/Steps';
 import TabStepStereo from './components/StereoStep';
 
@@ -1355,6 +1356,26 @@ export default function PersonalMonomers() {
 
     setCreateIsUploading(true);
     try {
+      // --- Validate SDF before ingestion ---
+      try {
+        const result = await validateSdf(
+          { sdf: sdfText, strict: true, functional_check: true, owner_id: null },
+        );
+        if (!result.valid) {
+          setValidationDialog({
+            open: true,
+            errors: result.errors || [],
+            warnings: result.warnings || [],
+            functionalCheck: result.functional_check || null,
+          });
+          return; // Block upload
+        }
+      } catch (valErr) {
+        if (valErr?.name === 'AbortError') throw valErr;
+        setCreateError(`SDF validation error: ${valErr?.message || 'Unknown error'}`);
+        return;
+      }
+
       const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=pepedit`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
@@ -2261,9 +2282,7 @@ export default function PersonalMonomers() {
 
           {createMode === 'upload-sdf' ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Upload a pepedit-compatible SDF. After loading, you can edit each monomer record before uploading.
-              </Typography>
+              <SdfFormatHelp />
 
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Button variant="outlined" component="label">

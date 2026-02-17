@@ -47,6 +47,7 @@ import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
 import { useFragments, useFormSubmission, classifyMolecule, validateSdf } from './hooks/CustomHooks';
 import SdfValidationDialog from './components/SdfValidationDialog';
+import SdfFormatHelp from './components/SdfFormatHelp';
 import { TabStep1, TabStep2, TabStep3, TabStep4, TabStepBondsAndFragment, isFragmentAllowed } from './components/Steps';
 import TabStepStereo from './components/StereoStep';
 
@@ -472,6 +473,27 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
 
         setCreateIsUploading(true);
         try {
+            // --- Validate SDF before ingestion ---
+            try {
+                const result = await validateSdf(
+                    { sdf: sdfText, strict: true, functional_check: true, owner_id: null },
+                    { fetchFn: apiFetchNoOwner },
+                );
+                if (!result.valid) {
+                    setValidationDialog({
+                        open: true,
+                        errors: result.errors || [],
+                        warnings: result.warnings || [],
+                        functionalCheck: result.functional_check || null,
+                    });
+                    return; // Block upload
+                }
+            } catch (valErr) {
+                if (valErr?.name === 'AbortError') throw valErr;
+                setCreateError(`SDF validation error: ${valErr?.message || 'Unknown error'}`);
+                return;
+            }
+
             const params = new URLSearchParams();
             params.set('db_name', dbName);
             params.set('scope', 'public');
@@ -885,9 +907,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
 
                 {createMode === 'upload-sdf' ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Upload a pepedit-compatible SDF. After loading, you can edit each monomer record before uploading.
-                        </Typography>
+                        <SdfFormatHelp />
 
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                             <Button variant="outlined" component="label">
