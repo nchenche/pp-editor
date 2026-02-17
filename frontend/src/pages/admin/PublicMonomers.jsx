@@ -45,7 +45,8 @@ import { API_DB_URL, API_URL } from '../../config';
 import { apiFetch, apiFetchNoOwner } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
-import { useFragments, useFormSubmission, classifyMolecule } from './hooks/CustomHooks';
+import { useFragments, useFormSubmission, classifyMolecule, validateSdf } from './hooks/CustomHooks';
+import SdfValidationDialog from './components/SdfValidationDialog';
 import { TabStep1, TabStep2, TabStep3, TabStep4, TabStepBondsAndFragment, isFragmentAllowed } from './components/Steps';
 import TabStepStereo from './components/StereoStep';
 
@@ -332,6 +333,8 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
     const [scratchStereoMap, setScratchStereoMap] = useState({});
     const lastClassifiedRef = useRef({ smiles: '', data: null });
 
+    const [validationDialog, setValidationDialog] = useState({ open: false, errors: [], warnings: [], functionalCheck: null });
+
     const [scratchFragments] = useFragments(scratchSmiles, scratchSelectedBonds);
     const [handleScratchFormSubmit, scratchMolBlock] = useFormSubmission(scratchFormData, scratchFragments, scratchSelectedFragmentIndex);
 
@@ -352,6 +355,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
         setStereoMolBlock('');
         setScratchStereoMap({});
         lastClassifiedRef.current = { smiles: '', data: null };
+        setValidationDialog({ open: false, errors: [], warnings: [], functionalCheck: null });
     }, []);
 
     useEffect(() => {
@@ -657,6 +661,27 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
         try {
             const sdfText = normalizeSdfRecordForUpload(mol);
 
+            // --- Validate SDF before ingestion ---
+            try {
+                const result = await validateSdf(
+                    { sdf: sdfText, strict: true, functional_check: true, owner_id: null },
+                    { fetchFn: apiFetchNoOwner },
+                );
+                if (!result.valid) {
+                    setValidationDialog({
+                        open: true,
+                        errors: result.errors || [],
+                        warnings: result.warnings || [],
+                        functionalCheck: result.functional_check || null,
+                    });
+                    return; // Block upload
+                }
+            } catch (valErr) {
+                if (valErr?.name === 'AbortError') throw valErr;
+                setCreateError(`SDF validation error: ${valErr?.message || 'Unknown error'}`);
+                return;
+            }
+
             const params = new URLSearchParams();
             params.set('db_name', dbName);
             params.set('scope', 'public');
@@ -686,6 +711,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
     }, [apiDbFetch, close, dbName, load, stereoMolBlock, scratchMolBlock]);
 
     return (
+        <>
         <Dialog open={open} onClose={close} maxWidth="md" fullWidth>
             <DialogTitle>Create monomer</DialogTitle>
             <DialogContent dividers>
@@ -936,6 +962,15 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                 ) : null}
             </DialogActions>
         </Dialog>
+
+            <SdfValidationDialog
+                open={validationDialog.open}
+                onClose={() => setValidationDialog((prev) => ({ ...prev, open: false }))}
+                errors={validationDialog.errors}
+                warnings={validationDialog.warnings}
+                functionalCheck={validationDialog.functionalCheck}
+            />
+        </>
     );
 });
 

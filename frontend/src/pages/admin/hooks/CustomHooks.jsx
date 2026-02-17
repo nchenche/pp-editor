@@ -116,3 +116,36 @@ export async function classifyMolecule(smiles, { signal } = {}) {
     return null;
   }
 }
+
+
+/**
+ * Validate SDF content against the server before database ingestion.
+ *
+ * @param {{ sdf: string, strict?: boolean, functional_check?: boolean, owner_id?: string|null }} params
+ * @param {{ signal?: AbortSignal, fetchFn?: Function }} options
+ *   - fetchFn: override the default apiFetch (e.g. apiFetchNoOwner for admin pages)
+ * @returns {Promise<{ valid: boolean, errors: Array, warnings: Array, parsed_tags?: object, functional_check?: object|null }>}
+ */
+export async function validateSdf(
+  { sdf, strict = true, functional_check = true, owner_id = null },
+  { signal, fetchFn } = {},
+) {
+  const doFetch = fetchFn || apiFetch;
+
+  const response = await doFetch(`${API_URL}/molecules/validate-sdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sdf, strict, functional_check, owner_id }),
+    ...(signal ? { signal } : {}),
+  });
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    // Server returned a structured error (e.g. 400 for bad SMILES)
+    const msg = json?.error || json?.message || `Validation request failed (${response.status})`;
+    throw new Error(msg);
+  }
+
+  return json?.data ?? { valid: true, errors: [], warnings: [] };
+}
