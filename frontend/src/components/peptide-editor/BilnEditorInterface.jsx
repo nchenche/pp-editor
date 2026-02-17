@@ -31,7 +31,9 @@ import UploadIcon from '@mui/icons-material/Upload';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
+import ScienceIcon from '@mui/icons-material/Science';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -245,6 +247,89 @@ export default function BilnEditorInterface({
         },
     ], []);
 
+    // ── Scaffold preset categories shown in the "Presets" tab of the scaffold dialog ──
+    const SCAFFOLD_PRESET_CATEGORIES = React.useMemo(() => [
+        {
+            title: 'Canonical Secondary Structures',
+            description: 'Backbone archetypes — essential starting geometries for MD simulations.',
+            presets: [
+                {
+                    label: 'α-Helix',
+                    // note: 'Antimicrobial, hormone-like, stapled, and membrane-active peptides.',
+                    source: null, // { kind: 'pdbId', pdbId: '????' } or { kind: 'asset', path: '/assets/3d-templates/alpha_helix.pdb', filename: 'alpha_helix.pdb' }
+                },
+                {
+                    label: '3₁₀ Helix',
+                    // note: 'Tighter helix variant; common in short constrained peptides.',
+                    source: null,
+                },
+                {
+                    label: 'Extended β-Strand',
+                    // note: 'Interface mimetics, amyloid-prone peptides, extended binding motifs.',
+
+                    source: null,
+                },
+                {
+                    label: 'β-Hairpin',
+                    // note: 'Small folded peptides (8–16 aa), mini-proteins, disulfide-stabilized scaffolds.',
+                    source: null,
+                },
+                {
+                    label: 'Polyproline II (PPII)',
+                    // note: 'Intrinsically disordered peptides, SH3-binding motifs, proline-rich regions.',
+                    source: null,
+                },
+            ],
+        },
+        {
+            title: 'Constrained & Cyclic',
+            description: 'Macrocyclic and topologically constrained scaffolds for drug-like peptides.',
+            presets: [
+                {
+                    label: 'Head-to-Tail Cyclic (6 aa)',
+                    // note: 'Compact macrocycle with increased proteolytic stability.',
+                    source: null,
+                },
+                {
+                    label: 'Head-to-Tail Cyclic (8 aa)',
+                    // note: 'Medium-ring macrocycle — common in drug discovery.',
+                    source: null,
+                },
+                {
+                    label: 'Head-to-Tail Cyclic (10 aa)',
+                    // note: 'Larger ring size for complex pharmacophores.',
+                    source: null,
+                },
+                {
+                    label: 'Disulfide-Bridged Loop',
+                    // note: 'Hormone mimetics, toxin-like peptides, stable constrained scaffolds.',
+                    source: null,
+                },
+                {
+                    label: 'Lasso Topology',
+                    // note: 'Topologically constrained, very stable architectures.',
+                    source: null,
+                },
+            ],
+        },
+        {
+            title: 'Pharmaceutical-Inspired',
+            description: 'Application-driven scaffolds with translational relevance.',
+            presets: [
+                {
+                    label: 'GLP-1–like Long Helical Peptide',
+                    // note: 'Inspired by Semaglutide — long helical hormone analogs, lipidated peptides.',
+                    source: null,
+                },
+                {
+                    label: 'Helix–Turn–Helix Mini-Protein',
+                    // note: 'Stable scaffolds, interface mimetics, small foldable peptides (20–40 aa).',
+                    source: null,
+                },
+            ],
+        },
+    ], []);
+
     const applyExample = React.useCallback((example) => {
         onChangeBiln(example.biln);
 
@@ -358,14 +443,17 @@ export default function BilnEditorInterface({
         setScaffoldMode,
         pdbIdInput,
         setPdbIdInput,
+        presetLoading,
         fileInputRef,
         openScaffoldDialog,
         closeScaffoldDialog,
         handleScaffoldFileChange,
         handleConfirmPdbId,
+        handleLoadPreset,
     } = useScaffoldDialog({
         onUploadScaffoldFile,
         onFetchScaffoldById,
+        onConstraintModeChange,
     });
 
     const btnSx = {
@@ -1913,21 +2001,22 @@ export default function BilnEditorInterface({
                 </DialogActions>
             </Dialog>
 
-            {/* Scaffold upload / fetch dialog */}
-            <Dialog open={scaffoldDialogOpen} onClose={closeScaffoldDialog} maxWidth="xs" fullWidth>
+            {/* Scaffold upload / fetch / preset dialog */}
+            <Dialog open={scaffoldDialogOpen} onClose={closeScaffoldDialog} maxWidth={scaffoldMode === 'preset' ? 'sm' : 'xs'} fullWidth>
                 <DialogTitle>Select scaffold source</DialogTitle>
                 <DialogContent dividers>
                     <RadioGroup
                         row
                         value={scaffoldMode}
                         onChange={(e) => setScaffoldMode(e.target.value)}
-                        sx={{ mb: 2 }}
+                        sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}
                     >
                         <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
                         <FormControlLabel value="pdbId" control={<Radio size="small" />} label="PDB ID" />
+                        <FormControlLabel value="preset" control={<Radio size="small" />} label="Presets" />
                     </RadioGroup>
 
-                    {scaffoldMode === 'file' ? (
+                    {scaffoldMode === 'file' && (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Typography variant="body2" color="text.secondary">
                                 Choose a local PDB/mmCIF file to use as global scaffold template.
@@ -1941,7 +2030,9 @@ export default function BilnEditorInterface({
                                 Select file…
                             </Button>
                         </Box>
-                    ) : (
+                    )}
+
+                    {scaffoldMode === 'pdbId' && (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Typography variant="body2" color="text.secondary">
                                 Enter a 4-letter PDB ID (e.g. 1CRN, 4HHB).
@@ -1959,6 +2050,114 @@ export default function BilnEditorInterface({
                                 }}
                                 slotProps={{ htmlInput: { maxLength: 4, style: { textTransform: 'uppercase', fontFamily: 'monospace' } } }}
                             />
+                        </Box>
+                    )}
+
+                    {scaffoldMode === 'preset' && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 420, overflowY: 'auto' }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                Pick a pre-built 3D backbone template. Constraint mode will be switched to <b>Template</b> automatically.
+                            </Typography>
+                            {SCAFFOLD_PRESET_CATEGORIES.map((cat) => (
+                                <Paper
+                                    key={cat.title}
+                                    variant="outlined"
+                                    sx={{ p: 1.5, borderRadius: 2, bgcolor: (t) => alpha(t.palette.background.default, 0.5) }}
+                                >
+                                    <Typography
+                                        variant="subtitle2"
+                                        sx={{
+                                            fontWeight: 700,
+                                            fontSize: '0.85rem',
+                                            lineHeight: 1.3,
+                                            mb: 0.25,
+                                        }}
+                                    >
+                                        {cat.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.8rem' }}>
+                                        {cat.description}
+                                    </Typography>
+
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {cat.presets.map((preset) => {
+                                            const available = !!preset.source;
+                                            return (
+                                                <Paper
+                                                    key={preset.label}
+                                                    variant="outlined"
+                                                    sx={{
+                                                        p: 1.25,
+                                                        pl: 1.5,
+                                                        borderRadius: 1.5,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 1,
+                                                        opacity: available ? 1 : 0.5,
+                                                        '&:hover': available ? {
+                                                            borderColor: 'primary.main',
+                                                            bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
+                                                        } : {},
+                                                        transition: 'border-color 0.15s, background-color 0.15s',
+                                                    }}
+                                                >
+                                                    <ScienceIcon sx={{ fontSize: 18, color: available ? 'primary.main' : 'text.disabled', flexShrink: 0 }} />
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.82rem', lineHeight: 1.3 }}>
+                                                            {preset.label}
+                                                        </Typography>
+                                                        {preset.note && (
+                                                            <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.25, fontSize: '0.72rem', lineHeight: 1.35 }}>
+                                                                {preset.note}
+                                                            </Typography>
+                                                        )}
+                                                        {preset.source?.kind === 'pdbId' && (
+                                                            <Chip
+                                                                size="small"
+                                                                label={`PDB ${preset.source.pdbId}`}
+                                                                variant="outlined"
+                                                                color="secondary"
+                                                                sx={{ height: 18, fontSize: '0.65rem', mt: 0.5, '& .MuiChip-label': { px: 0.75 } }}
+                                                            />
+                                                        )}
+                                                        {preset.source?.kind === 'asset' && (
+                                                            <Chip
+                                                                size="small"
+                                                                label="Bundled template"
+                                                                variant="outlined"
+                                                                color="info"
+                                                                sx={{ height: 18, fontSize: '0.65rem', mt: 0.5, '& .MuiChip-label': { px: 0.75 } }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        disabled={!available || presetLoading}
+                                                        onClick={() => handleLoadPreset(preset)}
+                                                        startIcon={
+                                                            presetLoading
+                                                                ? <CircularProgress size={14} />
+                                                                : <PlayArrowIcon sx={{ fontSize: '14px !important' }} />
+                                                        }
+                                                        sx={{
+                                                            textTransform: 'none',
+                                                            fontWeight: 600,
+                                                            fontSize: '0.75rem',
+                                                            flexShrink: 0,
+                                                            px: 1.5,
+                                                            minHeight: 28,
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        {available ? 'Load' : 'Coming soon'}
+                                                    </Button>
+                                                </Paper>
+                                            );
+                                        })}
+                                    </Box>
+                                </Paper>
+                            ))}
                         </Box>
                     )}
                 </DialogContent>
