@@ -313,16 +313,16 @@ export default function BilnEditorInterface({
             ],
         },
         {
-            title: 'Pharmaceutical-Inspired',
-            description: 'Application-driven scaffolds with translational relevance.',
+            title: 'Pharmaceutical',
+            description: 'Scaffolds from already-approved peptide drugs — useful for designing new therapeutics with similar geometries.',
             presets: [
                 {
-                    label: 'GLP-1–like Long Helical Peptide',
+                    label: 'GLP-1-like Peptide',
                     // note: 'Inspired by Semaglutide — long helical hormone analogs, lipidated peptides.',
                     source: null,
                 },
                 {
-                    label: 'Helix–Turn–Helix Mini-Protein',
+                    label: 'Growth Hormone-Inhibiting Hormone (GHIH)',
                     // note: 'Stable scaffolds, interface mimetics, small foldable peptides (20–40 aa).',
                     source: null,
                 },
