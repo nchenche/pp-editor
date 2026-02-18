@@ -333,7 +333,7 @@ const UIAddMonomers = memo(() => {
             />
           </FormWizard.TabContent>
 
-          <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+          <FormWizard.TabContent title="Fill in Monomer Metadata" icon="ti-check">
             <StepGuideline title="Guideline" error={stepError}>
               Fill in the monomer metadata. Clicking “Next” will validate the form and also check that the Symbol does not already exist.
             </StepGuideline>

@@ -1,22 +1,31 @@
 import { useState } from "react";
 
 import {
+    Alert,
     Box,
     Typography,
     List,
+    ListItem,
     ListItemButton,
     ListItemText,
     Divider,
     Link as MUILink,
     Dialog,
-    IconButton
+    IconButton,
+    Paper,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 const sections = [
     { id: "introduction", label: "Introduction" },
     { id: "foundations", label: "Foundations: pyPept & BILN" },
-    { id: "pepedit-differences", label: "What PepEdit adds vs pyPept" },
+    { id: "pepedit-differences", label: "What PEP-EDIT adds vs pyPept" },
     { id: "concepts-biln", label: "Concepts & BILN" },
     { id: "monomer-library", label: "Monomer library & R-groups" },
     { id: "ui-overview", label: "User interface overview" },
@@ -26,7 +35,8 @@ const sections = [
     { id: "conformer-generation", label: "Conformer generation (under the hood)" },
     { id: "protonation", label: "Protonation model (pH)" },
     { id: "output-formats", label: "Output & export" },
-    { id: "monomer-editor", label: "Monomer editor" },
+    { id: "sessions", label: "Sessions" },
+    { id: "adding-monomers", label: "Adding monomers to the library" },
     { id: "use-cases", label: "Examples & use cases" },
     { id: "limitations-tips", label: "Limitations & tips" },
     { id: "policies", label: "Accessibility and cookie consent" },
@@ -175,7 +185,7 @@ const Documentation = () => {
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* PepEdit differences */}
+                    {/* PEP-EDIT differences */}
                     <section id="pepedit-differences">
                         <Typography variant="h5" gutterBottom>
                             What PEP-EDIT adds vs pyPept
@@ -195,8 +205,8 @@ const Documentation = () => {
                                 (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows. This flexible management allows PEP-EDIT to handle both public and user specific monomer libraries, as well as facilities to migrate monomers from the user library to the public one in a moderated mode.
                             </li>
                             <li>
-                                <strong>Monomer naming rule:</strong> monomers containing the <code>-</code> character are renamed using
-                                <code>_</code> to avoid conflicts with BILN’s hyphen shorthand for backbone connections.
+                                <strong>Monomer naming rule:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using
+                                underscore character (<code className="mx-1">_</code>) to avoid conflicts with BILN’s hyphen shorthand for backbone connections.
                             </li>
                             <li>
                                 <strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers
@@ -352,8 +362,8 @@ const Documentation = () => {
                         </Typography>
 
                         <Typography variant="body1" component="p">
-                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>), by specifying a peptide sequencein a FASTA format (limited to the 20 standard amino acids) or by inserting
-                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are proposed ease the identification of the monomer.
+                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>), by specifying a peptide sequence in a FASTA format (limited to the 20 standard amino acids) or by inserting
+                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are proposed to ease the identification of the monomer.
                         </Typography>
 
                         <Box component="figure" className="my-4">
@@ -578,16 +588,104 @@ const Documentation = () => {
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* Monomer editor */}
-                    <section id="monomer-editor">
+                    {/* Sessions */}
+                    <section id="sessions">
                         <Typography variant="h5" gutterBottom>
-                            Monomer editor: personal monomers & extending the public library
+                            Sessions
                         </Typography>
 
                         <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            PEP-EDIT lets you use the public monomer library <b>and</b> manage a personal monomer library (“My monomers”).
-                            Personal monomers are scoped by an anonymous <b>Owner/Token ID</b>, which enables collaboration (by sharing an ID)
-                            and persistent work across navigation/refresh.
+                            A <b>Session ID</b> is the key that ties together your personal monomers, conformer jobs, and editor state.
+                            No account or login is required — the session is anonymous and identified only by its unique ID.
+                        </Typography>
+
+                        <Typography variant="h6" gutterBottom>
+                            How a session is created
+                        </Typography>
+
+                        <Box
+                            component="ol"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>First visit:</b> a Session ID is automatically generated and stored in your browser (localStorage) and on the server.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Subsequent visits:</b> the stored Session ID is reloaded automatically so your work is restored.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>New session:</b> click the <b>+</b> button (or <b>Start new session</b> in the Session dialog) to create a fresh session at any time.
+                                A confirmation dialog reminds you to save your current Session ID before switching.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="h6" gutterBottom>
+                            What a session contains
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            Your Session ID gives you access to:
+                        </Typography>
+
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Personal monomers</b> — custom monomers you created or uploaded in <em>My monomers</em>.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Conformer generation jobs</b> — every 3D job submitted under this session.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="h6" gutterBottom>
+                            Naming a session
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            You can give a session a human-readable name (e.g. <em>“Therapeutic peptides”</em>) and a short description
+                            to make it easier to identify later. These can be edited:
+                        </Typography>
+
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 3,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Inline:</b> click the session name displayed next to the Session ID chip in the header.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Email tab:</b> open Session → <b>Email</b> tab → “Session notes” section at the bottom.
+                            </Typography>
+                        </Box>
+
+                        <Alert severity="warning" sx={{ mb: 3 }}>
+                            Sessions are automatically deleted from the server after <b>1 month of inactivity</b>.
+                            To keep a session alive, simply use the application — each visit refreshes the expiration timer.
+                        </Alert>
+
+                        <Typography variant="h6" gutterBottom>
+                            Session dialog (Share / Recover / Email)
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            Click the <b>Session</b> button in the header to open the Session Management dialog. It contains three tabs:
                         </Typography>
 
                         <Box
@@ -596,86 +694,144 @@ const Documentation = () => {
                                 border: "1px solid",
                                 borderColor: "divider",
                                 borderRadius: 2,
-                                bgcolor: "action.hover",
+                                mb: 2,
+                            }}
+                        >
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                                Share
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Send a Session ID by email. The recipient will be able to load and collaborate on the session.
+                            </Typography>
+                            <Box
+                                component="ul"
+                                sx={{
+                                    pl: 3,
+                                    mb: 0,
+                                    "& > li": { mb: 0.6 },
+                                    "& > li:last-of-type": { mb: 0 },
+                                }}
+                            >
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    Enter the recipient’s email address.
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    Choose whether to share the <b>current session</b> or a <b>different Session ID</b> (useful to forward a colleague’s session).
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    Click <b>Send by Email</b>.
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Box
+                            sx={{
+                                p: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 2,
+                                mb: 2,
+                            }}
+                        >
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                                Recover
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Get back into a session you no longer have in your browser. Three options:
+                            </Typography>
+                            <Box
+                                component="ol"
+                                sx={{
+                                    pl: 3,
+                                    mb: 0,
+                                    "& > li": { mb: 0.6 },
+                                    "& > li:last-of-type": { mb: 0 },
+                                }}
+                            >
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Load a session by ID</b> — paste a Session ID (e.g. received from a colleague) and click <b>Load Session</b>.
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Email this session ID</b> — sends the current Session ID to your verified email address (backup).
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Email all session IDs</b> — sends every Session ID linked to your verified email (useful if you have
+                                    multiple sessions and lost track of one).
+                                </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1, fontStyle: "italic" }}>
+                                Options 2 and 3 require a verified email (see Email tab).
+                            </Typography>
+                        </Box>
+
+                        <Box
+                            sx={{
+                                p: 2,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 2,
                                 mb: 3,
                             }}
                         >
                             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                Owner/Token ID (why it matters)
+                                Email
                             </Typography>
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Your personal monomers are linked to an anonymous Owner/Token ID. Without an ID, you can still use the public library,
-                                but you cannot store or retrieve a personal library. Keep your ID somewhere safe: if you lose it, you may lose access to
-                                the personal monomers associated with it.
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Link an email address to this session to enable recovery features and session sharing.
                             </Typography>
+                            <Box
+                                component="ul"
+                                sx={{
+                                    pl: 3,
+                                    mb: 1,
+                                    "& > li": { mb: 0.6 },
+                                    "& > li:last-of-type": { mb: 0 },
+                                }}
+                            >
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Link email for recovery:</b> enter your email; a verification link is sent. Once verified, recovery options become available.
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Change email:</b> if you already have a verified email and want to switch, the change goes through a two-step verification
+                                    (current email approval, then new email confirmation).
+                                </Typography>
+                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                    <b>Session notes:</b> set or update the session <em>name</em> and <em>description</em> to help you identify the session.
+                                </Typography>
+                            </Box>
                         </Box>
 
-                        <Typography variant="h6" gutterBottom sx={{ mt: 1 }}>
-                            A. Use a collaborator’s monomers (shared ID)
+                        <Typography variant="body1" component="p">
+                            <b>Tip:</b> click the Session ID chip in the header at any time to copy the full ID to your clipboard.
+                        </Typography>
+                    </section>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* Adding monomers to the library */}
+                    <section id="adding-monomers">
+                        <Typography variant="h5" gutterBottom>
+                            Adding monomers to the library
                         </Typography>
 
                         <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            If someone sends you an ID, you can temporarily “connect” to their personal library:
-                        </Typography>
-
-                        <Box
-                            component="ol"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Click <b>Load ID</b> (top-left).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Paste the shared ID (example format: <code>pep-...</code>).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Open <b>My monomers</b> (or use the Design page library search) to find the shared monomers.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="h6" gutterBottom>
-                            B. Create your own personal library (recommended)
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            To build your own monomer library:
-                        </Typography>
-
-                        <Box
-                            component="ol"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Click <b>Create ID</b> (top-left).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Click <b>Generate</b> to create a new ID.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Save/copy it somewhere safe. You can always re-copy it later while connected.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                You can now use <b>My monomers</b> to create, edit, export and delete monomers.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="h6" gutterBottom>
-                            Creating monomers in “My monomers”
+                            Beyond the built-in public monomer library, PEP-EDIT lets you build a <b>personal monomer library</b> (“My monomers”).
+                            Personal monomers are tied to your <b>Session ID</b> (see <MUILink href="#sessions">Sessions</MUILink>),
+                            so they persist across page refreshes and can be shared with collaborators by sharing the session.
                         </Typography>
 
                         <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            There are two supported workflows. Both produce pepedit-compatible SDF records (with SD-tags) so monomers behave like built-in ones:
-                            they can be searched in the library, inserted in BILN sequences, linked via R-groups, visualized, and exported.
+                            Once added, personal monomers behave exactly like built-in ones: they appear in the library search,
+                            can be inserted in BILN sequences, linked via R-groups, visualized, and exported.
+                            If you create monomers you think would benefit everyone, you can <MUILink href="/submit-public-monomers">submit them for inclusion in the public library</MUILink> (see below).
+                        </Typography>
+
+                        <Typography variant="h6" gutterBottom>
+                            Two ways to add monomers
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
+                            Both workflows produce pepedit-compatible SDF records (with SD-tags), so monomers integrate seamlessly with the rest of the application.
                         </Typography>
 
                         <Box
@@ -695,10 +851,10 @@ const Documentation = () => {
                                 }}
                             >
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                    Option 1 — Upload an SDF file
+                                    Create a monomer (wizard)
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                    Best if you already have monomers prepared in SDF format.
+                                    Start from a SMILES string and define R-groups interactively. A guided 5-step wizard walks you through the process.
                                 </Typography>
 
                                 <Box
@@ -711,13 +867,19 @@ const Documentation = () => {
                                     }}
                                 >
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        My monomers → <b>Create</b> → <b>Upload SDF file</b>
+                                        My monomers → <b>Create</b>
                                     </Typography>
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Choose a <code>.sdf</code> file and upload
+                                        Paste a valid SMILES — the molecule renders live
                                     </Typography>
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        The monomers become available in the Design page library/search
+                                        Click bonds to define attachment points; pick the core fragment
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Fill in metadata (Symbol, PDB, type…); review stereochemistry
+                                    </Typography>
+                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                        Validate the generated molblock and save — see detailed walkthrough below
                                     </Typography>
                                 </Box>
                             </Box>
@@ -731,10 +893,10 @@ const Documentation = () => {
                                 }}
                             >
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                    Option 2 — Create from scratch (SMILES → wizard)
+                                    Import SDF
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                    Best if you start from a structure and want to define R-groups interactively.
+                                    Import monomers from a pepedit-compatible SDF file — useful for sharing, restoring, or bulk-loading monomers.
                                 </Typography>
 
                                 <Box
@@ -747,23 +909,377 @@ const Documentation = () => {
                                     }}
                                 >
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Provide a <b>SMILES</b>
+                                        My monomers → <b>Import SDF</b>
                                     </Typography>
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Select bond(s) to define attachment points (R-groups)
+                                        Choose a <code>.sdf</code> file and upload
                                     </Typography>
                                     <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Choose the fragment corresponding to the monomer core (max 4 R-groups)
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Fill monomer fields (Symbol must be unique; PDB is 1–3 uppercase letters)
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Validate the generated SDF and save to your personal library
+                                        The monomers become available in the Design page library/search
                                     </Typography>
                                 </Box>
                             </Box>
                         </Box>
+
+                        {/* ── Create a monomer — detailed walkthrough ── */}
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                            Create a monomer — step-by-step walkthrough
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
+                            The wizard transforms a SMILES string into a validated SDF monomer record containing a molecular core, explicit attachment points
+                            (R1–R4), leaving groups, stereochemistry assignments, and the metadata required for BILN integration.
+                            You can move back and forth between steps using the <b>Back</b> and <b>Next</b> buttons at the bottom of the wizard.
+                        </Typography>
+
+                        {/* Step 1 */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
+                            Step 1 — Choose a molecule (SMILES input)
+                        </Typography>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
+                            Paste a valid SMILES string into the input field. A live 2D depiction appears as you type.
+                            If the structure does not render, check that the SMILES is valid before proceeding.
+                            Click <b>Next</b> once the preview matches the molecule you intend to register.
+                        </Typography>
+
+                        {/* <Box
+                            sx={{
+                                p: 2,
+                                border: "1px dashed",
+                                borderColor: "divider",
+                                borderRadius: 2,
+                                mb: 2,
+                                color: "text.disabled",
+                                textAlign: "center",
+                                fontStyle: "italic",
+                                fontSize: "0.82rem",
+                            }}
+                        > */}
+
+                            <Box component="figure" className="my-4">
+                                <Box
+                                    component="img"
+                                    src="/assets/documentation/create-monomer_step1_smiles.png"
+                                    alt="Step 1 — SMILES input field with live 2D preview"
+                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                    onClick={() =>
+                                        openLightbox(
+                                            "/assets/documentation/create-monomer_step1_smiles.png",
+                                            "Step 1 — SMILES input field with live 2D preview"
+                                        )
+                                    }
+                                />
+                                <Typography
+                                    variant="caption"
+                                    display="block"
+                                    align="center"
+                                    sx={{ mt: 1 }}
+                                >
+                                    Figure 7. Step 1 — SMILES input field with live 2D preview. The example SMILES corresponds to the
+                                    non-canonical amino acid N-methyl-alanine.
+                                </Typography>
+                            </Box>
+
+                        {/* </Box> */}
+
+                        {/* Step 2 */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
+                            Step 2 — Define attachment points
+                        </Typography>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
+                            An <b>attachment point</b> (R-group) is an open connection site where the monomer bonds to its neighbours in a peptide chain.
+                            You may define up to four attachment points (R1–R4).
+                            This step has two parts:
+                        </Typography>
+
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>2a — Select bonds to cut</Typography>
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 1.5,
+                                "& > li": { mb: 0.6 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Click directly on bonds in the 2D depiction — clicking a bond selects it as a cleavage site; clicking again deselects it.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                At least one bond must be selected.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                For an amino-acid-like monomer: cut the <b>N-terminal bond</b> (amino side → R1) and the <b>C-terminal bond</b> (carboxyl side → R2).
+                                A capping group needs only <b>one</b> bond cut (it terminates one chain end).
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>2b — Choose the monomer core fragment</Typography>
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 1.5,
+                                "& > li": { mb: 0.6 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                After bond selection the molecule is split into fragments displayed in a carousel.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Click a card to select the core fragment (a coloured border highlights the active choice).
+                                For most amino acids, choose the fragment that contains the backbone α-carbon.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                PEP-EDIT automatically analyses the selected fragment and pre-fills metadata fields where possible.
+                            </Typography>
+                        </Box>
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/create-monomer_step2_attachment-points.png"
+                                alt="Step 2 — Attachment point selection and core fragment carousel"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/create-monomer_step2_attachment-points.png",
+                                        "Step 2 — Attachment point selection and core fragment carousel"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 8. Step 2 — Attachment point selection and core fragment carousel. Clicking bonds in the 2D preview selects them as attachment points (R-groups), then the molecule is split into fragments. The user selects which fragment to designate as the core (highlighted in blue) — metadata fields are pre-filled based on this choice.
+                            </Typography>
+                        </Box>
+
+
+                        {/* Step 3 */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
+                            Step 3 — Fill in monomer metadata
+                        </Typography>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 1.5, lineHeight: 1.7 }}>
+                            A form appears alongside a depiction of the selected fragment. Each field describes a property PEP-EDIT needs to integrate
+                            the monomer into the library and use it in BILN peptide sequences.
+                        </Typography>
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/create-monomer_step3_fill-metadata.png"
+                                alt="Step 3 — Monomer metadata form"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/create-monomer_step3_fill-metadata.png",
+                                        "Step 3 — Monomer metadata form"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 9. Step 3 — Monomer metadata form. The user fills in fields describing the monomer’s properties and how it should be represented in BILN sequences. The table below describes each field and the automatic rules that pre-fill or constrain certain values based on the molecule’s structure.
+                            </Typography>
+                        </Box>
+
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                                        <TableCell sx={{ fontWeight: 700 }}>Field</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>What to enter</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>Constraints</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell><b>Name</b></TableCell>
+                                        <TableCell>Human-readable name (e.g. <em>Alanine</em>)</TableCell>
+                                        <TableCell>Free text.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>Symbol</b></TableCell>
+                                        <TableCell>Short identifier used in BILN (e.g. <em>Ala</em>, <em>Pra</em>)</TableCell>
+                                        <TableCell>Must be unique across all monomers. Checked server-side before saving.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>Natural analog</b></TableCell>
+                                        <TableCell>Single-letter code of the closest natural amino acid</TableCell>
+                                        <TableCell>Choose from A–Y or <b>X</b> when no natural analog exists. Forced to <b>X</b> for Cap type.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>PDB</b></TableCell>
+                                        <TableCell>3-letter PDB residue code (e.g. <em>ALA</em>)</TableCell>
+                                        <TableCell>Exactly <b>3 uppercase letters</b>. Auto-converts to uppercase and strips non-letter characters.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>Type</b></TableCell>
+                                        <TableCell>Monomer category</TableCell>
+                                        <TableCell><em>Amino acid</em>, <em>Cap</em>, or <em>Other</em>. Often pre-filled automatically.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>Subtype</b></TableCell>
+                                        <TableCell>Refinement of the type</TableCell>
+                                        <TableCell>Options depend on type: <em>Natural</em> or <em>Non-natural</em> for type <em>Amino acid</em> and <em>Other</em>, <em>Cap</em> for type <em>Cap</em>.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>R-group label</b> <Typography component="span" variant="caption">(one per attachment point)</Typography></TableCell>
+                                        <TableCell>Which R-group number (R1–R4) to assign to that attachment point</TableCell>
+                                        <TableCell>Labels must be <b>unique</b> — you cannot assign R1 to two different attachment points.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell><b>Leaving group</b> <Typography component="span" variant="caption">(one per attachment point)</Typography></TableCell>
+                                        <TableCell>The atom that occupies the attachment point when not bonded to a neighbour</TableCell>
+                                        <TableCell>Only <b>H</b> or <b>OH</b> are allowed.</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            <b>BILN</b> (<em>Boehringer Ingelheim Line Notation</em>) is the text notation PEP-EDIT uses to represent peptide sequences.
+                            Each residue is referenced by its <b>Symbol</b> (e.g. <code>A.D.meA</code>), and connections between residues map to R-groups.
+                        </Alert>
+
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Automatic type rules</Typography>
+                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7, color: "text.secondary" }}>
+                            The wizard enforces consistency rules so every monomer stays usable in peptide design:
+                        </Typography>
+
+                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+                            <Table size="small">
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                                        <TableCell sx={{ fontWeight: 700 }}>Condition</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>Automatic effect</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Fragment has exactly <b>1</b> R-group</TableCell>
+                                        <TableCell>Type forced to <b>Cap</b>; subtype to <b>Cap</b>; natural analog to <b>X</b>. Amino acid option disabled.</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Fragment has <b>2 or more</b> R-groups</TableCell>
+                                        <TableCell><b>Cap</b> type disabled (cannot be selected)</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Type = <b>Cap</b></TableCell>
+                                        <TableCell>Subtype forced to <b>Cap</b>; natural analog forced to <b>X</b></TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Type = <b>Other</b> or <b>Amino acid</b></TableCell>
+                                        <TableCell>Subtype defaults to <b>Non-natural</b> (can be changed to Natural)</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+
+
+                        {/* Step 4 */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
+                            Step 4 — Review stereochemistry
+                        </Typography>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
+                            If the fragment contains stereocenters, this step lets you review and modify their configuration (R/S).
+                            Stereocenters are highlighted in the 2D depiction, and a table lists each centre and its assigned configuration.
+                            You may override assignments if necessary. If no stereocenters are detected you can proceed directly.
+                            When you continue, the molblock is regenerated with your chosen stereochemistry.
+                        </Typography>
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/create-monomer_step4_stereochemistry.png"
+                                alt="Step 4 — Stereochemistry review and override"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/create-monomer_step4_stereochemistry.png",
+                                        "Step 4 — Stereochemistry review and override"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 10. Step 4 — Stereochemistry review and override. Detected stereocenters are highlighted in the molecule preview and listed in a table with their assigned R/S configuration. The user can override the assignment if needed before proceeding to the final step.
+                            </Typography>
+                        </Box>
+
+                        {/* Step 5 */}
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
+                            Step 5 — Validate and complete
+                        </Typography>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
+                            The wizard generates the complete SDF monomer record. The molblock appears in an editable text area — you may correct it manually
+                            before saving. Click <b>Complete</b>; the server then:
+                        </Typography>
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 1.5,
+                                "& > li": { mb: 0.6 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Runs a <b>structural integrity</b> check
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Runs a <b>field consistency</b> check
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Runs a <b>functional monomer</b> validation
+                            </Typography>
+                        </Box>
+                        <Typography variant="body2" component="p" sx={{ mb: 2, lineHeight: 1.7 }}>
+                            If all checks pass, the monomer is saved to your personal library and becomes available in the Design page library/search.
+                        </Typography>
+
+                        <Box component="figure" className="my-4">
+                            <Box
+                                component="img"
+                                src="/assets/documentation/create-monomer_step5_review-sdf.png"
+                                alt="Step 5 — Validation checks and completion"
+                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
+                                onClick={() =>
+                                    openLightbox(
+                                        "/assets/documentation/create-monomer_step5_review-sdf.png",
+                                        "Step 5 — Validation checks and completion"
+                                    )
+                                }
+                            />
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                align="center"
+                                sx={{ mt: 1 }}
+                            >
+                                Figure 11. Step 5 — Validation checks and completion. After the user reviews the generated molblock and clicks Complete, the server runs a series of validation checks (structural integrity, field consistency, functional monomer) before saving the monomer to the personal library.
+                            </Typography>
+                        </Box>
+
+
 
                         <Typography variant="h6" gutterBottom>
                             Editing personal monomers
@@ -786,7 +1302,7 @@ const Documentation = () => {
                                 <b>Symbol</b> must be unique (checked before saving in the creation wizard).
                             </Typography>
                             <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>PDB</b> is limited to <b>1–3 uppercase letters</b>.
+                                <b>PDB</b> is exactly <b>3 uppercase letters</b> (auto-uppercased; non-letter characters are stripped).
                             </Typography>
                             <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
                                 Leaving groups are restricted to <b>H</b> or <b>OH</b>.
@@ -796,10 +1312,79 @@ const Documentation = () => {
                             </Typography>
                         </Box>
 
-                        <Typography variant="body1" component="p">
-                            If you want to propose monomers for everyone, use the dedicated submission page (“Submit to public library”).
-                            Your request is reviewed by maintainers before adding monomers to the public collection.
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                            Import SDF — when and how
                         </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            The <b>Import SDF</b> button (in the My monomers toolbar, next to Export SDF) lets you load one or more monomer records
+                            from a pepedit-compatible <code>.sdf</code> file. Common scenarios include:
+                        </Typography>
+
+                        <Box
+                            component="ul"
+                            sx={{
+                                pl: 3,
+                                mb: 2,
+                                "& > li": { mb: 0.75 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Colleague sharing:</b> a colleague exports their personal monomers as SDF and sends the file to you.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Restoring from a previous session:</b> re-import monomers you exported earlier (e.g., after starting a new session).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Bulk loading:</b> import a batch of pre-prepared monomers at once instead of creating them one by one.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                <b>Cross-environment transfer:</b> move monomers between different PEP-EDIT deployments.
+                            </Typography>
+                        </Box>
+
+                        <Typography variant="body2" component="p" sx={{ mb: 3, lineHeight: 1.7 }}>
+                            After selecting a file, the importer validates each record and shows a preview. You can review and edit
+                            entries before confirming the upload. Imported monomers appear immediately in your personal library
+                            and in the Design page search.
+                        </Typography>
+
+                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                            Submit to public library
+                        </Typography>
+
+                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
+                            Personal monomers live only in your session. If you’ve created or imported monomers that could benefit all users,
+                            you can propose them for inclusion in the public library:
+                        </Typography>
+
+                        <Box
+                            component="ol"
+                            sx={{
+                                pl: 3,
+                                mb: 2,
+                                "& > li": { mb: 0.6 },
+                                "& > li:last-of-type": { mb: 0 },
+                            }}
+                        >
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Go to the <MUILink href="/submit-public-monomers">Submit to public library</MUILink> page.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Upload your SDF file (the same format used by Export / Import SDF).
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Your submission is reviewed by the PEP-EDIT maintainers.
+                            </Typography>
+                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
+                                Once approved, the monomers are added to the public collection and become available to every user.
+                            </Typography>
+                        </Box>
+
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            Submitting to the public library does not remove the monomers from your personal library. They will exist in both places.
+                        </Alert>
                     </section>
 
                     <Divider sx={{ my: 4 }} />
@@ -959,8 +1544,8 @@ const Documentation = () => {
                             for the peptide backbone.
                             A possible strategy is to generate a backbone
                             conformation for residues 3–31 (i.e. avoiding the Aib) using an external tool such as PEP-FOLD4,
-                             and then use this model as a <strong>3D template</strong> within PEP-EDIT
-                             to build the full lipidated structure. The truncated sequence requires an offset of 2 to map that of the full semaglutide.
+                            and then use this model as a <strong>3D template</strong> within PEP-EDIT
+                            to build the full lipidated structure. The truncated sequence requires an offset of 2 to map that of the full semaglutide.
                         </Typography>
 
 

@@ -41,6 +41,7 @@ import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ImageIcon from '@mui/icons-material/ImageOutlined';
 import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
 import DownloadIcon from '@mui/icons-material/DownloadOutlined';
+import UploadFileIcon from '@mui/icons-material/UploadFileOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SendIcon from '@mui/icons-material/Send';
 import Alert from '@mui/material/Alert';
@@ -1493,12 +1494,31 @@ export default function PersonalMonomers() {
               </span>
             </Tooltip>
 
+            <Tooltip title="Import monomers from an SDF file">
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<UploadFileIcon fontSize="small" />}
+                  onClick={() => {
+                    resetCreateDialog();
+                    setCreateMode('upload-sdf');
+                    setCreateDialogOpen(true);
+                  }}
+                  disabled={isLoading}
+                >
+                  Import SDF
+                </Button>
+              </span>
+            </Tooltip>
+
             <Button
               size="small"
               variant="contained"
               startIcon={<AddIcon fontSize="small" />}
               onClick={() => {
                 resetCreateDialog();
+                setCreateMode('scratch');
                 setCreateDialogOpen(true);
               }}
             >
@@ -2079,7 +2099,9 @@ export default function PersonalMonomers() {
       </Dialog>
 
       <Dialog open={createDialogOpen} onClose={closeCreateDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Create monomer</DialogTitle>
+        <DialogTitle>
+          {createMode === 'upload-sdf' ? 'Import monomers (SDF)' : 'Create monomer'}
+        </DialogTitle>
         <DialogContent dividers ref={createDialogContentRef}>
           {createError ? (
             <Box sx={{ mb: 1 }}>
@@ -2133,34 +2155,6 @@ export default function PersonalMonomers() {
             </Box>
           ) : null}
 
-          {createMode == null ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Choose how you want to add monomers.
-              </Typography>
-
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => {
-                  setCreateError('');
-                  setCreateMode('upload-sdf');
-                }}
-              >
-                Upload SDF file
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setCreateError('');
-                  setCreateMode('scratch');
-                }}
-              >
-                Create from scratch (SMILES → steps)
-              </Button>
-            </Box>
-          ) : null}
-
           {createMode === 'scratch' ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 
@@ -2191,7 +2185,7 @@ export default function PersonalMonomers() {
                   </Box>
                 </FormWizard.TabContent>
 
-                <FormWizard.TabContent title="Fragment & select core" icon="ti-settings">
+                <FormWizard.TabContent title="Define attachment points" icon="ti-settings">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <StepGuidelineWithError title="Guideline" error={scratchStepError}>
                       Click one or more bonds on the left to cut the molecule into fragments.{' '}
@@ -2209,7 +2203,7 @@ export default function PersonalMonomers() {
                   </Box>
                 </FormWizard.TabContent>
 
-                <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+                <FormWizard.TabContent title="Fill in Monomer Metadata" icon="ti-check">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <StepGuidelineWithError title="Guideline" error={scratchStepError}>
                       Fill in monomer metadata. Clicking “Next” will validate the form and also check that the Symbol does not already exist.
@@ -2223,7 +2217,7 @@ export default function PersonalMonomers() {
                   </Box>
                 </FormWizard.TabContent>
 
-                <FormWizard.TabContent title="Stereochemistry" icon="ti-check">
+                <FormWizard.TabContent title="Review Stereochemistry" icon="ti-check">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <StepGuideline title="Guideline">
                       Review and confirm the stereochemistry assignments for chiral centers.
@@ -2267,12 +2261,6 @@ export default function PersonalMonomers() {
                 </FormWizard.TabContent>
               </FormWizard>
 
-              <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                <Button variant="text" onClick={() => setCreateMode(null)} disabled={createIsUploading}>
-                  Back
-                </Button>
-              </Box>
-
               <style>{`
                 @import url("https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css");
                 .wizard-card-footer{ display:flex; justify-content:center; margin-top:10px; gap:20px; flex-wrap:wrap; row-gap:10px; position:sticky; bottom:0; z-index:2; padding:10px 0; }
@@ -2302,9 +2290,6 @@ export default function PersonalMonomers() {
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {createFileName ? createFileName : 'No file selected'}
                 </Typography>
-                <Button variant="text" onClick={() => setCreateMode(null)}>
-                  Back
-                </Button>
               </Box>
 
               {createRecords.length > 0 ? (

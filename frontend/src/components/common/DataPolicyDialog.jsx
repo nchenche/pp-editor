@@ -33,7 +33,7 @@ export default function DataPolicyDialog({ open, mode = 'footer', onClose, onAcc
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers sx={{ py: 2.5 }}>
         <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-          This application uses browser storage and a server-side session keyed by an anonymous Token ID to provide core features
+          This application uses browser storage and a server-side session keyed by an anonymous Session ID to provide core features
           (restore your work, manage your personal monomers, and retrieve results).
         </Typography>
 
@@ -51,12 +51,12 @@ export default function DataPolicyDialog({ open, mode = 'footer', onClose, onAcc
             No account is required; we do not ask for your name or email address.
           </Typography>
           <Typography component="li" variant="body2" sx={{ lineHeight: 1.6 }}>
-            <b>Stored on your device (Local Storage):</b> editor state (work-in-progress) and an anonymous Owner/Token ID so your session
+            <b>Stored on your device (Local Storage):</b> editor state (work-in-progress) and an anonymous Session ID so your session
             can be restored after refresh/navigation.
           </Typography>
           <Typography component="li" variant="body2" sx={{ lineHeight: 1.6 }}>
-            <b>Stored on our server (linked to the Token ID):</b> session-scoped data needed to retrieve results and (if you use “My monomers”)
-            your personal monomer entries associated with that Token ID.
+            <b>Stored on our server (linked to the Session ID):</b> session-scoped data needed to retrieve results and (if you use "My monomers")
+            your personal monomer entries associated with that Session ID.
           </Typography>
           <Typography component="li" variant="body2" sx={{ lineHeight: 1.6 }}>
             We do not use advertising or tracking cookies.
@@ -70,7 +70,7 @@ export default function DataPolicyDialog({ open, mode = 'footer', onClose, onAcc
             </Typography>
 
             <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-              The Owner/Token ID is a random identifier used only within this application to look up the server-side data for your session.
+              The Session ID is a random identifier used only within this application to look up the server-side data for your session.
               It is not meant to identify you personally.
             </Typography>
 

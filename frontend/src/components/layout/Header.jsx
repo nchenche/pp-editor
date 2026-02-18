@@ -1253,7 +1253,7 @@ function Header({ children }) {
                   <Box>
                     <Typography variant="subtitle2" gutterBottom>Session notes</Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                      Add a name and notes to help identify this session. Saved locally.
+                      Add a name and notes to help identify this session. Saved on the server and cached locally.
                     </Typography>
                     <Stack spacing={1.5}>
                       <TextField

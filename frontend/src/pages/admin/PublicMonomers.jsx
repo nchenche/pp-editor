@@ -800,7 +800,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                                 </Box>
                             </FormWizard.TabContent>
 
-                            <FormWizard.TabContent title="Fragment & select core" icon="ti-settings">
+                            <FormWizard.TabContent title="Define attachment points" icon="ti-settings">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <StepGuidelineWithError title="Guideline" error={scratchStepError}>
                                         Click one or more bonds on the left to cut the molecule into fragments.{' '}
@@ -818,7 +818,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                                 </Box>
                             </FormWizard.TabContent>
 
-                            <FormWizard.TabContent title="Fill the fields" icon="ti-check">
+                            <FormWizard.TabContent title="Fill in Monomer Metadata" icon="ti-check">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <StepGuidelineWithError title="Guideline" error={scratchStepError}>
                                         Fill in monomer metadata. Clicking “Next” will validate the form and also check that the Symbol does not already exist.
@@ -848,7 +848,7 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                                 </Box>
                             </FormWizard.TabContent>
 
-                            <FormWizard.TabContent title="Stereochemistry" icon="ti-check">
+                            <FormWizard.TabContent title="Review Stereochemistry" icon="ti-check">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <StepGuideline title="Guideline">
                                         Review and confirm the stereochemistry assignments for chiral centers.

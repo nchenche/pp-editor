@@ -19,7 +19,7 @@ function NavItemLink({ to, children, isDisabled, disabledReason, onDisabledClick
                 <button
                     type="button"
                     aria-disabled="true"
-                    title={disabledReason || 'Requires Owner ID'}
+                    title={disabledReason || 'Requires Session ID'}
                     className={disabledClassName}
                     onClick={() => onDisabledClick?.({ to, reason: disabledReason })}
                 >
