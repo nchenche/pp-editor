@@ -55,13 +55,6 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
         }
     }, [selectedType, setValue]);
 
-    // When type is cap, force natural analog to X.
-    useEffect(() => {
-        if (selectedType === 'cap') {
-            setValue('naturalAnalog', 'X', { shouldValidate: true, shouldDirty: true });
-        }
-    }, [selectedType, setValue]);
-
     // Enforce "cap" rules based on R-group count:
     // - If exactly 1 R-group exists => type must be cap
     // - If >1 R-group exists => type cannot be cap
@@ -99,7 +92,6 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
                         sxOptions={sxOptions}
                         control={control}
                         error={errors.naturalAnalog}
-                        disabled={selectedType === 'cap'}
                     />
                 </Grid>
 
@@ -128,7 +120,6 @@ export const NewMonomerSettingForm = ({ formMethods, groupIndices, pdbConfig }) 
                         control={control}
                         error={errors.selectSubType}
                         options={subtypeOptions}
-                    // disabled={selectedType === 'cap'} // optional: make it read-only when cap
                     />
                 </Grid>
 

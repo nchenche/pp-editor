@@ -1118,7 +1118,7 @@ const Documentation = () => {
                                     <TableRow>
                                         <TableCell><b>Natural analog</b></TableCell>
                                         <TableCell>Single-letter code of the closest natural amino acid</TableCell>
-                                        <TableCell>Choose from A–Y or <b>X</b> when no natural analog exists. Forced to <b>X</b> for Cap type.</TableCell>
+                                        <TableCell>Choose from A–Y or <b>X</b> when no natural analog exists.</TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell><b>PDB</b></TableCell>
@@ -1170,7 +1170,7 @@ const Documentation = () => {
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>Fragment has exactly <b>1</b> R-group</TableCell>
-                                        <TableCell>Type forced to <b>Cap</b>; subtype to <b>Cap</b>; natural analog to <b>X</b>. Amino acid option disabled.</TableCell>
+                                        <TableCell>Type forced to <b>Cap</b>; subtype to <b>Cap</b>. Amino acid option disabled.</TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Fragment has <b>2 or more</b> R-groups</TableCell>
@@ -1178,7 +1178,7 @@ const Documentation = () => {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Type = <b>Cap</b></TableCell>
-                                        <TableCell>Subtype forced to <b>Cap</b>; natural analog forced to <b>X</b></TableCell>
+                                        <TableCell>Subtype forced to <b>Cap</b></TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Type = <b>Other</b> or <b>Amino acid</b></TableCell>

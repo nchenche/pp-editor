@@ -39,6 +39,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ImageIcon from '@mui/icons-material/ImageOutlined';
 import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 
 import { API_DB_URL, API_URL } from '../../config';
@@ -275,11 +276,20 @@ function parseSdfRecords(text) {
 function normalizeSdfRecordForUpload(recordText) {
     const normalized = String(recordText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const idx = normalized.lastIndexOf('$$$$');
+    let body;
     if (idx === -1) {
-        return normalized.replace(/\n*$/g, '') + '\n$$$$\n';
+        body = normalized.replace(/\n*$/g, '') + '\n$$$$\n';
+    } else {
+        body = normalized.slice(0, idx + 4).replace(/\s*$/g, '') + '\n';
     }
-    const upTo = normalized.slice(0, idx + 4);
-    return upTo.replace(/\s*$/g, '') + '\n';
+    // Ensure the record starts with a newline (blank molecule-name line).
+    // Without this, concatenated records would have the second record's
+    // program/header line glued directly after the previous '$$$$\n',
+    // which RDKit cannot parse.
+    if (!body.startsWith('\n')) {
+        body = '\n' + body;
+    }
+    return body;
 }
 
 function getSdfTagValue(recordText, tagName) {
@@ -442,6 +452,12 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
         if (!file) return;
         setCreateError('');
         setCreateFileName(String(file.name || ''));
+
+        // Client-side size guard (backend limit: 10 MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setCreateError('File is too large. The maximum allowed size is 10 MB.');
+            return;
+        }
 
         try {
             const text = await file.text();
@@ -1097,6 +1113,11 @@ export default function PublicMonomers() {
     const capForbidden = editRGroupCount > 1;
 
     const [deleteDialog, setDeleteDialog] = useState({ open: false, monomer: null });
+    const [bulkDeleteDialog, setBulkDeleteDialog] = useState({ open: false, symbols: [] });
+    const [bulkDeleteError, setBulkDeleteError] = useState('');
+    const [bulkDeleteIsDeleting, setBulkDeleteIsDeleting] = useState(false);
+    const [deleteAllDialog, setDeleteAllDialog] = useState(false);
+    const [selectedSymbols, setSelectedSymbols] = useState(new Set());
 
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -1460,13 +1481,11 @@ export default function PublicMonomers() {
         setError('');
         setIsLoading(true);
         try {
-            const params = new URLSearchParams();
-            params.set('db_name', dbName);
-            params.set('scope', 'public');
-            params.set('symbols', JSON.stringify([symbol]));
-            const url = `${API_DB_URL}/monomers/delete?${params.toString()}`;
-
-            const res = await apiDbFetch(url, { method: 'DELETE' });
+            const res = await apiDbFetch(`${API_DB_URL}/monomers/delete`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ db_name: dbName, scope: 'public', symbols: [symbol] }),
+            });
             const json = await res.json().catch(() => null);
 
             if (!res.ok) {
@@ -1484,6 +1503,104 @@ export default function PublicMonomers() {
             setIsLoading(false);
         }
     }, [apiDbFetch, closeDelete, dbName, deleteDialog.monomer, load]);
+
+    // ── Selection ──
+    const selectionCount = selectedSymbols.size;
+
+    const toggleSelect = useCallback((symbol) => {
+        setSelectedSymbols((prev) => {
+            const next = new Set(prev);
+            if (next.has(symbol)) next.delete(symbol); else next.add(symbol);
+            return next;
+        });
+    }, []);
+
+    const toggleSelectAll = useCallback(() => {
+        setSelectedSymbols((prev) => {
+            const allSymbols = sortedFiltered.map((r) => String(r?.symbol || '').trim()).filter(Boolean);
+            const allSelected = allSymbols.length > 0 && allSymbols.every((s) => prev.has(s));
+            return allSelected ? new Set() : new Set(allSymbols);
+        });
+    }, [sortedFiltered]);
+
+    // ── Bulk delete (selected) ──
+    const openBulkDeleteDialog = useCallback(() => {
+        const symbols = Array.from(selectedSymbols || []).filter(Boolean);
+        if (symbols.length === 0) return;
+        setBulkDeleteError('');
+        setBulkDeleteDialog({ open: true, symbols });
+    }, [selectedSymbols]);
+
+    const closeBulkDeleteDialog = useCallback(() => {
+        setBulkDeleteDialog({ open: false, symbols: [] });
+        setBulkDeleteError('');
+    }, []);
+
+    const confirmBulkDelete = useCallback(async () => {
+        const symbols = bulkDeleteDialog.symbols;
+        if (!symbols || symbols.length === 0) return;
+
+        setBulkDeleteError('');
+        setBulkDeleteIsDeleting(true);
+        try {
+            const res = await apiDbFetch(`${API_DB_URL}/monomers/delete`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ db_name: dbName, scope: 'public', symbols }),
+            });
+            const json = await res.json().catch(() => null);
+
+            if (!res.ok) {
+                const msg = json?.message || json?.error || `Failed to delete monomers (status ${res.status})`;
+                setBulkDeleteError(String(msg));
+                return;
+            }
+
+            setSelectedSymbols(new Set());
+            invalidateLibraryFetching('public-monomers-bulk-deleted');
+            closeBulkDeleteDialog();
+            await load();
+        } catch (e) {
+            setBulkDeleteError(e?.message || 'Failed to delete monomers.');
+        } finally {
+            setBulkDeleteIsDeleting(false);
+        }
+    }, [apiDbFetch, bulkDeleteDialog.symbols, closeBulkDeleteDialog, dbName, load]);
+
+    // ── Delete all ──
+    const openDeleteAllDialog = useCallback(() => setDeleteAllDialog(true), []);
+    const closeDeleteAllDialog = useCallback(() => setDeleteAllDialog(false), []);
+
+    const confirmDeleteAll = useCallback(async () => {
+        const allSymbols = (normalized || []).map((m) => String(m?.symbol || '').trim()).filter(Boolean);
+        if (allSymbols.length === 0) return;
+
+        setError('');
+        setIsLoading(true);
+        try {
+            const res = await apiDbFetch(`${API_DB_URL}/monomers/delete`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ db_name: dbName, scope: 'public', symbols: allSymbols }),
+            });
+            const json = await res.json().catch(() => null);
+
+            if (!res.ok) {
+                const msg = json?.message || json?.error || `Failed to delete all monomers (status ${res.status})`;
+                setError(String(msg));
+                return;
+            }
+
+            setSelectedSymbols(new Set());
+            invalidateLibraryFetching('public-monomers-all-deleted');
+            closeDeleteAllDialog();
+            await load();
+        } catch (e) {
+            setError(e?.message || 'Failed to delete all monomers.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [apiDbFetch, closeDeleteAllDialog, dbName, load, normalized]);
 
     const exportMonomerSdf = useCallback((m) => {
         const symbol = String(m?.symbol || m?._id || 'monomer').trim() || 'monomer';
@@ -1709,6 +1826,36 @@ export default function PublicMonomers() {
                             </span>
                         </Tooltip>
 
+                        <Tooltip title={selectionCount === 0 ? 'Select monomers first' : `Delete ${selectionCount} selected monomer${selectionCount > 1 ? 's' : ''}`}>
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<DeleteIcon fontSize="small" />}
+                                    onClick={openBulkDeleteDialog}
+                                    disabled={selectionCount === 0 || isLoading}
+                                >
+                                    Delete ({selectionCount})
+                                </Button>
+                            </span>
+                        </Tooltip>
+
+                        <Tooltip title="Delete ALL monomers from the database">
+                            <span>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<DeleteSweepIcon fontSize="small" />}
+                                    onClick={openDeleteAllDialog}
+                                    disabled={isLoading || normalized.length === 0}
+                                >
+                                    Delete All
+                                </Button>
+                            </span>
+                        </Tooltip>
+
                         <Button
                             size="small"
                             variant="contained"
@@ -1751,6 +1898,15 @@ export default function PublicMonomers() {
                     <Table size="small" stickyHeader>
                         <TableHead>
                             <TableRow>
+                                {/* Selection checkbox */}
+                                <TableCell padding="checkbox" sx={{ position: 'sticky', left: 0, zIndex: 3, backgroundColor: 'background.paper' }}>
+                                    <Checkbox
+                                        size="small"
+                                        indeterminate={selectionCount > 0 && selectionCount < sortedFiltered.length}
+                                        checked={sortedFiltered.length > 0 && selectionCount === sortedFiltered.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </TableCell>
                                 <TableCell
                                     sx={{
                                         width: ACTIONS_COL_WIDTH,
@@ -1806,7 +1962,15 @@ export default function PublicMonomers() {
                                 const hasImg = Boolean(img && String(img).trim());
 
                                 return (
-                                    <TableRow key={symbol || JSON.stringify(raw)} hover>
+                                    <TableRow key={symbol || JSON.stringify(raw)} hover selected={selectedSymbols.has(symbol)}>
+                                        {/* Selection checkbox */}
+                                        <TableCell padding="checkbox" sx={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'background.paper' }}>
+                                            <Checkbox
+                                                size="small"
+                                                checked={selectedSymbols.has(symbol)}
+                                                onChange={() => toggleSelect(symbol)}
+                                            />
+                                        </TableCell>
                                         <TableCell
                                             sx={{
                                                 width: ACTIONS_COL_WIDTH,
@@ -2079,13 +2243,78 @@ export default function PublicMonomers() {
                 <Dialog open={deleteDialog.open} onClose={closeDelete} maxWidth="xs" fullWidth>
                     <DialogTitle>Delete monomer</DialogTitle>
                     <DialogContent dividers>
+                        <Alert severity="warning" variant="outlined" sx={{ mb: 1.5 }}>
+                            This action is permanent and cannot be undone.
+                        </Alert>
                         <Typography variant="body2">
-                            Delete <strong>{String(deleteDialog?.monomer?.symbol ?? '').trim() || 'this monomer'}</strong> from the public library?
+                            Are you sure you want to permanently delete <strong>{String(deleteDialog?.monomer?.symbol ?? '').trim() || 'this monomer'}</strong> from the public library?
                         </Typography>
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={closeDelete} variant="outlined">Cancel</Button>
                         <Button onClick={confirmDelete} variant="contained" color="error" disabled={isLoading}>Delete</Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Bulk delete confirmation */}
+                <Dialog open={bulkDeleteDialog.open} onClose={closeBulkDeleteDialog} maxWidth="sm" fullWidth>
+                    <DialogTitle>Delete selected monomers</DialogTitle>
+                    <DialogContent dividers>
+                        <Alert severity="warning" variant="outlined" sx={{ mb: 1.5 }}>
+                            This action is permanent and cannot be undone. All selected monomers will be removed from the public database.
+                        </Alert>
+                        {bulkDeleteError ? (
+                            <Alert severity="error" sx={{ mb: 1 }}>{bulkDeleteError}</Alert>
+                        ) : null}
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                            Are you sure you want to permanently delete <strong>{bulkDeleteDialog.symbols.length}</strong> monomer{bulkDeleteDialog.symbols.length > 1 ? 's' : ''}?
+                        </Typography>
+                        <TextField
+                            label="Monomers to delete"
+                            value={bulkDeleteDialog.symbols.join(', ')}
+                            multiline
+                            minRows={2}
+                            maxRows={6}
+                            fullWidth
+                            slotProps={{ input: { readOnly: true, sx: { fontFamily: 'monospace', fontSize: '0.82rem' } } }}
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={closeBulkDeleteDialog} variant="outlined" disabled={bulkDeleteIsDeleting}>Cancel</Button>
+                        <Button
+                            onClick={confirmBulkDelete}
+                            variant="contained"
+                            color="error"
+                            disabled={bulkDeleteIsDeleting || bulkDeleteDialog.symbols.length === 0}
+                            startIcon={bulkDeleteIsDeleting ? <CircularProgress size={18} /> : <DeleteIcon />}
+                        >
+                            Delete {bulkDeleteDialog.symbols.length} monomer{bulkDeleteDialog.symbols.length > 1 ? 's' : ''}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Delete All confirmation */}
+                <Dialog open={deleteAllDialog} onClose={closeDeleteAllDialog} maxWidth="xs" fullWidth>
+                    <DialogTitle>Delete ALL public monomers</DialogTitle>
+                    <DialogContent dividers>
+                        <Alert severity="error" variant="outlined" sx={{ mb: 1.5 }}>
+                            <strong>Danger zone</strong> — This will permanently remove every monomer from the public database. This action cannot be undone.
+                        </Alert>
+                        <Typography variant="body2">
+                            Are you sure you want to delete all <strong>{normalized.length}</strong> monomers from the public library?
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={closeDeleteAllDialog} variant="outlined">Cancel</Button>
+                        <Button
+                            onClick={confirmDeleteAll}
+                            variant="contained"
+                            color="error"
+                            disabled={isLoading || normalized.length === 0}
+                            startIcon={isLoading ? <CircularProgress size={18} /> : <DeleteSweepIcon />}
+                        >
+                            Delete All ({normalized.length})
+                        </Button>
                     </DialogActions>
                 </Dialog>
 

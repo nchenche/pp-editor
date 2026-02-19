@@ -94,8 +94,8 @@ const SdfValidationDialog = memo(function SdfValidationDialog({
                                         <ErrorOutlineIcon fontSize="small" color="error" />
                                     </ListItemIcon>
                                     <ListItemText
-                                        primary={err.message || err.code || 'Unknown error'}
-                                        secondary={err.code && err.message ? err.code : null}
+                                        primary={typeof err === 'string' ? err : (err.message || err.code || 'Unknown error')}
+                                        secondary={typeof err === 'string' ? null : (err.code && err.message ? err.code : null)}
                                         primaryTypographyProps={{
                                             variant: 'body2',
                                             sx: { wordBreak: 'break-word' },
@@ -128,8 +128,8 @@ const SdfValidationDialog = memo(function SdfValidationDialog({
                                         <WarningAmberIcon fontSize="small" color="warning" />
                                     </ListItemIcon>
                                     <ListItemText
-                                        primary={warn.message || warn.code || 'Unknown warning'}
-                                        secondary={warn.code && warn.message ? warn.code : null}
+                                        primary={typeof warn === 'string' ? warn : (warn.message || warn.code || 'Unknown warning')}
+                                        secondary={typeof warn === 'string' ? null : (warn.code && warn.message ? warn.code : null)}
                                         primaryTypographyProps={{
                                             variant: 'body2',
                                             sx: { wordBreak: 'break-word' },

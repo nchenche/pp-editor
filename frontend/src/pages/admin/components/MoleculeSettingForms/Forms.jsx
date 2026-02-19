@@ -107,7 +107,7 @@ export const MolAnalogForm = ({ sxOptions, control, error, disabled }) => {
                 <FormHelperText error>{error.message}</FormHelperText>
             ) : (
                 <FormHelperText>
-                    {disabled ? 'For type “cap”, natural analog is forced to X.' : 'Use X when no natural analog exists.'}
+                    Use X when no natural analog exists.
                 </FormHelperText>
             )}
         </FormControl>

@@ -118,13 +118,40 @@ export async function classifyMolecule(smiles, { signal } = {}) {
 }
 
 
+/** Max SDF payload size accepted by the backend (10 MB). */
+export const MAX_SDF_VALIDATE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Normalize an error/warning entry to { code?, message } regardless of whether
+ * the backend sent it as a plain string or an object.
+ */
+function normalizeIssue(entry) {
+  if (typeof entry === 'string') return { message: entry };
+  if (entry && typeof entry === 'object') {
+    return {
+      code: entry.code || undefined,
+      message: entry.message || entry.code || 'Unknown issue',
+    };
+  }
+  return { message: 'Unknown issue' };
+}
+
 /**
  * Validate SDF content against the server before database ingestion.
+ *
+ * The backend returns a **batch** response (`data.records[]`) even for a
+ * single-record payload.  This helper normalises the response into a flat
+ * shape that existing callers (and SdfValidationDialog) expect:
+ *
+ *   { valid, errors[], warnings[], parsed_tags?, functional_check? }
+ *
+ * For multi-record payloads, per-record issues are flattened into the
+ * top-level arrays and prefixed with the record number and symbol/name.
  *
  * @param {{ sdf: string, strict?: boolean, functional_check?: boolean, owner_id?: string|null }} params
  * @param {{ signal?: AbortSignal, fetchFn?: Function }} options
  *   - fetchFn: override the default apiFetch (e.g. apiFetchNoOwner for admin pages)
- * @returns {Promise<{ valid: boolean, errors: Array, warnings: Array, parsed_tags?: object, functional_check?: object|null }>}
+ * @returns {Promise<{ valid: boolean, errors: Array<{code?,message}>, warnings: Array<{code?,message}>, parsed_tags?: object|null, functional_check?: object|null }>}
  */
 export async function validateSdf(
   { sdf, strict = true, functional_check = true, owner_id = null },
@@ -142,10 +169,61 @@ export async function validateSdf(
   const json = await response.json().catch(() => null);
 
   if (!response.ok) {
-    // Server returned a structured error (e.g. 400 for bad SMILES)
     const msg = json?.error || json?.message || `Validation request failed (${response.status})`;
     throw new Error(msg);
   }
 
-  return json?.data ?? { valid: true, errors: [], warnings: [] };
+  const data = json?.data;
+  if (!data) return { valid: true, errors: [], warnings: [] };
+
+  // --- Flatten batch response into the shape callers expect ---
+  const records = Array.isArray(data.records) ? data.records : [];
+  const isSingle = records.length <= 1;
+
+  // Start with global-level issues
+  const flatErrors = (data.errors || []).map((e) => {
+    const n = normalizeIssue(e);
+    return { ...n, message: isSingle ? n.message : `Global: ${n.message}` };
+  });
+  const flatWarnings = (data.warnings || []).map((w) => {
+    const n = normalizeIssue(w);
+    return { ...n, message: isSingle ? n.message : `Global: ${n.message}` };
+  });
+
+  // Per-record issues
+  for (const rec of records) {
+    const label = isSingle
+      ? ''
+      : `Record #${(rec.index ?? 0) + 1}${
+          rec.parsed_tags?.symbol || rec.parsed_tags?.m_name
+            ? ` (${rec.parsed_tags.symbol || rec.parsed_tags.m_name})`
+            : ''
+        }: `;
+
+    for (const e of rec.errors || []) {
+      const n = normalizeIssue(e);
+      flatErrors.push({ ...n, message: `${label}${n.message}` });
+    }
+    for (const w of rec.warnings || []) {
+      const n = normalizeIssue(w);
+      flatWarnings.push({ ...n, message: `${label}${n.message}` });
+    }
+
+    // Functional check failure → append as an error entry
+    if (rec.functional_check && rec.functional_check.ok === false && rec.functional_check.stage !== 'skipped') {
+      flatErrors.push({
+        code: `functional_check_${rec.functional_check.stage || 'unknown'}`,
+        message: `${label}Functional check failed${rec.functional_check.stage ? ` at stage "${rec.functional_check.stage}"` : ''}: ${rec.functional_check.error || 'unknown error'}`,
+      });
+    }
+  }
+
+  return {
+    valid: Boolean(data.valid),
+    errors: flatErrors,
+    warnings: flatWarnings,
+    // Backward-compat shortcuts for single-record callers
+    parsed_tags: isSingle ? (records[0]?.parsed_tags ?? data.parsed_tags ?? null) : null,
+    functional_check: isSingle ? (records[0]?.functional_check ?? null) : null,
+  };
 }

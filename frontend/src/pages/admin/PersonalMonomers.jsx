@@ -235,12 +235,21 @@ function parseSdfRecords(text) {
 function normalizeSdfRecordForUpload(text) {
   const normalized = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const idx = normalized.lastIndexOf('$$$$');
+  let body;
   if (idx === -1) {
-    return normalized.replace(/\n*$/g, '') + '\n$$$$\n';
+    body = normalized.replace(/\n*$/g, '') + '\n$$$$\n';
+  } else {
+    // Keep content up to and including the last '$$$$' and ensure it ends with a single newline.
+    body = normalized.slice(0, idx + 4).replace(/\s*$/g, '') + '\n';
   }
-  // Keep content up to and including the last '$$$$' and ensure it ends with a single newline.
-  const upTo = normalized.slice(0, idx + 4);
-  return upTo.replace(/\s*$/g, '') + '\n';
+  // Ensure the record starts with a newline (blank molecule-name line).
+  // Without this, concatenated records would have the second record's
+  // program/header line glued directly after the previous '$$$$\n',
+  // which RDKit cannot parse.
+  if (!body.startsWith('\n')) {
+    body = '\n' + body;
+  }
+  return body;
 }
 
 function getSdfTagValue(recordText, tagName) {
@@ -911,7 +920,7 @@ export default function PersonalMonomers() {
 
     const desiredType = rGroupCount === 1 ? 'cap' : nm.type;
     const fixed = enforceTypeSubtypeRule(desiredType, nm.subtype);
-    const natAnalog = fixed.type === 'cap' ? 'X' : (normalizeNatAnalogInput(nm.natAnalog) || 'X');
+    const natAnalog = normalizeNatAnalogInput(nm.natAnalog) || 'X';
     const baseRGroups = Array.isArray(m?.m_Rgroups) ? m.m_Rgroups.slice() : [];
     const rGroupsByIndex = {};
     for (const i of slots) {
@@ -957,7 +966,7 @@ export default function PersonalMonomers() {
 
     const fixed = enforceTypeSubtypeRule(editForm.type, editForm.subtype);
 
-    const natAnalog = fixed.type === 'cap' ? 'X' : normalizeNatAnalogInput(editForm.natAnalog);
+    const natAnalog = normalizeNatAnalogInput(editForm.natAnalog);
     if (!natAnalog) {
       setError('Natural analog must be one of the 20 amino acids (one-letter code) or X.');
       return;
@@ -1031,8 +1040,11 @@ export default function PersonalMonomers() {
     setError('');
     setIsLoading(true);
     try {
-      const url = `${API_DB_URL}/monomers/personal?db_name=pepedit&symbols=${encodeURIComponent(symbol)}`;
-      const res = await apiFetch(url, { method: 'DELETE' });
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ db_name: 'pepedit', symbols: [symbol] }),
+      });
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
@@ -1169,8 +1181,11 @@ export default function PersonalMonomers() {
     setError('');
 
     const deleteOne = async (symbol) => {
-      const url = `${API_DB_URL}/monomers/personal?db_name=pepedit&symbols=${encodeURIComponent(symbol)}`;
-      const res = await apiFetch(url, { method: 'DELETE' });
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ db_name: 'pepedit', symbols: [symbol] }),
+      });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         const msg = json?.message || json?.error || `Failed to delete ${symbol} (status ${res.status})`;
@@ -1181,8 +1196,11 @@ export default function PersonalMonomers() {
 
     try {
       // Prefer one request for all symbols if backend supports it.
-      const url = `${API_DB_URL}/monomers/personal?db_name=pepedit&symbols=${encodeURIComponent(symbols.join(','))}`;
-      const res = await apiFetch(url, { method: 'DELETE' });
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ db_name: 'pepedit', symbols }),
+      });
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
@@ -1326,6 +1344,12 @@ export default function PersonalMonomers() {
     if (!file) return;
     setCreateError('');
     setCreateFileName(String(file.name || ''));
+
+    // Client-side size guard (backend limit: 10 MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setCreateError('File is too large. The maximum allowed size is 10 MB.');
+      return;
+    }
 
     try {
       const text = await file.text();
@@ -1908,7 +1932,7 @@ export default function PersonalMonomers() {
               value={editForm.name}
               onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
             />
-            <FormControl size="small" disabled={editForm.type === 'cap'}>
+            <FormControl size="small">
               <InputLabel id="nat-analog-label">Natural analog</InputLabel>
               <Select
                 labelId="nat-analog-label"
@@ -1926,7 +1950,7 @@ export default function PersonalMonomers() {
                 ))}
               </Select>
               <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                {editForm.type === 'cap' ? 'For type “cap”, natural analog is forced to X.' : 'Use X when no natural analog exists.'}
+                Use X when no natural analog exists.
               </Typography>
             </FormControl>
             <TextField
@@ -1952,7 +1976,7 @@ export default function PersonalMonomers() {
                     ...s,
                     type: fixed.type,
                     subtype: fixed.subtype,
-                    natAnalog: fixed.type === 'cap' ? 'X' : (normalizeNatAnalogInput(s.natAnalog) || 'X'),
+                    natAnalog: normalizeNatAnalogInput(s.natAnalog) || 'X',
                   }));
                 }}
               >
