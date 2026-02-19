@@ -858,7 +858,6 @@ const CreatePublicMonomerDialog = memo(function CreatePublicMonomerDialog({
                                                     .slice(0, 4),
                                             minLengthMessage: 'Minimum length is 3 characters',
                                             maxLengthMessage: 'Maximum length is 4 characters',
-                                            maxLengthMessage: 'Maximum length is 4 characters',
                                         }}
                                     />
                                 </Box>
