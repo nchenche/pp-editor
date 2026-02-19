@@ -7,6 +7,7 @@ import {
   getConformerJobByUrl,
   cancelConformerJob,
   cancelConformerJobByUrl,
+  buildApiUrlFromServerUrl,
 } from '../utils/conformerJobsApi';
 
 import {
@@ -171,7 +172,8 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
   // Track short-lived 404s so we can retry a few times before declaring the job gone.
   const notFoundRef = useRef({ jobId: null, firstTs: 0, count: 0 });
 
-  const jobEndpointsRef = useRef({ statusUrl: null, cancelUrl: null });
+  const eventSourceRef = useRef(null);
+  const jobEndpointsRef = useRef({ statusUrl: null, cancelUrl: null, streamUrl: null });
 
   // Some backends can respond to a successful cancel request with a terminal state of "failed"
   // (e.g., task revoked/terminated with an error payload), while still indicating cancel_requested=true.
@@ -228,6 +230,13 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
     }
   }, []);
 
+  const cleanupSSE = useCallback(() => {
+    if (eventSourceRef.current) {
+      try { eventSourceRef.current.close(); } catch { /* ignore */ }
+      eventSourceRef.current = null;
+    }
+  }, []);
+
   const armTimeout = useCallback(() => {
     cleanupTimeout();
     timeoutRef.current = setTimeout(() => {
@@ -264,7 +273,8 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       const normalized = nextJobId ? String(nextJobId).trim() : '';
       if (!normalized) {
         jobIdRef.current = null;
-        jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
+        jobEndpointsRef.current = { statusUrl: null, cancelUrl: null, streamUrl: null };
+        cleanupSSE();
         clearConformerJobIdFromStorage({ dbName, sessionId: effectiveSessionId, baseUrlOverride });
         setJobId(null);
         setState('idle');
@@ -281,7 +291,8 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       // a valid status_url/cancel_url for that job (those are only returned by the start call).
       // If we keep a stale statusUrl from a previous job, polling will keep hitting that old URL
       // regardless of the new job id, which looks like "resume always uses the same job".
-      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
+      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null, streamUrl: null };
+      cleanupSSE();
 
       // Update ref before emitting the storage change event to avoid duplicate poll loops.
       jobIdRef.current = normalized;
@@ -291,7 +302,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       clearProgressLog();
       clearError();
     },
-    [baseUrlOverride, dbName, effectiveSessionId, clearError, clearProgressLog, cleanupTimeout],
+    [baseUrlOverride, cleanupSSE, dbName, effectiveSessionId, clearError, clearProgressLog, cleanupTimeout],
   );
 
   const fetchStatusOnce = useCallback(
@@ -475,6 +486,162 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
     [cleanupTimer, errorType, fetchStatusOnce, jobId, state],
   );
 
+  // ---------------------------------------------------------------------------
+  // SSE – prefer a real-time event stream when the backend provides stream_url.
+  // Falls back to pollLoop() on any error or if the server sends a timeout event.
+  // ---------------------------------------------------------------------------
+  const connectSSE = useCallback(
+    (id, streamUrl) => {
+      if (!id || !streamUrl) return false;
+
+      cleanupSSE();
+      cleanupTimer();
+
+      const fullUrl = buildApiUrlFromServerUrl(streamUrl, {
+        baseUrlOverride,
+        query: {
+          db_name: dbName,
+          ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+        },
+      });
+
+      let es;
+      try {
+        es = new EventSource(fullUrl);
+      } catch {
+        // EventSource construction failed; fall back to polling.
+        pollLoop(id);
+        return false;
+      }
+      eventSourceRef.current = es;
+
+      es.onmessage = (event) => {
+        if (!mountedRef.current) { es.close(); eventSourceRef.current = null; return; }
+        if (String(jobIdRef.current || '') !== String(id)) { es.close(); eventSourceRef.current = null; return; }
+
+        let data;
+        try {
+          const parsed = JSON.parse(event.data);
+          data = parsed?.data ?? parsed;
+        } catch { return; }
+
+        // Handle timeout / stream_timeout — fall back to polling via status_url.
+        const rawServerState = String(data?.state ?? '').trim().toLowerCase();
+        if (rawServerState === 'timeout' || rawServerState === 'stream_timeout') {
+          es.close();
+          eventSourceRef.current = null;
+          pollLoop(id);
+          return;
+        }
+
+        // Mirror the state-update logic from fetchStatusOnce.
+        const cancelRequested = data?.cancel_requested === true;
+        if (cancelRequested) {
+          cancelAcknowledgedJobIdRef.current = String(data?.job_id || id);
+        }
+
+        const rawNextState = normalizeState(data?.state);
+        const cancelAck = cancelRequested || (
+          cancelAcknowledgedJobIdRef.current && String(cancelAcknowledgedJobIdRef.current) === String(id)
+        );
+        const nextState = cancelAck ? 'canceled' : rawNextState;
+
+        if (nextState === 'success') {
+          lastSuccessfulJobIdRef.current = String(data?.job_id || id);
+        }
+
+        // If the server reports success but omits result_ref, defer the
+        // terminal state so the UI never flashes "no data to display".
+        // A confirmatory GET will set state=success with the full payload.
+        const deferTerminal = nextState === 'success' && !data?.result_ref;
+
+        if (!deferTerminal) {
+          setState(nextState);
+        }
+        setProgress(
+          cancelAck
+            ? { stage: 'canceled', message: 'Canceled by user' }
+            : (data?.progress ?? null),
+        );
+        if (!deferTerminal) {
+          setResultRef(data?.result_ref ?? null);
+        }
+
+        // Append to progress log directly from SSE so fast-arriving events
+        // are not lost to React 18 auto-batching (the useEffect-based log
+        // only sees the final rendered progressMessage).
+        const progressPayload = cancelAck
+          ? { stage: 'canceled', message: 'Canceled by user' }
+          : (data?.progress ?? null);
+        const sseProgressMsg = formatConformerJobProgressMessage(progressPayload);
+        if (sseProgressMsg) {
+          const trimmed = String(sseProgressMsg).trim();
+          if (trimmed && trimmed !== lastLoggedMsgRef.current) {
+            lastLoggedMsgRef.current = trimmed;
+            setProgressLog((prev) => {
+              const arr = Array.isArray(prev) ? prev : [];
+              const next = [...arr, { ts: Date.now(), message: trimmed }];
+              return next.length > 120 ? next.slice(next.length - 120) : next;
+            });
+          }
+        }
+
+        // Track last embedding/mapping progress.
+        const p = data?.progress;
+        const raw = p?.raw;
+        const stage = String(p?.stage || raw?.stage || '').toLowerCase();
+        const hasMappingRatio = raw && (raw.mapping_ratio != null || raw.mappingRatio != null);
+        const msg = p?.message ? String(p.message) : '';
+        const hasRatioInMessage = msg.includes('ratio=') || msg.includes('mapping_ratio');
+        if (stage === 'embedding' || hasMappingRatio || hasRatioInMessage) {
+          setLastEmbeddingProgress(p);
+        }
+
+        if (nextState === 'failed') {
+          setErrorType('job');
+          const progressMsg = data?.progress?.message ? String(data.progress.message) : '';
+          setError(toErrorMessage(data?.error) || progressMsg || 'Job failed');
+        } else {
+          setErrorType(null);
+          setError(null);
+        }
+
+        // Close SSE on terminal state.
+        if (isTerminal(nextState)) {
+          eventSourceRef.current = null;
+          es.close();
+          cleanupTimeout();
+          // If we deferred setting the terminal state (success without
+          // result_ref), fetch the complete record now.  fetchStatusOnce
+          // will transition the state with the full payload.
+          if (deferTerminal) {
+            fetchStatusOnce(id, { force: true });
+          }
+        }
+      };
+
+      es.onerror = () => {
+        // If onmessage already handled a terminal state it will have cleared
+        // eventSourceRef. In that case the server simply closed the connection
+        // after its last event — no need to fall back to polling.
+        if (eventSourceRef.current !== es) {
+          try { es.close(); } catch { /* ignore */ }
+          return;
+        }
+        es.close();
+        eventSourceRef.current = null;
+        // Fall back to polling on genuine SSE errors.
+        if (mountedRef.current && String(jobIdRef.current || '') === String(id)) {
+          pollLoop(id);
+        }
+      };
+
+      armTimeout();
+      return true;
+    },
+    [armTimeout, baseUrlOverride, cleanupSSE, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, pollLoop],
+  );
+
   const start = useCallback(
     async ({ biln, ssConstraints, embedParams, requestParams, ownerId: ownerIdOverride, sessionId: sessionIdOverride, endpoint, extraBody } = {}) => {
       if (!biln || !String(biln).trim()) {
@@ -490,6 +657,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       cancelAcknowledgedJobIdRef.current = null;
 
       cleanupTimer();
+      cleanupSSE();
       abortInFlight();
       clearError();
 
@@ -604,13 +772,12 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         const id = json?.data?.job_id;
         const statusUrl = json?.data?.status_url || null;
         const cancelUrl = json?.data?.cancel_url || null;
+        const streamUrl = json?.data?.stream_url || null;
         if (!id) {
           setErrorType('network');
           setError('Backend did not return job_id');
           return null;
         }
-
-        jobEndpointsRef.current = { statusUrl, cancelUrl };
 
         // Persist inputs best-effort for restoration (does not affect backend behavior).
         try {
@@ -633,13 +800,20 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         }
 
         setJobIdAndPersist(id);
+        // Restore endpoints *after* setJobIdAndPersist (which clears them for
+        // the storage-restore case). start() has fresh URLs from the 202 response.
+        jobEndpointsRef.current = { statusUrl, cancelUrl, streamUrl };
         setState('queued');
         setProgress(null);
         setLastEmbeddingProgress(null);
         setResultRef(null);
 
-        // Start polling immediately
-        pollLoop(id);
+        // Prefer SSE if stream_url is available; fall back to polling.
+        if (streamUrl) {
+          connectSSE(id, streamUrl);
+        } else {
+          pollLoop(id);
+        }
         return id;
       } catch (e) {
         if (e?.name === 'AbortError') return null;
@@ -650,7 +824,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         if (mountedRef.current) setIsStarting(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, effectiveSessionId, pollLoop, setJobIdAndPersist, state],
+    [abortInFlight, baseUrlOverride, cleanupSSE, cleanupTimer, clearError, clearProgressLog, connectSSE, dbName, effectiveSessionId, pollLoop, setJobIdAndPersist, state],
   );
 
   const cancel = useCallback(
@@ -659,6 +833,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       if (!effectiveId) return false;
 
       cleanupTimer();
+      cleanupSSE();
       abortInFlight();
       setIsCanceling(true);
 
@@ -755,7 +930,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         if (mountedRef.current) setIsCanceling(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, jobId, pollLoop, setJobIdAndPersist, state],
+    [abortInFlight, baseUrlOverride, cleanupSSE, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, jobId, pollLoop, setJobIdAndPersist, state],
   );
 
   const retry = useCallback(async () => {
@@ -775,21 +950,22 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
   const clear = useCallback(() => {
     cleanupTimer();
+    cleanupSSE();
     cleanupTimeout();
     abortInFlight();
     setJobIdAndPersist(null);
-  }, [abortInFlight, cleanupTimer, cleanupTimeout, setJobIdAndPersist]);
+  }, [abortInFlight, cleanupSSE, cleanupTimer, cleanupTimeout, setJobIdAndPersist]);
 
-  // On mount/unmount
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       cleanupTimer();
+      cleanupSSE();
       cleanupTimeout();
       abortInFlight();
     };
-  }, [abortInFlight, cleanupTimer, cleanupTimeout]);
+  }, [abortInFlight, cleanupSSE, cleanupTimer, cleanupTimeout]);
 
   // Keep hook in sync if another component updates the persisted job id.
   useEffect(() => {
@@ -801,12 +977,20 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
       // Same rationale as in setJobIdAndPersist(): storage-driven job id updates do not carry
       // status_url/cancel_url, so never keep stale URLs across job switches.
-      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null };
+      jobEndpointsRef.current = { statusUrl: null, cancelUrl: null, streamUrl: null };
+      cleanupSSE();
 
       setJobId(next);
       setState(next ? 'queued' : 'idle');
       if (next) {
-        pollLoop(next);
+        // If start() already opened an SSE/poll for this id, the
+        // CONFORMER_JOB_CHANGED_EVENT from setJobIdAndPersist will fire
+        // synchronously and land here.  Avoid a duplicate pollLoop by
+        // checking whether an SSE connection or poll timer is already
+        // active for this job.
+        if (!eventSourceRef.current && !timerRef.current) {
+          pollLoop(next);
+        }
       } else {
         cleanupTimer();
         abortInFlight();
@@ -825,7 +1009,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, onEvent);
       window.removeEventListener('storage', onStorage);
     };
-  }, [abortInFlight, baseUrlOverride, cleanupTimer, dbName, effectiveSessionId, pollLoop, storageKey]);
+  }, [abortInFlight, baseUrlOverride, cleanupSSE, cleanupTimer, dbName, effectiveSessionId, pollLoop, storageKey]);
 
   // If we have a persisted jobId, fetch once on mount.
   useEffect(() => {

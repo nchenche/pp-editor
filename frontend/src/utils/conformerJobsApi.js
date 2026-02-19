@@ -37,7 +37,7 @@ function buildApiUrl(endpoint, { baseUrlOverride, query } = {}) {
   return urlObj.toString();
 }
 
-function buildApiUrlFromServerUrl(serverUrl, { baseUrlOverride, query } = {}) {
+export function buildApiUrlFromServerUrl(serverUrl, { baseUrlOverride, query } = {}) {
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
 
   const urlObj = (() => {
