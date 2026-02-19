@@ -1256,8 +1256,9 @@ export default function BilnEditorInterface({
                                 Constraints mode
                             </Typography>
                             <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
-                                A toolbar button next to the <strong>Add chain</strong> button lets you choose
-                                which constraint track is visible below the sequence:
+                                A segmented toggle (<strong>None</strong>&nbsp;/&nbsp;<strong>Secondary</strong>&nbsp;/&nbsp;<strong>3D</strong>) in the chain header
+                                lets you choose which constraint track is visible below the sequence.
+                                The three modes are mutually exclusive &#8212; selecting one deactivates the others.
                             </Typography>
                             <Box
                                 sx={{
@@ -1301,11 +1302,11 @@ export default function BilnEditorInterface({
                                             <td>Only the sequence track is visible &#8212; no constraints applied.</td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Secondary structure</strong></td>
+                                            <td><strong>Secondary</strong></td>
                                             <td>Shows a per-residue secondary structure track (H&#8201;/&#8201;E&#8201;/&#8201;-).</td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Template guidance</strong></td>
+                                            <td><strong>3D</strong></td>
                                             <td>Shows a 3D template residue track sourced from an uploaded PDB&#8201;/&#8201;mmCIF file.</td>
                                         </tr>
                                     </tbody>
@@ -1326,8 +1327,8 @@ export default function BilnEditorInterface({
                                 }}
                             >
                                 <Typography component="div" sx={{ color: 'text.secondary' }}>
-                                    <strong>Note:</strong> Secondary structure constraints and 3D template
-                                    constraints are mutually exclusive &#8212; enabling one disables the other.
+                                    <strong>Tip:</strong> On narrow screens the toggle collapses into a compact menu
+                                    to save space, but the behaviour remains the same.
                                 </Typography>
                             </Box>
                         </Paper>
