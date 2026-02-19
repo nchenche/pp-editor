@@ -70,7 +70,9 @@ export function setConformerJobIdInStorage(jobId, { dbName = 'pepedit', sessionI
   }
 
   try {
-    window?.dispatchEvent?.(new Event(CONFORMER_JOB_CHANGED_EVENT));
+    window?.dispatchEvent?.(new CustomEvent(CONFORMER_JOB_CHANGED_EVENT, {
+      detail: { action: 'set', jobId: normalized, dbName, sessionId: effectiveSessionId, backendScope: normalizeBackendScope(baseUrlOverride) },
+    }));
   } catch {
     // ignore
   }
@@ -92,7 +94,9 @@ export function clearConformerJobIdFromStorage({ dbName = 'pepedit', sessionId =
   }
 
   try {
-    window?.dispatchEvent?.(new Event(CONFORMER_JOB_CHANGED_EVENT));
+    window?.dispatchEvent?.(new CustomEvent(CONFORMER_JOB_CHANGED_EVENT, {
+      detail: { action: 'clear', dbName, sessionId: effectiveSessionId, backendScope: normalizeBackendScope(baseUrlOverride) },
+    }));
   } catch {
     // ignore
   }

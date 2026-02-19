@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { listConformerJobs, listSessionConformerJobs } from '../utils/conformerJobsApi';
+import { CONFORMER_JOB_CHANGED_EVENT } from '../utils/conformerJobStorage';
 import { getSessionId } from '../utils/sessionApi';
 
 function toErrorMessage(value) {
@@ -133,6 +134,27 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
       ctrlRef.current = null;
     };
   }, [refresh]);
+
+  // Auto-refresh when a conformer job is created or cleared in this session/db scope
+  useEffect(() => {
+    const handler = (e) => {
+      const d = e?.detail;
+      // If the event carries scope info, only refresh when it matches
+      if (d) {
+        if (d.dbName && d.dbName !== dbName) return;
+        if (d.sessionId && d.sessionId !== effectiveSessionId) return;
+      }
+      // Immediate refresh + staggered follow-ups so the new job appears even if the
+      // backend takes a moment to become consistent.
+      refresh();
+      const t1 = setTimeout(refresh, 500);
+      const t2 = setTimeout(refresh, 1600);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    };
+
+    window.addEventListener(CONFORMER_JOB_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, handler);
+  }, [dbName, effectiveSessionId, refresh]);
 
   return { items, loading, error, refresh, loadMore, updateItem };
 }
