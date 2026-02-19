@@ -42,6 +42,8 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import SubjectIcon from '@mui/icons-material/Subject';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LayersIcon from '@mui/icons-material/Layers';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
@@ -1848,15 +1850,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </Button>
                                         </Tooltip>
 
-                                        <Tooltip title="Background" arrow placement='top'>
+                                        <Tooltip title={molstarBackground === 'dark' ? 'Switch to light background' : 'Switch to dark background'} arrow placement='top'>
                                             <Button
-                                                onClick={() => setActive3DPanel((p) => (p === 'background' ? null : 'background'))}
+                                                onClick={() => setMolstarBackground((prev) => prev === 'dark' ? 'light' : 'dark')}
                                                 color="inherit"
-                                                aria-pressed={active3DPanel === 'background'}
-                                                aria-label="background"
-                                                sx={active3DPanel === 'background' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
+                                                aria-label="toggle background"
                                             >
-                                                <FormatColorFillIcon fontSize="inherit" />
+                                                {molstarBackground === 'dark'
+                                                    ? <LightModeIcon fontSize="inherit" />
+                                                    : <DarkModeIcon fontSize="inherit" />
+                                                }
                                             </Button>
                                         </Tooltip>
 
@@ -2445,47 +2448,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             {color.label}
                                                         </Button>
                                                     ))}
-                                                </Box>
-                                            )}
-
-                                            {active3DPanel === 'background' && (
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                                                        <Button
-                                                            size="small"
-                                                            variant={molstarBackground === 'light' ? 'contained' : 'text'}
-                                                            color="inherit"
-                                                            onClick={() => setMolstarBackground('light')}
-                                                            sx={{
-                                                                justifyContent: 'flex-start',
-                                                                textTransform: 'none',
-                                                                fontSize: 12,
-                                                                lineHeight: 1.2,
-                                                                minHeight: 26,
-                                                                px: 0.75,
-                                                                color: 'text.primary',
-                                                            }}
-                                                        >
-                                                            Light
-                                                        </Button>
-                                                        <Button
-                                                            size="small"
-                                                            variant={molstarBackground === 'dark' ? 'contained' : 'text'}
-                                                            color="inherit"
-                                                            onClick={() => setMolstarBackground('dark')}
-                                                            sx={{
-                                                                justifyContent: 'flex-start',
-                                                                textTransform: 'none',
-                                                                fontSize: 12,
-                                                                lineHeight: 1.2,
-                                                                minHeight: 26,
-                                                                px: 0.75,
-                                                                color: 'text.primary',
-                                                            }}
-                                                        >
-                                                            Dark
-                                                        </Button>
-                                                    </Box>
                                                 </Box>
                                             )}
 
