@@ -156,5 +156,28 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
     return () => window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, handler);
   }, [dbName, effectiveSessionId, refresh]);
 
+  // Auto-poll the list while any jobs are in a non-terminal state (queued / running).
+  // This ensures the panel reflects status transitions without requiring a manual refresh.
+  const LIST_POLL_INTERVAL_MS = 2000;
+  const TERMINAL_STATES = new Set(['success', 'failed', 'canceled']);
+
+  const hasActiveJobs = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return false;
+    return items.some((job) => {
+      const st = String(job?.state || '').toLowerCase();
+      return st && !TERMINAL_STATES.has(st);
+    });
+  }, [items]);
+
+  useEffect(() => {
+    if (!hasActiveJobs) return;
+
+    const id = setInterval(() => {
+      refresh();
+    }, LIST_POLL_INTERVAL_MS);
+
+    return () => clearInterval(id);
+  }, [hasActiveJobs, refresh]);
+
   return { items, loading, error, refresh, loadMore, updateItem };
 }

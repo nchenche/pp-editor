@@ -1,13 +1,8 @@
-import { useState } from "react";
-
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     Alert,
     Box,
     Typography,
-    List,
-    ListItem,
-    ListItemButton,
-    ListItemText,
     Divider,
     Link as MUILink,
     Dialog,
@@ -19,2054 +14,1429 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    Collapse,
+    Chip,
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const sections = [
-    { id: "introduction", label: "Introduction" },
-    { id: "foundations", label: "Foundations: pyPept & BILN" },
-    { id: "pepedit-differences", label: "What PEP-EDIT adds vs pyPept" },
-    { id: "concepts-biln", label: "Concepts & BILN" },
-    { id: "monomer-library", label: "Monomer library & R-groups" },
-    { id: "ui-overview", label: "User interface overview" },
-    { id: "editing-biln", label: "Editing a BILN sequence" },
-    { id: "linking-chains", label: "Linking chains" },
-    { id: "constraints-3d", label: "Imposing 3D constraints" },
-    { id: "conformer-generation", label: "Conformer generation (under the hood)" },
-    { id: "protonation", label: "Protonation model (pH)" },
-    { id: "output-formats", label: "Output & export" },
-    { id: "sessions", label: "Sessions" },
-    { id: "adding-monomers", label: "Adding monomers to the library" },
-    { id: "use-cases", label: "Examples & use cases" },
-    { id: "limitations-tips", label: "Limitations & tips" },
-    { id: "policies", label: "Accessibility and cookie consent" },
+/* ─────────────────────────────────────────────
+   Hierarchical navigation model
+   ───────────────────────────────────────────── */
+const NAV_TREE = [
+    {
+        group: "Getting started",
+        children: [
+            { id: "introduction", label: "Introduction" },
+            { id: "pepedit-vs-pypept", label: "PEP-EDIT vs pyPept" },
+            { id: "biln-notation", label: "About BILN notation" },
+            {
+                id: "interface-overview", label: "Interface overview", children: [
+                    { id: "panels", label: "Panels & layout" },
+                    { id: "right-panel", label: "Right panel (Library / Output / Jobs)" },
+                    { id: "sessions", label: "Sessions" },
+                ],
+            },
+            { id: "protonation", label: "Protonation (pH)" },
+            {
+                id: "conformer-generation", label: "Conformer generation", children: [
+                    { id: "embedding", label: "RDKit-based embedding" },
+                    { id: "iterative-process", label: "Iterative process" },
+                    {
+                        id: "constraints", label: "Setting constraints", children: [
+                            { id: "constraints-2d", label: "Secondary structure (2D)" },
+                            { id: "constraints-3d", label: "3D template (scaffold)" },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        group: "How-to guides",
+        children: [
+            { id: "editing-biln", label: "Editing a BILN sequence" },
+            { id: "editing-library", label: "Editing from monomer library" },
+            { id: "linking", label: "Linking monomers" },
+            { id: "complex-topologies", label: "Complex topologies" },
+            { id: "adding-monomers", label: "Adding monomers to the library" },
+        ],
+    },
+    {
+        group: "Examples & use cases",
+        children: [
+            { id: "example-microcin", label: "Microcin J25 (lasso peptide)" },
+            { id: "example-semaglutide", label: "Semaglutide" },
+            { id: "example-cyclic", label: "Cyclic peptides (L/D)" },
+            { id: "example-orca", label: "Conformer search with ORCA" },
+            { id: "example-alphafold", label: "Protein-peptide prediction" },
+            { id: "example-st", label: "Simulated tempering" },
+            { id: "example-docking", label: "Peptide docking" },
+        ],
+    },
+    {
+        group: "Reference",
+        children: [
+            { id: "output-formats", label: "Output & export formats" },
+            { id: "monomer-library-ref", label: "Monomer library & R-groups" },
+            { id: "biln-quick-ref", label: "BILN quick reference" },
+        ],
+    },
+    {
+        group: "Troubleshooting & policies",
+        children: [
+            { id: "limitations", label: "Limitations & tips" },
+            { id: "policies", label: "Accessibility & cookies" },
+        ],
+    },
 ];
 
-const Documentation = () => {
+/* ─────────────────────────────────────────────
+   Sidebar sub-components
+   ───────────────────────────────────────────── */
+function NavItem({ item, activeId, depth = 0, onClick }) {
+    const theme = useTheme();
+    const isActive = activeId === item.id;
+    const hasChildren = item.children?.length > 0;
+    const [open, setOpen] = useState(true);
 
-    const [lightbox, setLightbox] = useState({
-        open: false,
-        src: "",
-        alt: "",
-    });
-
-    const openLightbox = (src, alt) => {
-        setLightbox({ open: true, src, alt });
-    };
-
-    const closeLightbox = () => {
-        setLightbox(prev => ({ ...prev, open: false }));
-    };
+    // auto-open group if active child
+    useEffect(() => {
+        if (hasChildren) {
+            const ids = flatIds(item.children);
+            if (ids.includes(activeId)) setOpen(true);
+        }
+    }, [activeId, hasChildren, item.children]);
 
     return (
-        <Box className="flex h-full w-full mx-auto ml-12">
-            {/* Side navigation */}
+        <>
+            <Box
+                component="a"
+                href={`#${item.id}`}
+                onClick={(e) => {
+                    if (hasChildren) {
+                        setOpen((o) => !o);
+                    }
+                    onClick?.(item.id);
+                }}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.25,
+                    pl: 1.5 + depth * 1.5,
+                    pr: 1,
+                    py: 0.5,
+                    fontSize: "0.8rem",
+                    fontWeight: isActive ? 600 : 400,
+                    lineHeight: 1.4,
+                    color: isActive ? "primary.main" : "text.secondary",
+                    textDecoration: "none",
+                    borderLeft: "2px solid",
+                    borderColor: isActive ? "primary.main" : "transparent",
+                    bgcolor: isActive ? alpha(theme.palette.primary.main, 0.06) : "transparent",
+                    borderRadius: "0 6px 6px 0",
+                    transition: "all 0.12s",
+                    cursor: "pointer",
+                    "&:hover": {
+                        color: "text.primary",
+                        bgcolor: alpha(theme.palette.action.hover, 0.5),
+                    },
+                }}
+            >
+                {hasChildren && (
+                    <Box component="span" sx={{ display: "inline-flex", fontSize: 14, color: "text.disabled", mr: 0.25, transition: "transform 0.15s", transform: open ? "rotate(0)" : "rotate(-90deg)" }}>
+                        <ExpandMoreIcon fontSize="inherit" />
+                    </Box>
+                )}
+                {item.label}
+            </Box>
+            {hasChildren && (
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                    {item.children.map((child) => (
+                        <NavItem key={child.id} item={child} activeId={activeId} depth={depth + 1} onClick={onClick} />
+                    ))}
+                </Collapse>
+            )}
+        </>
+    );
+}
+
+function flatIds(items) {
+    const out = [];
+    for (const it of items) {
+        if (it.id) out.push(it.id);
+        if (it.children) out.push(...flatIds(it.children));
+    }
+    return out;
+}
+
+/* ─────────────────────────────────────────────
+   Reusable section components
+   ───────────────────────────────────────────── */
+const SectionTitle = ({ children, id, variant = "h5", ...rest }) => (
+    <Typography id={id} variant={variant} sx={{ fontWeight: 700, scrollMarginTop: 24, mt: 5, mb: 1.5, ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
+const SubTitle = ({ children, id, ...rest }) => (
+    <Typography id={id} variant="h6" sx={{ fontWeight: 600, scrollMarginTop: 24, mt: 3, mb: 1, ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
+const Sub2Title = ({ children, id, ...rest }) => (
+    <Typography id={id} variant="subtitle1" sx={{ fontWeight: 600, scrollMarginTop: 24, mt: 2.5, mb: 0.75, fontSize: "0.95rem", ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
+const P = ({ children, ...rest }) => (
+    <Typography variant="body1" component="p" sx={{ mb: 1.5, lineHeight: 1.75, color: "text.primary", ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
+const Ul = ({ children }) => (
+    <Box component="ul" sx={{ pl: 3, mb: 2, "& > li": { mb: 0.6 }, "& > li:last-of-type": { mb: 0 } }}>
+        {children}
+    </Box>
+);
+const Ol = ({ children }) => (
+    <Box component="ol" sx={{ pl: 3, mb: 2, "& > li": { mb: 0.6 }, "& > li:last-of-type": { mb: 0 } }}>
+        {children}
+    </Box>
+);
+const Li = ({ children }) => (
+    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7, display: "list-item", listStyleType: "disc", ml: 2 }}>{children}</Typography>
+);
+
+const CodeBlock = ({ children }) => (
+    <Typography variant="body2" component="pre" sx={{ p: 1.5, bgcolor: (t) => alpha(t.palette.text.primary, 0.04), border: "1px solid", borderColor: "divider", borderRadius: 1.5, overflowX: "auto", mb: 2, fontFamily: "monospace", fontSize: "0.82rem", lineHeight: 1.55 }}>
+        {children}
+    </Typography>
+);
+
+const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => (
+    <Box component="figure" sx={{ my: 3, mx: 0 }}>
+        <Box
+            component="img"
+            src={src}
+            alt={alt}
+            onClick={() => openLightbox(src, alt)}
+            sx={{
+                maxWidth: maxWidth === "xs" ? 280 : maxWidth === "sm" ? 380 : maxWidth === "md" ? 480 : 640,
+                width: "100%",
+                mx: "auto",
+                display: "block",
+                borderRadius: 2.5,
+                boxShadow: 2,
+                cursor: "pointer",
+                transition: "box-shadow 0.2s",
+                "&:hover": { boxShadow: 6 },
+            }}
+        />
+        {caption && (
+            <Typography variant="caption" display="block" align="center" sx={{ mt: 1, color: "text.secondary", maxWidth: 640, mx: "auto" }}>
+                {caption}
+            </Typography>
+        )}
+    </Box>
+);
+
+const InfoBox = ({ children, color = "info" }) => {
+    const theme = useTheme();
+    const palette = theme.palette[color] || theme.palette.info;
+    return (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: palette.main, bgcolor: alpha(palette.main, theme.palette.mode === "dark" ? 0.10 : 0.05), borderRadius: 2 }}>
+            {children}
+        </Paper>
+    );
+};
+
+const CardGrid = ({ children }) => (
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, mb: 3 }}>
+        {children}
+    </Box>
+);
+
+const Card = ({ title, children }) => (
+    <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>{title}</Typography>
+        {children}
+    </Box>
+);
+
+/* ─────────────────────────────────────────────
+   Main component
+   ───────────────────────────────────────────── */
+const Documentation = () => {
+    const theme = useTheme();
+    const [activeId, setActiveId] = useState("");
+    const mainRef = useRef(null);
+
+    const [lightbox, setLightbox] = useState({ open: false, src: "", alt: "" });
+    const openLightbox = useCallback((src, alt) => setLightbox({ open: true, src, alt }), []);
+    const closeLightbox = useCallback(() => setLightbox((prev) => ({ ...prev, open: false })), []);
+
+    /* scroll-spy */
+    useEffect(() => {
+        const allIds = [];
+        NAV_TREE.forEach((g) => allIds.push(...flatIds(g.children)));
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        setActiveId(entry.target.id);
+                        break;
+                    }
+                }
+            },
+            { rootMargin: "-10% 0px -70% 0px", threshold: 0 }
+        );
+        allIds.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+        return () => observer.disconnect();
+    }, []);
+
+    const sidebarW = 250;
+
+    return (
+        <Box sx={{ display: "flex", height: "100%", width: "100%", mx: "auto" }}>
+            {/* ── Sidebar ── */}
             <Box
                 component="nav"
-                className="w-64 shrink-0 border-r border-gray-200 bg-white sticky top-0 h-full overflow-y-auto hidden lg:block"
-                sx={{ p: 2 }}
+                sx={{
+                    width: sidebarW,
+                    flexShrink: 0,
+                    borderRight: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    position: "sticky",
+                    top: 0,
+                    height: "100vh",
+                    overflowY: "auto",
+                    display: { xs: "none", lg: "block" },
+                    pt: 3,
+                    pb: 4,
+                    "&::-webkit-scrollbar": { width: 4 },
+                    "&::-webkit-scrollbar-thumb": { bgcolor: alpha(theme.palette.text.disabled, 0.25), borderRadius: 2 },
+                }}
             >
-                <Typography variant="h6" gutterBottom>
+                <Typography variant="overline" sx={{ display: "block", px: 2, mb: 1.5, fontSize: "0.65rem", letterSpacing: "0.1em", color: "text.disabled" }}>
                     Documentation
                 </Typography>
-                <List dense>
-                    {sections.map((section) => (
-                        <ListItemButton
-                            key={section.id}
-                            component="a"
-                            href={`#${section.id}`}
-                            className="rounded-lg"
-                        >
-                            <ListItemText primary={section.label} />
-                        </ListItemButton>
-                    ))}
-                </List>
+
+                {NAV_TREE.map((group) => (
+                    <Box key={group.group} sx={{ mb: 1.5 }}>
+                        <Typography variant="overline" sx={{ display: "block", px: 2, pt: 1, pb: 0.5, fontSize: "0.62rem", letterSpacing: "0.08em", color: "text.disabled", fontWeight: 700 }}>
+                            {group.group}
+                        </Typography>
+                        {group.children.map((item) => (
+                            <NavItem key={item.id} item={item} activeId={activeId} depth={0} onClick={setActiveId} />
+                        ))}
+                    </Box>
+                ))}
             </Box>
 
-            {/* Main content */}
+            {/* ── Main content ── */}
             <Box
+                ref={mainRef}
                 component="main"
-                className="flex-1 overflow-y-auto max-w-[100%] bg-white"
-                sx={{ p: { xs: 2, md: 4 }, mx: "auto" }}
+                sx={{
+                    flex: 1,
+                    overflowY: "auto",
+                    maxWidth: "100%",
+                    bgcolor: "background.default",
+                    px: { xs: 2, md: 5 },
+                    py: { xs: 2, md: 4 },
+                }}
             >
-                <Box sx={{ maxWidth: "80%", mx: "auto" }}>
-                    <Typography variant="h3" gutterBottom>
-                        PEP-EDIT Documentation
+                <Box sx={{ maxWidth: 820, mx: "auto" }}>
+
+                    {/* ════════════════════════════════════════════
+                        LANDING
+                       ════════════════════════════════════════════ */}
+                    <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
+                        PEP-EDIT
+                    </Typography>
+                    <Typography variant="h6" sx={{ color: "text.secondary", fontWeight: 400, mb: 3, lineHeight: 1.5 }}>
+                        Interactive web application for peptide design, editing and 3D conformer generation — supporting standard, non-standard, cyclic and branched peptides.
                     </Typography>
 
-                    <Divider sx={{ my: 4 }} />
+                    <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
+                        <Chip component="a" href="#editing-biln" label="Write a BILN sequence →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#editing-library" label="Build from monomer library →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#constraints" label="Apply constraints →" clickable size="small" color="primary" variant="outlined" />
+                    </Box>
 
-                    {/* Introduction */}
-                    <section id="introduction">
-                        <Typography variant="h5" gutterBottom>
-                            Introduction to PEP-EDIT
-                        </Typography>
+                    <Divider sx={{ mb: 4 }} />
 
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
-                            representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). PEP-EDIT is not a peptide structure prediction tool, but it helps preparing realistic conformations to undergo further processing (molecular dynamics simulations, docking, etc). It supports
-                            standard and non-standard monomers (amino acids, caps and peptidomimetics), including linear, cyclic and
-                            branched peptides.
-                        </Typography>
+                    {/* ════════════════════════════════════════════
+                        1 · GETTING STARTED
+                       ════════════════════════════════════════════ */}
 
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT is designed for interactive peptide design and editing. It can:
-                        </Typography>
+                    {/* ── Introduction ── */}
+                    <SectionTitle id="introduction">Introduction</SectionTitle>
 
-                        <ul className="list-disc ml-6 mb-4">
-                            <li>Build peptides from scratch from a BILN sequence.</li>
-                            <li>
-                                Edit existing structures by substituting/modifying monomers while preserving the overall backbone
-                                conformation as much as possible.
-                            </li>
-                            <li>
-                                Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.
-                            </li>
-                            <li>Control protonation of exported molecules using a pH model (default: pH 7.4).</li>
+                    <P>
+                        PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
+                        representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). It is not a peptide
+                        structure prediction tool, but it helps preparing realistic conformations to undergo further processing
+                        (molecular dynamics simulations, docking, etc.). It supports standard and non-standard monomers
+                        (amino acids, caps and peptidomimetics), including linear, cyclic and branched peptides.
+                    </P>
 
-                            <li>Manage both public and user private monomer library. The public monomer library monomer can be updated in a collaborative/moderated mode.</li>
-                            <li>Support collaborative peptide design and/or didactic use of PEP-EDIT. In addition to the standard web instance, a n.eko instance of the service is available at {" "}
-                                <MUILink
-                                    href="https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs.
-                                </MUILink>
+                    <InfoBox>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Core workflow</Typography>
+                        <Ol>
+                            <Li><strong>Define</strong> a peptide — type a BILN sequence, upload a FASTA, or build from the monomer library.</Li>
+                            <Li><strong>Refine</strong> — apply constraints (secondary structure or 3D template), adjust pH, link chains.</Li>
+                            <Li><strong>Generate & export</strong> — obtain 1D/2D/3D representations and download them.</Li>
+                        </Ol>
+                    </InfoBox>
 
-                            </li>
-                            <li> PEP-EDIT can handle peptides with up to 40 monomers.</li>
-                        </ul>
-                    </section>
+                    <P>PEP-EDIT can:</P>
+                    <Ul>
+                        <Li>Build peptides from scratch from a BILN sequence.</Li>
+                        <Li>Edit existing structures by substituting/modifying monomers while preserving the overall backbone conformation as much as possible.</Li>
+                        <Li>Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.</Li>
+                        <Li>Control protonation of exported molecules using a pH model (default: pH 7.4).</Li>
+                        <Li>Manage both public and user private monomer libraries. The public library can be updated in a collaborative/moderated mode.</Li>
+                        <Li>Handle peptides with up to 40 monomers per construct.</Li>
+                    </Ul>
 
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Foundations */}
-                    <section id="foundations">
-                        <Typography variant="h5" gutterBottom>
-                            Foundations: pyPept and BILN
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and
-                            conversion, which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation)
-                            to define peptides at the monomer level.
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                pyPept paper:{" "}
-                                <MUILink
-                                    href="https://link.springer.com/article/10.1186/s13321-023-00748-2"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    https://link.springer.com/article/10.1186/s13321-023-00748-2
-                                </MUILink>
-                            </li>
-                            <li>
-                                BILN paper (concepts and rules used here):{" "}
-                                <MUILink
-                                    href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703
-                                </MUILink>
-                            </li>
-                        </ul>
-
-                        <Typography variant="body1" component="p">
-                            In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
-                            their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong>{" "}
-                            and <strong>R2 = backbone carbonyl C</strong> for amino acids (for readability and N→C order).
-                        </Typography>
-                    </section>
+                    <P>
+                        In addition to the standard web instance, a collaborative n.eko instance is available at{" "}
+                        <MUILink href="https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs" target="_blank" rel="noreferrer">
+                            neko.rpbs.univ-paris-diderot.fr
+                        </MUILink>, enabling multi-user real-time peptide design and didactic use.
+                    </P>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* PEP-EDIT differences */}
-                    <section id="pepedit-differences">
-                        <Typography variant="h5" gutterBottom>
-                            What PEP-EDIT adds vs pyPept
-                        </Typography>
+                    {/* ── PEP-EDIT vs pyPept ── */}
+                    <SectionTitle id="pepedit-vs-pypept">PEP-EDIT vs pyPept</SectionTitle>
 
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT relies on pyPept, but uses a modified version where several major changes were introduced
-                            to support an interactive web workflow and structure-aware peptide design:
-                        </Typography>
+                    <P>
+                        PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and conversion,
+                        which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation).
+                    </P>
 
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                <strong>Web interface:</strong> PEP-EDIT provides a web acces to complex peptide modeling using an enhanced interface to pyPept.
-                            </li>
-                            <li>
-                                <strong>Monomer storage:</strong> monomer metadata is stored in a <strong>MongoDB</strong> database
-                                (instead of CSV files in initial pypept) to enable richer querying, editing and moderation workflows. This flexible management allows PEP-EDIT to handle both public and user specific monomer libraries, as well as facilities to migrate monomers from the user library to the public one in a moderated mode.
-                            </li>
-                            <li>
-                                <strong>Monomer naming rule:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using
-                                underscore character (<code className="mx-1">_</code>) to avoid conflicts with BILN’s hyphen shorthand for backbone connections.
-                            </li>
-                            <li>
-                                <strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers
-                                from secondary-structure presets or PDB template constraints (see “Imposing 3D constraints” and
-                                “Conformer generation” below).
-                            </li>
-                            <li>
-                                <strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve
-                                downstream compatibility (visualization, tooling, MD pipelines).
-                            </li>
-                            <li>
-                                <strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive
-                                elements (monomers, R-groups, extra bonds) so that the UI can attach JS-driven interactions.
-                            </li>
-                            <li>
-                                <strong>pH-aware protonation:</strong> final molecules (SMILES/PDB/exports) include protonation predicted
-                                from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).
-                            </li>
-                            <li>
-                                <strong>Collaborative/didactic facilities:</strong>
-                                <ul>
-                                    <li> a n.eko instance of PEP-EDIT enables multiuser design of a peptide. </li>
-                                    {/* <li> the monomer library can be enhanced though a dedicated interface. </li> */}
-                                </ul>
-                            </li>
-                        </ul>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Concepts & BILN */}
-                    <section id="concepts-biln">
-                        <Typography variant="h5" gutterBottom>
-                            Concepts: BILN and monomer-based peptide design
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            BILN represents a peptide as monomers and connections. In its explicit form, each monomer can carry
-                            one or more connection pairs <code>(bondId, RgroupId)</code>. The BILN rules are: monomers separated by dots,
-                            connections defined by integer pairs, and a hyphen shorthand when connecting R2→R1 along the backbone.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Examples from the BILN rules (adapted):
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                Explicit backbone connections: <code>A(1,2).G(1,1)(2,2).C(2,1)</code>
-                            </li>
-                            <li>
-                                Shorthand for linear peptide: <code>P-E-P-T-I-D-E</code>
-                            </li>
-                        </ul>
-
-                        <Typography variant="body1" component="p">
-                            If a monomer abbreviation contains a hyphen, BILN requires brackets for disambiguation (e.g. <code>A-[2-Cl-Phe]-C</code>),
-                            and the BILN paper notes that avoiding hyphens improves readability. PEP-EDIT therefore uses <code>_</code> in such
-                            monomer names.
-                        </Typography>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Monomer library */}
-                    <section id="monomer-library">
-                        <Typography variant="h5" gutterBottom>
-                            The monomer library and R-groups
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/Monomer6.png"
-                                alt="Monomer detail view with identified R-groups"
-                                className="max-w-xs w-full mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/Monomer6.png",
-                                        "Monomer detail view with identified R-groups"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 1. Example monomer with labeled R-groups (R1, R2). Also note that each monomer is associated with three labels: its name, the BILN symbol to use in the BILN sequence and a 3 letter identifier used in the PDB representation.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            Attachment points are specified as R-groups (<code>R1</code>, <code>R2</code>, <code>R3</code>, …). In BILN:
-                            a monomer with one R-group acts as a capping group; a monomer with more than two R-groups can be a branching
-                            or cyclization site.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            To fully define an attachment point, each R-group must have an associated <strong>leaving group</strong>.
-                            If an R-group is not used in a connection, it is replaced by its leaving group in the final structure.
-                            The BILN paper describes leaving groups such as H and OH as a minimal set, extensible to other chemistries.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Recommended convention (for readability): for amino acids (amide-bond monomers), use <strong>R1 for backbone N </strong>
-                            and <strong>R2 for backbone carbonyl C</strong>. Additional attachment points should be <code>R3</code>, <code>R4</code>, etc.
-                        </Typography>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* UI Overview */}
-                    <section id="ui-overview">
-                        <Typography variant="h5" gutterBottom>
-                            PEP-EDIT user interface overview
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/PEP-EDIT-Interface-v2.png"
-                                alt="Overview of the PEP-EDIT interface"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/PEP-EDIT-Interface-v2.png",
-                                        "Overview of the PEP-EDIT interface"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 2. Overview of the PEP-EDIT interface.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            The interface is organized into:
-                        </Typography>
-
-                        <ol className="list-decimal ml-6 mb-3">
-                            <li><strong>BILN editor</strong> (sequence + actions)</li>
-                            <li><strong>Constraints panel</strong> (secondary structure + template)</li>
-                            <li><strong>2D viewer</strong> (interactive SVG)</li>
-                            <li><strong>3D viewer</strong> (conformer visualization)</li>
-                            <li><strong>Monomer library</strong> (search/filter/add)</li>
-                            <li><strong>Output files</strong> (1D/2D/3D - BILN/HELM/SMILES/InChi/InChiKey/PDB/SDF/MOL2/XYZ)</li>
-                        </ol>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Editing BILN */}
-                    <section id="editing-biln">
-                        <Typography variant="h5" gutterBottom>
-                            Editing a BILN sequence
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            You can define a peptide either by typing a BILN sequence directly (e.g. <code>P-E-P-T-I-D-E</code>), by specifying a peptide sequence in a FASTA format (limited to the 20 standard amino acids) or by inserting
-                            monomers from the library using the <code>+</code> button (Append / Prepend / New chain). Search (textfield) and filters (class) are proposed to ease the identification of the monomer.
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/MonomerSelection.png"
-                                alt="Monomer selection and insertion panel"
-                                className="max-w-md w-full mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/MonomerSelection.png",
-                                        "Monomer selection and insertion panel"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 3. Monomer search and selection.
-                            </Typography>
-                        </Box>
-                        <Typography variant="body1" component="p">
-                            Several "Chains" can be defined independently using the "New Chain" Mode, to ease the generation of complex peptides branched or bonded non linearly.
-                        </Typography>
-
-                        <ol className="list-decimal ml-6 mb-3">
-                            <li><strong>BILN sequence</strong> Each chain is separated by a "." in the BILN sequence.</li>
-                            <li><strong>3D constraints</strong> Each chain is associated with a specific BILN sequence, Secondary structure and 3D Template constraint in the 3D constraint section.</li>
-                            <li><strong>2D viewer</strong> Each chain has a 2D depiction.</li>
-                            <li><strong>3D viewer</strong> Each chain has a 3D conformation.</li>
-                        </ol>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Linking chains */}
-                    <section id="linking-chains">
-                        <Typography variant="h5" gutterBottom>
-                            Linking chains and non-standard bonds
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/Linking-Unlinking.png"
-                                alt="Linking and unlinking chains using R-groups"
-                                className="max-w-xs w-full mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/Linking-Unlinking.png",
-                                        "Linking and unlinking chains using R-groups"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 4. Linking and unlinking chains via R-groups.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT supports extra bonds beyond the backbone (e.g. disulfides, side-chain linkers, lipidation attachments).
-                            You can create them via explicit BILN connectivity or graphically (Link mode) by selecting compatible R-groups
-                            in the 2D viewer.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Note: extra bonds are flexible by design — PEP-EDIT does not automatically validate whether a given link is
-                            chemically meaningful (that remains the user’s responsibility).
-                        </Typography>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Constraints */}
-                    <section id="constraints-3d">
-                        <Typography variant="h5" gutterBottom>
-                            Imposing 3D conformational constraints
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT can guide conformer generation using:
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li><strong>Secondary structure presets</strong> (H / E / -) applied to the peptide backbone.</li>
-                            <li><strong>3D template constraints</strong> from a PDB structure (user-uploaded or fetched by PDB ID).</li>
-                            <li>Secondary structure presets and 3D template constraints are mutually exclusive.</li>
-                        </ul>
-
-                        <Typography variant="body1" component="p">
-                            <strong>Secondary-structure presets</strong> in PEP-EDIT are implemented by setting backbone <strong>dihedral angles</strong>
-                            (φ/ψ, plus ω) using reference values for helices and extended conformations. The target angles are adjusted
-                            depending on residue chirality (L vs D), mirroring in Ramachandran space for D residues.
-                        </Typography>
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/SecondaryStructure.png"
-                                alt="Linking and unlinking chains using R-groups"
-                                className="max-w-xs w-full mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/SecondaryStructure.png",
-                                        "Linking and unlinking chains using R-groups"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 5. Imposing Secondary structure constraints.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            <strong>3D template constraints</strong> apply backbone coordinate constraints by mapping the peptide backbone atoms onto the corresponding
-                            backbone atoms in the template, then performing constrained embedding using those mapped coordinates. Specifying a 3D template (PDB format) is made using the <strong>Upload Scaffold</strong> facility. It is possible to specify a template by its PDB identifier (in which case, the template is directly loaded from the PDB), or as a local PDB file to upload. From it, it is possible to select the fragment of the template to use to constrain the conformation of the backbone. In the case where the peptide has different chains, it is possible to select fragments from different PDB chains to constrain each of them.
-                        </Typography>
-                        <Typography variant="body1" component="p">
-                            The mapping configuration allows to define the exact fragment of the PDB entry to use (chain, residue index), and how it is mapped onto the BILN sequence (in a contiguous manner from an offset position). It is possible to finely tune the mapping usage on a per residue basis by masking residues (constraints not taken into account).
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Note that the use of a 3D template disables the automatic synchronization of the 3D generation. The user has to click the <strong> Generate 3D </strong> button to trigger the 3D generation.
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/3DTemplateProcess.png"
-                                alt="Linking and unlinking chains using R-groups"
-                                className="max-w-xs w-full mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/3DTemplateProcess.png",
-                                        "Linking and unlinking chains using R-groups"
-                                    )
-                                }
-                            />
-                            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
-                                Figure 6. Imposing 3D template constraints.
-                            </Typography>
-                        </Box>
-
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Conformer generation */}
-                    <section id="conformer-generation">
-                        <Typography variant="h5" gutterBottom>
-                            Conformer generation (under the hood)
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT uses RDKit embedding with optional coordinate maps. When constraints are provided (from secondary-structure
-                            presets or a PDB template), backbone coordinates are used as reference to bias embedding toward the desired backbone,
-                            while side chains and unconstrained atoms are generated more freely.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            To increase robustness, constrained embedding is performed iteratively using partial coordinate maps: for each mapping ratio,
-                            a random subset of mapped atoms is selected and multiple attempts are run with different random seeds. This improves the likelihood
-                            of finding a valid conformer even when a fully constrained embedding is too strict.
-                        </Typography>
-
-                        <Typography variant="body2" component="pre" sx={{ p: 1.5, bgcolor: "grey.100", borderRadius: 1, overflowX: "auto" }}>
-                            {`mapping_ratios = [(1.0, 5), (0.9, 5), (0.8, 10), (0.5, 50)]
-# (ratio_of_mapped_atoms_to_keep, number_of_attempts)`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Practically, mapping ratios as low as 0.5 can still preserve the global backbone conformation while allowing enough flexibility
-                            for RDKit to embed successfully (especially for complex peptides or multi-fragment systems).
-                        </Typography>
-                    </section>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* Protonation */}
-                    <section id="protonation">
-                        <Typography variant="h5" gutterBottom>
-                            Protonation model (pH-dependent)
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to {" "}
-                            <MUILink
-                                href="https://link.springer.com/article/10.1186/s13321-019-0336-9"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                Dimorphite-DL {" "}
+                    <Ul>
+                        <Li>
+                            pyPept paper:{" "}
+                            <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
+                                Springer — J Cheminform (2023)
                             </MUILink>
+                        </Li>
+                        <Li>
+                            BILN paper:{" "}
+                            <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
+                                ACS — J Chem Inf Model (2022)
+                            </MUILink>
+                        </Li>
+                    </Ul>
 
-                            to predict a protonated form at a chosen pH (default: 7.4), and the protonated state is propagated to exports (SMILES, PDB, etc.).
-                        </Typography>
+                    <P>
+                        PEP-EDIT relies on pyPept, but uses a modified version where several major changes were introduced
+                        to support an interactive web workflow and structure-aware peptide design:
+                    </P>
 
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
-                                (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
-                                neutral phenol, neutral imide and neutral amide at physiological pH.
-                            </li>
-                        </ul>
-                    </section>
+                    <Ul>
+                        <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
+                        <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
+                        <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
+                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure presets or PDB template constraints.</Li>
+                        <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
+                        <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
+                        <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
+                        <Li><strong>Collaborative/didactic facilities:</strong> a n.eko instance enables multi-user peptide design sessions.</Li>
+                    </Ul>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── About BILN notation ── */}
+                    <SectionTitle id="biln-notation">About BILN notation</SectionTitle>
+
+                    <P>
+                        BILN (Boehringer Ingelheim Line Notation) represents a peptide as monomers and connections. In its explicit
+                        form, each monomer can carry one or more connection pairs <code>(bondId, RgroupId)</code>. The BILN rules are:
+                        monomers separated by dots, connections defined by integer pairs, and a hyphen shorthand when connecting
+                        R2→R1 along the backbone.
+                    </P>
+
+                    <P>Examples from the BILN rules:</P>
+                    <Ul>
+                        <Li>Explicit backbone connections: <code>A(1,2).G(1,1)(2,2).C(2,1)</code></Li>
+                        <Li>Shorthand for linear peptide: <code>P-E-P-T-I-D-E</code></Li>
+                    </Ul>
+
+                    <P>
+                        If a monomer abbreviation contains a hyphen, BILN requires brackets for disambiguation
+                        (e.g. <code>A-[2-Cl-Phe]-C</code>), and the BILN paper notes that avoiding hyphens improves readability.
+                        PEP-EDIT therefore uses <code>_</code> in such monomer names.
+                    </P>
+
+                    <P>
+                        In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
+                        their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong> and{" "}
+                        <strong>R2 = backbone carbonyl C</strong> for amino acids (for readability and N→C order).
+                    </P>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* Output */}
-                    <section id="output-formats">
-                        <Typography variant="h5" gutterBottom>
-                            Output and export formats
-                        </Typography>
+                    {/* ── Interface overview ── */}
+                    <SectionTitle id="interface-overview">Interface overview</SectionTitle>
 
-                        <ul className="list-disc ml-6 mb-3">
-                            <li><strong>1D:</strong> BILN, SMILES, InChi, InChiKey (and HELM when available). These formats are widely used by the chemoinformatics community, and allow for similarity search, substructure search, pharmacophore identification, etc. The SMILES format can also be used as an input to AlphaFold 3.</li>
-                            <li><strong>2D:</strong> SDF / MOL2 (useful for cheminformatics pipelines). These formats are widely used by the chemoinformatics community for fingerprints based similarity search and pharmacophore identification.</li>
-                            <li><strong>3D:</strong> PDB / XYZ / SDF / MOL2 (starting conformers for modeling / MD). These formats can be used as starting conformations to undergo 3D conformational sampling, using molecular dynamics simulations approaches (PDB + SMILES - openmm), or quantum calculation approaches (XYZ - ORCA) for instance.</li>
-                        </ul>
+                    {/* Panels */}
+                    <SubTitle id="panels">Panels & layout</SubTitle>
 
-                        <Typography variant="body1" component="p">
-                            Exported representations include the protonation state predicted for the chosen pH (default 7.4).
-                        </Typography>
-                    </section>
+                    <Figure
+                        src="/assets/documentation/PEP-EDIT-Interface-v2.png"
+                        alt="Overview of the PEP-EDIT interface"
+                        caption="Overview of the PEP-EDIT interface. The layout is organized into a left editor area (BILN editor + chains + constraints), central viewers (2D and 3D), and a collapsible right panel."
+                        openLightbox={openLightbox}
+                    />
 
-                    <Divider sx={{ my: 4 }} />
+                    <P>The interface is organized into the following main areas:</P>
+
+                    <Ol>
+                        <Li><strong>Editor interface</strong> — BILN sequence input, chain management and constraint tracks. This is the primary area for defining and editing your peptide.</Li>
+                        <Li><strong>2D viewer</strong> — interactive SVG depiction of the molecule, rendered by RDKit. Supports hover highlighting, linking, bond cutting, and monomer replacement.</Li>
+                        <Li><strong>3D viewer</strong> — conformer visualization powered by Mol*. Includes toolbar controls for representation, color scheme, labels, background, and camera.</Li>
+                        <Li><strong>Right panel</strong> — a collapsible, resizable sidebar with three tabs (see below).</Li>
+                    </Ol>
+
+                    {/* Right panel */}
+                    <SubTitle id="right-panel">Right panel (Library / Output / Jobs)</SubTitle>
+
+                    <P>
+                        The right panel is a collapsible sidebar with three vertical tabs. It can be resized by dragging its left edge.
+                    </P>
+
+                    <CardGrid>
+                        <Card title="Monomer Library">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                                Searchable and filterable monomer catalog. From here you can browse, filter by class, and add monomers
+                                to your sequence using the <strong>+</strong> button. Controls for <strong>placement mode</strong> (Append / Prepend / New chain),
+                                <strong> linking mode</strong> (Peptide, R3→R1, etc.), and <strong>chain selector</strong> are accessible in the panel header.
+                                The library also provides two sub-tabs: <strong>Public</strong> (shared, read-only) and <strong>My monomers</strong> (personal, session-scoped).
+                            </Typography>
+                        </Card>
+                        <Card title="Output">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                                Displays all computed output formats (BILN, HELM, SMILES, InChI, InChIKey, SDF 2D, PDB, MMCIF, XYZ, SDF 3D, MOL2, PDBQT).
+                                Each format is presented as a collapsible accordion with <strong>Copy</strong> and <strong>Download</strong> buttons.
+                                A <strong>Download all</strong> button is available at the top.
+                            </Typography>
+                        </Card>
+                    </CardGrid>
+                    <CardGrid>
+                        <Card title="Jobs">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                                Lists all conformer generation jobs submitted under the current session. Each job shows its status
+                                (queued, running, success, failed), creation time, and a name that can be edited inline. Clicking a job
+                                loads its result into the 3D viewer. Jobs can also be deleted from this panel.
+                            </Typography>
+                        </Card>
+                    </CardGrid>
 
                     {/* Sessions */}
-                    <section id="sessions">
-                        <Typography variant="h5" gutterBottom>
-                            Sessions
-                        </Typography>
+                    <SubTitle id="sessions">Sessions</SubTitle>
 
-                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            A <b>Session ID</b> is the key that ties together your personal monomers, conformer jobs, and editor state.
-                            No account or login is required — the session is anonymous and identified only by its unique ID.
-                        </Typography>
+                    <P>
+                        A <strong>Session ID</strong> is the key that ties together your personal monomers, conformer jobs, and editor state.
+                        No account or login is required — the session is anonymous and identified only by its unique ID.
+                    </P>
 
-                        <Typography variant="h6" gutterBottom>
-                            How a session is created
-                        </Typography>
+                    <Sub2Title>How a session is created</Sub2Title>
 
-                        <Box
-                            component="ol"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>First visit:</b> a Session ID is automatically generated and stored in your browser (localStorage) and on the server.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Subsequent visits:</b> the stored Session ID is reloaded automatically so your work is restored.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>New session:</b> click the <b>+</b> button (or <b>Start new session</b> in the Session dialog) to create a fresh session at any time.
-                                A confirmation dialog reminds you to save your current Session ID before switching.
-                            </Typography>
-                        </Box>
+                    <Ol>
+                        <Li><strong>First visit:</strong> a Session ID is automatically generated and stored in your browser (localStorage) and on the server.</Li>
+                        <Li><strong>Subsequent visits:</strong> the stored Session ID is reloaded automatically so your work is restored.</Li>
+                        <Li><strong>New session:</strong> click the <strong>+</strong> button (or <strong>Start new session</strong>) to create a fresh session. A confirmation dialog reminds you to save your current Session ID before switching.</Li>
+                    </Ol>
 
-                        <Typography variant="h6" gutterBottom>
-                            What a session contains
-                        </Typography>
+                    <Sub2Title>What a session contains</Sub2Title>
+                    <Ul>
+                        <Li><strong>Personal monomers</strong> — custom monomers you created or uploaded in <em>My monomers</em>.</Li>
+                        <Li><strong>Conformer generation jobs</strong> — every 3D job submitted under this session.</Li>
+                    </Ul>
 
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            Your Session ID gives you access to:
-                        </Typography>
+                    <Sub2Title>Naming a session</Sub2Title>
+                    <P>
+                        You can give a session a human-readable name (e.g. <em>"Therapeutic peptides"</em>) and a short description.
+                        Click the session name inline in the header, or open Session → <strong>Email</strong> tab → "Session notes".
+                    </P>
 
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Personal monomers</b> — custom monomers you created or uploaded in <em>My monomers</em>.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Conformer generation jobs</b> — every 3D job submitted under this session.
-                            </Typography>
-                        </Box>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        Sessions are automatically deleted after <strong>1 month of inactivity</strong>. Each visit refreshes the expiration timer.
+                    </Alert>
 
-                        <Typography variant="h6" gutterBottom>
-                            Naming a session
-                        </Typography>
+                    <Sub2Title>Session dialog (Share / Recover / Email)</Sub2Title>
+                    <P>Click the <strong>Session</strong> button in the header to open the Session Management dialog with three tabs:</P>
 
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            You can give a session a human-readable name (e.g. <em>“Therapeutic peptides”</em>) and a short description
-                            to make it easier to identify later. These can be edited:
-                        </Typography>
-
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Inline:</b> click the session name displayed next to the Session ID chip in the header.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Email tab:</b> open Session → <b>Email</b> tab → “Session notes” section at the bottom.
-                            </Typography>
-                        </Box>
-
-                        <Alert severity="warning" sx={{ mb: 3 }}>
-                            Sessions are automatically deleted from the server after <b>1 month of inactivity</b>.
-                            To keep a session alive, simply use the application — each visit refreshes the expiration timer.
-                        </Alert>
-
-                        <Typography variant="h6" gutterBottom>
-                            Session dialog (Share / Recover / Email)
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            Click the <b>Session</b> button in the header to open the Session Management dialog. It contains three tabs:
-                        </Typography>
-
-                        <Box
-                            sx={{
-                                p: 2,
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 2,
-                                mb: 2,
-                            }}
-                        >
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                Share
-                            </Typography>
+                    <CardGrid>
+                        <Card title="Share">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
                                 Send a Session ID by email. The recipient will be able to load and collaborate on the session.
                             </Typography>
-                            <Box
-                                component="ul"
-                                sx={{
-                                    pl: 3,
-                                    mb: 0,
-                                    "& > li": { mb: 0.6 },
-                                    "& > li:last-of-type": { mb: 0 },
-                                }}
-                            >
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    Enter the recipient’s email address.
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    Choose whether to share the <b>current session</b> or a <b>different Session ID</b> (useful to forward a colleague’s session).
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    Click <b>Send by Email</b>.
-                                </Typography>
-                            </Box>
-                        </Box>
-
-                        <Box
-                            sx={{
-                                p: 2,
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 2,
-                                mb: 2,
-                            }}
-                        >
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                Recover
-                            </Typography>
+                            <Ul>
+                                <Li>Enter the recipient's email address.</Li>
+                                <Li>Choose whether to share the current session or a different Session ID.</Li>
+                                <Li>Click <strong>Send by Email</strong>.</Li>
+                            </Ul>
+                        </Card>
+                        <Card title="Recover">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Get back into a session you no longer have in your browser. Three options:
+                                Get back into a session you no longer have in your browser:
                             </Typography>
-                            <Box
-                                component="ol"
-                                sx={{
-                                    pl: 3,
-                                    mb: 0,
-                                    "& > li": { mb: 0.6 },
-                                    "& > li:last-of-type": { mb: 0 },
-                                }}
-                            >
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Load a session by ID</b> — paste a Session ID (e.g. received from a colleague) and click <b>Load Session</b>.
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Email this session ID</b> — sends the current Session ID to your verified email address (backup).
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Email all session IDs</b> — sends every Session ID linked to your verified email (useful if you have
-                                    multiple sessions and lost track of one).
-                                </Typography>
-                            </Box>
-                            <Typography variant="body2" sx={{ color: "text.secondary", mt: 1, fontStyle: "italic" }}>
-                                Options 2 and 3 require a verified email (see Email tab).
-                            </Typography>
-                        </Box>
-
-                        <Box
-                            sx={{
-                                p: 2,
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 2,
-                                mb: 3,
-                            }}
-                        >
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                Email
-                            </Typography>
+                            <Ol>
+                                <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
+                                <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
+                                <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
+                            </Ol>
+                        </Card>
+                    </CardGrid>
+                    <CardGrid>
+                        <Card title="Email">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Link an email address to this session to enable recovery features and session sharing.
+                                Link an email address to enable recovery and sharing features.
                             </Typography>
-                            <Box
-                                component="ul"
-                                sx={{
-                                    pl: 3,
-                                    mb: 1,
-                                    "& > li": { mb: 0.6 },
-                                    "& > li:last-of-type": { mb: 0 },
-                                }}
-                            >
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Link email for recovery:</b> enter your email; a verification link is sent. Once verified, recovery options become available.
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Change email:</b> if you already have a verified email and want to switch, the change goes through a two-step verification
-                                    (current email approval, then new email confirmation).
-                                </Typography>
-                                <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                    <b>Session notes:</b> set or update the session <em>name</em> and <em>description</em> to help you identify the session.
-                                </Typography>
-                            </Box>
-                        </Box>
+                            <Ul>
+                                <Li><strong>Link email:</strong> enter your email; verify via the link sent to you.</Li>
+                                <Li><strong>Change email:</strong> two-step verification (current + new email).</Li>
+                                <Li><strong>Session notes:</strong> set or update session name and description.</Li>
+                            </Ul>
+                        </Card>
+                    </CardGrid>
 
-                        <Typography variant="body1" component="p">
-                            <b>Tip:</b> click the Session ID chip in the header at any time to copy the full ID to your clipboard.
-                        </Typography>
-                    </section>
+                    <P><strong>Tip:</strong> click the Session ID chip in the header at any time to copy the full ID to your clipboard.</P>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* Adding monomers to the library */}
-                    <section id="adding-monomers">
-                        <Typography variant="h5" gutterBottom>
-                            Adding monomers to the library
-                        </Typography>
+                    {/* ── Protonation ── */}
+                    <SectionTitle id="protonation">Protonation (pH)</SectionTitle>
 
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            Beyond the built-in public monomer library, PEP-EDIT lets you build a <b>personal monomer library</b> (“My monomers”).
-                            Personal monomers are tied to your <b>Session ID</b> (see <MUILink href="#sessions">Sessions</MUILink>),
-                            so they persist across page refreshes and can be shared with collaborators by sharing the session.
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            Once added, personal monomers behave exactly like built-in ones: they appear in the library search,
-                            can be inserted in BILN sequences, linked via R-groups, visualized, and exported.
-                            If you create monomers you think would benefit everyone, you can <MUILink href="/submit-public-monomers">submit them for inclusion in the public library</MUILink> (see below).
-                        </Typography>
-
-                        <Typography variant="h6" gutterBottom>
-                            Two ways to add monomers
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            Both workflows produce pepedit-compatible SDF records (with SD-tags), so monomers integrate seamlessly with the rest of the application.
-                        </Typography>
-
-                        <Box
-                            sx={{
-                                display: "grid",
-                                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-                                gap: 2,
-                                mb: 3,
-                            }}
-                        >
-                            <Box
-                                sx={{
-                                    p: 2,
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 2,
-                                }}
-                            >
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                    Create a monomer (wizard)
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                    Start from a SMILES string and define R-groups interactively. A guided 5-step wizard walks you through the process.
-                                </Typography>
-
-                                <Box
-                                    component="ol"
-                                    sx={{
-                                        pl: 3,
-                                        mb: 0,
-                                        "& > li": { mb: 0.6 },
-                                        "& > li:last-of-type": { mb: 0 },
-                                    }}
-                                >
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        My monomers → <b>Create</b>
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Paste a valid SMILES — the molecule renders live
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Click bonds to define attachment points; pick the core fragment
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Fill in metadata (Symbol, PDB, type…); review stereochemistry
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Validate the generated molblock and save — see detailed walkthrough below
-                                    </Typography>
-                                </Box>
-                            </Box>
-
-                            <Box
-                                sx={{
-                                    p: 2,
-                                    border: "1px solid",
-                                    borderColor: "divider",
-                                    borderRadius: 2,
-                                }}
-                            >
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                                    Import SDF
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                    Import monomers from a pepedit-compatible SDF file — useful for sharing, restoring, or bulk-loading monomers.
-                                </Typography>
-
-                                <Box
-                                    component="ol"
-                                    sx={{
-                                        pl: 3,
-                                        mb: 0,
-                                        "& > li": { mb: 0.6 },
-                                        "& > li:last-of-type": { mb: 0 },
-                                    }}
-                                >
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        My monomers → <b>Import SDF</b>
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        Choose a <code>.sdf</code> file and upload
-                                    </Typography>
-                                    <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                        The monomers become available in the Design page library/search
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </Box>
-
-                        {/* ── Create a monomer — detailed walkthrough ── */}
-                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                            Create a monomer — step-by-step walkthrough
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 2 }}>
-                            The wizard transforms a SMILES string into a validated SDF monomer record containing a molecular core, explicit attachment points
-                            (R1–R4), leaving groups, stereochemistry assignments, and the metadata required for BILN integration.
-                            You can move back and forth between steps using the <b>Back</b> and <b>Next</b> buttons at the bottom of the wizard.
-                        </Typography>
-
-                        {/* Step 1 */}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
-                            Step 1 — Choose a molecule (SMILES input)
-                        </Typography>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
-                            Paste a valid SMILES string into the input field. A live 2D depiction appears as you type.
-                            If the structure does not render, check that the SMILES is valid before proceeding.
-                            Click <b>Next</b> once the preview matches the molecule you intend to register.
-                        </Typography>
-
-                        {/* <Box
-                            sx={{
-                                p: 2,
-                                border: "1px dashed",
-                                borderColor: "divider",
-                                borderRadius: 2,
-                                mb: 2,
-                                color: "text.disabled",
-                                textAlign: "center",
-                                fontStyle: "italic",
-                                fontSize: "0.82rem",
-                            }}
-                        > */}
-
-                            <Box component="figure" className="my-4">
-                                <Box
-                                    component="img"
-                                    src="/assets/documentation/create-monomer_step1_smiles.png"
-                                    alt="Step 1 — SMILES input field with live 2D preview"
-                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                    onClick={() =>
-                                        openLightbox(
-                                            "/assets/documentation/create-monomer_step1_smiles.png",
-                                            "Step 1 — SMILES input field with live 2D preview"
-                                        )
-                                    }
-                                />
-                                <Typography
-                                    variant="caption"
-                                    display="block"
-                                    align="center"
-                                    sx={{ mt: 1 }}
-                                >
-                                    Figure 7. Step 1 — SMILES input field with live 2D preview. The example SMILES corresponds to the
-                                    non-canonical amino acid N-methyl-alanine.
-                                </Typography>
-                            </Box>
-
-                        {/* </Box> */}
-
-                        {/* Step 2 */}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
-                            Step 2 — Define attachment points
-                        </Typography>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
-                            An <b>attachment point</b> (R-group) is an open connection site where the monomer bonds to its neighbours in a peptide chain.
-                            You may define up to four attachment points (R1–R4).
-                            This step has two parts:
-                        </Typography>
-
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>2a — Select bonds to cut</Typography>
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 1.5,
-                                "& > li": { mb: 0.6 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Click directly on bonds in the 2D depiction — clicking a bond selects it as a cleavage site; clicking again deselects it.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                At least one bond must be selected.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                For an amino-acid-like monomer: cut the <b>N-terminal bond</b> (amino side → R1) and the <b>C-terminal bond</b> (carboxyl side → R2).
-                                A capping group needs only <b>one</b> bond cut (it terminates one chain end).
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>2b — Choose the monomer core fragment</Typography>
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 1.5,
-                                "& > li": { mb: 0.6 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                After bond selection the molecule is split into fragments displayed in a carousel.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Click a card to select the core fragment (a coloured border highlights the active choice).
-                                For most amino acids, choose the fragment that contains the backbone α-carbon.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                PEP-EDIT automatically analyses the selected fragment and pre-fills metadata fields where possible.
-                            </Typography>
-                        </Box>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/create-monomer_step2_attachment-points.png"
-                                alt="Step 2 — Attachment point selection and core fragment carousel"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/create-monomer_step2_attachment-points.png",
-                                        "Step 2 — Attachment point selection and core fragment carousel"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 8. Step 2 — Attachment point selection and core fragment carousel. Clicking bonds in the 2D preview selects them as attachment points (R-groups), then the molecule is split into fragments. The user selects which fragment to designate as the core (highlighted in blue) — metadata fields are pre-filled based on this choice.
-                            </Typography>
-                        </Box>
-
-
-                        {/* Step 3 */}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
-                            Step 3 — Fill in monomer metadata
-                        </Typography>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 1.5, lineHeight: 1.7 }}>
-                            A form appears alongside a depiction of the selected fragment. Each field describes a property PEP-EDIT needs to integrate
-                            the monomer into the library and use it in BILN peptide sequences.
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/create-monomer_step3_fill-metadata.png"
-                                alt="Step 3 — Monomer metadata form"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/create-monomer_step3_fill-metadata.png",
-                                        "Step 3 — Monomer metadata form"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 9. Step 3 — Monomer metadata form. The user fills in fields describing the monomer’s properties and how it should be represented in BILN sequences. The table below describes each field and the automatic rules that pre-fill or constrain certain values based on the molecule’s structure.
-                            </Typography>
-                        </Box>
-
-                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: "grey.50" }}>
-                                        <TableCell sx={{ fontWeight: 700 }}>Field</TableCell>
-                                        <TableCell sx={{ fontWeight: 700 }}>What to enter</TableCell>
-                                        <TableCell sx={{ fontWeight: 700 }}>Constraints</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell><b>Name</b></TableCell>
-                                        <TableCell>Human-readable name (e.g. <em>Alanine</em>)</TableCell>
-                                        <TableCell>Free text.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>Symbol</b></TableCell>
-                                        <TableCell>Short identifier used in BILN (e.g. <em>Ala</em>, <em>Pra</em>)</TableCell>
-                                        <TableCell>Must be unique across all monomers. Checked server-side before saving.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>Natural analog</b></TableCell>
-                                        <TableCell>Single-letter code of the closest natural amino acid</TableCell>
-                                        <TableCell>Choose from A–Y or <b>X</b> when no natural analog exists.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>PDB</b></TableCell>
-                                        <TableCell>3-letter PDB residue code (e.g. <em>ALA</em>)</TableCell>
-                                        <TableCell>Exactly <b>3 uppercase letters</b>. Auto-converts to uppercase and strips non-letter characters.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>Type</b></TableCell>
-                                        <TableCell>Monomer category</TableCell>
-                                        <TableCell><em>Amino acid</em>, <em>Cap</em>, or <em>Other</em>. Often pre-filled automatically.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>Subtype</b></TableCell>
-                                        <TableCell>Refinement of the type</TableCell>
-                                        <TableCell>Options depend on type: <em>Natural</em> or <em>Non-natural</em> for type <em>Amino acid</em> and <em>Other</em>, <em>Cap</em> for type <em>Cap</em>.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>R-group label</b> <Typography component="span" variant="caption">(one per attachment point)</Typography></TableCell>
-                                        <TableCell>Which R-group number (R1–R4) to assign to that attachment point</TableCell>
-                                        <TableCell>Labels must be <b>unique</b> — you cannot assign R1 to two different attachment points.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell><b>Leaving group</b> <Typography component="span" variant="caption">(one per attachment point)</Typography></TableCell>
-                                        <TableCell>The atom that occupies the attachment point when not bonded to a neighbour</TableCell>
-                                        <TableCell>Only <b>H</b> or <b>OH</b> are allowed.</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                            <b>BILN</b> (<em>Boehringer Ingelheim Line Notation</em>) is the text notation PEP-EDIT uses to represent peptide sequences.
-                            Each residue is referenced by its <b>Symbol</b> (e.g. <code>A.D.meA</code>), and connections between residues map to R-groups.
-                        </Alert>
-
-                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Automatic type rules</Typography>
-                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7, color: "text.secondary" }}>
-                            The wizard enforces consistency rules so every monomer stays usable in peptide design:
-                        </Typography>
-
-                        <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: "grey.50" }}>
-                                        <TableCell sx={{ fontWeight: 700 }}>Condition</TableCell>
-                                        <TableCell sx={{ fontWeight: 700 }}>Automatic effect</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>Fragment has exactly <b>1</b> R-group</TableCell>
-                                        <TableCell>Type forced to <b>Cap</b>; subtype to <b>Cap</b>. Amino acid option disabled.</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Fragment has <b>2 or more</b> R-groups</TableCell>
-                                        <TableCell><b>Cap</b> type disabled (cannot be selected)</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Type = <b>Cap</b></TableCell>
-                                        <TableCell>Subtype forced to <b>Cap</b></TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Type = <b>Other</b> or <b>Amino acid</b></TableCell>
-                                        <TableCell>Subtype defaults to <b>Non-natural</b> (can be changed to Natural)</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-
-                        {/* Step 4 */}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
-                            Step 4 — Review stereochemistry
-                        </Typography>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
-                            If the fragment contains stereocenters, this step lets you review and modify their configuration (R/S).
-                            Stereocenters are highlighted in the 2D depiction, and a table lists each centre and its assigned configuration.
-                            You may override assignments if necessary. If no stereocenters are detected you can proceed directly.
-                            When you continue, the molblock is regenerated with your chosen stereochemistry.
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/create-monomer_step4_stereochemistry.png"
-                                alt="Step 4 — Stereochemistry review and override"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/create-monomer_step4_stereochemistry.png",
-                                        "Step 4 — Stereochemistry review and override"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 10. Step 4 — Stereochemistry review and override. Detected stereocenters are highlighted in the molecule preview and listed in a table with their assigned R/S configuration. The user can override the assignment if needed before proceeding to the final step.
-                            </Typography>
-                        </Box>
-
-                        {/* Step 5 */}
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>
-                            Step 5 — Validate and complete
-                        </Typography>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 1, lineHeight: 1.7 }}>
-                            The wizard generates the complete SDF monomer record. The molblock appears in an editable text area — you may correct it manually
-                            before saving. Click <b>Complete</b>; the server then:
-                        </Typography>
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 1.5,
-                                "& > li": { mb: 0.6 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Runs a <b>structural integrity</b> check
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Runs a <b>field consistency</b> check
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Runs a <b>functional monomer</b> validation
-                            </Typography>
-                        </Box>
-                        <Typography variant="body2" component="p" sx={{ mb: 2, lineHeight: 1.7 }}>
-                            If all checks pass, the monomer is saved to your personal library and becomes available in the Design page library/search.
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/create-monomer_step5_review-sdf.png"
-                                alt="Step 5 — Validation checks and completion"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/create-monomer_step5_review-sdf.png",
-                                        "Step 5 — Validation checks and completion"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 11. Step 5 — Validation checks and completion. After the user reviews the generated molblock and clicks Complete, the server runs a series of validation checks (structural integrity, field consistency, functional monomer) before saving the monomer to the personal library.
-                            </Typography>
-                        </Box>
-
-
-
-                        <Typography variant="h6" gutterBottom>
-                            Editing personal monomers
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            From the My monomers table, you can edit a monomer’s metadata and leaving groups. The UI enforces key rules to keep monomers usable:
-                        </Typography>
-
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 3,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Symbol</b> must be unique (checked before saving in the creation wizard).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>PDB</b> is exactly <b>3 uppercase letters</b> (auto-uppercased; non-letter characters are stripped).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Leaving groups are restricted to <b>H</b> or <b>OH</b>.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                A monomer with exactly <b>one</b> R-group is treated as a <b>cap</b> (type/subtype set accordingly).
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                            Import SDF — when and how
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            The <b>Import SDF</b> button (in the My monomers toolbar, next to Export SDF) lets you load one or more monomer records
-                            from a pepedit-compatible <code>.sdf</code> file. Common scenarios include:
-                        </Typography>
-
-                        <Box
-                            component="ul"
-                            sx={{
-                                pl: 3,
-                                mb: 2,
-                                "& > li": { mb: 0.75 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Colleague sharing:</b> a colleague exports their personal monomers as SDF and sends the file to you.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Restoring from a previous session:</b> re-import monomers you exported earlier (e.g., after starting a new session).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Bulk loading:</b> import a batch of pre-prepared monomers at once instead of creating them one by one.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                <b>Cross-environment transfer:</b> move monomers between different PEP-EDIT deployments.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body2" component="p" sx={{ mb: 3, lineHeight: 1.7 }}>
-                            After selecting a file, the importer validates each record and shows a preview. You can review and edit
-                            entries before confirming the upload. Imported monomers appear immediately in your personal library
-                            and in the Design page search.
-                        </Typography>
-
-                        <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                            Submit to public library
-                        </Typography>
-
-                        <Typography variant="body1" component="p" sx={{ mb: 1 }}>
-                            Personal monomers live only in your session. If you’ve created or imported monomers that could benefit all users,
-                            you can propose them for inclusion in the public library:
-                        </Typography>
-
-                        <Box
-                            component="ol"
-                            sx={{
-                                pl: 3,
-                                mb: 2,
-                                "& > li": { mb: 0.6 },
-                                "& > li:last-of-type": { mb: 0 },
-                            }}
-                        >
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Go to the <MUILink href="/submit-public-monomers">Submit to public library</MUILink> page.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Upload your SDF file (the same format used by Export / Import SDF).
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Your submission is reviewed by the PEP-EDIT maintainers.
-                            </Typography>
-                            <Typography component="li" variant="body2" sx={{ lineHeight: 1.7 }}>
-                                Once approved, the monomers are added to the public collection and become available to every user.
-                            </Typography>
-                        </Box>
-
-                        <Alert severity="info" sx={{ mb: 2 }}>
-                            Submitting to the public library does not remove the monomers from your personal library. They will exist in both places.
-                        </Alert>
-                    </section>
+                    <P>
+                        Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to{" "}
+                        <MUILink href="https://link.springer.com/article/10.1186/s13321-019-0336-9" target="_blank" rel="noreferrer">
+                            Dimorphite-DL
+                        </MUILink>{" "}
+                        to predict a protonated form at the chosen pH (default: 7.4). The protonated state is propagated to all exports
+                        (SMILES, PDB, etc.).
+                    </P>
+                    <Ul>
+                        <Li>
+                            PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
+                            (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
+                            neutral phenol, neutral imide and neutral amide at physiological pH.
+                        </Li>
+                    </Ul>
+                    <P>
+                        The pH slider is available in the editor toolbar. Adjusting pH changes how titratable groups are protonated
+                        in the exported representations.
+                    </P>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* Use cases */}
-                    <section id="use-cases">
-                        <Typography variant="h5" gutterBottom>
-                            Examples and use cases
-                        </Typography>
-
-                        {/* Microcin J25 */}
-                        <Typography variant="h6" gutterBottom>
-                            Microcin J25 (lasso peptide)
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/mccJ25templateUsage.png"
-                                alt="Using a 3D template to preserve the lasso topology of Microcin J25"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/mccJ25templateUsage.png",
-                                        "Using a 3D template to preserve the lasso topology of Microcin J25"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 7. Using a PDB template (PDB ID: <code>1Q71</code>) to preserve the lasso
-                                topology of Microcin J25 during conformer generation.
-                                Left: 3D conformation generated without contraints. Right:3D conformation generated using the PDB entry 1Q71 as template.
-                            </Typography>
-                        </Box>
-
-
-                        <Typography variant="body1" component="p">
-                            Microcin J25 (MccJ25) is a lasso peptide produced by <em>Escherichia coli</em>,
-                            with the following amino-acid sequence:
-                        </Typography>
-
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
-                        >
-                            {`GGAGHVPEYFVGIGTPISFYG`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            MccJ25 adopts a characteristic lasso topology, in which the C-terminal tail
-                            is threaded through a macrolactam ring. This ring is formed by a bond between
-                            the side chain of Glu8 and the backbone amine of the N-terminal Gly.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Here, we aim to generate the 3D structure of a variant in which Phe19 is
-                            substituted with a 3-chloro-L-phenylalanine
-                            (<code>Phe_3Cl</code> in the PEP-EDIT monomer library).
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            From the primary sequence, it is straightforward to generate the
-                            corresponding BILN sequence using the <strong>Upload sequence</strong> button , substitute residue 19, and define the
-                            side-chain-to-backbone cyclization. However, a generic 3D builder cannot
-                            spontaneously recover the lasso topology: the C-terminal segment does not
-                            naturally thread through the ring.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            This limitation is resolved by using the <strong>3D template</strong> facility.
-                            Providing the experimental structure (PDB identifier <code>1Q71</code>) as a
-                            template enforces the correct backbone topology and results in a lasso-like
-                            conformation for the modified peptide.
-                        </Typography>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Semaglutide */}
-                        <Typography variant="h6" gutterBottom>
-                            Generating a starting conformation for semaglutide
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Semaglutide is a therapeutic peptide consisting of a linear peptide backbone
-                            to which a fatty diacid chain is attached via a lysine side chain. Its peptide
-                            backbone can be represented in BILN format as:
-                        </Typography>
-
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
-                        >
-                            {`H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K-E-F-I-A-W-L-V-R-G-R-G`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            The lipid moiety (1,18-octadecanedioic acid) is available in the PEP-EDIT
-                            monomer library under the name <code>SemaB</code>. A complete BILN
-                            description is therefore:
-                        </Typography>
-
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
-                        >
-                            {`H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K-E-F-I-A-W-L-V-R-G-R-G.SemaB`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            After entering this sequence, <code>SemaB</code> can be linked to the
-                            side chain of Lys20 using the graphical linking tool or explicit BILN
-                            connectivity.
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
-                        >
-                            {`H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)`}
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/Semaglutide.png"
-                                alt="Generating a 3D structure for the semaglutide"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/Semaglutide.png",
-                                        "Generating a 3D structure for the semaglutide"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 8. Generation of the semaglutide without any structural constraints.
-                            </Typography>
-                        </Box>
-
-
-                        <Typography variant="body1" component="p">
-                            While PEP-EDIT can generate a valid initial conformation for this construct,
-                            the resulting structure is not expected to be fully realistic, especially
-                            for the peptide backbone.
-                            A possible strategy is to generate a backbone
-                            conformation for residues 3–31 (i.e. avoiding the Aib) using an external tool such as PEP-FOLD4,
-                            and then use this model as a <strong>3D template</strong> within PEP-EDIT
-                            to build the full lipidated structure. The truncated sequence requires an offset of 2 to map that of the full semaglutide.
-                        </Typography>
-
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/SemaglutideFromTemplate.png"
-                                alt="Generating a 3D structure for the semaglutide"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/Semaglutide.png",
-                                        "Generating a 3D structure for the semaglutide"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 9. Generation of the semaglutide including structural constraints for the region 3-31.
-                            </Typography>
-                        </Box>
-
-                        {/* <Typography variant="body2" color="text.secondary" component="p">
-                            Note: this workflow is currently experimental and may require manual
-                            adjustments.
-                        </Typography> */}
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Cyclic peptides */}
-                        <Typography variant="h6" gutterBottom>
-                            Cyclic peptides with L- and D-amino acids
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT supports the generation of head-to-tail cyclic peptides, including
-                            sequences containing mixtures of L- and D-amino acids. Examples of BILN
-                            sequences include:
-                        </Typography>
-
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                Head-to-tail octapeptide with standard L-amino acids:
-                                <Typography
-                                    variant="body2"
-                                    component="pre"
-                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                                >
-                                    {`G(1,1)-T-V-A-V-Q-F-L(1,2)`}
-                                </Typography>
-                            </li>
-                            <Box component="figure" className="my-4">
-                                <Box
-                                    component="img"
-                                    src="/assets/documentation/OctaL.png"
-                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
-                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                    onClick={() =>
-                                        openLightbox(
-                                            "/assets/documentation/OctaL.png",
-                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
-                                        )
-                                    }
-                                />
-                                <Typography
-                                    variant="caption"
-                                    display="block"
-                                    align="center"
-                                    sx={{ mt: 1 }}
-                                >
-                                    Figure 9. Generation of an octopeptide (L-amino acids) with head-to-tail cyclization.
-                                </Typography>
-                            </Box>
-
-                            <li>
-                                Head-to-tail octapeptide containing three D-amino acids:
-                                <Typography
-                                    variant="body2"
-                                    component="pre"
-                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                                >
-                                    {`D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)`}
-                                </Typography>
-                            </li>
-
-                            <li>
-                                Head-to-tail octapeptide containing four D-amino acids:
-                                <Typography
-                                    variant="body2"
-                                    component="pre"
-                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                                >
-                                    {`dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)`}
-                                </Typography>
-                            </li>
-                            <Box component="figure" className="my-4">
-                                <Box
-                                    component="img"
-                                    src="/assets/documentation/OctaD4L.png"
-                                    alt="Using a 3D template to preserve the lasso topology of Microcin J25"
-                                    className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                    onClick={() =>
-                                        openLightbox(
-                                            "/assets/documentation/OctaD4L.png",
-                                            "Using a 3D template to preserve the lasso topology of Microcin J25"
-                                        )
-                                    }
-                                />
-                                <Typography
-                                    variant="caption"
-                                    display="block"
-                                    align="center"
-                                    sx={{ mt: 1 }}
-                                >
-                                    Figure 10. Generation of an octopeptide (containing four D-amino acids) with head-to-tail cyclization.
-                                </Typography>
-                            </Box>
-                        </ul>
-
-                        <Typography variant="body1" component="p">
-                            These examples illustrate how explicit BILN connectivity allows precise
-                            control over cyclization and chirality, enabling the construction of
-                            non-canonical cyclic peptides that would be difficult to describe using
-                            sequence-only representations.
-                        </Typography>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Conformer search with ORCA */}
-                        <Typography variant="h6" gutterBottom>
-                            Conformer search with ORCA
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            When dealing with flexible molecules such as peptides, it is important to consider
-                            the conformational space they can occupy for reliable quantum chemistry calculations.
-                            The XYZ file generated by PEP-EDIT is suitable to be used as input for the{" "}
-                            <MUILink
-                                href="https://www.faccts.de/docs/orca/6.0/tutorials/prop/goat.html"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                global optimizer algorithm (GOAT) in ORCA
-                            </MUILink>
-                            . For instance, the orphan cyclic peptide drug cilengitide can be generated in PEP-EDIT using the following BILN sequence:
-                        </Typography>
-
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1 }}
-                        >
-                            {`R(1,1)-G-D-dF-meV(1,2)`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Then, using the XYZ file as input for ORCA's global optimizer
-                            allows to start exploring various conformations of cilengitide.
-
-                            In this example, we used the semi-empirical method GFN2-xTB combined with the implicit water solvent model
-                            ALPB, but any level of theory available in ORCA can be used.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            The scripts used for ORCA input preparation and the conversion of the ORCA xyz output into PDB are available {" "}
-                            <MUILink
-                                href="https://github.com/alexisdougha/goat-pep"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                here. {" "}
-                            </MUILink>
-                        </Typography>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/cilengitide.png"
-                                alt="Ensemble of conformers generated by ORCA's GOAT algorithm for cilengitide"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/cilengitide.png",
-                                        "Ensemble of conformers generated by ORCA's GOAT algorithm for cilengitide"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 11. Starting from the geometry given by PEP-EDIT, an ensemble of conformers is generated
-                                to explore the conformational space of cilengitide. Compared with a reference structure (PDB ID: <code>1L5G</code>), new
-                                conformers have been identified with lower backbone RMSD. The backbone of the PEP-EDIT conformation and the lowest-rmsd conformer
-                                are shown in purple and green, respectively, while the reference PDB structure is shown in gray.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT proves to be a suitable tool for generating initial XYZ coordinates of modified and cyclic peptides to be studied further with quantum chemistry methods.
-
-
-                        </Typography>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Protein-peptide structure prediction */}
-                        <Typography variant="h6" gutterBottom>
-                            Protein-peptide structure prediction
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Diffusion-based structure prediction models like AlphaFold 3 make it possible to directly perform
-                            co-folding (i.e. simultaneous prediction of protein and peptide structures). SMILES can be used as input to predict
-                            the binding pose of a modified peptide in interaction with a protein.
-                            Here, we predict such complexes using the SMILES generated by PEP-EDIT as an input to AlphaFold 3
-                            together with the sequence of a protein.
-                        </Typography>
-
-                        <ul>
-                            <li>
-                                Doubly sulfated CCR2 N-terminal peptide (PDB ID: <code>7P8X</code>):
-                                <Typography
-                                    variant="body2"
-                                    component="pre"
-                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                                >
-                                    {`ac-D-Tyr_SO3H-D-Tyr_SO3H-G with corresponding SMILES CC(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)N[C@@H](CC(=O)[O-])C(=O)N[C@@H](Cc1ccc(OS(=O)(=O)[O-])cc1)C(=O)NCC(=O)[O-]`}
-                                </Typography>
-                            </li>
-
-                            <li>
-                                Histone H3K27ac(24-27) peptide (PDB ID: <code>7X88</code>):
-                                <Typography
-                                    variant="body2"
-                                    component="pre"
-                                    sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                                >
-                                    {`A-A-R-Lys_Ac with corresponding SMILES CC(=O)NCCCC[C@H](NC(=O)[C@H](CCCNC(N)=[NH2+])NC(=O)[C@H](C)NC(=O)[C@H](C)[NH3+])C(=O)[O-]`}
-                                </Typography>
-                            </li>
-
-                        </ul>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/7P8X_top_7X88_bottom.png"
-                                alt="Protein-peptide complexes predicted with AlphaFold 3 using PEP-EDIT generated SMILES"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/7P8X_top_7X88_bottom.png",
-                                        "Protein-peptide complexes predicted with AlphaFold 3 using PEP-EDIT generated SMILES"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 12. Based on the SMILES given by PEP-EDIT (and the sequence of the proteins), both protein-peptide complexes were predicted with AlphaFold 3.
-                                The experimental (dark and light green) and the predicted structures (purple and magenta) are superimposed.
-                                AlphaFold 3 fails to recover the experimental structure for 7P8X but it accurately predicts the binding pose in 7X88.
-                                Top: <code>7P8X</code>. Bottom: <code>7X88</code>.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-                            PEP-EDIT can be used to help prepare inputs for AlphaFold 3 (or other similar models like Chai or Boltz) to model protein-peptide interactions involving modified peptides.
-                            However, the predicted structures should be interpreted with caution.
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            The scripts used to prepare the input for AlphaFold3 from SMILES are available {" "}
-                            <MUILink
-                                href="https://github.com/alexisdougha/smiles-fold-input-builder"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                here.
-                            </MUILink>
-                        </Typography>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Simulated tempering for Cilengitide */}
-                        <Typography variant="h6" gutterBottom>
-                            Sampling Cilengitide conformational space using Simulated Tempering
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            Cilengitide is a head-to-tail cyclized pentapeptide corresponding to the BILN sequence:
-                        </Typography>
-
-                        <Typography
-                            variant="body2"
-                            component="pre"
-                            sx={{ p: 1, bgcolor: "grey.100", borderRadius: 1, mt: 1 }}
-                        >
-                            {`R(1,1)-G-D-dF-meV(1,2)`}
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            To sample its conformational space, PEP-EDIT was used to generate a SMILES and a PDB representation that could directly be used to launch the simulations using OpenMM.
-                        </Typography>
-
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/ST-cilengitide.png"
-                                alt="ST simulation of Cilengitide using SMILES and PDB as input of OpenMM"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/ST-cilengitide.png",
-                                        "ST simulation of Cilengitide using SMILES and PDB as input of OpenMM"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 13. Based on the SMILES and PDB given by PEP-EDIT, Cilengitide conformationnal space was sampled using OpenMM.
-                                The RMSD to the experimental conformation (left) is around 1 Angtroem. The sampling includes the experimental conformation of the Cilengitide in complex with the extracellular segment of integrin avb3 (PDB: <code>1L5G</code>) (black dot, center image), the closest conformation is at 0.7 Angstroem from the experimental one (right).
-                            </Typography>
-                        </Box>
-
-
-                        <Typography variant="body1" component="p">
-                            The scripts used to prepare/run the ST simulations are available {" "}
-                            <MUILink
-                                href="https://github.com/samuelmurail/Pep-Edit_ST"
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                here. {" "}
-                            </MUILink>
-                        </Typography>
-
-                        <Divider sx={{ my: 3 }} />
-
-                        {/* Docking a 25-residue BAD peptide with Bcl-xL */}
-                        <Typography variant="h6" gutterBottom>
-                            Docking a 25-residue with Bcl-xL
-                        </Typography>
-
-                        <Typography variant="body1" component="p">
-                            The anti-apoptotic protein Bcl-xL binds to a 25-residue peptide from the death-promoting region of the pro-apoptotic protein BAD, which corresponds to its BH3 domain.
-                            The structure of the Bcl-xL protein–BAD peptide complex has been solved by nuclear magnetic resonance (NMR) (PDB ID: 1G5J)
-                            The BAD peptide is folded into an alpha helix.
-                            The BAD peptide was generated based on the primary sequence, imposing the alpha-helix secondary structure.
-                        </Typography>
-
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/PEP-EDIT-BadPepetideAsHelix.png"
-                                alt="BAD peptide genration using S2 constraints"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/PEP-EDIT-BadPepetideAsHelix.png",
-                                        "BAD peptide genration using S2 constraints"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 14. Based on the FASTA sequence of the BAD peptide, PEP-EDIT can be used to generate an all helical conformation of the 25 residue BAD peptide.
-                            </Typography>
-                        </Box>
-
-                        <Box component="figure" className="my-4">
-                            <Box
-                                component="img"
-                                src="/assets/documentation/BAD_docking_2.png"
-                                alt="BAD docking using using AutoDock CrankPep"
-                                className="w-full max-w-2xl mx-auto rounded-xl shadow"
-                                onClick={() =>
-                                    openLightbox(
-                                        "/assets/documentation/BAD_docking_2.png",
-                                        "BAD docking using using AutoDock CrankPep"
-                                    )
-                                }
-                            />
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                align="center"
-                                sx={{ mt: 1 }}
-                            >
-                                Figure 15. Bcl-xl is colored in cyan, experimental BH3 peptide in magenta and the docked BH3 peptide is in green.
-                            </Typography>
-                        </Box>
-
-                        <Typography variant="body1" component="p">
-
-                            The BAD peptide was saved in PDB format.
-                            We performed the redocking of the BAD peptide in the 1G5J Bcl-xl protein structure using the AutoDock CrankPep (ADCP) version 1 program (https://doi.org/10.1093/bioinformatics/btz459).
-                            The best energy model (ΔG = -41.4 kcal/mol) closely matches the position and orientation of the experimentally solved peptide, with an RMSD of less than 1 Å for the central residues.
-                            This example illustrates how PEP-EDIT can rapidly generate a 3D peptide structure that can be used to predict protein-peptide complexes through computational docking.
-                        </Typography>
-
-                    </section>
-
+                    {/* ── Conformer generation ── */}
+                    <SectionTitle id="conformer-generation">Conformer generation</SectionTitle>
+
+                    <P>
+                        PEP-EDIT generates 3D conformers using RDKit embedding with optional coordinate maps. When constraints are
+                        provided (from secondary-structure presets or a PDB template), backbone coordinates are used as reference to bias
+                        embedding toward the desired backbone, while side chains and unconstrained atoms are generated more freely.
+                    </P>
+
+                    <SubTitle id="embedding">RDKit-based embedding</SubTitle>
+                    <P>
+                        The conformer generation starts from the SMILES representation of the peptide. RDKit's distance geometry
+                        embedding is used to generate initial 3D coordinates. When no constraints are provided, this produces
+                        a reasonable starting conformation that can be refined downstream.
+                    </P>
+
+                    <SubTitle id="iterative-process">Iterative process</SubTitle>
+                    <P>
+                        To increase robustness, constrained embedding is performed iteratively using partial coordinate maps:
+                        for each mapping ratio, a random subset of mapped atoms is selected and multiple attempts are run with
+                        different random seeds. This improves the likelihood of finding a valid conformer even when a fully
+                        constrained embedding is too strict.
+                    </P>
+
+                    <CodeBlock>
+                        {`mapping_ratios = [(1.0, 5), (0.9, 5), (0.8, 10), (0.5, 50)]
+# (ratio_of_mapped_atoms_to_keep, number_of_attempts)`}
+                    </CodeBlock>
+
+                    <P>
+                        Practically, mapping ratios as low as 0.5 can still preserve the global backbone conformation while allowing
+                        enough flexibility for RDKit to embed successfully (especially for complex peptides or multi-fragment systems).
+                    </P>
+
+                    {/* Constraints */}
+                    <SubTitle id="constraints">Setting constraints</SubTitle>
+                    <P>PEP-EDIT can guide conformer generation using two mutually exclusive constraint types:</P>
+                    <Ul>
+                        <Li><strong>Secondary structure constraints (2D)</strong> — per-residue backbone angle presets (H / E / -).</Li>
+                        <Li><strong>3D template constraints</strong> — backbone coordinate constraints from a PDB/mmCIF structure.</Li>
+                    </Ul>
+
+                    <Sub2Title id="constraints-2d">Secondary structure (2D) constraints</Sub2Title>
+
+                    <Figure
+                        src="/assets/documentation/SecondaryStructure.png"
+                        alt="Secondary structure constraints"
+                        caption="Imposing secondary-structure constraints on a peptide chain. Each residue can be assigned H (helix), E (strand), or - (random coil)."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        Secondary-structure presets are implemented by setting backbone dihedral angles (φ/ψ, plus ω) using reference
+                        values for helices and extended conformations. The target angles are adjusted depending on residue chirality
+                        (L vs D), mirroring in Ramachandran space for D residues.
+                    </P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Structure</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell><code><strong>H</strong></code></TableCell><TableCell>Alpha helix</TableCell><TableCell>Constrained to helical conformation.</TableCell></TableRow>
+                                <TableRow><TableCell><code><strong>E</strong></code></TableCell><TableCell>Beta strand</TableCell><TableCell>Constrained to extended strand conformation.</TableCell></TableRow>
+                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference — free to adopt any conformation.</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <P>
+                        The constraint track is visible when the constraint mode is set to <strong>Secondary structure</strong> in the
+                        chains toolbar. Each residue can be toggled individually, or bulk-set via the ⋮ menu on the constraint row
+                        (All alpha, All beta, All random, Clear).
+                    </P>
+
+                    <Sub2Title id="constraints-3d">3D template (scaffold) constraints</Sub2Title>
+
+                    <Figure
+                        src="/assets/documentation/3DTemplateProcess.png"
+                        alt="3D template constraint workflow"
+                        caption="Imposing 3D template constraints. A PDB/mmCIF file is uploaded or fetched by ID; the backbone atoms of the designed peptide are mapped onto the template to bias conformer generation."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        3D template constraints apply backbone coordinate constraints by mapping the peptide backbone atoms onto
+                        the corresponding backbone atoms in the template, then performing constrained embedding using those mapped
+                        coordinates. Specifying a 3D template is done using the <strong>Upload Scaffold</strong> facility.
+                    </P>
+                    <Ul>
+                        <Li>Provide a template by its <strong>PDB identifier</strong> (fetched from the PDB) or as a <strong>local file upload</strong> (PDB/mmCIF).</Li>
+                        <Li>Select the fragment to use: choose the <strong>chain</strong>, <strong>start/end residue</strong> and optional <strong>offset</strong> (number of leading peptide positions left unconstrained).</Li>
+                        <Li>For multi-chain peptides, different PDB chains can be selected for each peptide chain.</Li>
+                        <Li>Fine-tune on a per-residue basis by <strong>masking/unmasking</strong> residues (masked = constraint not applied).</Li>
+                    </Ul>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        Using a 3D template disables automatic 3D synchronization. You must click the <strong>Generate 3D</strong> button
+                        to trigger conformer generation.
+                    </Alert>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* Limitations */}
-                    <section id="limitations-tips">
-                        <Typography variant="h5" gutterBottom>
-                            Limitations and practical tips
-                        </Typography>
+                    {/* ════════════════════════════════════════════
+                        2 · HOW-TO GUIDES
+                       ════════════════════════════════════════════ */}
 
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                No more than 40 monomers are allowed for the whole peptide (due to RDKit embedding limits).
-                            </li>
-                            <li>
-                                For large, branched, or multi-fragment constructs, constrained embedding may require multiple attempts; the iterative
-                                mapping strategy is designed to improve success rates.
-                            </li>
-                            <li>
-                                Extra bonds are not chemically validated automatically (use domain knowledge to ensure plausibility).
-                            </li>
-                            <li>
-                                Secondary-structure presets provide a controlled backbone bias (φ/ψ/ω), but realistic conformations often benefit from
-                                template constraints or downstream refinement (minimization / MD).
-                            </li>
-                        </ul>
-                    </section>
+                    {/* ── Editing BILN ── */}
+                    <SectionTitle id="editing-biln">Editing a BILN sequence</SectionTitle>
 
-                    {/* Limitations */}
-                    <section id="policies">
-                        <Typography variant="h5" gutterBottom>
-                            Accessibility and cookie consent.
-                        </Typography>
+                    <P>
+                        You can define a peptide by typing a BILN sequence directly in the manual edit field
+                        (e.g. <code>P-E-P-T-I-D-E</code>), or by uploading a peptide sequence in FASTA format (limited to the
+                        20 standard amino acids). The sequence editor also supports HELM input.
+                    </P>
+                    <P>
+                        Several chains can be defined independently using separate chain slots. Each chain appears as an
+                        independent monomer row in the editor, separated by <code>.</code> in the BILN sequence.
+                    </P>
+                    <Ol>
+                        <Li><strong>BILN sequence</strong> — each chain is separated by a "." in the combined BILN string.</Li>
+                        <Li><strong>Constraints</strong> — each chain has its own secondary-structure or 3D-template constraint track.</Li>
+                        <Li><strong>Viewers</strong> — the 2D and 3D viewers update to reflect all chains.</Li>
+                    </Ol>
 
-                        <ul className="list-disc ml-6 mb-3">
-                            <li>
-                                This website is free and open to all and there is no login requirement.
-                            </li>
-                            <li>
-                                This web site does not make use of tracking cookies. Cookie usage is restricted to strictily necessary cookies.
-                            </li>
-                        </ul>
-                    </section>
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Editing from library ── */}
+                    <SectionTitle id="editing-library">Editing from monomer library</SectionTitle>
+
+                    <Figure
+                        src="/assets/documentation/MonomerSelection.png"
+                        alt="Monomer selection and insertion panel"
+                        caption="Monomer search and selection from the library panel. Use the search field and class filters to find the desired monomer, then click + to add it."
+                        openLightbox={openLightbox}
+                        maxWidth="md"
+                    />
+
+                    <P>
+                        Instead of typing BILN manually, you can build your sequence from the <strong>Monomer Library</strong> tab in the right panel.
+                        The library provides a searchable, filterable catalog of all available monomers (public + personal).
+                    </P>
+
+                    <Sub2Title>Placement mode</Sub2Title>
+                    <P>The placement mode (in the library header) controls where a monomer is inserted when you click <strong>+</strong>:</P>
+                    <Ul>
+                        <Li><strong>Append</strong> — adds the monomer at the C-terminus (end) of the active chain.</Li>
+                        <Li><strong>Prepend</strong> — inserts the monomer at the N-terminus (beginning) of the active chain.</Li>
+                        <Li><strong>New chain</strong> — starts a brand-new chain (default when the editor is empty).</Li>
+                    </Ul>
+
+                    <Sub2Title>Linking mode</Sub2Title>
+                    <P>The linking mode controls which bond is formed when the monomer is placed:</P>
+                    <Ul>
+                        <Li><strong>Peptide</strong> — automatic peptide bond (R2→R1, standard backbone connection).</Li>
+                        <Li><strong>R3→R1, R3→R2, R3→R3</strong> — explicit R-group connections for non-standard attachments.</Li>
+                    </Ul>
+
+                    <Sub2Title>Monomer replacement</Sub2Title>
+                    <P>
+                        Hover over any monomer in the chain track and click the <strong>Replace</strong> icon. The library panel opens
+                        automatically so you can pick a replacement monomer. The swap preserves existing connections where possible.
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Linking ── */}
+                    <SectionTitle id="linking">Linking monomers</SectionTitle>
+
+                    <Figure
+                        src="/assets/documentation/Linking-Unlinking.png"
+                        alt="Linking and unlinking chains using R-groups"
+                        caption="Linking and unlinking chains via R-groups. The 2D viewer supports interactive bond creation and removal."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        PEP-EDIT supports extra bonds beyond the backbone (e.g. disulfides, side-chain linkers, lipidation attachments).
+                        You can create them in two ways:
+                    </P>
+                    <Ul>
+                        <Li><strong>BILN connectivity</strong> — write explicit bond annotations in the BILN sequence, using <code>(bondId, RgroupId)</code> pairs.</Li>
+                        <Li><strong>Link mode</strong> — activate the Link tool (chain icon in the editor toolbar), then click two compatible R-groups in the 2D viewer to create a bond.</Li>
+                    </Ul>
+                    <P>
+                        To remove a bond, activate the <strong>Cut mode</strong> (scissors icon) and click a non-backbone bond in the 2D viewer.
+                    </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        Extra bonds are flexible by design — PEP-EDIT does not automatically validate whether a given link is
+                        chemically meaningful (that remains the user's responsibility).
+                    </Alert>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Complex topologies ── */}
+                    <SectionTitle id="complex-topologies">Complex topologies</SectionTitle>
+
+                    <P>
+                        PEP-EDIT supports several non-linear peptide architectures through explicit BILN connectivity
+                        and the graphical chain tools:
+                    </P>
+
+                    <Sub2Title>Cyclic peptides (head-to-tail)</Sub2Title>
+                    <P>
+                        Use the <strong>Cyclize</strong> action in the ⋮ menu on a chain row, or write explicit BILN connectivity
+                        connecting R1 of the first residue to R2 of the last, e.g.: <code>C(1,1)-Y-C-L-I-C(1,2)</code>.
+                    </P>
+
+                    <Sub2Title>Disulfide bridges</Sub2Title>
+                    <P>
+                        Connect two cysteines via their R3 (side-chain) attachment points:{" "}
+                        <code>A-C(1,3)-G-A-G-C(1,3)-D</code>. Bond 1 connects the R3 groups of the two Cys residues.
+                    </P>
+
+                    <Sub2Title>Branched peptides</Sub2Title>
+                    <P>
+                        Use <code>.</code> to separate the main chain from the branch, then connect via bond annotations:{" "}
+                        <code>A-G-K(1,3)-G-A-D.E-H-I-A(1,2)</code>. Here bond 1 links R3 of Lys to R2 of Ala in the branch.
+                    </P>
+
+                    <Sub2Title>Multi-chain designs</Sub2Title>
+                    <P>
+                        Each chain is an independent peptide sequence. Create multiple chains using the <strong>+</strong> button
+                        in the chains toolbar, then link them as needed. This is useful for building peptides that require
+                        inter-chain bonds (e.g. two chains connected by a disulfide).
+                    </P>
+
+                    <Sub2Title>Mirror (L/D amino acids)</Sub2Title>
+                    <P>
+                        The ⋮ menu on a chain row includes a <strong>Mirror</strong> action that swaps L- and D-amino acid forms
+                        for all natural amino acids in the chain (e.g. Ala ↔ dAla).
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Adding monomers ── */}
+                    <SectionTitle id="adding-monomers">Adding monomers to the library</SectionTitle>
+
+                    <P>
+                        Beyond the built-in public monomer library, PEP-EDIT lets you build a <strong>personal monomer library</strong> ("My monomers").
+                        Personal monomers are tied to your Session ID, so they persist across page refreshes and can be shared
+                        by sharing the session.
+                    </P>
+
+                    <Sub2Title>Two ways to add monomers</Sub2Title>
+
+                    <CardGrid>
+                        <Card title="Create (wizard)">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Start from a SMILES string and define R-groups interactively. A guided 5-step wizard walks you through the process.
+                            </Typography>
+                            <Ol>
+                                <Li>My monomers → <strong>Create</strong></Li>
+                                <Li>Paste a valid SMILES — the molecule renders live</Li>
+                                <Li>Click bonds to define attachment points; pick the core fragment</Li>
+                                <Li>Fill in metadata (Symbol, PDB, type…); review stereochemistry</Li>
+                                <Li>Validate the generated molblock and save</Li>
+                            </Ol>
+                        </Card>
+                        <Card title="Import SDF">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Import monomers from a pepedit-compatible SDF file — useful for sharing, restoring, or bulk-loading monomers.
+                            </Typography>
+                            <Ol>
+                                <Li>My monomers → <strong>Import SDF</strong></Li>
+                                <Li>Choose a <code>.sdf</code> file and upload</Li>
+                                <Li>The monomers become available in the library immediately</Li>
+                            </Ol>
+                        </Card>
+                    </CardGrid>
+
+                    <Sub2Title>Create a monomer — step-by-step walkthrough</Sub2Title>
+
+                    <P>
+                        The wizard transforms a SMILES string into a validated SDF monomer record containing a molecular core, explicit
+                        attachment points (R1–R4), leaving groups, stereochemistry assignments, and the metadata required for BILN integration.
+                    </P>
+
+                    {/* Step 1 */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 1 — Choose a molecule (SMILES input)</Typography>
+                    <P>
+                        Paste a valid SMILES string into the input field. A live 2D depiction appears as you type.
+                        Click <strong>Next</strong> once the preview matches the molecule you intend to register.
+                    </P>
+                    <Figure
+                        src="/assets/documentation/create-monomer_step1_smiles.png"
+                        alt="Step 1 — SMILES input"
+                        caption="Step 1 — SMILES input field with live 2D preview. The example shows N-methyl-alanine."
+                        openLightbox={openLightbox}
+                    />
+
+                    {/* Step 2 */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 2 — Define attachment points</Typography>
+                    <P>
+                        Click bonds in the 2D depiction to select cleavage sites. At least one bond must be selected.
+                        For amino-acid-like monomers: cut the N-terminal bond (→ R1) and C-terminal bond (→ R2).
+                        A capping group needs only one bond cut.
+                    </P>
+                    <P>
+                        After bond selection, the molecule is split into fragments displayed in a carousel. Click a card to select
+                        the core fragment — PEP-EDIT automatically pre-fills metadata fields based on the chosen fragment.
+                    </P>
+                    <Figure
+                        src="/assets/documentation/create-monomer_step2_attachment-points.png"
+                        alt="Step 2 — Attachment points"
+                        caption="Step 2 — Bond selection and core fragment carousel."
+                        openLightbox={openLightbox}
+                    />
+
+                    {/* Step 3 */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 3 — Fill in monomer metadata</Typography>
+                    <P>A form appears alongside the selected fragment. Each field describes a property PEP-EDIT needs:</P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Field</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>What to enter</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Constraints</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell><strong>Name</strong></TableCell><TableCell>Human-readable name (e.g. <em>Alanine</em>)</TableCell><TableCell>Free text.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Symbol</strong></TableCell><TableCell>Short BILN identifier (e.g. <em>Ala</em>)</TableCell><TableCell>Must be unique.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Natural analog</strong></TableCell><TableCell>Single-letter code of closest natural AA</TableCell><TableCell>A–Y or X (no analog).</TableCell></TableRow>
+                                <TableRow><TableCell><strong>PDB</strong></TableCell><TableCell>3-letter PDB residue code</TableCell><TableCell>Exactly 3 uppercase letters.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Type</strong></TableCell><TableCell>Monomer category</TableCell><TableCell>Amino acid, Cap, or Other.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Subtype</strong></TableCell><TableCell>Refinement of type</TableCell><TableCell>Natural / Non-natural / Cap.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>R-group label</strong></TableCell><TableCell>R-group number (R1–R4)</TableCell><TableCell>Must be unique per attachment point.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Leaving group</strong></TableCell><TableCell>Atom at unconnected attachment point</TableCell><TableCell>H or OH only.</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <Figure
+                        src="/assets/documentation/create-monomer_step3_fill-metadata.png"
+                        alt="Step 3 — Metadata form"
+                        caption="Step 3 — Monomer metadata form with auto-filled fields."
+                        openLightbox={openLightbox}
+                    />
+
+                    {/* Step 4 */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 4 — Review stereochemistry</Typography>
+                    <P>
+                        If the fragment contains stereocenters, this step lets you review and modify their configuration (R/S).
+                        Stereocenters are highlighted in the 2D depiction. You may override assignments if necessary.
+                    </P>
+                    <Figure
+                        src="/assets/documentation/create-monomer_step4_stereochemistry.png"
+                        alt="Step 4 — Stereochemistry"
+                        caption="Step 4 — Stereochemistry review and override."
+                        openLightbox={openLightbox}
+                    />
+
+                    {/* Step 5 */}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 5 — Validate and complete</Typography>
+                    <P>
+                        The wizard generates the complete SDF monomer record. The molblock appears in an editable text area.
+                        Click <strong>Complete</strong>; the server runs structural integrity, field consistency, and functional
+                        monomer validation checks. If all pass, the monomer is saved to your personal library.
+                    </P>
+                    <Figure
+                        src="/assets/documentation/create-monomer_step5_review-sdf.png"
+                        alt="Step 5 — Validation"
+                        caption="Step 5 — Validation checks and completion."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Sub2Title>Submit to public library</Sub2Title>
+                    <P>
+                        If you've created monomers that could benefit all users, you can propose them for inclusion in the public
+                        library via the <MUILink href="/submit-public-monomers">Submit to public library</MUILink> page. Your submission
+                        is reviewed by PEP-EDIT maintainers before being added to the public collection.
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ════════════════════════════════════════════
+                        3 · EXAMPLES & USE CASES
+                       ════════════════════════════════════════════ */}
+
+                    {/* Microcin J25 */}
+                    <SectionTitle id="example-microcin">Microcin J25 (lasso peptide)</SectionTitle>
+
+                    <Figure
+                        src="/assets/documentation/mccJ25templateUsage.png"
+                        alt="Microcin J25 template usage"
+                        caption="Using a PDB template (PDB ID: 1Q71) to preserve the lasso topology of Microcin J25. Left: without constraints. Right: with template constraints."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        Microcin J25 (MccJ25) is a lasso peptide produced by <em>Escherichia coli</em>, with the sequence:
+                    </P>
+                    <CodeBlock>GGAGHVPEYFVGIGTPISFYG</CodeBlock>
+
+                    <P>
+                        MccJ25 adopts a characteristic lasso topology, in which the C-terminal tail is threaded through a
+                        macrolactam ring. This ring is formed by a bond between Glu8's side chain and the backbone amine of
+                        the N-terminal Gly.
+                    </P>
+                    <P>
+                        Here, we generate the 3D structure of a variant where Phe19 is substituted with 3-chloro-L-phenylalanine
+                        (<code>Phe_3Cl</code>). From the primary sequence, it is straightforward to generate the corresponding BILN
+                        using <strong>Upload sequence</strong>, substitute residue 19, and define the side-chain-to-backbone cyclization.
+                        However, a generic 3D builder cannot spontaneously recover the lasso topology.
+                    </P>
+                    <P>
+                        This limitation is resolved by using the <strong>3D template</strong> facility. Providing the experimental
+                        structure (PDB ID: <code>1Q71</code>) as a template enforces the correct backbone topology.
+                    </P>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* Semaglutide */}
+                    <SectionTitle id="example-semaglutide" variant="h6">Semaglutide</SectionTitle>
+
+                    <P>
+                        Semaglutide is a therapeutic peptide with a linear backbone and a fatty diacid chain attached via
+                        a lysine side chain. The backbone in BILN:
+                    </P>
+                    <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K-E-F-I-A-W-L-V-R-G-R-G</CodeBlock>
+
+                    <P>
+                        The lipid moiety (<code>SemaB</code>) can be linked to Lys20's side chain:
+                    </P>
+                    <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)</CodeBlock>
+
+                    <Figure
+                        src="/assets/documentation/Semaglutide.png"
+                        alt="Semaglutide 3D structure"
+                        caption="Generation of semaglutide without structural constraints."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        While PEP-EDIT can generate a valid initial conformation, a more realistic backbone conformation for
+                        residues 3–31 can be obtained using an external tool (e.g. PEP-FOLD4) and then used as a
+                        <strong> 3D template</strong> within PEP-EDIT (with an offset of 2) to build the full lipidated structure.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/SemaglutideFromTemplate.png"
+                        alt="Semaglutide with template"
+                        caption="Generation of semaglutide including structural constraints for region 3–31."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* Cyclic peptides */}
+                    <SectionTitle id="example-cyclic" variant="h6">Cyclic peptides with L- and D-amino acids</SectionTitle>
+
+                    <P>
+                        PEP-EDIT supports head-to-tail cyclic peptides, including sequences with mixtures of L- and D-amino acids:
+                    </P>
+
+                    <Ul>
+                        <Li>
+                            Head-to-tail octapeptide with standard L-amino acids:
+                            <CodeBlock>G(1,1)-T-V-A-V-Q-F-L(1,2)</CodeBlock>
+                        </Li>
+                    </Ul>
+
+                    <Figure
+                        src="/assets/documentation/OctaL.png"
+                        alt="Cyclic octapeptide (L)"
+                        caption="Octapeptide (L-amino acids) with head-to-tail cyclization."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Ul>
+                        <Li>
+                            With three D-amino acids:
+                            <CodeBlock>D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)</CodeBlock>
+                        </Li>
+                        <Li>
+                            With four D-amino acids:
+                            <CodeBlock>dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)</CodeBlock>
+                        </Li>
+                    </Ul>
+
+                    <Figure
+                        src="/assets/documentation/OctaD4L.png"
+                        alt="Cyclic octapeptide (4 D-AAs)"
+                        caption="Octapeptide (4 D-amino acids) with head-to-tail cyclization."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* ORCA */}
+                    <SectionTitle id="example-orca" variant="h6">Conformer search with ORCA</SectionTitle>
+
+                    <P>
+                        The XYZ file generated by PEP-EDIT can be used as input for the{" "}
+                        <MUILink href="https://www.faccts.de/docs/orca/6.0/tutorials/prop/goat.html" target="_blank" rel="noreferrer">
+                            GOAT algorithm in ORCA
+                        </MUILink>.
+                        For instance, cilengitide:
+                    </P>
+                    <CodeBlock>R(1,1)-G-D-dF-meV(1,2)</CodeBlock>
+
+                    <P>
+                        Using this XYZ as input for ORCA's global optimizer allows exploration of various conformations.
+                        Scripts for input preparation are available{" "}
+                        <MUILink href="https://github.com/alexisdougha/goat-pep" target="_blank" rel="noreferrer">here</MUILink>.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/cilengitide.png"
+                        alt="Cilengitide conformer search"
+                        caption="Conformer ensemble generated by ORCA's GOAT algorithm for cilengitide. Purple: PEP-EDIT conformation; green: lowest-RMSD conformer; gray: reference PDB (1L5G)."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* AlphaFold */}
+                    <SectionTitle id="example-alphafold" variant="h6">Protein-peptide structure prediction</SectionTitle>
+
+                    <P>
+                        SMILES generated by PEP-EDIT can be used as input to AlphaFold 3 (or Chai, Boltz) together with a protein
+                        sequence to predict protein–peptide complexes involving modified peptides.
+                    </P>
+
+                    <Ul>
+                        <Li>
+                            Doubly sulfated CCR2 N-terminal peptide (PDB: <code>7P8X</code>):
+                            <CodeBlock>ac-D-Tyr_SO3H-D-Tyr_SO3H-G</CodeBlock>
+                        </Li>
+                        <Li>
+                            Histone H3K27ac(24-27) (PDB: <code>7X88</code>):
+                            <CodeBlock>A-A-R-Lys_Ac</CodeBlock>
+                        </Li>
+                    </Ul>
+
+                    <Figure
+                        src="/assets/documentation/7P8X_top_7X88_bottom.png"
+                        alt="AlphaFold 3 predictions"
+                        caption="Protein-peptide complexes predicted with AlphaFold 3 using PEP-EDIT SMILES. Experimental (green) vs predicted (purple). Top: 7P8X. Bottom: 7X88."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        Scripts for preparing AlphaFold 3 inputs from SMILES are available{" "}
+                        <MUILink href="https://github.com/alexisdougha/smiles-fold-input-builder" target="_blank" rel="noreferrer">here</MUILink>.
+                    </P>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* Simulated tempering */}
+                    <SectionTitle id="example-st" variant="h6">Simulated tempering</SectionTitle>
+
+                    <P>
+                        PEP-EDIT's SMILES and PDB outputs can be used directly with OpenMM for molecular dynamics.
+                        For cilengitide (<code>R(1,1)-G-D-dF-meV(1,2)</code>), a simulated tempering run explores conformational space:
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/ST-cilengitide.png"
+                        alt="Simulated tempering for cilengitide"
+                        caption="Cilengitide conformational space sampled via simulated tempering with OpenMM. Left: RMSD to experimental conformation (~1 Å). Center: sampling includes experimental conformation (black dot). Right: closest conformer at 0.7 Å from experiment."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        Scripts for ST simulations are available{" "}
+                        <MUILink href="https://github.com/samuelmurail/Pep-Edit_ST" target="_blank" rel="noreferrer">here</MUILink>.
+                    </P>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* Docking */}
+                    <SectionTitle id="example-docking" variant="h6">Peptide docking</SectionTitle>
+
+                    <P>
+                        The BAD peptide (25 residues, BH3 domain) was generated from its primary sequence with alpha-helix
+                        secondary-structure constraints:
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/PEP-EDIT-BadPepetideAsHelix.png"
+                        alt="BAD peptide as helix"
+                        caption="All-helical conformation of the 25-residue BAD peptide generated with secondary-structure constraints."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        The PDB output was used for redocking in the Bcl-xL protein structure (PDB: <code>1G5J</code>) using
+                        AutoDock CrankPep (ADCP). The best energy model (ΔG = −41.4 kcal/mol) closely matches the experimental
+                        peptide position with RMSD &lt; 1 Å for central residues.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/BAD_docking_2.png"
+                        alt="BAD peptide docking"
+                        caption="Bcl-xL (cyan) with experimental BH3 peptide (magenta) and docked BH3 peptide (green)."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ════════════════════════════════════════════
+                        4 · REFERENCE
+                       ════════════════════════════════════════════ */}
+
+                    <SectionTitle id="output-formats">Output & export formats</SectionTitle>
+
+                    <P>Exported representations include the protonation state predicted for the chosen pH (default 7.4).</P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Dimension</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Formats</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Typical use</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell><strong>1D</strong></TableCell><TableCell>BILN, HELM, SMILES, InChI, InChIKey</TableCell><TableCell>Cheminformatics, similarity search, AlphaFold 3 input (SMILES).</TableCell></TableRow>
+                                <TableRow><TableCell><strong>2D</strong></TableCell><TableCell>SDF 2D</TableCell><TableCell>Fingerprints, substructure search, pharmacophore identification.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>3D</strong></TableCell><TableCell>PDB, MMCIF, XYZ, SDF 3D, MOL2, PDBQT</TableCell><TableCell>Starting conformations for MD (PDB+SMILES → OpenMM), quantum chemistry (XYZ → ORCA), docking (PDBQT).</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <P>
+                        The <strong>Output</strong> tab in the right panel presents each format as a collapsible accordion with
+                        Copy and Download buttons. A <strong>Download all</strong> button exports all formats at once.
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Monomer library reference ── */}
+                    <SectionTitle id="monomer-library-ref">Monomer library & R-groups</SectionTitle>
+
+                    <Figure
+                        src="/assets/documentation/Monomer6.png"
+                        alt="Monomer detail view with R-groups"
+                        caption="Example monomer with labeled R-groups (R1, R2). Each monomer has three labels: its name, the BILN symbol, and a 3-letter PDB identifier."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        Attachment points are specified as R-groups (<code>R1</code>, <code>R2</code>, <code>R3</code>, …). In BILN:
+                        a monomer with one R-group acts as a capping group; a monomer with more than two R-groups can be a branching
+                        or cyclization site.
+                    </P>
+                    <P>
+                        Each R-group must have an associated <strong>leaving group</strong>. If an R-group is not used in a connection,
+                        it is replaced by its leaving group in the final structure (H or OH).
+                    </P>
+                    <P>
+                        <strong>Convention:</strong> for amino acids, use R1 for backbone N and R2 for backbone carbonyl C. Additional
+                        attachment points should be R3, R4, etc.
+                    </P>
+
+                    <Sub2Title>Color coding in the chain track</Sub2Title>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700, width: 50 }}>Color</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#8FB3A5", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Natural</strong></TableCell>
+                                    <TableCell>Standard proteinogenic amino acids (Ala, Gly, Leu, …).</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#E0A387", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Non-natural</strong></TableCell>
+                                    <TableCell>Modified or non-standard amino acids and custom monomers.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#6B7B8C", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Cap</strong></TableCell>
+                                    <TableCell>N-terminal or C-terminal capping groups (e.g. acetyl, amide).</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── BILN quick reference ── */}
+                    <SectionTitle id="biln-quick-ref">BILN quick reference</SectionTitle>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Concept</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Example</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell>Backbone connection (automatic R2→R1)</TableCell><TableCell><code>A-C</code></TableCell></TableRow>
+                                <TableRow><TableCell>Explicit equivalent</TableCell><TableCell><code>A(1,2).C(1,1)</code></TableCell></TableRow>
+                                <TableRow><TableCell>Branch / side-chain capping</TableCell><TableCell><code>A-G-K(1,3)-D.ac(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>Monomer containing "-" (brackets)</TableCell><TableCell><code>[2-Cl-Phe]-A</code></TableCell></TableRow>
+                                <TableRow><TableCell>Disulfide bridge</TableCell><TableCell><code>A-C(1,3)-G-A-G-C(1,3)-D</code></TableCell></TableRow>
+                                <TableRow><TableCell>Cyclic peptide (head-to-tail)</TableCell><TableCell><code>C(1,1)-Y-C-L-I-C(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>Branched chain</TableCell><TableCell><code>A-G-K(1,3)-G-A-D.E-H-I-A(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>N-terminal cap</TableCell><TableCell><code>ac-G-A-D</code></TableCell></TableRow>
+                                <TableRow><TableCell>C-terminal cap</TableCell><TableCell><code>G-A-D-am</code></TableCell></TableRow>
+                                <TableRow><TableCell>Multiple connections</TableCell><TableCell><code>K(1,3)(2,3)</code></TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <Sub2Title>R-group numbering</Sub2Title>
+                    <Ul>
+                        <Li><strong>R1</strong> — typically the N-terminal backbone nitrogen.</Li>
+                        <Li><strong>R2</strong> — typically the C-terminal carbonyl carbon.</Li>
+                        <Li><strong>R3+</strong> — side chains, branching, or specific chemical modifications.</Li>
+                    </Ul>
+
+                    <Sub2Title>Bond identifiers</Sub2Title>
+                    <P>
+                        A <strong>BondID</strong> is an integer used to pair two monomers together. Each BondID must appear exactly
+                        twice in the BILN string. The syntax is <code>Monomer(BondID, R-group)</code>.
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ════════════════════════════════════════════
+                        5 · TROUBLESHOOTING & POLICIES
+                       ════════════════════════════════════════════ */}
+
+                    <SectionTitle id="limitations">Limitations & tips</SectionTitle>
+
+                    <Ul>
+                        <Li>No more than <strong>40 monomers</strong> are allowed per construct (due to RDKit embedding limits).</Li>
+                        <Li>For large, branched, or multi-fragment constructs, constrained embedding may require multiple attempts; the iterative mapping strategy is designed to improve success rates.</Li>
+                        <Li>Extra bonds are not chemically validated automatically — use domain knowledge to ensure plausibility.</Li>
+                        <Li>Secondary-structure presets provide a controlled backbone bias (φ/ψ/ω), but realistic conformations often benefit from template constraints or downstream refinement (minimization / MD).</Li>
+                        <Li>When using a 3D template, auto-sync is disabled. Click <strong>Generate 3D</strong> manually after adjusting the template.</Li>
+                    </Ul>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    <SectionTitle id="policies">Accessibility & cookies</SectionTitle>
+
+                    <Ul>
+                        <Li>This website is free and open to all — no login is required.</Li>
+                        <Li>This website does not use tracking cookies. Cookie usage is restricted to strictly necessary cookies.</Li>
+                    </Ul>
+
+                    {/* bottom padding */}
+                    <Box sx={{ height: 80 }} />
                 </Box>
             </Box>
 
-            {/* Image lightbox */}
+            {/* ── Lightbox ── */}
             <Dialog
                 open={lightbox.open}
                 onClose={closeLightbox}
                 maxWidth="lg"
                 fullWidth
-                PaperProps={{
-                    sx: {
-                        backgroundColor: "inherit", // "rgba(0,0,0,0.15)",
-                        boxShadow: "none",
-                    },
-                }}
+                PaperProps={{ sx: { bgcolor: "transparent", boxShadow: "none" } }}
             >
-                <Box
-                    sx={{
-                        position: "relative",
-                        p: 2,
-                        width: "100%",
-                        height: "90vh",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}
-                >
+                <Box sx={{ position: "relative", p: 2, width: "100%", height: "90vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
                     <IconButton
                         aria-label="Close"
                         onClick={closeLightbox}
-                        sx={{
-                            position: "absolute",
-                            top: 8,
-                            right: 8,
-                            color: "grey.100",
-                            zIndex: 2,
-                        }}
+                        sx={{ position: "absolute", top: 8, right: 8, color: "grey.100", zIndex: 2, bgcolor: "rgba(0,0,0,0.4)", "&:hover": { bgcolor: "rgba(0,0,0,0.6)" } }}
                     >
                         <CloseIcon />
                     </IconButton>
                     {lightbox.src && (
-                        <Box
-                            component="img"
-                            src={lightbox.src}
-                            alt={lightbox.alt}
-                            sx={{
-                                maxWidth: "100%",
-                                maxHeight: "100%",
-                                borderRadius: 2,
-                                boxShadow: 4,
-                            }}
-                        />
+                        <Box component="img" src={lightbox.src} alt={lightbox.alt} sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }} />
                     )}
                 </Box>
             </Dialog>
-
         </Box>
     );
 };
