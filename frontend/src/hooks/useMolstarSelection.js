@@ -4,6 +4,7 @@ import { StructureElement, StructureSelection } from "molstar/lib/mol-model/stru
 import { StructureProperties } from "molstar/lib/mol-model/structure";
 import { EmptyLoci } from 'molstar/lib/mol-model/loci';
 import { Bond } from 'molstar/lib/mol-model/structure';
+import { hoveredTemplateResidueStore } from '../state/hoveredTemplateResidueStore';
 
 export function useMolstarSelection({
     pluginRef,
@@ -37,6 +38,7 @@ export function useMolstarSelection({
 
         const handleMolstarHover = (event) => {
             if (!event.current || !event.current.loci || event.current.loci.kind === 'empty-loci') {
+                hoveredTemplateResidueStore.clear();
                 hoverHandlerRef.current && hoverHandlerRef.current('');
                 return;
             }
@@ -54,13 +56,23 @@ export function useMolstarSelection({
                 const loc = StructureElement.Loci.getFirstLocation(loci);
                 if (loc) {
                     const target = resolveTarget(loc.structure);
-                    // Do not reflect template-hover into chain-slot highlighting.
+                    const residueId = StructureProperties.residue.label_seq_id(loc);
+                    const chainId = StructureProperties.chain.label_asym_id(loc);
+
                     if (target === 'template') {
+                        // Publish to template-hover store; clear sequence hover.
+                        hoveredTemplateResidueStore.set({ chainId, resid: residueId });
                         hoverHandlerRef.current && hoverHandlerRef.current('');
                         return;
                     }
-                    const residueId = StructureProperties.residue.label_seq_id(loc);
-                    const chainId = StructureProperties.chain.label_asym_id(loc);
+                    if (target === 'unknown') {
+                        // Strict ignore — clear both paths.
+                        hoveredTemplateResidueStore.clear();
+                        hoverHandlerRef.current && hoverHandlerRef.current('');
+                        return;
+                    }
+                    // target === 'main'
+                    hoveredTemplateResidueStore.clear();
                     hoverHandlerRef.current && hoverHandlerRef.current({
                         origin: 'molstarViewer',
                         target,
@@ -72,11 +84,28 @@ export function useMolstarSelection({
                 const bondLoc = loci.bonds[0];
                 if (bondLoc) {
                     const target = resolveTarget(loci.structure);
-                    // Do not reflect template-hover into chain-slot highlighting.
                     if (target === 'template') {
+                        // Bond hover on template: extract resid and publish to template store.
+                        const aUnit = bondLoc.aUnit;
+                        const aIndex = bondLoc.aIndex;
+                        const aElement = aUnit?.elements?.[aIndex];
+                        const bLoc = {
+                            structure: loci.structure,
+                            unit: aUnit,
+                            element: aElement != null ? aElement : aIndex,
+                        };
+                        const residueId = StructureProperties.residue.label_seq_id(bLoc);
+                        const chainId = StructureProperties.chain.label_asym_id(bLoc);
+                        hoveredTemplateResidueStore.set({ chainId, resid: residueId });
                         hoverHandlerRef.current && hoverHandlerRef.current('');
                         return;
                     }
+                    if (target === 'unknown') {
+                        hoveredTemplateResidueStore.clear();
+                        hoverHandlerRef.current && hoverHandlerRef.current('');
+                        return;
+                    }
+                    hoveredTemplateResidueStore.clear();
                     // Build a residue id the same way as atom hover: label_seq_id
                     const aUnit = bondLoc.aUnit;
                     const aIndex = bondLoc.aIndex;

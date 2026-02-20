@@ -79,7 +79,7 @@ export function useUIHandlers({ monomers, setHoveredMonomer, isDragging }) {
         if (data.origin === 'molstarViewer') {
             // Only allow hover from the main structure to drive chain-slot highlighting.
             // Template/unknown hover should not affect peptide UI.
-            if (data.target === 'template') {
+            if (data.target !== 'main') {
                 setHoverBatched('');
                 return;
             }

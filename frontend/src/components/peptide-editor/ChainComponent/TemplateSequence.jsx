@@ -3,10 +3,11 @@ import { Box, Typography, Tooltip, IconButton } from '@mui/material';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { CELL_WIDTH, CELL_HEIGHT, CELL_GAP } from './cellSizeTokens';
+import { useHoveredTemplateResidue } from '../../../state/hoveredTemplateResidueStore';
 
 const GRID_GAP = 0.5;
 
-const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle, onContextMenu }) => {
+const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle, onContextMenu, isHovered }) => {
     const isOffsetOrMasked = kind === 'offset' || masked;
 
     return (
@@ -65,17 +66,25 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                     textTransform: 'uppercase',
                     border: '1px solid',
                     borderColor: (theme) =>
-                        isOffsetOrMasked
-                            ? theme.palette.warning.light
-                            : theme.palette.primary.light,
+                        isHovered
+                            ? theme.palette.info.main
+                            : isOffsetOrMasked
+                                ? theme.palette.warning.light
+                                : theme.palette.primary.light,
                     bgcolor: (theme) =>
-                        isOffsetOrMasked
-                            ? theme.palette.warning.light + '22'
-                            : theme.palette.primary.light + '18',
+                        isHovered
+                            ? theme.palette.info.main + '38'
+                            : isOffsetOrMasked
+                                ? theme.palette.warning.light + '22'
+                                : theme.palette.primary.light + '18',
                     color: (theme) =>
                         isOffsetOrMasked
                             ? theme.palette.warning.dark
                             : theme.palette.primary.dark,
+                    boxShadow: isHovered
+                        ? (theme) => `0 0 0 2px ${theme.palette.info.main}50`
+                        : 'none',
+                    transition: 'border-color 100ms, background-color 100ms, box-shadow 100ms',
                 }}
                 onContextMenu={onContextMenu}
             >
@@ -165,6 +174,7 @@ export default function TemplateSequence({
         () => new Set(mapping.manualMasks || []),
         [mapping.manualMasks],
     );
+    const hoveredTemplateResidue = useHoveredTemplateResidue();
     const mappingBaseStart = useMemo(() => {
         const start = Number(mapping?.start);
         const end = Number(mapping?.end);
@@ -335,6 +345,11 @@ export default function TemplateSequence({
                             cell.templateIdx != null
                                 ? toggleResidueMask(cell.templateIdx)
                                 : undefined
+                        }
+                        isHovered={
+                            hoveredTemplateResidue != null &&
+                            cell.resid != null &&
+                            hoveredTemplateResidue.resid === cell.resid
                         }
                     />
                 );
