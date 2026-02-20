@@ -60,7 +60,6 @@ const MonomerLibraryItem = memo(
     ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center', replaceActive = false, replaceRequiredKey = '' }) => {
     const tag = useMemo(() => getMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
-    console.log(monomer);
 
     const requiredRgroups = useMemo(() => {
         if (!replaceActive) return [];

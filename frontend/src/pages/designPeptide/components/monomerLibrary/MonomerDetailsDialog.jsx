@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import panzoom from 'panzoom';
 import {
     Dialog,
     DialogTitle,
@@ -78,9 +79,43 @@ function MetaRow({ label, value, mono = false }) {
 }
 
 const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose, monomer }) {
-    if (!monomer) return null;
+    const imgContainerRef = useRef(null);
+    const pzRef = useRef(null);
 
-    const tag = useMemo(() => getMonomerTag(monomer), [monomer]);
+    // Attach panzoom when dialog opens; dispose when it closes or monomer changes
+    useEffect(() => {
+        if (!open || !monomer) return;
+        // Small delay so the DOM element is painted before panzoom measures it
+        const timer = setTimeout(() => {
+            const el = imgContainerRef.current;
+            if (!el) return;
+            pzRef.current = panzoom(el, {
+                minZoom: 0.5,
+                maxZoom: 8,
+                bounds: true,
+                boundsPadding: 0.2,
+                zoomSpeed: 0.065,
+                smoothScroll: false,
+                onDoubleClick: () => false,  // prevent panzoom zoom-on-dblclick
+            });
+        }, 60);
+
+        return () => {
+            clearTimeout(timer);
+            pzRef.current?.dispose();
+            pzRef.current = null;
+        };
+    }, [open, monomer]);
+
+    const handleDoubleClick = useCallback(() => {
+        const pz = pzRef.current;
+        if (!pz) return;
+        pz.reset?.();
+        // pz.moveTo(0, 0);
+        // pz.zoomAbs(0, 0, 1);
+    }, []);
+
+    const tag = useMemo(() => monomer ? getMonomerTag(monomer) : null, [monomer]);
     const palette = TAG_PALETTE[tag] || TAG_PALETTE['default'];
 
     const imageBase64 = monomer?.image_binary || monomer?.image_url || monomer?.image_base64 || monomer?.imageBase64 || '';
@@ -92,7 +127,9 @@ const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose,
     const mSubtype = safe(monomer?.m_subtype ?? monomer?.subtype);
     const canonSmiles = safe(monomer?.canonic_smiles ?? monomer?.smiles);
 
-    const rGroupEntries = useMemo(() => getRGroupEntries(monomer), [monomer]);
+    const rGroupEntries = useMemo(() => monomer ? getRGroupEntries(monomer) : [], [monomer]);
+
+    if (!monomer) return null;
 
     return (
         <Dialog
@@ -186,31 +223,58 @@ const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose,
             <Divider />
 
             <DialogContent sx={{ p: 0 }}>
-                {/* Monomer image */}
+                {/* Monomer image — pannable / zoomable */}
                 {imageBase64 && (
                     <Box
                         sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
+                            position: 'relative',
+                            overflow: 'hidden',
                             bgcolor: 'grey.50',
-                            py: 2,
-                            px: 2,
                             borderBottom: '1px solid',
                             borderColor: 'divider',
+                            height: 220,
+                            cursor: 'grab',
+                            '&:active': { cursor: 'grabbing' },
                         }}
+                        onDoubleClick={handleDoubleClick}
                     >
                         <Box
-                            component="img"
-                            src={`data:image/png;base64,${imageBase64}`}
-                            alt={`Structure of ${monomer.symbol || monomer.m_name}`}
+                            ref={imgContainerRef}
                             sx={{
-                                maxWidth: '100%',
-                                maxHeight: 200,
-                                objectFit: 'contain',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                width: '100%',
+                                height: '100%',
+                            }}
+                        >
+                            <Box
+                                component="img"
+                                src={`data:image/png;base64,${imageBase64}`}
+                                alt={`Structure of ${monomer.symbol || monomer.m_name}`}
+                                sx={{
+                                    maxWidth: '90%',
+                                    maxHeight: 200,
+                                    objectFit: 'contain',
+                                    userSelect: 'none',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        </Box>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                position: 'absolute',
+                                bottom: 4,
+                                right: 8,
+                                color: 'text.disabled',
+                                fontSize: '0.6rem',
+                                pointerEvents: 'none',
                                 userSelect: 'none',
                             }}
-                        />
+                        >
+                            Scroll to zoom, drag to pan.
+                        </Typography>
                     </Box>
                 )}
 
