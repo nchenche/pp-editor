@@ -1055,7 +1055,7 @@ const Documentation = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 5 — Validate and complete</Typography>
                     <P>
                         The wizard generates the complete SDF monomer record. The molblock appears in an editable text area.
-                        Click <strong>Complete</strong>; the server runs structural integrity, field consistency, and functional
+                        Click <strong>Finish</strong>; the server runs structural integrity, field consistency, and functional
                         monomer validation checks. If all pass, the monomer is saved to your personal library.
                     </P>
                     <Figure
