@@ -1292,11 +1292,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // Split layout for editor/viewers ; draggable divider
     const {
         editorAreaHeight,
+        setEditorAreaHeight,
         viewerSplitRatio,
         setViewerSplitRatio,
         mainAreaRef,
         viewerRowRef,
         startDrag,
+        persistToStorage,
     } = useSplitLayout({
         initialEditorHeight: 320,
         minEditorHeight: 240,
@@ -1349,6 +1351,57 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return () => cancelAnimationFrame(raf);
     }, [active3DPanel]);
 
+    // ──── Auto-fit editor height so chain slots are visible ────
+    // Fires on app load and when chain count grows from 0→1 or 1→2.
+    // Uses a grow-only policy: never auto-shrinks; manual drag resize is unaffected.
+    const editorWrapperRef = useRef(null);
+    const prevAutoFitChainCountRef = useRef(null);        // null ⇒ first render
+    const MIN_VIEWER_ROW_HEIGHT = 240;                    // matches useSplitLayout default
+
+    const displayChainCount = Math.max(
+        1,
+        (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + (Number(extraEmptyChains) || 0),
+    );
+
+    useLayoutEffect(() => {
+        const prev = prevAutoFitChainCountRef.current;
+        prevAutoFitChainCountRef.current = displayChainCount;
+
+        // Trigger: first render (app load) or chain-count grows from 0→1 / 1→2
+        const isFirstRender = prev === null;
+        const isGrowTransition = prev !== null && (
+            (prev <= 0 && displayChainCount >= 1) ||
+            (prev <= 1 && displayChainCount >= 2)
+        );
+        if (!isFirstRender && !isGrowTransition) return;
+
+        // Measure overflow in the chains scrollable area
+        const wrapper = editorWrapperRef.current;
+        if (!wrapper) return;
+        const chainsScroll = wrapper.querySelector('[data-chains-scroll]');
+        if (!chainsScroll) return;
+
+        const overflow = chainsScroll.scrollHeight - chainsScroll.clientHeight;
+        if (overflow <= 0) return; // content already fits
+
+        // Compute max editor height leaving room for the viewer row
+        const mainEl = mainAreaRef.current;
+        if (!mainEl) return;
+        const { height: mainHeight } = mainEl.getBoundingClientRect();
+        const maxEditorHeight = mainHeight - MIN_VIEWER_ROW_HEIGHT;
+
+        const currentHeight = wrapper.getBoundingClientRect().height;
+        const desired = currentHeight + overflow + 8; // 8 px breathing room
+        const clamped = Math.min(Math.max(desired, currentHeight), maxEditorHeight);
+
+        if (clamped > currentHeight) {
+            setEditorAreaHeight(clamped);
+            // Persist after the ref is updated so storage stays in sync
+            requestAnimationFrame(() => persistToStorage());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [displayChainCount]);
+
 
     return (
         <Box
@@ -1365,7 +1418,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     gap: 1,
                 }}
             >
-                <Box sx={{ height: editorAreaHeight, minHeight: 160, overflow: 'hidden', position: 'relative' }}>
+                <Box ref={editorWrapperRef} sx={{ height: editorAreaHeight, minHeight: 160, overflow: 'hidden', position: 'relative' }}>
                     {/* Top: Biln editor (no collapse) */}
                     <BilnEditorInterface
                         biln={bilnValue}

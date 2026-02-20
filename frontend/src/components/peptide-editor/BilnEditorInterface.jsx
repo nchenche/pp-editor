@@ -784,7 +784,7 @@ export default function BilnEditorInterface({
                     />
                 </Box>
 
-                <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
+                <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
                         extraEmptyChains={extraEmptyChains}

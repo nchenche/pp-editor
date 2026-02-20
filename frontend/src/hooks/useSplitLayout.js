@@ -157,10 +157,12 @@ export function useSplitLayout({
 
     return {
         editorAreaHeight,
+        setEditorAreaHeight,
         viewerSplitRatio,
         setViewerSplitRatio,
         mainAreaRef,
         viewerRowRef,
         startDrag,
+        persistToStorage,
     };
 }
