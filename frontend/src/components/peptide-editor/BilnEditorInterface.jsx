@@ -759,6 +759,12 @@ export default function BilnEditorInterface({
                     flexDirection: 'column',
                     minHeight: 0,
                     overflow: 'hidden', // header fixed; inner list handles its own scroll
+                    // Elevate above the editor dim-overlay during link/cut mode
+                    // so chains remain visually un-dimmed and hoverable.
+                    ...((linkMode || bondsMode) && {
+                        position: 'relative',
+                        zIndex: 3,
+                    }),
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>

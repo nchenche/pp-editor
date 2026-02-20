@@ -1425,13 +1425,22 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         minHeight: 160,
                         overflow: 'hidden',
                         position: 'relative',
-                        // Elevate above the non-blocking focus overlay during link/cut
-                        // so sequence-track hover events still fire → reflected in 2D + 3D.
-                        zIndex: (viewer2DModes.linkMode || viewer2DModes.bondsMode)
-                            ? (t) => t.zIndex.modal - 1
-                            : 'auto',
                     }}
                 >
+                    {/* Dim overlay for editor area during link/cut – chain slots
+                        elevate themselves above this via z-index in BilnEditorInterface */}
+                    {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                zIndex: 2,
+                                bgcolor: (t) => alpha(t.palette.common.black, 0.25),
+                                pointerEvents: 'none',
+                                borderRadius: 1,
+                            }}
+                        />
+                    )}
                     {/* Top: Biln editor (no collapse) */}
                     <BilnEditorInterface
                         biln={bilnValue}
@@ -1570,20 +1579,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 {/* Link/Unlink guidance is rendered inside the BILN panel above */}
 
-                {/* Non-blocking focus overlay while linking/cutting.
-                    pointerEvents:'none' keeps the editor area (sequence track) hoverable
-                    so sequence↔2D highlight reflection works during link mode. */}
-                {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            inset: 0,
-                            zIndex: (t) => t.zIndex.modal - 2,
-                            bgcolor: (t) => alpha(t.palette.common.black, 0.25),
-                            pointerEvents: 'none',
-                        }}
-                    />
-                )}
+
 
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
@@ -1598,7 +1594,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             flexDirection: 'column',
                             pr: 0.5,
                             position: 'relative',
-                            zIndex: (t) => ((viewer2DModes.linkMode || viewer2DModes.bondsMode) ? t.zIndex.modal - 1 : 'auto'),
                         }}
                     >
                         {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
@@ -1765,8 +1760,22 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             pl: 0.5,
                             display: 'flex',
                             flexDirection: 'column',
+                            position: 'relative',
                         }}
                     >
+                        {/* Dim overlay for 3D viewer during link/cut */}
+                        {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    zIndex: 2,
+                                    bgcolor: (t) => alpha(t.palette.common.black, 0.25),
+                                    pointerEvents: 'none',
+                                    borderRadius: 1,
+                                }}
+                            />
+                        )}
 
                         {/* 3D viewer paper */}
                         <Paper
