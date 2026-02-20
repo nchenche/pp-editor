@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { listConformerJobs, listSessionConformerJobs } from '../utils/conformerJobsApi';
-import { CONFORMER_JOB_CHANGED_EVENT } from '../utils/conformerJobStorage';
+import { CONFORMER_JOB_CHANGED_EVENT, CONFORMER_JOB_TERMINAL_EVENT } from '../utils/conformerJobStorage';
 import { getSessionId } from '../utils/sessionApi';
 
 function toErrorMessage(value) {
@@ -144,40 +144,33 @@ export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50
         if (d.dbName && d.dbName !== dbName) return;
         if (d.sessionId && d.sessionId !== effectiveSessionId) return;
       }
-      // Immediate refresh + staggered follow-ups so the new job appears even if the
-      // backend takes a moment to become consistent.
+      // Single immediate refresh when a job is submitted or cleared.
+      // A delayed follow-up (500 ms) covers eventual-consistency lag on the backend.
       refresh();
       const t1 = setTimeout(refresh, 500);
-      const t2 = setTimeout(refresh, 1600);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      return () => { clearTimeout(t1); };
     };
 
     window.addEventListener(CONFORMER_JOB_CHANGED_EVENT, handler);
     return () => window.removeEventListener(CONFORMER_JOB_CHANGED_EVENT, handler);
   }, [dbName, effectiveSessionId, refresh]);
 
-  // Auto-poll the list while any jobs are in a non-terminal state (queued / running).
-  // This ensures the panel reflects status transitions without requiring a manual refresh.
-  const LIST_POLL_INTERVAL_MS = 2000;
-  const TERMINAL_STATES = new Set(['success', 'failed', 'canceled']);
-
-  const hasActiveJobs = useMemo(() => {
-    if (!Array.isArray(items) || items.length === 0) return false;
-    return items.some((job) => {
-      const st = String(job?.state || '').toLowerCase();
-      return st && !TERMINAL_STATES.has(st);
-    });
-  }, [items]);
-
+  // Event-driven refresh: when any single-job poller detects a terminal state (success/failed/canceled),
+  // it dispatches CONFORMER_JOB_TERMINAL_EVENT. We refresh once so the panel shows the updated status
+  // without needing a continuous polling loop.
   useEffect(() => {
-    if (!hasActiveJobs) return;
-
-    const id = setInterval(() => {
+    const handler = (e) => {
+      const d = e?.detail;
+      if (d) {
+        if (d.dbName && d.dbName !== dbName) return;
+        if (d.sessionId && d.sessionId !== effectiveSessionId) return;
+      }
       refresh();
-    }, LIST_POLL_INTERVAL_MS);
+    };
 
-    return () => clearInterval(id);
-  }, [hasActiveJobs, refresh]);
+    window.addEventListener(CONFORMER_JOB_TERMINAL_EVENT, handler);
+    return () => window.removeEventListener(CONFORMER_JOB_TERMINAL_EVENT, handler);
+  }, [dbName, effectiveSessionId, refresh]);
 
   return { items, loading, error, refresh, loadMore, updateItem };
 }

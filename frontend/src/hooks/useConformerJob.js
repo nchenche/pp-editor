@@ -11,6 +11,7 @@ import {
 
 import {
   CONFORMER_JOB_CHANGED_EVENT,
+  CONFORMER_JOB_TERMINAL_EVENT,
   clearConformerJobIdFromStorage,
   getConformerJobIdFromStorage,
   setConformerJobIdInStorage,
@@ -147,6 +148,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
   const [jobId, setJobId] = useState(() => getConformerJobIdFromStorage({ dbName, sessionId: effectiveSessionId, baseUrlOverride }));
   const jobIdRef = useRef(jobId);
   const [state, setState] = useState(jobId ? 'queued' : 'idle');
+  const stateRef = useRef(state);
   const [progress, setProgress] = useState(null);
   const [lastEmbeddingProgress, setLastEmbeddingProgress] = useState(null);
   const [resultRef, setResultRef] = useState(null);
@@ -157,6 +159,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
   // errorType: 'network' (transport/non-2xx) | 'job' (backend state=failed)
   const [errorType, setErrorType] = useState(null);
+  const errorTypeRef = useRef(errorType);
   const [error, setError] = useState(null);
 
   const [isStarting, setIsStarting] = useState(false);
@@ -213,6 +216,28 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
   useEffect(() => {
     jobIdRef.current = jobId;
   }, [jobId]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    errorTypeRef.current = errorType;
+  }, [errorType]);
+
+  /**
+   * Dispatch a DOM event when the job reaches a terminal state.
+   * The jobs-list hook listens for this to refresh instead of polling.
+   */
+  const dispatchTerminalEvent = useCallback((terminalJobId, terminalState) => {
+    try {
+      window?.dispatchEvent?.(new CustomEvent(CONFORMER_JOB_TERMINAL_EVENT, {
+        detail: { jobId: terminalJobId, state: terminalState, dbName, sessionId: effectiveSessionId },
+      }));
+    } catch {
+      // ignore
+    }
+  }, [dbName, effectiveSessionId]);
 
   const cleanupTimer = useCallback(() => {
     if (timerRef.current) {
@@ -296,7 +321,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
   const fetchStatusOnce = useCallback(
     async (id, { minIntervalMs, force } = {}) => {
-      const effectiveId = id || jobId;
+      const effectiveId = id || jobIdRef.current;
       if (!effectiveId) return null;
 
       const statusUrl = jobEndpointsRef.current?.statusUrl || null;
@@ -404,6 +429,11 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
             setError(null);
           }
 
+          // Notify listeners (jobs-list hook) that this job reached a terminal state.
+          if (isTerminal(nextState)) {
+            dispatchTerminalEvent(effectiveId, nextState);
+          }
+
           return data;
         } catch (e) {
           setErrorType('network');
@@ -419,12 +449,12 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
       return promise;
     },
-    [baseUrlOverride, dbName, jobId, setJobIdAndPersist],
+    [baseUrlOverride, dbName, dispatchTerminalEvent, setJobIdAndPersist],
   );
 
   const pollLoop = useCallback(
     async (id) => {
-      const effectiveId = id || jobId;
+      const effectiveId = id || jobIdRef.current;
       if (!effectiveId) return;
 
       const cancelAck = cancelAcknowledgedJobIdRef.current && String(cancelAcknowledgedJobIdRef.current) === String(effectiveId);
@@ -455,7 +485,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         cleanupTimeout();
         return;
       }
-      const nextState = normalizeState(data?.state || state);
+      const nextState = normalizeState(data?.state || stateRef.current);
 
       if (!mountedRef.current) return;
       if (!effectiveId) return;
@@ -466,13 +496,13 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         return;
       }
 
-      const delay = getPollIntervalMs(nextState, { hasNetworkError: errorType === 'network' });
+      const delay = getPollIntervalMs(nextState, { hasNetworkError: errorTypeRef.current === 'network' });
       cleanupTimer();
       timerRef.current = setTimeout(() => {
         pollLoop(effectiveId);
       }, delay);
     },
-    [cleanupTimer, errorType, fetchStatusOnce, jobId, state],
+    [armTimeout, cleanupTimer, cleanupTimeout, fetchStatusOnce],
   );
 
   const start = useCallback(
@@ -483,7 +513,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       }
 
       // If we already have a successful job, keep it around as the rollback target.
-      if (state === 'success' && jobIdRef.current) {
+      if (stateRef.current === 'success' && jobIdRef.current) {
         lastSuccessfulJobIdRef.current = String(jobIdRef.current);
       }
       rollbackJobIdRef.current = lastSuccessfulJobIdRef.current;
@@ -650,12 +680,12 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         if (mountedRef.current) setIsStarting(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, effectiveSessionId, pollLoop, setJobIdAndPersist, state],
+    [abortInFlight, baseUrlOverride, cleanupTimer, clearError, clearProgressLog, dbName, effectiveSessionId, pollLoop, setJobIdAndPersist],
   );
 
   const cancel = useCallback(
     async (id) => {
-      const effectiveId = id || jobId;
+      const effectiveId = id || jobIdRef.current;
       if (!effectiveId) return false;
 
       cleanupTimer();
@@ -723,7 +753,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
 
         // Refresh status once, then stop polling if terminal.
         const data = await fetchStatusOnce(effectiveId, { force: true });
-        const next = normalizeState(data?.state || state);
+        const next = normalizeState(data?.state || stateRef.current);
 
         // If the job ended up canceled and we have a prior successful job, restore it.
         if (next === 'canceled') {
@@ -755,7 +785,7 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
         if (mountedRef.current) setIsCanceling(false);
       }
     },
-    [abortInFlight, baseUrlOverride, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, jobId, pollLoop, setJobIdAndPersist, state],
+    [abortInFlight, baseUrlOverride, cleanupTimer, cleanupTimeout, dbName, effectiveSessionId, fetchStatusOnce, pollLoop, setJobIdAndPersist],
   );
 
   const retry = useCallback(async () => {

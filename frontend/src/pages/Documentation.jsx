@@ -95,6 +95,53 @@ const NAV_TREE = [
 /* ─────────────────────────────────────────────
    Sidebar sub-components
    ───────────────────────────────────────────── */
+const ArrowIcon = ({ open }) => (
+    <Box component="span" sx={{ display: "inline-flex", fontSize: 14, color: "text.disabled", transition: "transform 0.15s", transform: open ? "rotate(0)" : "rotate(-90deg)" }}>
+        <ExpandMoreIcon fontSize="inherit" />
+    </Box>
+);
+
+function NavGroup({ group, activeId, onClick }) {
+    const theme = useTheme();
+    const [open, setOpen] = useState(true);
+
+    // auto-open if any child is active
+    useEffect(() => {
+        const ids = flatIds(group.children);
+        if (ids.includes(activeId)) setOpen(true);
+    }, [activeId, group.children]);
+
+    return (
+        <Box sx={{ mb: 0.5 }}>
+            <Box
+                onClick={() => setOpen((o) => !o)}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    px: 1.5,
+                    py: 0.6,
+                    cursor: "pointer",
+                    userSelect: "none",
+                    borderRadius: 1,
+                    transition: "background 0.12s",
+                    "&:hover": { bgcolor: alpha(theme.palette.action.hover, 0.4) },
+                }}
+            >
+                <ArrowIcon open={open} />
+                <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "text.secondary" }}>
+                    {group.group}
+                </Typography>
+            </Box>
+            <Collapse in={open} timeout="auto" unmountOnExit>
+                {group.children.map((item) => (
+                    <NavItem key={item.id} item={item} activeId={activeId} depth={0} onClick={onClick} />
+                ))}
+            </Collapse>
+        </Box>
+    );
+}
+
 function NavItem({ item, activeId, depth = 0, onClick }) {
     const theme = useTheme();
     const isActive = activeId === item.id;
@@ -108,6 +155,10 @@ function NavItem({ item, activeId, depth = 0, onClick }) {
             if (ids.includes(activeId)) setOpen(true);
         }
     }, [activeId, hasChildren, item.children]);
+
+    // depth 0 = direct children of a group → arrow on RIGHT
+    // depth 1+ = deeper items → arrow on LEFT
+    const arrowOnRight = depth === 0;
 
     return (
         <>
@@ -123,10 +174,10 @@ function NavItem({ item, activeId, depth = 0, onClick }) {
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 0.25,
-                    pl: 1.5 + depth * 1.5,
+                    justifyContent: "space-between",
+                    pl: 2.5 + (depth > 0 ? depth * 1.25 : 0),
                     pr: 1,
-                    py: 0.5,
+                    py: 0.45,
                     fontSize: "0.8rem",
                     fontWeight: isActive ? 600 : 400,
                     lineHeight: 1.4,
@@ -144,12 +195,11 @@ function NavItem({ item, activeId, depth = 0, onClick }) {
                     },
                 }}
             >
-                {hasChildren && (
-                    <Box component="span" sx={{ display: "inline-flex", fontSize: 14, color: "text.disabled", mr: 0.25, transition: "transform 0.15s", transform: open ? "rotate(0)" : "rotate(-90deg)" }}>
-                        <ExpandMoreIcon fontSize="inherit" />
-                    </Box>
-                )}
-                {item.label}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
+                    {hasChildren && !arrowOnRight && <ArrowIcon open={open} />}
+                    {item.label}
+                </Box>
+                {hasChildren && arrowOnRight && <ArrowIcon open={open} />}
             </Box>
             {hasChildren && (
                 <Collapse in={open} timeout="auto" unmountOnExit>
@@ -331,14 +381,7 @@ const Documentation = () => {
                 </Typography>
 
                 {NAV_TREE.map((group) => (
-                    <Box key={group.group} sx={{ mb: 1.5 }}>
-                        <Typography variant="overline" sx={{ display: "block", px: 2, pt: 1, pb: 0.5, fontSize: "0.62rem", letterSpacing: "0.08em", color: "text.disabled", fontWeight: 700 }}>
-                            {group.group}
-                        </Typography>
-                        {group.children.map((item) => (
-                            <NavItem key={item.id} item={item} activeId={activeId} depth={0} onClick={setActiveId} />
-                        ))}
-                    </Box>
+                    <NavGroup key={group.group} group={group} activeId={activeId} onClick={setActiveId} />
                 ))}
             </Box>
 

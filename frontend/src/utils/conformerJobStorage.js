@@ -7,6 +7,13 @@ import { getSessionId } from './sessionApi';
 
 export const CONFORMER_JOB_CHANGED_EVENT = 'pp-conformer-job-changed';
 
+/**
+ * Fired when a single conformer job reaches a terminal state (success, failed, canceled).
+ * The jobs list hook subscribes to this instead of polling so it only refreshes when needed.
+ * detail: { jobId, state, dbName, sessionId }
+ */
+export const CONFORMER_JOB_TERMINAL_EVENT = 'pp-conformer-job-terminal';
+
 function normalizeBackendScope(baseUrlOverride) {
   const raw = String(baseUrlOverride ?? '').trim();
   if (!raw) return 'default';
