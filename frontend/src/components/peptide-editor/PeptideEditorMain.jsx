@@ -27,7 +27,7 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Backdrop, Snackbar, Alert } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -1418,7 +1418,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     gap: 1,
                 }}
             >
-                <Box ref={editorWrapperRef} sx={{ height: editorAreaHeight, minHeight: 160, overflow: 'hidden', position: 'relative' }}>
+                <Box
+                    ref={editorWrapperRef}
+                    sx={{
+                        height: editorAreaHeight,
+                        minHeight: 160,
+                        overflow: 'hidden',
+                        position: 'relative',
+                        // Elevate above the non-blocking focus overlay during link/cut
+                        // so sequence-track hover events still fire → reflected in 2D + 3D.
+                        zIndex: (viewer2DModes.linkMode || viewer2DModes.bondsMode)
+                            ? (t) => t.zIndex.modal - 1
+                            : 'auto',
+                    }}
+                >
                     {/* Top: Biln editor (no collapse) */}
                     <BilnEditorInterface
                         biln={bilnValue}
@@ -1557,18 +1570,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 {/* Link/Unlink guidance is rendered inside the BILN panel above */}
 
-                {/* Focus attention on the 2D viewer while linking */}
-                <Backdrop
-                    open={!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode}
-                    onClick={() => {
-                        viewer2DRef.current?.setLinkMode?.(false);
-                        viewer2DRef.current?.setBondsMode?.(false);
-                    }}
-                    sx={{
-                        zIndex: (t) => t.zIndex.modal - 2,
-                        bgcolor: (t) => alpha(t.palette.common.black, 0.35),
-                    }}
-                />
+                {/* Non-blocking focus overlay while linking/cutting.
+                    pointerEvents:'none' keeps the editor area (sequence track) hoverable
+                    so sequence↔2D highlight reflection works during link mode. */}
+                {(!!viewer2DModes.linkMode || !!viewer2DModes.bondsMode) && (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            zIndex: (t) => t.zIndex.modal - 2,
+                            bgcolor: (t) => alpha(t.palette.common.black, 0.25),
+                            pointerEvents: 'none',
+                        }}
+                    />
+                )}
 
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
@@ -1606,8 +1621,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         <Typography variant="body2" color="text.secondary" noWrap>
                                             {viewer2DModes.linkMode
                                                 ? ((viewer2DModes.linkSelectionCount || 0) > 0
-                                                    ? 'Select a second available R‑group to create the link.'
-                                                    : 'Select an available R‑group in the 2D sketch.')
+                                                    ? 'Select a second R‑group to create the link. You can keep linking.'
+                                                    : 'Select an R‑group in the 2D sketch. Hover residues in the sequence track to locate them.')
                                                 : 'Double‑click a bond in the 2D sketch to remove it.'}
                                         </Typography>
                                     </Box>

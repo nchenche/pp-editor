@@ -73,10 +73,11 @@ export function useViewer2DHandlers({
             return;
         }
 
-        // Second selection => link and cleanup
+        // Second selection => link, then reset selection for chaining.
+        // Stay in link mode so user can create additional links without
+        // re-clicking the Link button.
         handleMonomerLinking(first, { residue, rgroup, indices });
         cancelLinking();
-        setRgroupsEmphasis(false);
     }, [svgData, svgContainer, isRgroupsEmphasis, monomersToLink, setMonomersToLink, handleMonomerLinking, setRgroupsEmphasis, cancelLinking]);
 
     const onBondClick = useCallback((event) => {
