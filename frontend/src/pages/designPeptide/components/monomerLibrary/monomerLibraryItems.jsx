@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, getScrollbarSize } from 'react-window';
 
 import { Card, CardContent, CardActions, IconButton, Box, Tooltip, Typography } from "@mui/material";
@@ -8,6 +8,7 @@ import Chip from "@mui/material/Chip";
 
 import { getMissingRequiredRgroups } from '../../../../utils/replacementCompatibility';
 import { getMonomerTag, sideTagSx } from '../../../../utils/monomerTagStyles';
+import MonomerDetailsDialog from './MonomerDetailsDialog';
 
 const EMPTY_CELL_PROPS = {};
 
@@ -59,6 +60,7 @@ const MonomerLibraryItem = memo(
     ({ monomer, onMonomerAdd, onInfo = () => { }, itemSize = 'sm', transformOrigin = 'center center', replaceActive = false, replaceRequiredKey = '' }) => {
     const tag = useMemo(() => getMonomerTag(monomer), [monomer]);
     const sz = SIZE[itemSize] || SIZE.sm;
+    console.log(monomer);
 
     const requiredRgroups = useMemo(() => {
         if (!replaceActive) return [];
@@ -247,6 +249,9 @@ const MonomerLibraryItem = memo(
 function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'lg', replaceActive = false, replaceRequiredKey = '' }) {
     const sz = SIZE[itemSize] || SIZE.sm;
 
+    const [detailMonomer, setDetailMonomer] = useState(null);
+    const handleCloseDetail = useCallback(() => setDetailMonomer(null), []);
+
     const containerRef = useRef(null);
     const measureRef = useRef(null);
     const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -365,7 +370,7 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                         key={monomer?._id ?? `${start}-${localIdx}`}
                         monomer={monomer}
                         onMonomerAdd={handleAddingMonomer}
-                        onInfo={() => console.log("More info for", monomer?.m_name)}
+                        onInfo={() => setDetailMonomer(monomer)}
                         itemSize={itemSize}
                         transformOrigin={index === 0 ? 'center top' : 'center center'}
                         replaceActive={replaceActive}
@@ -410,6 +415,12 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                     style={{ height: safeHeight, width: viewport.width, overflowX: 'hidden' }}
                 />
             ) : null}
+
+            <MonomerDetailsDialog
+                open={Boolean(detailMonomer)}
+                onClose={handleCloseDetail}
+                monomer={detailMonomer}
+            />
         </Box>
     );
 }

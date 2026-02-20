@@ -1135,7 +1135,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         const size = Math.min(Math.max(400 + maxLen * 80, 600), 2800);
         const params = {
             sequence: newBiln,
-            mode: 'rdkit',
+            mode: 'local',
             'show-atom-indices': isShowingAtomIndices,
             'is_protonated': true,
             'ph_value': phValue,
