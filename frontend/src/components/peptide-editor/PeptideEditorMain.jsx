@@ -835,7 +835,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return true;
         }
     });
+    const AUTO_SYNC_MAX_MONOMERS = 8;
     const autoSync3D = !effectiveAnyScaffoldEnabled && autoSync3DRaw;
+
+    // One-way latch: permanently disable auto-sync when peptide reaches the threshold.
+    // Going back below the threshold does NOT re-enable it; user must toggle manually.
+    const [autoSyncSizeToast, setAutoSyncSizeToast] = useState(false);
+    useEffect(() => {
+        if (currentTokenCount >= AUTO_SYNC_MAX_MONOMERS && autoSync3DRaw) {
+            setAutoSync3DRaw(false);
+            setAutoSyncSizeToast(true);
+        }
+    }, [currentTokenCount, autoSync3DRaw]);
 
     useEffect(() => {
         try {
@@ -1574,6 +1585,26 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     </Alert>
                 </Snackbar>
 
+
+                {/* Brief notification when auto-sync is turned off due to peptide size */}
+                <Snackbar
+                    open={autoSyncSizeToast}
+                    autoHideDuration={2000}
+                    onClose={(_, reason) => {
+                        if (reason === 'clickaway') return;
+                        setAutoSyncSizeToast(false);
+                    }}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert
+                        severity="info"
+                        variant="filled"
+                        onClose={() => setAutoSyncSizeToast(false)}
+                        sx={{ fontSize: 12, py: 0.5, alignItems: 'center' }}
+                    >
+                        Auto sync disabled &mdash; sequence reached 8 monomers. Use Generate 3D manually.
+                    </Alert>
+                </Snackbar>
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
 
