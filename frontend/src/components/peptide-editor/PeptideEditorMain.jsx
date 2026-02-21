@@ -1331,7 +1331,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // When entering link/unlink modes, temporarily maximize the 2D panel width
     // so the guidance + canvas are always usable. Restore the previous split when exiting.
+    // Also shrink the editor height to a compact size (chains + collapsed manual header,
+    // capped at 2 visible chain slots) so the 2D depiction gets maximum space.
     const splitRatioBeforeLinkModeRef = useRef(null);
+    const editorHeightBeforeLinkModeRef = useRef(null);
     const wasLinkModeActiveRef = useRef(false);
     useEffect(() => {
         const active = !!viewer2DModes.linkMode || !!viewer2DModes.bondsMode;
@@ -1340,6 +1343,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (active && !wasActive) {
             wasLinkModeActiveRef.current = true;
             splitRatioBeforeLinkModeRef.current = viewerSplitRatio;
+            editorHeightBeforeLinkModeRef.current = editorAreaHeight;
 
             // Compute the maximum feasible ratio while keeping the 3D panel at least ~200px wide.
             const host = viewerRowRef?.current;
@@ -1352,18 +1356,48 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // Nudge slightly below 1 to avoid precision/rounding issues with flexBasis.
             const target = Math.min(maxRatio, 0.98);
             setViewerSplitRatio(target);
+
+            // Wait one frame so the manual section collapse (in BilnEditorInterface) takes effect,
+            // then measure the compact editor height and shrink to fit ≤2 chain slots.
+            requestAnimationFrame(() => {
+                const wrapper = editorWrapperRef.current;
+                if (!wrapper) return;
+                const paper = wrapper.querySelector(':scope > *'); // the Paper root
+                if (!paper) return;
+
+                // The Paper's scrollHeight is its full content height (with manual section collapsed).
+                // Cap visible chain area to ~2 chain slots (≈ 2 × ~80px = 160px)
+                const chainsScroll = wrapper.querySelector('[data-chains-scroll]');
+                const MAX_VISIBLE_CHAINS_PX = 160; // ≈ 2 chain slots
+                let compactH = paper.scrollHeight;
+                if (chainsScroll && chainsScroll.scrollHeight > MAX_VISIBLE_CHAINS_PX) {
+                    // Subtract the overflow beyond 2 chain slots
+                    compactH -= (chainsScroll.scrollHeight - MAX_VISIBLE_CHAINS_PX);
+                }
+                // Clamp to minEditorHeight
+                const clamped = Math.max(160, compactH);
+                if (clamped < editorHeightBeforeLinkModeRef.current) {
+                    setEditorAreaHeight(clamped);
+                }
+            });
             return;
         }
 
         if (!active && wasActive) {
             wasLinkModeActiveRef.current = false;
-            const prev = splitRatioBeforeLinkModeRef.current;
+            const prevRatio = splitRatioBeforeLinkModeRef.current;
             splitRatioBeforeLinkModeRef.current = null;
-            if (typeof prev === 'number' && Number.isFinite(prev)) {
-                setViewerSplitRatio(prev);
+            if (typeof prevRatio === 'number' && Number.isFinite(prevRatio)) {
+                setViewerSplitRatio(prevRatio);
+            }
+            const prevHeight = editorHeightBeforeLinkModeRef.current;
+            editorHeightBeforeLinkModeRef.current = null;
+            if (typeof prevHeight === 'number' && Number.isFinite(prevHeight)) {
+                setEditorAreaHeight(prevHeight);
+                requestAnimationFrame(() => persistToStorage());
             }
         }
-    }, [viewer2DModes.linkMode, viewer2DModes.bondsMode, viewerSplitRatio, setViewerSplitRatio, viewerRowRef]);
+    }, [viewer2DModes.linkMode, viewer2DModes.bondsMode, viewerSplitRatio, setViewerSplitRatio, viewerRowRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useLayoutEffect(() => {
         // Keep the user-controlled 2D/3D split stable; only force Mol* to resize

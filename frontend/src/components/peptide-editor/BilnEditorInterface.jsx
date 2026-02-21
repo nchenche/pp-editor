@@ -1,5 +1,5 @@
 // ...existing imports...
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { alpha } from '@mui/material/styles';
 import {
     Box,
@@ -134,6 +134,22 @@ export default function BilnEditorInterface({
         localStorage.setItem('pp-chains-expanded', next);
         setChainsExpanded(next);
     };
+
+    // -- Auto-collapse manual section during link / cut mode --
+    const manualBeforeLinkRef = useRef(null);
+    useEffect(() => {
+        const active = linkMode || bondsMode;
+        if (active && manualBeforeLinkRef.current === null) {
+            // Entering link/cut: save current state and collapse
+            manualBeforeLinkRef.current = manualExpanded;
+            if (manualExpanded) setManualExpanded(false);
+        } else if (!active && manualBeforeLinkRef.current !== null) {
+            // Exiting link/cut: restore previous state
+            const prev = manualBeforeLinkRef.current;
+            manualBeforeLinkRef.current = null;
+            if (prev) setManualExpanded(true);
+        }
+    }, [linkMode, bondsMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // -- Manual-section height adjustment (replaces MUI Collapse) --
     const manualContentRef = useRef(null);
