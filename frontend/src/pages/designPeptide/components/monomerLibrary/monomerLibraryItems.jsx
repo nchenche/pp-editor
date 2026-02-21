@@ -419,6 +419,9 @@ function MonomerLibraryItemsInner({ monomers, handleAddingMonomer, itemSize = 'l
                 open={Boolean(detailMonomer)}
                 onClose={handleCloseDetail}
                 monomer={detailMonomer}
+                onAdd={handleAddingMonomer}
+                replaceActive={replaceActive}
+                replaceRequiredKey={replaceRequiredKey}
             />
         </Box>
     );

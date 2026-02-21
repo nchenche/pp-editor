@@ -4,6 +4,8 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
+    DialogActions,
+    Button,
     IconButton,
     Box,
     Typography,
@@ -16,6 +18,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { getMonomerTag, TAG_PALETTE } from '../../../../utils/monomerTagStyles';
+import { getMissingRequiredRgroups } from '../../../../utils/replacementCompatibility';
 
 const DASH = '—';
 
@@ -78,7 +81,14 @@ function MetaRow({ label, value, mono = false }) {
     );
 }
 
-const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose, monomer }) {
+const MonomerDetailsDialog = memo(function MonomerDetailsDialog({
+    open,
+    onClose,
+    monomer,
+    onAdd,
+    replaceActive = false,
+    replaceRequiredKey = '',
+}) {
     const imgContainerRef = useRef(null);
     const pzRef = useRef(null);
 
@@ -129,6 +139,32 @@ const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose,
 
     const rGroupEntries = useMemo(() => monomer ? getRGroupEntries(monomer) : [], [monomer]);
 
+    const requiredRgroups = useMemo(() => {
+        if (!replaceActive) return [];
+        const raw = String(replaceRequiredKey || '').trim();
+        if (!raw) return [];
+        return raw
+            .split(',')
+            .map((s) => parseInt(String(s).trim(), 10))
+            .filter((n) => Number.isFinite(n) && n > 0);
+    }, [replaceActive, replaceRequiredKey]);
+
+    const missingRgroups = useMemo(() => {
+        if (!replaceActive || !monomer) return [];
+        return getMissingRequiredRgroups({ candidate: monomer, requiredRgroups });
+    }, [replaceActive, monomer, requiredRgroups]);
+
+    const addDisabled = replaceActive && missingRgroups.length > 0;
+    const addTooltipTitle = addDisabled
+        ? `Cannot replace here: missing required linking groups (${missingRgroups.map((r) => `R${r}`).join(', ')})`
+        : 'Add monomer';
+
+    const handleAdd = useCallback(() => {
+        if (!monomer || addDisabled) return;
+        onAdd?.(monomer);
+        onClose?.();
+    }, [monomer, addDisabled, onAdd, onClose]);
+
     if (!monomer) return null;
 
     return (
@@ -137,6 +173,7 @@ const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose,
             onClose={onClose}
             maxWidth="xs"
             fullWidth
+            sx={{ zIndex: (t) => t.zIndex.modal + 40 }}
             PaperProps={{
                 sx: {
                     borderRadius: 3,
@@ -327,6 +364,22 @@ const MonomerDetailsDialog = memo(function MonomerDetailsDialog({ open, onClose,
                     </>
                 )}
             </DialogContent>
+
+            <DialogActions sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Button onClick={onClose} color="inherit" sx={{ textTransform: 'none' }}>
+                    Close
+                </Button>
+                <Box sx={{ flex: 1 }} />
+                <Button
+                    variant="contained"
+                    onClick={handleAdd}
+                    disabled={addDisabled}
+                    title={addTooltipTitle}
+                    sx={{ textTransform: 'none', minWidth: 88 }}
+                >
+                    Add
+                </Button>
+            </DialogActions>
         </Dialog>
     );
 });
