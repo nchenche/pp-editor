@@ -20,6 +20,7 @@ const MODE_OPTIONS = [
 
 export default function ChainsToolbar({
     onAddChain = () => { },
+    maxChainsReached = false,
     constraintMode = 'ss',
     onConstraintModeChange = () => { },
     canUseTemplateMode = true,
@@ -96,13 +97,14 @@ export default function ChainsToolbar({
             </Menu>
 
             {/* ── Add chain (pinned far-right) ── */}
-            <Tooltip title="Add chain" arrow>
+            <Tooltip title={maxChainsReached ? 'Maximum of 10 chains reached' : 'Add chain'} arrow>
                 <span>
                     <Button
                         size="small"
                         variant="outlined"
                         color="inherit"
                         onClick={onAddChain}
+                        disabled={maxChainsReached}
                         aria-label="add chain"
                         sx={{ ...btnSx }}
                     >

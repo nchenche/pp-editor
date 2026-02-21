@@ -450,6 +450,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     }, [structurePDB]);
 
+    // Dialog for conformer / embedding generation errors
+    const [conformerErrorDialogOpen, setConformerErrorDialogOpen] = useState(false);
+    const prevGenerate3DErrorRef = useRef(null);
+    useEffect(() => {
+        const errStr = String(generate3DError || '').trim();
+        const prevStr = String(prevGenerate3DErrorRef.current || '').trim();
+        prevGenerate3DErrorRef.current = generate3DError;
+        if (errStr && errStr !== prevStr) {
+            setConformerErrorDialogOpen(true);
+        }
+    }, [generate3DError]);
+
     const isConformerQueuedOrRunning = conformerJobState === 'queued' || conformerJobState === 'running';
     const isConformerTerminalFailedOrCanceled = conformerJobState === 'failed' || conformerJobState === 'canceled';
 
@@ -1700,6 +1712,127 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         {guidedLinkToast.message}
                     </Alert>
                 </Snackbar>
+
+                {/* Conformer / embedding error details dialog */}
+                <Dialog
+                    open={conformerErrorDialogOpen}
+                    onClose={() => setConformerErrorDialogOpen(false)}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{ sx: { borderRadius: 2 } }}
+                >
+                    <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0.25 }}>
+                        3D generation failed
+                    </DialogTitle>
+                    <DialogContent dividers sx={{ pt: 2, pb: 2.5 }}>
+                        {/* Server error message */}
+                        <Alert
+                            severity="warning"
+                            variant="outlined"
+                            sx={{ mb: 2, '& .MuiAlert-message': { width: '100%' } }}
+                        >
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.55,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                }}
+                            >
+                                {String(generate3DError || '').trim() || 'Unknown error'}
+                            </Typography>
+                        </Alert>
+
+                        {/* Contextual guidance */}
+                        {(() => {
+                            const hasTemplateMapping = !!effectiveAnyScaffoldEnabled;
+                            const hasAnyConstraints = Array.isArray(constraintsBySeq) && constraintsBySeq.some(
+                                (row) => Array.isArray(row) && row.some((ch) => {
+                                    const v = String(ch ?? '').trim();
+                                    return v && v !== '-';
+                                }),
+                            );
+
+                            if (hasTemplateMapping) {
+                                return (
+                                    <>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                                            The current template mapping appears incompatible with the designed peptide under the applied constraints.
+                                        </Typography>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.82rem', mb: 0.25 }}>
+                                            Suggested actions
+                                        </Typography>
+                                        <Box
+                                            component="ul"
+                                            sx={{
+                                                mt: 0.25,
+                                                mb: 1.5,
+                                                pl: 2,
+                                                listStyleType: '"\\25CF  "',
+                                                '& li': {
+                                                    display: 'list-item',
+                                                    pl: 0.5,
+                                                    py: 0.15,
+                                                },
+                                                '& li::marker': {
+                                                    color: 'text.disabled',
+                                                    fontSize: '0.55rem',
+                                                },
+                                            }}
+                                        >
+                                            {[
+                                                'Relax topologic constraints in your designed peptide',
+                                                'Mask out certain residues of the template',
+                                                'Modify the template residue mapping (start/end, offset)',
+                                                'Retry with reduced template guidance if needed',
+                                            ].map((txt) => (
+                                                <Typography key={txt} component="li" variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                                                    {txt}
+                                                </Typography>
+                                            ))}
+                                        </Box>
+                                    </>
+                                );
+                            }
+
+                            if (hasAnyConstraints) {
+                                return (
+                                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                        This can happen when the requested secondary-structure constraints are too strict.
+                                        Try relaxing them (set more residues to &ldquo;-&rdquo;), then run 3D generation again.
+                                    </Typography>
+                                );
+                            }
+
+                            return null;
+                        })()}
+
+                        {/* Stochastic note */}
+                        <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', fontSize: '0.8rem', lineHeight: 1.45 }}>
+                            Note: 3D structure generation is stochastic &mdash; results may vary between runs.
+                            If your constraints seem reasonable, simply retrying may produce a valid structure.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 2.5, py: 1.25 }}>
+                        <Button onClick={() => setConformerErrorDialogOpen(false)} size="small" sx={{ textTransform: 'none' }}>
+                            Close
+                        </Button>
+                        <Button
+                            variant="contained"
+                            size="small"
+                            sx={{ textTransform: 'none' }}
+                            onClick={() => {
+                                setConformerErrorDialogOpen(false);
+                                handleManualGenerate3D();
+                            }}
+                        >
+                            Retry
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
                 {/* Local overlay for “replace monomer” selection */}
                 <ReplaceOverlay replaceSelect={replaceSelect} onCancel={cancelReplaceSelection} />
 
@@ -2201,7 +2334,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </Typography>
                                         </Box>
                                     )}
-                                    {!structureLoading && !structurePDB && (
+                                    {!structureLoading && !structurePDB && !generate3DError && (
                                         conformerJobState !== 'canceled' || !hasEverHadStructureRef.current
                                     ) && (
                                         <Box
@@ -2211,18 +2344,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 left: 0,
                                                 width: '100%',
                                                 height: '100%',
-                                                bgcolor: (() => {
-                                                    // Error: transparent/low-opacity overlay so Mol* remains visible.
-                                                    const err = committedBiln ? String(generate3DError || '').trim() : '';
-                                                    if (err) {
-                                                        return molstarBackground === 'dark'
-                                                            ? alpha(theme.palette.common.black, 0.75)
-                                                            : alpha(theme.palette.common.white, 0.87);
-                                                    }
-
-                                                    // Default (no structure yet): keep a clean neutral backdrop.
-                                                    return theme.palette.background.paper;
-                                                })(),
+                                                bgcolor: theme.palette.background.paper,
                                                 zIndex: 1,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -2231,214 +2353,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 textAlign: 'center',
                                             }}
                                         >
-                                            {(() => {
-                                                const err = committedBiln ? generate3DError : null;
-                                                const hasErr = !!String(err || '').trim();
-                                                const translucentOverlay = hasErr;
-
-                                                const overlayTextPrimary = translucentOverlay
-                                                    ? (molstarBackground === 'dark' ? theme.palette.common.white : theme.palette.text.primary)
-                                                    : theme.palette.text.primary;
-                                                const overlayTextSecondary = translucentOverlay
-                                                    ? (molstarBackground === 'dark' ? alpha(theme.palette.common.white, 0.78) : theme.palette.text.secondary)
-                                                    : theme.palette.text.secondary;
-                                                const overlayTitleWarning = translucentOverlay
-                                                    ? (molstarBackground === 'dark' ? theme.palette.warning.light : theme.palette.warning.main)
-                                                    : theme.palette.warning.main;
-                                                const overlayTitleError = translucentOverlay
-                                                    ? (molstarBackground === 'dark' ? theme.palette.error.light : theme.palette.error.main)
-                                                    : theme.palette.error.main;
-                                                const hasTemplateMapping = !!effectiveAnyScaffoldEnabled;
-                                                const hasAnyConstraints = Array.isArray(constraintsBySeq) && constraintsBySeq.some(
-                                                    (row) => Array.isArray(row) && row.some((ch) => {
-                                                        const v = String(ch ?? '').trim();
-                                                        return v && v !== '-';
-                                                    }),
-                                                );
-
-                                                // const showRetry = !autoSync3D && (isConformerTerminalFailedOrCanceled || !!err);
-                                                const showRetry = false;
-
-                                                if (!err) {
-                                                    return (
-                                                        <Typography
-                                                            variant="body1"
-                                                            sx={{
-                                                                color: overlayTextSecondary,
-                                                                fontSize: '1.1rem',
-                                                                lineHeight: 1.75,
-                                                                fontWeight: 400,
-                                                            }}
-                                                        >
-                                                            No data to display
-                                                        </Typography>
-                                                    );
-                                                }
-
-                                                if (!hasTemplateMapping && hasAnyConstraints && typeof err === 'string' && err.trim()) {
-                                                    return (
-                                                        <Box>
-                                                            <Typography
-                                                                variant="body1"
-                                                                sx={{
-                                                                    color: overlayTitleWarning,
-                                                                    fontSize: '1.1rem',
-                                                                    lineHeight: 1.75,
-                                                                    fontWeight: 500,
-                                                                }}
-                                                            >
-                                                                {err}
-                                                            </Typography>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    mt: 0.75,
-                                                                    color: overlayTextSecondary,
-                                                                    fontSize: '0.9rem',
-                                                                }}
-                                                            >
-                                                                This can happen when the requested secondary-structure constraints are too strict. Try relaxing them (set more residues to "-"), then run 3D generation again.
-                                                            </Typography>
-
-                                                            {!autoSync3D && showRetry && (
-                                                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                    <Button variant="contained" size="small" onClick={handleManualGenerate3D}>
-                                                                        Retry
-                                                                    </Button>
-                                                                </Box>
-                                                            )}
-                                                        </Box>
-                                                    );
-                                                }
-
-                                                if (hasTemplateMapping && typeof err === 'string' && err.trim()) {
-                                                    return (
-                                                        <Box>
-                                                            <Typography
-                                                                variant="body1"
-                                                                sx={{
-                                                                    color: overlayTitleWarning,
-                                                                    fontSize: '1.1rem',
-                                                                    lineHeight: 1.75,
-                                                                    fontWeight: 600,
-                                                                    whiteSpace: 'pre-wrap',
-                                                                }}
-                                                            >
-                                                                {err}
-                                                            </Typography>
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    mt: 0.75,
-                                                                    color: overlayTextSecondary,
-                                                                    fontSize: '0.9rem',
-                                                                    lineHeight: 1.5,
-                                                                }}
-                                                            >
-                                                                The current template mapping appears incompatible with the designed peptide under the applied constraints.
-                                                            </Typography>
-
-                                                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                <Box sx={{ textAlign: 'left', maxWidth: 520, width: '100%' }}>
-                                                                    <Typography
-                                                                        variant="body2"
-                                                                        sx={{
-                                                                            color: overlayTextPrimary,
-                                                                            fontSize: '0.9rem',
-                                                                            fontWeight: 700,
-                                                                        }}
-                                                                    >
-                                                                        Suggested actions
-                                                                    </Typography>
-
-                                                                    <Box
-                                                                        component="ul"
-                                                                        sx={{
-                                                                            mt: 0.75,
-                                                                            mb: 0,
-                                                                            pl: 0,
-                                                                            listStyle: 'none',
-                                                                        }}
-                                                                    >
-                                                                        {[
-                                                                            '- Relax topologic constraints in your designed peptide',
-                                                                            '- Mask out certain residues of the template',
-                                                                            '- Modify the template residue mapping (start/end, offset)',
-                                                                            '- Retry with reduced template guidance if needed',
-                                                                        ].map((txt) => (
-                                                                            <Box
-                                                                                key={txt}
-                                                                                component="li"
-                                                                                sx={{
-                                                                                    display: 'flex',
-                                                                                    alignItems: 'flex-start',
-                                                                                    gap: 1,
-                                                                                    mt: 0.85,
-                                                                                }}
-                                                                            >
-                                                                                <Typography
-                                                                                    variant="body2"
-                                                                                    sx={{
-                                                                                        color: overlayTextSecondary,
-                                                                                        fontSize: '0.9rem',
-                                                                                        lineHeight: 1.5,
-                                                                                    }}
-                                                                                >
-                                                                                    {txt}
-                                                                                </Typography>
-                                                                            </Box>
-                                                                        ))}
-                                                                    </Box>
-                                                                </Box>
-                                                            </Box>
-
-                                                            {!autoSync3D && showRetry && (
-                                                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                </Box>
-                                                            )}
-                                                        </Box>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <Box>
-                                                        <Typography
-                                                            variant="body1"
-                                                            sx={{
-                                                                color: conformerErrorType === 'network' ? overlayTitleWarning : overlayTitleError,
-                                                                fontSize: '1.1rem',
-                                                                lineHeight: 1.6,
-                                                                fontWeight: 500,
-                                                                whiteSpace: 'pre-wrap',
-                                                            }}
-                                                        >
-                                                            {String(err ?? '')}
-                                                        </Typography>
-
-                                                        {conformerErrorType !== 'network' && hasAnyConstraints && (
-                                                            <Typography
-                                                                variant="body2"
-                                                                sx={{
-                                                                    mt: 0.75,
-                                                                    color: overlayTextSecondary,
-                                                                    fontSize: '0.9rem',
-                                                                    lineHeight: 1.5,
-                                                                }}
-                                                            >
-                                                                This usually means the current secondary-structure constraints are too strict to satisfy. Try relaxing them (set more residues to "-"), then run 3D generation again.
-                                                            </Typography>
-                                                        )}
-
-                                                        {!autoSync3D && showRetry && (
-                                                            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
-                                                                <Button variant="contained" size="small" onClick={handleManualGenerate3D}>
-                                                                    Retry
-                                                                </Button>
-                                                            </Box>
-                                                        )}
-                                                    </Box>
-                                                );
-                                            })()}
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
+                                                    color: theme.palette.text.secondary,
+                                                    fontSize: '1.1rem',
+                                                    lineHeight: 1.75,
+                                                    fontWeight: 400,
+                                                }}
+                                            >
+                                                No data to display
+                                            </Typography>
                                         </Box>
                                     )}
                                     <HoverAwareViewer3D

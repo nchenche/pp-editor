@@ -148,8 +148,8 @@ export function parseFastaToBiln(input) {
     if (seqLines.length === 0) {
         throw new Error('No sequence lines found in FASTA input.');
     }
-    if (seqLines.length > 5) {
-        throw new Error('Maximum of 5 sequences allowed (one per line).');
+    if (seqLines.length > 10) {
+        throw new Error('Maximum of 10 sequences allowed (one per line).');
     }
 
     const bilnChains = seqLines.map((line, idx) => {

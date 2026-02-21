@@ -856,7 +856,12 @@ export default function BilnEditorInterface({
                     </Box>
 
                     <ChainsToolbar
-                        onAddChain={() => setExtraEmptyChains((c) => c + 1)}
+                        onAddChain={() => {
+                            const currentChainCount = (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains;
+                            if (currentChainCount >= 10) return;
+                            setExtraEmptyChains((c) => c + 1);
+                        }}
+                        maxChainsReached={((Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains) >= 10}
                         constraintMode={constraintMode}
                         onConstraintModeChange={onConstraintModeChange}
                         canUseTemplateMode={canUseTemplateMode}
@@ -1809,7 +1814,7 @@ export default function BilnEditorInterface({
                     </FormControl>
 
                     <TextField
-                        label={uploadMode === 'fasta' ? 'FASTA sequences (max 5 lines, no headers)' : 'HELM sequence'}
+                        label={uploadMode === 'fasta' ? 'FASTA sequences (max 10 lines, no headers)' : 'HELM sequence'}
                         multiline
                         minRows={6}
                         fullWidth
@@ -1831,7 +1836,7 @@ export default function BilnEditorInterface({
                     {uploadMode === 'fasta' && (
                         <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
                             Rules:
-                            <br />- One sequence per line (up to 5 lines).
+                            <br />- One sequence per line (up to 10 lines).
                             <br />- Only standard one-letter amino acids (A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V).
                             <br />- Each valid line becomes a chain; chains are separated by "." in BILN.
                         </Typography>
