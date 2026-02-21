@@ -1818,6 +1818,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     error={depictionError}
                                     loading={depictionLoading}
                                     onModesChange={setViewer2DModes}
+                                    depictionData={depictionData}
+                                    rowMonomerLists={rowMonomerLists}
                                 />
                             </Box>
                         </Paper>
@@ -2920,12 +2922,62 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 };
 
 const HoverAwareViewer2D = forwardRef(function HoverAwareViewer2D(props, ref) {
+    const { depictionData, rowMonomerLists, ...rest } = props;
     const hoveredMonomer = useHoveredMonomer();
+
+    const monomerDataByResIdx = useMemo(() => {
+        const map = new Map();
+        const arr = Array.isArray(depictionData?.monomers) ? depictionData.monomers : [];
+        for (const m of arr) {
+            const key = m?.['res-idx'];
+            if (!key) continue;
+            map.set(String(key), m);
+        }
+        return map;
+    }, [depictionData?.monomers]);
+
+    const hoverInfo = useMemo(() => {
+        if (!hoveredMonomer) return null;
+        const raw = String(hoveredMonomer);
+        const parts = raw.split('-');
+        const bilnSymbol = parts[0] || '';
+        const idx = parts[1] != null ? parseInt(parts[1], 10) : NaN;
+        const seq = Number.isFinite(idx) ? (idx + 1) : NaN;
+
+        // Derive chain letter from rowMonomerLists
+        let chain = '';
+        if (Number.isFinite(idx)) {
+            const rows = Array.isArray(rowMonomerLists) ? rowMonomerLists : [];
+            let acc = 0;
+            for (let si = 0; si < rows.length; si++) {
+                const len = Array.isArray(rows[si]) ? rows[si].length : 0;
+                if (idx >= acc && idx < acc + len) {
+                    let x = si;
+                    let out = '';
+                    while (x >= 0) {
+                        out = String.fromCharCode(65 + (x % 26)) + out;
+                        x = Math.floor(x / 26) - 1;
+                    }
+                    chain = out;
+                    break;
+                }
+                acc += len;
+            }
+        }
+
+        const mData = monomerDataByResIdx.get(raw);
+        const pdbName = mData?.pdbName ? String(mData.pdbName).toUpperCase() : '';
+
+        if (!chain || !Number.isFinite(seq)) return null;
+        return { chain, pdbName, seq, bilnSymbol };
+    }, [hoveredMonomer, monomerDataByResIdx, rowMonomerLists]);
+
     return (
         <Viewer2D
-            {...props}
+            {...rest}
             ref={ref}
             hoveredMonomer={hoveredMonomer}
+            hoverInfo={hoverInfo}
         />
     );
 });

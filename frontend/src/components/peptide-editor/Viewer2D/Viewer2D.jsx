@@ -129,6 +129,7 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         svgData,
         linkMap,
         hoveredMonomer,
+        hoverInfo,
         handleMonomerEnter,
         handleMonomerLeave,
         isShowingAtomIndices,
@@ -324,6 +325,43 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             </div>
 
             {/* Removed old vertical controls */}
+
+            {/* Hover label – bottom-right corner */}
+            {hoverInfo && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: 8,
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        background: 'rgba(255,255,255,0.92)',
+                        backdropFilter: 'blur(4px)',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        lineHeight: 1.35,
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+                        border: '1px solid rgba(0,0,0,0.08)',
+                        maxWidth: 200,
+                        textAlign: 'right',
+                    }}
+                >
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#334155', letterSpacing: 0.3 }}>
+                        <span style={{ opacity: 0.6, fontWeight: 500 }}>{hoverInfo.chain}</span>
+                        {hoverInfo.pdbName ? (
+                            <>
+                                {' '}
+                                <span>{hoverInfo.pdbName}</span>
+                            </>
+                        ) : null}
+                        {' '}
+                        <span style={{ fontFamily: 'monospace' }}>{hoverInfo.seq}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace', marginTop: 1 }}>
+                        {hoverInfo.bilnSymbol}
+                    </div>
+                </div>
+            )}
 
             {/* Error below viewer */}
             {error && (
