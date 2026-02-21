@@ -1363,10 +1363,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [active3DPanel]);
 
     // ──── Auto-fit editor height so chain slots are visible ────
-    // Fires on app load and when chain count grows from 0→1 or 1→2.
+    // Fires on app load, when chain count grows from 0→1 or 1→2,
+    // and when constraint mode switches from "none" to "ss" or "template".
     // Uses a grow-only policy: never auto-shrinks; manual drag resize is unaffected.
     const editorWrapperRef = useRef(null);
     const prevAutoFitChainCountRef = useRef(null);        // null ⇒ first render
+    const prevAutoFitConstraintModeRef = useRef(constraintMode);
     const MIN_VIEWER_ROW_HEIGHT = 240;                    // matches useSplitLayout default
 
     const displayChainCount = Math.max(
@@ -1375,16 +1377,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     );
 
     useLayoutEffect(() => {
-        const prev = prevAutoFitChainCountRef.current;
+        const prevCount = prevAutoFitChainCountRef.current;
+        const prevMode = prevAutoFitConstraintModeRef.current;
         prevAutoFitChainCountRef.current = displayChainCount;
+        prevAutoFitConstraintModeRef.current = constraintMode;
 
-        // Trigger: first render (app load) or chain-count grows from 0→1 / 1→2
-        const isFirstRender = prev === null;
-        const isGrowTransition = prev !== null && (
-            (prev <= 0 && displayChainCount >= 1) ||
-            (prev <= 1 && displayChainCount >= 2)
+        // Trigger: first render (app load), chain-count grows from 0→1 / 1→2,
+        // or constraint mode switches from "none" to an active mode (ss / template).
+        const isFirstRender = prevCount === null;
+        const isGrowTransition = prevCount !== null && (
+            (prevCount <= 0 && displayChainCount >= 1) ||
+            (prevCount <= 1 && displayChainCount >= 2)
         );
-        if (!isFirstRender && !isGrowTransition) return;
+        const isConstraintActivation = prevMode === 'none' && (constraintMode === 'ss' || constraintMode === 'template');
+        if (!isFirstRender && !isGrowTransition && !isConstraintActivation) return;
 
         // Measure overflow in the chains scrollable area
         const wrapper = editorWrapperRef.current;
@@ -1411,7 +1417,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             requestAnimationFrame(() => persistToStorage());
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [displayChainCount]);
+    }, [displayChainCount, constraintMode]);
 
 
     return (
