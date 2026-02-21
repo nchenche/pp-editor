@@ -357,9 +357,14 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                         {' '}
                         <span style={{ fontFamily: 'monospace' }}>{hoverInfo.seq}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace', marginTop: 1 }}>
+                    <div style={{ fontSize: 11, color: '#1e3a5f', fontWeight: 700, fontFamily: 'monospace', marginTop: 1, letterSpacing: 0.3 }}>
                         {hoverInfo.bilnSymbol}
                     </div>
+                    {hoverInfo.monomerName ? (
+                        <div style={{ fontSize: 10, color: '#64748b', fontStyle: 'italic', marginTop: 1, lineHeight: 1.2 }}>
+                            {hoverInfo.monomerName}
+                        </div>
+                    ) : null}
                 </div>
             )}
 

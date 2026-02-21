@@ -3009,9 +3009,10 @@ const HoverAwareViewer2D = forwardRef(function HoverAwareViewer2D(props, ref) {
 
         const mData = monomerDataByResIdx.get(raw);
         const pdbName = mData?.pdbName ? String(mData.pdbName).toUpperCase() : '';
+        const monomerName = mData?.m_name ? String(mData.m_name) : '';
 
         if (!chain || !Number.isFinite(seq)) return null;
-        return { chain, pdbName, seq, bilnSymbol };
+        return { chain, pdbName, seq, bilnSymbol, monomerName };
     }, [hoveredMonomer, monomerDataByResIdx, rowMonomerLists]);
 
     return (
