@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { removeGroup, buildBilnFromRowMonomerLists, buildLinkMapFromBiln } from "../utils/bilnUtils";
 import { useConfirm } from "../components/common/ConfirmDialogProvider";
+import { availableRgroupsForMonomer } from "../utils/replacementCompatibility";
 
 
 export function useBilnHandlers({
@@ -14,6 +15,8 @@ export function useBilnHandlers({
     setUiState,
     setIsDragging,
     setHoveredMonomer,
+    onSidechainMonomerAdded,
+    onHybridMonomerAdded,
 }) {
     const confirm = useConfirm();
 
@@ -449,6 +452,30 @@ export function useBilnHandlers({
         const nterMonomer = segMonomers.length > 0 ? getByResIdx(nterGlobalIdx) : undefined;
         const cterMonomer = segMonomers.length > 0 ? getByResIdx(cterGlobalIdx) : undefined;
 
+        // Classify available R-groups on the monomer being added
+        const availRgroups = availableRgroupsForMonomer(monomer);
+        const hasR1 = availRgroups.has(1);
+        const hasR2 = availRgroups.has(2);
+        const sidechainRgroups = [...availRgroups].filter(r => r >= 3).sort((a, b) => a - b);
+        const isSidechainOnly = !hasR1 && !hasR2 && sidechainRgroups.length > 0;
+
+        // Tier 2: Sidechain-only monomer (no backbone R-groups, but has R3/R4/...)
+        // Must be added as an isolated chain, then linked manually via link mode.
+        if (isSidechainOnly) {
+            segments[segIdx] = seg; // keep original segment untouched
+            // Append as a new isolated chain
+            segments.push(code);
+            setBilnValue(segments.join("."));
+            // Focus the new chain
+            const newChainIdx = segments.length - 1;
+            setUiState(prev => (prev.activeSeqIdx === newChainIdx ? prev : { ...prev, activeSeqIdx: newChainIdx }));
+            onSidechainMonomerAdded?.({
+                monomerSymbol: code,
+                rgroups: sidechainRgroups,
+            });
+            return;
+        }
+
         // Determine if the monomer is a cap and cap type
         const addingIsCap = monomer.m_subtype === "cap";
         const isNterCapToAdd = addingIsCap && monomer.m_RgroupIdx?.[1] != null;
@@ -496,17 +523,21 @@ export function useBilnHandlers({
                     newSegMonomers.push(code);
                 }
             } else {
-                // Unknown cap type: default to append
-                if (!cterAvailable) {
-                    await confirm({
-                        title: 'Cannot append cap',
-                        message: 'The C‑terminus is not available.',
-                        confirmText: 'Close',
-                        hideCancel: true,
+                // Cap with no backbone R-groups (R3/R4 only):
+                // Append as isolated chain and trigger guided linking.
+                segments[segIdx] = seg; // keep original segment untouched
+                segments.push(code);
+                setBilnValue(segments.join("."));
+                const newChainIdx = segments.length - 1;
+                setUiState(prev => (prev.activeSeqIdx === newChainIdx ? prev : { ...prev, activeSeqIdx: newChainIdx }));
+                const capSidechainRgroups = [...availRgroups].filter(r => r >= 3).sort((a, b) => a - b);
+                if (capSidechainRgroups.length > 0) {
+                    onSidechainMonomerAdded?.({
+                        monomerSymbol: code,
+                        rgroups: capSidechainRgroups,
                     });
-                    return;
                 }
-                newSegMonomers.push(code);
+                return;
             }
 
             segments[segIdx] = newSegMonomers.join("-");
@@ -570,7 +601,16 @@ export function useBilnHandlers({
 
         segments[segIdx] = newSegMonomers.join("-");
         setBilnValue(segments.join("."));
-    }, [bilnValue, monomers, uiState.activeSeqIdx, setBilnValue, setUiState, isNterFree, isCterFree, confirm, linkMap]);
+
+        // Tier 3: Hybrid monomer (has backbone R-groups AND sidechain R3/R4/...)
+        // Inform the user about additional attachment points available via link mode.
+        if (sidechainRgroups.length > 0) {
+            onHybridMonomerAdded?.({
+                monomerSymbol: code,
+                sidechainRgroups,
+            });
+        }
+    }, [bilnValue, monomers, uiState.activeSeqIdx, setBilnValue, setUiState, isNterFree, isCterFree, confirm, linkMap, onSidechainMonomerAdded, onHybridMonomerAdded]);
 
 
     // Replace a monomer at the sourceMonomer position with newMonomer's code.

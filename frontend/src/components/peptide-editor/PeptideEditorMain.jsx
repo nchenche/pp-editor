@@ -620,6 +620,26 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setUiState,
         setIsDragging,
         setHoveredMonomer: hoveredMonomerStore.set,
+        onSidechainMonomerAdded: useCallback(({ monomerSymbol, rgroups }) => {
+            const rgLabels = rgroups.map(r => `R${r}`).join(', ');
+            setGuidedLinkToast({
+                open: true,
+                severity: 'info',
+                message: `"${monomerSymbol}" added as isolated chain (sidechain-only: ${rgLabels}). Use Link mode to connect it.`,
+            });
+            // Enter link mode after a short delay so the SVG has time to refresh
+            setTimeout(() => {
+                viewer2DRef.current?.setLinkMode?.(true);
+            }, 400);
+        }, []),
+        onHybridMonomerAdded: useCallback(({ monomerSymbol, sidechainRgroups }) => {
+            const rgLabels = sidechainRgroups.map(r => `R${r}`).join(', ');
+            setGuidedLinkToast({
+                open: true,
+                severity: 'success',
+                message: `"${monomerSymbol}" added to backbone. It also has sidechain attachment points (${rgLabels}) — use Link mode to create sidechain bonds.`,
+            });
+        }, []),
     });
     const { handleMonomerEnter, handleMonomerLeave, handleMonomerHover } = useUIHandlers({ monomers, setHoveredMonomer: hoveredMonomerStore.set, isDragging });
 
@@ -847,6 +867,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             setAutoSyncSizeToast(true);
         }
     }, [currentTokenCount, autoSync3DRaw]);
+
+    // Guided-link toast for sidechain-only / hybrid monomers
+    const [guidedLinkToast, setGuidedLinkToast] = useState({ open: false, severity: 'info', message: '' });
 
     useEffect(() => {
         try {
@@ -1656,6 +1679,25 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         sx={{ fontSize: 12, py: 0.5, alignItems: 'center' }}
                     >
                         Auto sync disabled &mdash; sequence reached 8 monomers. Use Generate 3D manually.
+                    </Alert>
+                </Snackbar>
+                {/* Guided-link notification for sidechain-only / hybrid monomers */}
+                <Snackbar
+                    open={!!guidedLinkToast.open}
+                    autoHideDuration={5000}
+                    onClose={(_, reason) => {
+                        if (reason === 'clickaway') return;
+                        setGuidedLinkToast(prev => ({ ...prev, open: false }));
+                    }}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert
+                        severity={guidedLinkToast.severity}
+                        variant="filled"
+                        onClose={() => setGuidedLinkToast(prev => ({ ...prev, open: false }))}
+                        sx={{ fontSize: 12, py: 0.5, alignItems: 'center' }}
+                    >
+                        {guidedLinkToast.message}
                     </Alert>
                 </Snackbar>
                 {/* Local overlay for “replace monomer” selection */}
