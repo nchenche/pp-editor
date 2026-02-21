@@ -1,5 +1,5 @@
 // ...existing imports...
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { alpha } from '@mui/material/styles';
 import {
     Box,
@@ -32,6 +32,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ScienceIcon from '@mui/icons-material/Science';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -106,11 +108,56 @@ export default function BilnEditorInterface({
     // Optional controlled state for UI-only placeholder chains
     extraEmptyChains: extraEmptyChainsProp,
     setExtraEmptyChains: setExtraEmptyChainsProp,
+
+    onAdjustEditorHeight,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
     const [examplesDialogOpen, setExamplesDialogOpen] = useState(false);
     const [pendingExample, setPendingExample] = useState(null); // for confirm guard
+
+    const [manualExpanded, setManualExpanded] = useState(() => {
+        return localStorage.getItem('pp-manual-expanded') !== 'false';
+    });
+    const [chainsExpanded, setChainsExpanded] = useState(() => {
+        return localStorage.getItem('pp-chains-expanded') !== 'false';
+    });
+
+    const toggleManual = () => {
+        const next = !manualExpanded;
+        localStorage.setItem('pp-manual-expanded', next);
+        setManualExpanded(next);
+    };
+
+    const toggleChains = () => {
+        const next = !chainsExpanded;
+        localStorage.setItem('pp-chains-expanded', next);
+        setChainsExpanded(next);
+    };
+
+    // -- Manual-section height adjustment (replaces MUI Collapse) --
+    const manualContentRef = useRef(null);
+    const manualContentHeightRef = useRef(0);
+    const prevManualExpandedRef = useRef(manualExpanded);
+
+    useLayoutEffect(() => {
+        const was = prevManualExpandedRef.current;
+        prevManualExpandedRef.current = manualExpanded;
+
+        // Measure whenever visible
+        if (manualExpanded && manualContentRef.current) {
+            manualContentHeightRef.current = manualContentRef.current.offsetHeight;
+        }
+
+        // Adjust parent editor height on toggle
+        if (was !== manualExpanded && onAdjustEditorHeight) {
+            if (manualExpanded) {
+                onAdjustEditorHeight(manualContentHeightRef.current);
+            } else if (manualContentHeightRef.current > 0) {
+                onAdjustEditorHeight(-manualContentHeightRef.current);
+            }
+        }
+    });
 
     // ── Example categories shown in the "Examples" dialog ──
     const EXAMPLE_CATEGORIES = React.useMemo(() => [
@@ -699,31 +746,35 @@ export default function BilnEditorInterface({
 
             <Divider sx={{ my: 1 }} />
 
-            {/* Manual edit subtitle + help icon */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edit</Typography>
+            {/* Hidden file input used when in "file" mode (scaffold dialog) */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdb,.ent,.cif,.mmcif"
+                style={{ display: 'none' }}
+                onChange={handleScaffoldFileChange}
+            />
+
+            {/* Manual edition — collapsible */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 0.5 }}>
+                <Box
+                    onClick={toggleManual}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
+                >
+                    {manualExpanded
+                        ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                        : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                    }
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edition</Typography>
                     <Tooltip title="BILN format help" arrow>
-                        <IconButton onClick={() => setBilnHelpOpen(true)} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                        <IconButton onClick={(e) => { e.stopPropagation(); setBilnHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
                             <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
                         </IconButton>
                     </Tooltip>
                 </Box>
 
-
                 {/* Right-side toolbar: Manual-edit scoped actions (icon-only) */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-
-                    {/* Hidden file input used when in "file" mode (scaffold dialog) */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdb,.ent,.cif,.mmcif"
-                        style={{ display: 'none' }}
-                        onChange={handleScaffoldFileChange}
-                    />
-
-                    {/* Upload sequence */}
                     <Tooltip title={'Upload sequence'} arrow>
                         <span>
                             <Button
@@ -741,24 +792,25 @@ export default function BilnEditorInterface({
                 </Box>
             </Box>
 
-            {/* BILN input */}
-            <Box>
-                <SequenceEditorPanel
-                    biln={biln}
-                    onChangeBiln={onChangeBiln}
-                    // hoveredResidueIdx={hoveredResidueIdx}
-                    maxMonomers={maxMonomers}
-                />
-            </Box>
+            {manualExpanded && (
+                <Box ref={manualContentRef} sx={{ pb: 0.5, flex: '0 0 auto' }}>
+                    <SequenceEditorPanel
+                        biln={biln}
+                        onChangeBiln={onChangeBiln}
+                        maxMonomers={maxMonomers}
+                    />
+                </Box>
+            )}
 
-            {/* CHAINS SECTION */}
+            {/* CHAINS SECTION — collapsible */}
             <Box
                 sx={{
-                    my: 1,
+                    my: 0.5,
                     display: 'flex',
                     flexDirection: 'column',
+                    flex: '1 1 auto',
                     minHeight: 0,
-                    overflow: 'hidden', // header fixed; inner list handles its own scroll
+                    overflow: 'hidden',
                     // Elevate above the editor dim-overlay during link/cut mode
                     // so chains remain visually un-dimmed and hoverable.
                     ...((linkMode || bondsMode) && {
@@ -769,12 +821,19 @@ export default function BilnEditorInterface({
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Box
+                        onClick={toggleChains}
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
+                    >
+                        {chainsExpanded
+                            ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                            : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                        }
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>
                             Chains
                         </Typography>
                         <Tooltip title="Chains help" arrow>
-                            <IconButton onClick={() => setSeqHelpOpen(true)} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                            <IconButton onClick={(e) => { e.stopPropagation(); setSeqHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
                                 <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
                             </IconButton>
                         </Tooltip>
@@ -782,14 +841,13 @@ export default function BilnEditorInterface({
 
                     <ChainsToolbar
                         onAddChain={() => setExtraEmptyChains((c) => c + 1)}
-
                         constraintMode={constraintMode}
                         onConstraintModeChange={onConstraintModeChange}
                         canUseTemplateMode={canUseTemplateMode}
-
                     />
                 </Box>
 
+                {chainsExpanded && (
                 <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
                     <ChainSlots
                         rowMonomerLists={rowMonomerLists}
@@ -819,6 +877,7 @@ export default function BilnEditorInterface({
                         onMirrorSequence={onMirrorSequence}
                     />
                 </Box>
+                )}
             </Box>
 
 

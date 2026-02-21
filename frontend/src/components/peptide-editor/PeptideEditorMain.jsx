@@ -1312,10 +1312,22 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         persistToStorage,
     } = useSplitLayout({
         initialEditorHeight: 320,
-        minEditorHeight: 240,
+        minEditorHeight: 160, // Reduced to allow collapsing sections
         minViewerPanelWidth: 200,
         initialViewerSplitRatio: 0.5,
     });
+
+    const handleAdjustEditorHeight = useCallback((delta) => {
+        setEditorAreaHeight(prev => {
+            const mainEl = mainAreaRef.current;
+            const maxH = mainEl
+                ? mainEl.getBoundingClientRect().height - 240 // MIN_VIEWER_ROW_HEIGHT
+                : Infinity;
+            const next = Math.min(Math.max(160, prev + delta), maxH);
+            requestAnimationFrame(() => persistToStorage());
+            return next;
+        });
+    }, [setEditorAreaHeight, persistToStorage, mainAreaRef]);
 
     // When entering link/unlink modes, temporarily maximize the 2D panel width
     // so the guidance + canvas are always usable. Restore the previous split when exiting.
@@ -1498,6 +1510,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
                         canLink={canLink}
                         canUnlink={canCut}
+                        onAdjustEditorHeight={handleAdjustEditorHeight}
                         ph={phValue}
                         onChangePh={(next) => setPhValue(next)}
                         // Global scaffold props
