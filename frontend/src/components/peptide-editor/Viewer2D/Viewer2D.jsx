@@ -287,6 +287,21 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             if (!svgEl) return;
             downloadSvgElement(svgEl, filename || 'pep-edit_2d.svg');
         },
+        /** Return the current SVG markup as a string (for PNG conversion / zip export). */
+        getSvgString() {
+            const svgEl = svgContainer.current?.querySelector('svg');
+            if (!svgEl) return null;
+            const clone = svgEl.cloneNode(true);
+            if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            if (!clone.getAttribute('xmlns:xlink')) clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            const vb = (clone.getAttribute('viewBox') || '').trim();
+            const parts = vb.split(/\s+/).map(Number);
+            if (parts.length === 4 && parts.every(Number.isFinite)) {
+                if (!clone.getAttribute('width')) clone.setAttribute('width', String(Math.round(parts[2])));
+                if (!clone.getAttribute('height')) clone.setAttribute('height', String(Math.round(parts[3])));
+            }
+            return new XMLSerializer().serializeToString(clone);
+        },
     }));
 
 

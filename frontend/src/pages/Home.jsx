@@ -29,6 +29,7 @@ function SidebarTabbedPanel({
   setUiState,
   replaceSelection,
   outputData,
+  editorRef,
 }) {
   const { setSidebarCollapsed, toggleMaximizeSidebar } = useSidebarCollapse();
   const [hideTooltipOpen, setHideTooltipOpen] = useState(false);
@@ -82,7 +83,7 @@ function SidebarTabbedPanel({
           aria-hidden={tabIndex !== 1}
         >
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            <OutputContainer outputData={outputData} />
+            <OutputContainer outputData={outputData} editorRef={editorRef} />
           </Box>
         </Box>
 
@@ -236,7 +237,7 @@ function SidebarTabbedPanel({
                   whiteSpace: 'nowrap',
                 }}
               >
-                Output
+                Outputs
               </Box>
             }
           />
@@ -364,6 +365,7 @@ const HomeInner = forwardRef((props, ref) => {
             setUiState={setUiState}
             replaceSelection={replaceSelection}
             outputData={outputData}
+            editorRef={editorRef}
           />
         }
         viewerContainer={

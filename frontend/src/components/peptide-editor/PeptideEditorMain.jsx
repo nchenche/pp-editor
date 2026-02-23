@@ -1154,6 +1154,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         endReplaceSelection: () => { cancelReplaceSelection(); },
         setBiln: (biln) => trySetBilnValue(biln),
         getBiln: () => bilnValue,
+        /** Get the 2D SVG markup string for export. */
+        getSvgString: () => viewer2DRef.current?.getSvgString?.() ?? null,
+        /** Get the 3D viewport screenshot as a data-URI (PNG). */
+        get3DScreenshotDataUri: () => viewer3DRef.current?.getScreenshotDataUri?.() ?? null,
     }), [addMonomerToBiln, replaceMonomerInBiln, uiState, bilnValue, isAtMonomerLimit, currentTokenCount, openLimitDialog, cancelReplaceSelection, trySetBilnValue]);
 
 

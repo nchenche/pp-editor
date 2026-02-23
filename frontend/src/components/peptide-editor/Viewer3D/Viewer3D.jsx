@@ -304,6 +304,14 @@ const Viewer3DInner = ({
                 // ignore
             }
         },
+        /** Return a data-URI (PNG) of the current 3D viewport. */
+        getScreenshotDataUri: async () => {
+            try {
+                return await pluginRef.current?.helpers?.viewportScreenshot?.getImageDataUri?.() ?? null;
+            } catch {
+                return null;
+            }
+        },
         getCameraSnapshot: () => {
             try {
                 return pluginRef.current?.canvas3d?.camera?.getSnapshot?.() ?? null;
