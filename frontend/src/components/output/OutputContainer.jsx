@@ -26,6 +26,9 @@ import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import CheckIcon from '@mui/icons-material/Check';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { alpha } from '@mui/material/styles';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { APP_VERSION } from '../../config';
 
 
 const MenuProps = {
@@ -164,17 +167,65 @@ export const OutputContainer = ({ outputData = {}, ...props }) => {
         downloadBlob(content, entry.filename, entry.mime);
     };
 
-    const handleDownloadAll = () => {
-        // Combined text file for simplicity. If you prefer separate files in a zip, use JSZip.
-        const combined = OUTPUT_FIELDS
+    const handleDownloadAll = async () => {
+        const zip = new JSZip();
+        const folder = zip.folder('pep-edit_outputs');
+
+        // Add each visible output as an individual file
+        OUTPUT_FIELDS
             .filter(f => visible.includes(f.key))
-            .map(f => {
+            .forEach(f => {
                 const val = normalizeOutputValue(outputData?.[f.key]);
-                const dashed = '-'.repeat(f.label.length + 4);
-                return `## ${f.label}\n${dashed}\n${val || '(No output)'}\n`;
-            })
-            .join('\n');
-        downloadBlob(combined, 'outputs.txt', 'text/plain');
+                if (val) {
+                    folder.file(f.filename, val);
+                }
+            });
+
+        // Build metadata / README
+        const now = new Date();
+        const dateStr = now.toISOString();
+        const metadata = [
+            '===============================================',
+            '  PEP-EDIT — Output Archive',
+            '===============================================',
+            '',
+            `Version  : ${APP_VERSION}`,
+            `Exported : ${dateStr}`,
+            '',
+            '-----------------------------------------------',
+            '  How to Cite',
+            '-----------------------------------------------',
+            '',
+            'If you use PEP-EDIT in your research, please cite:',
+            '',
+            '  PEP-EDIT: An Interactive Editor for Peptide Design',
+            '  (manuscript in preparation)',
+            '',
+            'A DOI and full reference will be provided upon publication.',
+            '',
+            '-----------------------------------------------',
+            '  Contents',
+            '-----------------------------------------------',
+            '',
+            ...OUTPUT_FIELDS
+                .filter(f => visible.includes(f.key))
+                .map(f => {
+                    const val = normalizeOutputValue(outputData?.[f.key]);
+                    return `  • ${f.label.padEnd(14)} → ${f.filename}${val ? '' : '  (empty, skipped)'}`;
+                }),
+            '',
+            '===============================================',
+        ].join('\n');
+
+        folder.file('README.txt', metadata);
+
+        try {
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const stamp = now.toISOString().slice(0, 10);
+            saveAs(blob, `pep-edit_outputs_${stamp}.zip`);
+        } catch (err) {
+            setSnack({ open: true, msg: `Zip failed: ${err?.message || err}`, severity: 'error' });
+        }
     };
 
     // Compact, non-messy render for multi-select (no stacked chips)
