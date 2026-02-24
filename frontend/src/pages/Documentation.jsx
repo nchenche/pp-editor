@@ -492,7 +492,7 @@ const Documentation = () => {
                     <Divider sx={{ my: 4 }} />
 
                     {/* ── Quick start ── */}
-                    <SectionTitle id="quick-start">Quick start — your first peptide in 2 minutes</SectionTitle>
+                    <SectionTitle id="quick-start">Quick start - your first peptide in 20 seconds</SectionTitle>
 
                     <Sub2Title>Step 1 — Enter a sequence</Sub2Title>
 
@@ -508,7 +508,7 @@ const Documentation = () => {
 
                     {/* [MEDIA #1: GIF — typing ac-A-G-K-D-am, 2D updating. ~6s] */}
                     <Figure
-                        src="/assets/documentation/quick-start-step1.gif"
+                        src="/assets/documentation/gifs/quick-start-step1-3.gif"
                         alt="Typing a BILN sequence and watching the 2D view update"
                         caption="Type a BILN sequence — the 2D Sketch updates live as you type."
                         openLightbox={openLightbox}

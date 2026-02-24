@@ -2540,7 +2540,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 left: 0,
                                                 width: '100%',
                                                 height: '100%',
-                                                bgcolor: theme.palette.background.paper,
+                                                bgcolor: molstarBackground === 'dark'
+                                                    ? '#000000'
+                                                    : theme.palette.background.paper,
                                                 zIndex: 1,
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -2552,7 +2554,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             <Typography
                                                 variant="body1"
                                                 sx={{
-                                                    color: theme.palette.text.secondary,
+                                                    color: molstarBackground === 'dark'
+                                                        ? 'rgba(255,255,255,0.5)'
+                                                        : theme.palette.text.secondary,
                                                     fontSize: '1.1rem',
                                                     lineHeight: 1.75,
                                                     fontWeight: 400,

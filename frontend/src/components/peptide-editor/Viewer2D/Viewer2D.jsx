@@ -3,6 +3,8 @@ import './viewer2D.css'; // Assuming you have a CSS file for styles
 
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
@@ -15,6 +17,7 @@ import Box from "@mui/material/Box";
 import usePanZoom from "../../../hooks/usePanZoom";
 import { useViewer2DHandlers } from '../../../hooks/useViewer2DHandlers';
 import { useViewer2DEffects } from "../../../hooks/useViewer2DEffects";
+
 
 
 function makeTightResponsiveSvg(svgString, { padding = 8, preserve = 'xMidYMid meet' } = {}) {
@@ -125,6 +128,8 @@ function downloadSvgElement(svgEl, filename = 'pep-edit_2d.svg') {
 }
 
 export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
+    const theme = useTheme();
+
     const {
         svgData,
         linkMap,
@@ -333,9 +338,20 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                         dangerouslySetInnerHTML={{ __html: processedSvg }}
                     />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-xl text-slate-500">
-                        No data
-                    </div>
+                    <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+                <Typography
+                    variant="body1"
+                    sx={{
+                        fontSize: '1.1rem',
+                        lineHeight: 1.75,
+                        fontWeight: 400,
+                        color: theme.palette.text.secondary,
+
+                    }}
+                >
+                    No data to display
+                </Typography>
+            </Box>
                 )}
             </div>
 
