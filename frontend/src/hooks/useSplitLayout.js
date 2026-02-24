@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { useLayoutEffect, useRef, useState, useCallback, useEffect } from 'react';
+
+const VIEWER_COLLAPSE_STORAGE_KEY = 'pp-editor:viewer-collapse:v1';
 
 export function useSplitLayout({
     initialEditorHeight = 320,
@@ -121,7 +123,6 @@ export function useSplitLayout({
                     Math.max(e.clientY - rect.top, minEditorHeight),
                     rect.height - minViewerRowHeight,
                 );
-                console.log('Setting editor viewer row height:', rect.height - next);
                 setEditorAreaHeight(next);
             } else if (type === 'vertical') {
                 if (!viewerRowRef.current) return;
@@ -155,6 +156,37 @@ export function useSplitLayout({
         [onDrag, stopDrag],
     );
 
+    // ── Viewer collapse state ──────────────────────────────────────────
+    // At most one viewer can be collapsed at a time.  Collapsing one
+    // automatically expands the other to fill the remaining space.
+    // Values: null (both visible), '2d', '3d'
+    const [collapsedViewer, setCollapsedViewer] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(VIEWER_COLLAPSE_STORAGE_KEY);
+            if (raw === '2d' || raw === '3d') return raw;
+        } catch { /* ignore */ }
+        return null;
+    });
+
+    // Persist collapse state to localStorage.
+    useEffect(() => {
+        try {
+            if (collapsedViewer) {
+                window?.localStorage?.setItem(VIEWER_COLLAPSE_STORAGE_KEY, collapsedViewer);
+            } else {
+                window?.localStorage?.removeItem(VIEWER_COLLAPSE_STORAGE_KEY);
+            }
+        } catch { /* ignore */ }
+    }, [collapsedViewer]);
+
+    const toggleCollapse2D = useCallback(() => {
+        setCollapsedViewer((prev) => (prev === '2d' ? null : '2d'));
+    }, []);
+
+    const toggleCollapse3D = useCallback(() => {
+        setCollapsedViewer((prev) => (prev === '3d' ? null : '3d'));
+    }, []);
+
     return {
         editorAreaHeight,
         setEditorAreaHeight,
@@ -164,5 +196,10 @@ export function useSplitLayout({
         viewerRowRef,
         startDrag,
         persistToStorage,
+        // viewer collapse
+        collapsedViewer,
+        setCollapsedViewer,
+        toggleCollapse2D,
+        toggleCollapse3D,
     };
 }

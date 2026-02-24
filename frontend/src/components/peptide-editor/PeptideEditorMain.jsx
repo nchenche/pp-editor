@@ -27,7 +27,8 @@ import {
     getSequences,
 } from '../../../src/utils/bilnUtils';
 
-import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
+import { Box, Paper, Typography, FormControlLabel, Switch, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Snackbar, Alert, Menu, ListItemIcon, ListItemText } from '@mui/material';
+import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Slider from '@mui/material/Slider';
@@ -45,6 +46,9 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LayersIcon from '@mui/icons-material/Layers';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -120,6 +124,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             return null;
         }
     });
+
+    // Overflow menu anchor for the 3D toolbar "more" button
+    const [viewer3DMenuAnchor, setViewer3DMenuAnchor] = useState(null);
+    const viewer3DMenuOpen = Boolean(viewer3DMenuAnchor);
 
     const [constraintMode, setConstraintMode] = useState(() => {
         try {
@@ -1180,6 +1188,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             'ph_value': phValue,
             'width': size,
             'height': size,
+            'condensed': false,
             // 'owner_id': 'user_test',
         }
 
@@ -1349,6 +1358,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         viewerRowRef,
         startDrag,
         persistToStorage,
+        collapsedViewer,
+        toggleCollapse2D,
+        toggleCollapse3D,
     } = useSplitLayout({
         initialEditorHeight: 320,
         minEditorHeight: 160, // Reduced to allow collapsing sections
@@ -1446,6 +1458,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         });
         return () => cancelAnimationFrame(raf);
     }, [active3DPanel]);
+
+    // Trigger Mol* resize when a viewer is collapsed/expanded so it adapts to the new width.
+    useLayoutEffect(() => {
+        const raf = requestAnimationFrame(() => {
+            try { viewer3DRef.current?.resize?.(); } catch { }
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [collapsedViewer]);
 
     // ──── Auto-fit editor height so chain slots are visible ────
     // Fires on app load, when chain count grows from 0→1 or 1→2,
@@ -1847,12 +1867,69 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 {/* Middle: 2D and 3D viewers side-by-side */}
                 <Box ref={viewerRowRef} sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', gap: 1 }}>
 
+                    {/* ── 2D viewer column ── */}
+                    {collapsedViewer === '2d' ? (
+                        /* Collapsed 2D strip */
+                        <Paper
+                            variant="outlined"
+                            onClick={toggleCollapse2D}
+                            role="button"
+                            aria-label="Expand 2D Sketch"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleCollapse2D(); }}
+                            sx={{
+                                width: 34,
+                                minWidth: 34,
+                                flex: '0 0 34px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 1,
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                overflow: 'hidden',
+                                bgcolor: 'background.paper',
+                                transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
+                                '&:hover': {
+                                    bgcolor: shell.mode === 'dark'
+                                        ? (t) => alpha(t.palette.primary.main, 0.12)
+                                        : 'action.hover',
+                                    borderColor: 'primary.main',
+                                    '& .collapsed-strip-icon, & .collapsed-strip-label': {
+                                        color: shell.mode === 'dark' ? 'primary.contrastText' : 'text.primary',
+                                    },
+                                },
+                            }}
+                        >
+                            <ChevronRightIcon fontSize="small" className="collapsed-strip-icon" sx={{ color: 'text.secondary', transition: 'color 0.15s' }} />
+                            <Box
+                                component="span"
+                                className="collapsed-strip-label"
+                                sx={{
+                                    writingMode: 'vertical-rl',
+                                    transform: 'rotate(180deg)',
+                                    fontSize: 11,
+                                    color: 'text.secondary',
+                                    letterSpacing: 0.5,
+                                    whiteSpace: 'nowrap',
+                                    transition: 'color 0.15s',
+                                }}
+                            >
+                                2D Sketch
+                            </Box>
+                        </Paper>
+                    ) : (
                     <Box
                         ref={viewer2DColRef}
                         sx={{
-                            flexBasis: `${viewerSplitRatio * 100}%`,
-                            minWidth: 200,
-                            maxWidth: `calc(100% - 200px)`,
+                            ...(collapsedViewer === '3d'
+                                ? { flex: 1, minWidth: 0, maxWidth: '100%' }
+                                : {
+                                    flexBasis: `${viewerSplitRatio * 100}%`,
+                                    minWidth: 200,
+                                    maxWidth: `calc(100% - 200px)`,
+                                }),
                             display: 'flex',
                             flexDirection: 'column',
                             pr: 0.5,
@@ -1924,63 +2001,78 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
                                     2D Sketch
                                 </Typography>
-                                <ButtonGroup
-                                    size="small"
-                                    variant="text"
-                                    sx={BUTTON_GROUP_SX}
-                                >
-                                    <Tooltip title="Link" arrow placement='top'>
-                                        <span>
-                                            <Button
-                                                onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                                                color="inherit"
-                                                disabled={!svgDepiction || viewer2DModes.bondsMode}
-                                                aria-label="link-monomers"
-                                            >
-                                                <DeviceHubIcon fontSize="inherit" />
-                                            </Button>
-                                        </span>
-                                    </Tooltip>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <ButtonGroup
+                                        size="small"
+                                        variant="text"
+                                        sx={BUTTON_GROUP_SX}
+                                    >
+                                        <Tooltip title="Link" arrow placement='top'>
+                                            <span>
+                                                <Button
+                                                    onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                                    color="inherit"
+                                                    disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                                    aria-label="link-monomers"
+                                                >
+                                                    <DeviceHubIcon fontSize="inherit" />
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
 
-                                    <Tooltip title="Unlink" arrow placement='top'>
-                                        <span>
-                                            <Button
-                                                onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
-                                                color="inherit"
-                                                disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
-                                                aria-label="toggle-bonds"
-                                            >
-                                                <LinkOffIcon fontSize="inherit" />
-                                            </Button>
-                                        </span>
-                                    </Tooltip>
+                                        <Tooltip title="Unlink" arrow placement='top'>
+                                            <span>
+                                                <Button
+                                                    onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                                    color="inherit"
+                                                    disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                                    aria-label="toggle-bonds"
+                                                >
+                                                    <LinkOffIcon fontSize="inherit" />
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
 
-                                    <Tooltip title="Reset View" arrow placement='top'>
-                                        <span>
-                                            <Button
-                                                onClick={() => viewer2DRef.current?.resetView()}
-                                                color="inherit"
-                                                disabled={!svgDepiction}
-                                                aria-label="reset-view"
-                                            >
-                                                <RestartAltIcon fontSize="inherit" />
-                                            </Button>
-                                        </span>
-                                    </Tooltip>
+                                        <Tooltip title="Reset View" arrow placement='top'>
+                                            <span>
+                                                <Button
+                                                    onClick={() => viewer2DRef.current?.resetView()}
+                                                    color="inherit"
+                                                    disabled={!svgDepiction}
+                                                    aria-label="reset-view"
+                                                >
+                                                    <RestartAltIcon fontSize="inherit" />
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
 
-                                    <Tooltip title="Download SVG" arrow placement='top'>
-                                        <span>
-                                            <Button
-                                                onClick={() => viewer2DRef.current?.downloadSvg?.('pep-edit_2d.svg')}
-                                                color="inherit"
-                                                disabled={!svgDepiction}
-                                                aria-label="download-svg"
-                                            >
-                                                <DownloadIcon fontSize="inherit" />
-                                            </Button>
-                                        </span>
+                                        <Tooltip title="Download SVG" arrow placement='top'>
+                                            <span>
+                                                <Button
+                                                    onClick={() => viewer2DRef.current?.downloadSvg?.('pep-edit_2d.svg')}
+                                                    color="inherit"
+                                                    disabled={!svgDepiction}
+                                                    aria-label="download-svg"
+                                                >
+                                                    <DownloadIcon fontSize="inherit" />
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
+                                    </ButtonGroup>
+
+                                    <Tooltip title="Collapse 2D Sketch" arrow placement="top">
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            color="inherit"
+                                            onClick={toggleCollapse2D}
+                                            aria-label="collapse 2D viewer"
+                                            sx={{ ...TOOLBAR_BTN_SX, ml: 0.5 }}
+                                        >
+                                            <ChevronLeftIcon fontSize="inherit" />
+                                        </Button>
                                     </Tooltip>
-                                </ButtonGroup>
+                                </Box>
                             </Box>
                             {/* Canvas area */}
                             <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -2003,7 +2095,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
                         </Paper>
                     </Box>
+                    )}
 
+                    {/* Vertical resize handle – hidden when either viewer is collapsed */}
+                    {!collapsedViewer && (
                     <Box
                         role="separator"
                         aria-orientation="vertical"
@@ -2017,11 +2112,67 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             '&:hover': { bgcolor: shell.resizeBarHover },
                         }}
                     />
+                    )}
 
+                    {/* ── 3D viewer column ── */}
+                    {collapsedViewer === '3d' ? (
+                        /* Collapsed 3D strip */
+                        <Paper
+                            variant="outlined"
+                            onClick={toggleCollapse3D}
+                            role="button"
+                            aria-label="Expand 3D Viewer"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleCollapse3D(); }}
+                            sx={{
+                                width: 34,
+                                minWidth: 34,
+                                flex: '0 0 34px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 1,
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                overflow: 'hidden',
+                                bgcolor: 'background.paper',
+                                transition: 'background-color 0.15s, border-color 0.15s, color 0.15s',
+                                '&:hover': {
+                                    bgcolor: shell.mode === 'dark'
+                                        ? (t) => alpha(t.palette.primary.main, 0.12)
+                                        : 'action.hover',
+                                    borderColor: 'primary.main',
+                                    '& .collapsed-strip-icon, & .collapsed-strip-label': {
+                                        color: shell.mode === 'dark' ? 'primary.contrastText' : 'text.primary',
+                                    },
+                                },
+                            }}
+                        >
+                            <ChevronLeftIcon fontSize="small" className="collapsed-strip-icon" sx={{ color: 'text.secondary', transition: 'color 0.15s' }} />
+                            <Box
+                                component="span"
+                                className="collapsed-strip-label"
+                                sx={{
+                                    writingMode: 'vertical-rl',
+                                    transform: 'rotate(180deg)',
+                                    fontSize: 11,
+                                    color: 'text.secondary',
+                                    letterSpacing: 0.5,
+                                    whiteSpace: 'nowrap',
+                                    transition: 'color 0.15s',
+                                }}
+                            >
+                                3D Viewer
+                            </Box>
+                        </Paper>
+                    ) : (
                     <Box
                         sx={{
                             flex: 1,
-                            minWidth: 200,
+                            ...(collapsedViewer === '2d'
+                                ? { minWidth: 0, maxWidth: '100%' }
+                                : { minWidth: 200 }),
                             pl: 0.5,
                             display: 'flex',
                             flexDirection: 'column',
@@ -2054,12 +2205,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     flexWrap: 'wrap',
-                                    gap: 1,
+                                    gap: 0.5,
                                     mb: 1,
                                 }}
                             >
                                 {/* Left: primary actions */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'nowrap', minWidth: 0, flexShrink: 0 }}>
                                     <Tooltip title={autoSync3D ? 'Updates automatically' : generateBtnTooltip} arrow placement="top">
                                         <span>
                                             <Button
@@ -2151,8 +2302,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 {/* <Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center', mx: 0.5 }} /> */}
 
                                 {/* Right: canvas controls */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
-                                    {/* Canvas container */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'nowrap' }}>
+                                    {/* Primary canvas tools */}
                                     <ButtonGroup
                                         size="small"
                                         variant="text"
@@ -2205,18 +2356,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </Button>
                                         </Tooltip>
 
-                                        <Tooltip title="View" arrow placement='top'>
-                                            <Button
-                                                onClick={() => setActive3DPanel((p) => (p === 'view' ? null : 'view'))}
-                                                color="inherit"
-                                                aria-pressed={active3DPanel === 'view'}
-                                                aria-label="reset-view"
-                                                sx={active3DPanel === 'view' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
-                                            >
-                                                <RestartAltIcon fontSize="inherit" />
-                                            </Button>
-                                        </Tooltip>
-
                                         <Tooltip
                                             title={
                                                 scaffoldTemplate?.name
@@ -2242,33 +2381,86 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 <LayersIcon fontSize="inherit" />
                                             </Button>
                                         </Tooltip>
-
-                                        <Tooltip title="Snapshot" arrow placement='top'>
-                                            <span>
-                                                <Button
-                                                    onClick={() => viewer3DRef.current?.takeScreenshot?.()}
-                                                    color="inherit"
-                                                    aria-label="snapshot"
-                                                    disabled={!structurePDB}
-                                                >
-                                                    <PhotoCameraIcon fontSize="inherit" />
-                                                </Button>
-                                            </span>
-                                        </Tooltip>
-
-                                        <Tooltip title="Log" arrow placement='top'>
-                                            <Button
-                                                onClick={() => setActive3DPanel((p) => (p === 'log' ? null : 'log'))}
-                                                color="inherit"
-                                                aria-pressed={active3DPanel === 'log'}
-                                                aria-label="log"
-                                                sx={active3DPanel === 'log' ? { bgcolor: 'action.selected', color: 'primary.main', '&:hover': { bgcolor: 'action.selected' } } : undefined}
-                                            >
-                                                <SubjectIcon fontSize="inherit" />
-                                            </Button>
-                                        </Tooltip>
-
                                     </ButtonGroup>
+
+                                    {/* Overflow menu for secondary actions */}
+                                    <Tooltip title="More options" arrow placement="top">
+                                        <IconButton
+                                            size="small"
+                                            color="inherit"
+                                            onClick={(e) => setViewer3DMenuAnchor(e.currentTarget)}
+                                            aria-label="more 3D viewer options"
+                                            aria-haspopup="true"
+                                            aria-expanded={viewer3DMenuOpen ? 'true' : undefined}
+                                            sx={{
+                                                color: 'text.secondary',
+                                                width: 28,
+                                                height: 28,
+                                                '&:hover': { bgcolor: 'action.hover' },
+                                                ...(viewer3DMenuOpen ? { bgcolor: 'action.selected' } : {}),
+                                            }}
+                                        >
+                                            <MoreVertIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Menu
+                                        anchorEl={viewer3DMenuAnchor}
+                                        open={viewer3DMenuOpen}
+                                        onClose={() => setViewer3DMenuAnchor(null)}
+                                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                        slotProps={{ paper: { sx: { minWidth: 180 } } }}
+                                    >
+                                        <MenuItem
+                                            onClick={() => {
+                                                setActive3DPanel((p) => (p === 'view' ? null : 'view'));
+                                                setViewer3DMenuAnchor(null);
+                                            }}
+                                            selected={active3DPanel === 'view'}
+                                        >
+                                            <ListItemIcon>
+                                                <RestartAltIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>View / Reset</ListItemText>
+                                        </MenuItem>
+                                        <MenuItem
+                                            onClick={() => {
+                                                viewer3DRef.current?.takeScreenshot?.();
+                                                setViewer3DMenuAnchor(null);
+                                            }}
+                                            disabled={!structurePDB}
+                                        >
+                                            <ListItemIcon>
+                                                <PhotoCameraIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>Snapshot</ListItemText>
+                                        </MenuItem>
+                                        <MenuItem
+                                            onClick={() => {
+                                                setActive3DPanel((p) => (p === 'log' ? null : 'log'));
+                                                setViewer3DMenuAnchor(null);
+                                            }}
+                                            selected={active3DPanel === 'log'}
+                                        >
+                                            <ListItemIcon>
+                                                <SubjectIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>Log</ListItemText>
+                                        </MenuItem>
+                                    </Menu>
+
+                                    <Tooltip title="Collapse 3D Viewer" arrow placement="top">
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            color="inherit"
+                                            onClick={toggleCollapse3D}
+                                            aria-label="collapse 3D viewer"
+                                            sx={{ ...TOOLBAR_BTN_SX, ml: 0.5 }}
+                                        >
+                                            <ChevronRightIcon fontSize="inherit" />
+                                        </Button>
+                                    </Tooltip>
                                 </Box>
                             </Box>
 
@@ -2860,6 +3052,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
                         </Paper>
                     </Box>
+                    )}
 
                 </Box>
             </Box>

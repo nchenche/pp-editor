@@ -29,26 +29,33 @@ const NAV_TREE = [
         group: "Getting started",
         children: [
             { id: "introduction", label: "Introduction" },
-            { id: "pepedit-vs-pypept", label: "PEP-EDIT vs pyPept" },
-            { id: "biln-notation", label: "About BILN notation" },
+            { id: "quick-start", label: "Quick start" },
             {
-                id: "interface-overview", label: "Interface overview", children: [
+                id: "interface-overview", label: "Interface overview",
+                children: [
                     { id: "panels", label: "Panels & layout" },
-                    { id: "right-panel", label: "Right panel (Library / Output / Jobs)" },
+                    { id: "biln-editor", label: "BILN editor & chain track" },
+                    { id: "viewer-2d", label: "2D viewer (2D Sketch)" },
+                    { id: "viewer-3d", label: "3D viewer" },
+                    { id: "right-panel", label: "Right panel" },
                     { id: "sessions", label: "Sessions" },
+                ],
+            },
+            {
+                id: "key-concepts", label: "Key concepts",
+                children: [
+                    { id: "biln-notation", label: "BILN notation" },
+                    { id: "monomers-rgroups", label: "Monomers, R-groups & leaving groups" },
+                    { id: "pepedit-vs-pypept", label: "PEP-EDIT vs pyPept" },
                 ],
             },
             { id: "protonation", label: "Protonation (pH)" },
             {
-                id: "conformer-generation", label: "Conformer generation", children: [
-                    { id: "embedding", label: "RDKit-based embedding" },
-                    { id: "iterative-process", label: "Iterative process" },
-                    {
-                        id: "constraints", label: "Setting constraints", children: [
-                            { id: "constraints-2d", label: "Secondary structure (2D)" },
-                            { id: "constraints-3d", label: "3D template (scaffold)" },
-                        ],
-                    },
+                id: "conformer-generation", label: "Conformer generation",
+                children: [
+                    { id: "auto-vs-manual", label: "Automatic vs. manual" },
+                    { id: "constraints-2d", label: "Secondary structure (2D)" },
+                    { id: "constraints-3d", label: "3D template (scaffold)" },
                 ],
             },
         ],
@@ -56,11 +63,11 @@ const NAV_TREE = [
     {
         group: "How-to guides",
         children: [
-            { id: "editing-biln", label: "Editing a BILN sequence" },
-            { id: "editing-library", label: "Editing from monomer library" },
+            { id: "building-peptide", label: "Building a peptide" },
             { id: "linking", label: "Linking monomers" },
             { id: "complex-topologies", label: "Complex topologies" },
             { id: "adding-monomers", label: "Adding monomers to the library" },
+            { id: "exporting", label: "Exporting results" },
         ],
     },
     {
@@ -70,7 +77,7 @@ const NAV_TREE = [
             { id: "example-semaglutide", label: "Semaglutide" },
             { id: "example-cyclic", label: "Cyclic peptides (L/D)" },
             { id: "example-orca", label: "Conformer search with ORCA" },
-            { id: "example-alphafold", label: "Protein-peptide prediction" },
+            { id: "example-alphafold", label: "Protein\u2013peptide prediction" },
             { id: "example-st", label: "Simulated tempering" },
             { id: "example-docking", label: "Peptide docking" },
         ],
@@ -81,13 +88,18 @@ const NAV_TREE = [
             { id: "output-formats", label: "Output & export formats" },
             { id: "monomer-library-ref", label: "Monomer library & R-groups" },
             { id: "biln-quick-ref", label: "BILN quick reference" },
+            { id: "resources", label: "Resources & external scripts" },
         ],
     },
     {
         group: "Troubleshooting & policies",
         children: [
+            { id: "faq", label: "FAQ & common errors" },
             { id: "limitations", label: "Limitations & tips" },
-            { id: "policies", label: "Accessibility & cookies" },
+            { id: "browser-compat", label: "Browser compatibility" },
+            { id: "how-to-cite", label: "How to cite" },
+            { id: "changelog", label: "Changelog" },
+            { id: "policies", label: "Accessibility, cookies & contact" },
         ],
     },
 ];
@@ -411,9 +423,9 @@ const Documentation = () => {
                     </Typography>
 
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
-                        <Chip component="a" href="#editing-biln" label="Write a BILN sequence →" clickable size="small" color="primary" variant="outlined" />
-                        <Chip component="a" href="#editing-library" label="Build from monomer library →" clickable size="small" color="primary" variant="outlined" />
-                        <Chip component="a" href="#constraints" label="Apply constraints →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#quick-start" label="Quick start →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#building-peptide" label="Build a peptide →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#conformer-generation" label="Apply constraints →" clickable size="small" color="primary" variant="outlined" />
                     </Box>
 
                     <Divider sx={{ mb: 4 }} />
@@ -426,111 +438,139 @@ const Documentation = () => {
                     <SectionTitle id="introduction">Introduction</SectionTitle>
 
                     <P>
-                        PEP-EDIT is a web application for the easy and rapid online preparation and generation of peptide
-                        representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). It is not a peptide
-                        structure prediction tool, but it helps preparing realistic conformations to undergo further processing
-                        (molecular dynamics simulations, docking, etc.). It supports standard and non-standard monomers
-                        (amino acids, caps and peptidomimetics), including linear, cyclic and branched peptides.
+                        PEP-EDIT is an interactive web application for the easy and rapid editing and generation of peptide
+                        representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). 
+                        Unlike <MUILink href="https://doi.org/10.1093/nar/gkad376" target="_blank" rel="noreferrer">PEP-FOLD</MUILink> or 
+                        other tools that predict peptide 3D structure from sequence alone, PEP-EDIT focuses on 
+                        <strong> building, editing and exporting</strong> peptide representations - including non-standard
+                        monomers, cyclic and branched architectures - and provides conformer generation as a preparation utility, 
+                        not as a structure prediction method.
                     </P>
 
                     <InfoBox>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Core workflow</Typography>
                         <Ol>
-                            <Li><strong>Define</strong> a peptide — type a BILN sequence, upload a FASTA, or build from the monomer library.</Li>
-                            <Li><strong>Refine</strong> — apply constraints (secondary structure or 3D template), adjust pH, link chains.</Li>
-                            <Li><strong>Generate & export</strong> — obtain 1D/2D/3D representations and download them.</Li>
+                            <Li><strong>Define</strong> a peptide; type a BILN sequence or build from the monomer library (FASTA and HELM upload are also supported).</Li>
+                            <Li><strong>Refine</strong>; apply constraints (secondary structure or 3D template), adjust pH, link chains.</Li>
+                            <Li><strong>Generate & export</strong>; obtain 1D/2D/3D representations and download them.</Li>
                         </Ol>
                     </InfoBox>
 
                     <P>PEP-EDIT can:</P>
                     <Ul>
-                        <Li>Build peptides from scratch from a BILN sequence.</Li>
-                        <Li>Edit existing structures by substituting/modifying monomers while preserving the overall backbone conformation as much as possible.</Li>
-                        <Li>Apply conformational constraints (secondary-structure presets or a 3D template) to guide conformer generation.</Li>
-                        <Li>Control protonation of exported molecules using a pH model (default: pH 7.4).</Li>
-                        <Li>Manage both public and user private monomer libraries. The public library can be updated in a collaborative/moderated mode.</Li>
-                        <Li>Handle peptides with up to 40 monomers per construct.</Li>
+                        <Li>Build peptides from a BILN sequence, a FASTA upload, or interactively from the monomer library.</Li>
+                        <Li>Edit existing structures - substitute, delete, or reorder monomers (drag-and-drop) - while preserving backbone topology.</Li>
+                        <Li>Handle standard and non-standard monomers: D-amino acids, N-methylated residues, peptidomimetics, capping groups, lipid moieties or others.</Li>
+                        <Li>Support linear, cyclic (head-to-tail, disulfide), branched, and multi-chain peptide architectures.</Li>
+                        <Li>Apply conformational constraints - secondary-structure presets (H/E/-) or a 3D template from PDB/mmCIF.</Li>
+                        <Li>Control protonation at a user-specified pH (default 7.4).</Li>
+                        <Li>Export to 12 formats across 1D (BILN, HELM, SMILES, InChI), 2D (SDF), and 3D (PDB, mmCIF, XYZ, SDF, MOL2, PDBQT).</Li>
+                        <Li>Manage personal and public monomer libraries with moderated contribution.</Li>
+                        <Li>Handle constructs of up to 40 monomers.</Li>
                     </Ul>
 
-                    <P>
-                        In addition to the standard web instance, a collaborative n.eko instance is available at{" "}
-                        <MUILink href="https://neko.rpbs.univ-paris-diderot.fr?usr=guest&pwd=rpbs" target="_blank" rel="noreferrer">
-                            neko.rpbs.univ-paris-diderot.fr
-                        </MUILink>, enabling multi-user real-time peptide design and didactic use.
-                    </P>
-
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* ── PEP-EDIT vs pyPept ── */}
-                    <SectionTitle id="pepedit-vs-pypept">PEP-EDIT vs pyPept</SectionTitle>
-
-                    <P>
-                        PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and conversion,
-                        which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation).
-                    </P>
-
-                    <Ul>
-                        <Li>
-                            pyPept paper:{" "}
-                            <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
-                                Springer — J Cheminform (2023)
+                    <InfoBox color="info">
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>How to cite</Typography>
+                        <P>
+                            Chevrollier N, Dougha A, Ye C, Stratmann D, Moroy G, Rey J, Murail S & Tufféry P.
+                            PEP-EDIT: an interactive web interface for the rapid generation and editing of complex peptides.
+                            <em> (manuscript in preparation).</em>
+                        </P>
+                        <P>
+                            URL:{" "}
+                            <MUILink href="https://pep-edit.rpbs.univ-paris-diderot.fr" target="_blank" rel="noreferrer">
+                                https://pep-edit.rpbs.univ-paris-diderot.fr
                             </MUILink>
-                        </Li>
-                        <Li>
-                            BILN paper:{" "}
-                            <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
-                                ACS — J Chem Inf Model (2022)
-                            </MUILink>
-                        </Li>
-                    </Ul>
+                        </P>
+                        <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+                            Please also cite:{" "}
+                            <MUILink href="https://doi.org/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">pyPept</MUILink>{" · "}
+                            <MUILink href="https://doi.org/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">BILN</MUILink>
+                        </Typography>
+                    </InfoBox>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Quick start ── */}
+                    <SectionTitle id="quick-start">Quick start — your first peptide in 2 minutes</SectionTitle>
+
+                    <Sub2Title>Step 1 — Enter a sequence</Sub2Title>
 
                     <P>
-                        PEP-EDIT relies on pyPept, but uses a modified version where several major changes were introduced
-                        to support an interactive web workflow and structure-aware peptide design:
+                        In the BILN editor (top-left), type:
+                    </P>
+                    <CodeBlock>{"ac-A-G-K-D-am"}</CodeBlock>
+                    <P>
+                        This defines: acetyl cap – Ala – Gly – Lys – Asp – amide cap.
+                        The input is live — the 2D Sketch updates as you type, as soon as
+                        the BILN is syntactically valid. No need to press Enter.
                     </P>
 
+                    {/* [MEDIA #1: GIF — typing ac-A-G-K-D-am, 2D updating. ~6s] */}
+                    <Figure
+                        src="/assets/documentation/quick-start-step1.gif"
+                        alt="Typing a BILN sequence and watching the 2D view update"
+                        caption="Type a BILN sequence — the 2D Sketch updates live as you type."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        Alternatively, click <strong>Examples…</strong> in the editor toolbar and pick
+                        a pre-built example to load instantly. There are 15 examples across
+                        6 categories (linear, cyclic, capped, non-natural, secondary-structure
+                        constraints, and 3D template constraints).
+                    </P>
+
+                    <Sub2Title>Step 2 — Generate 3D</Sub2Title>
+
+                    <P>
+                        For short peptides (&lt; 8 monomers), <strong>Auto sync</strong> is on by default —
+                        the 3D conformer generates automatically. Check the 3D viewer (bottom-right).
+                    </P>
+                    <P>
+                        For longer peptides, or if Auto sync is off, click the{" "}
+                        <strong>▶ Generate 3D</strong> button (in the 3D viewer toolbar). A job appears
+                        in the <strong>Jobs</strong> tab (right panel) and the result loads on completion.
+                    </P>
+
+                    {/* [MEDIA #2: GIF — auto-sync or Generate 3D → 3D appears. ~5s] */}
+                    <Figure
+                        src="/assets/documentation/quick-start-step2.gif"
+                        alt="3D conformer generating automatically"
+                        caption="Auto sync generates the 3D conformer automatically for short peptides."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Sub2Title>Step 3 — Export</Sub2Title>
+
+                    <P>
+                        Open the <strong>Output</strong> tab (right panel). Formats are grouped into
+                        1D (BILN, HELM, SMILES…), 2D (SDF), and 3D (PDB, mmCIF, XYZ…).
+                        Click the download icon on any format, or use the{" "}
+                        <strong>Download all</strong> button at the top.
+                    </P>
+
+                    {/* [MEDIA #3: Screenshot — Output tab with sections visible] */}
+                    <Figure
+                        src="/assets/documentation/quick-start-step3.png"
+                        alt="Output tab showing available export formats"
+                        caption="The Output tab lists all available export formats with Copy and Download buttons."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Sub2Title>What's next?</Sub2Title>
                     <Ul>
-                        <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
-                        <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
-                        <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
-                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure presets or PDB template constraints.</Li>
-                        <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
-                        <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
-                        <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
-                        <Li><strong>Collaborative/didactic facilities:</strong> a n.eko instance enables multi-user peptide design sessions.</Li>
+                        <Li>Load a pre-built example → click <strong>Examples…</strong> in the editor toolbar.</Li>
+                        <Li>Build from the monomer library → see <MUILink href="#building-peptide">Building a peptide</MUILink>.</Li>
+                        <Li>Apply constraints → see <MUILink href="#conformer-generation">Conformer generation</MUILink>.</Li>
+                        <Li>Add custom monomers → see <MUILink href="#adding-monomers">Adding monomers to the library</MUILink>.</Li>
                     </Ul>
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* ── About BILN notation ── */}
-                    <SectionTitle id="biln-notation">About BILN notation</SectionTitle>
-
-                    <P>
-                        BILN (Boehringer Ingelheim Line Notation) represents a peptide as monomers and connections. In its explicit
-                        form, each monomer can carry one or more connection pairs <code>(bondId, RgroupId)</code>. The BILN rules are:
-                        monomers separated by dots, connections defined by integer pairs, and a hyphen shorthand when connecting
-                        R2→R1 along the backbone.
-                    </P>
-
-                    <P>Examples from the BILN rules:</P>
-                    <Ul>
-                        <Li>Explicit backbone connections: <code>A(1,2).G(1,1)(2,2).C(2,1)</code></Li>
-                        <Li>Shorthand for linear peptide: <code>P-E-P-T-I-D-E</code></Li>
-                    </Ul>
-
-                    <P>
-                        If a monomer abbreviation contains a hyphen, BILN requires brackets for disambiguation
-                        (e.g. <code>A-[2-Cl-Phe]-C</code>), and the BILN paper notes that avoiding hyphens improves readability.
-                        PEP-EDIT therefore uses <code>_</code> in such monomer names.
-                    </P>
-
-                    <P>
-                        In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
-                        their attachment points (R-groups). The BILN paper recommends the convention <strong>R1 = backbone N</strong> and{" "}
-                        <strong>R2 = backbone carbonyl C</strong> for amino acids (for readability and N→C order).
-                    </P>
-
-                    <Divider sx={{ my: 4 }} />
+                    {/* ════════════════════════════════════════════
+                        Interface overview
+                       ════════════════════════════════════════════ */}
 
                     {/* ── Interface overview ── */}
                     <SectionTitle id="interface-overview">Interface overview</SectionTitle>
@@ -554,7 +594,109 @@ const Documentation = () => {
                         <Li><strong>Right panel</strong> — a collapsible, resizable sidebar with three tabs (see below).</Li>
                     </Ol>
 
-                    {/* Right panel */}
+                    {/* ── BILN editor & chain track ── */}
+                    <SubTitle id="biln-editor">BILN editor & chain track</SubTitle>
+
+                    {/* [MEDIA: annotated screenshot of the BILN editor area] */}
+                    <Figure
+                        src="/assets/documentation/biln-editor-overview.png"
+                        alt="BILN editor and chain track overview"
+                        caption="The BILN editor area: manual BILN input field (top), chain track with monomer slots (middle), and constraint track (bottom)."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        The editor area (top-left) is where you define and manipulate your peptide. It contains:
+                    </P>
+
+                    <Ul>
+                        <Li><strong>BILN text field</strong> — a live text input for typing or pasting BILN sequences directly. Changes are applied on every keystroke (no Enter or Apply button needed). The 2D/3D views update once the syntax is valid.</Li>
+                        <Li><strong>Editor toolbar</strong> — contains the <strong>Link</strong> tool (create bonds between monomers), <strong>Cut</strong> tool (remove bonds), a <strong>pH slider</strong> (0–12, default 7.4), <strong>Undo/Redo</strong> buttons, and the <strong>Examples…</strong> dropdown.</Li>
+                        <Li><strong>Chain track</strong> — a visual row of monomer slots for each chain. Monomers are color-coded by type (green = natural, orange = non-natural, gray = cap). You can hover to see details, click the replace icon to swap a monomer, or <strong>drag-and-drop</strong> to reorder monomers within or across chains.</Li>
+                        <Li><strong>Constraint track</strong> — visible when a constraint mode is active. Shows per-residue secondary-structure assignments (H/E/−) or 3D template mapping status.</Li>
+                        <Li><strong>Chains toolbar</strong> — a ⋮ menu on each chain row provides actions like <strong>Cyclize</strong> (head-to-tail), <strong>Mirror</strong> (swap L/D amino acids), <strong>Delete chain</strong>, and constraint bulk-set operations.</Li>
+                    </Ul>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        The BILN input supports a <strong>CodeMirror</strong>-based editor with syntax highlighting as an alternative to the plain text field. Both behave identically — live updates, no submit button.
+                    </Alert>
+
+                    {/* ── 2D viewer ── */}
+                    <SubTitle id="viewer-2d">2D viewer (2D Sketch)</SubTitle>
+
+                    {/* [MEDIA: annotated screenshot of the 2D viewer] */}
+                    <Figure
+                        src="/assets/documentation/viewer-2d-overview.png"
+                        alt="2D Sketch viewer with toolbar"
+                        caption="The 2D Sketch panel: interactive SVG depiction with toolbar controls."
+                        openLightbox={openLightbox}
+                        maxWidth="md"
+                    />
+
+                    <P>
+                        The 2D viewer displays an interactive SVG depiction of your peptide, rendered by RDKit.
+                        It updates automatically whenever the BILN input is valid.
+                    </P>
+
+                    <P><strong>Toolbar</strong> (left to right):</P>
+                    <Ol>
+                        <Li><strong>Link</strong> — toggle link mode: click R-groups on monomers to create a new bond.</Li>
+                        <Li><strong>Unlink</strong> — toggle cut mode: double-click an existing bond to remove it.</Li>
+                        <Li><strong>Reset View</strong> — reset any zoom/pan back to the default fitted view.</Li>
+                        <Li><strong>Download SVG</strong> — download the current 2D depiction as an SVG file.</Li>
+                    </Ol>
+
+                    <P><strong>Navigation:</strong></P>
+                    <Ul>
+                        <Li><strong>Scroll wheel</strong> to zoom in/out.</Li>
+                        <Li><strong>Click and drag</strong> to pan.</Li>
+                        <Li><strong>Double-click</strong> to reset the view.</Li>
+                    </Ul>
+
+                    <P>
+                        <strong>Hover</strong> over a monomer to highlight it — the highlight is synced across
+                        the chain track and the 3D viewer. Clicking a monomer in the 2D view has no effect
+                        in normal mode; click interactions only activate when Link or Unlink mode is on.
+                    </P>
+
+                    {/* ── 3D viewer ── */}
+                    <SubTitle id="viewer-3d">3D viewer</SubTitle>
+
+                    {/* [MEDIA: annotated screenshot of the 3D viewer toolbar] */}
+                    <Figure
+                        src="/assets/documentation/viewer-3d-overview.png"
+                        alt="3D viewer with Mol* and toolbar"
+                        caption="The 3D viewer: Mol*-powered 3D visualization with toolbar controls."
+                        openLightbox={openLightbox}
+                        maxWidth="md"
+                    />
+
+                    <P>
+                        The 3D viewer displays the generated conformer using{" "}
+                        <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
+                        It loads automatically when a 3D generation job completes.
+                    </P>
+
+                    <P><strong>Toolbar</strong> (left to right, after the Generate 3D button and Auto sync toggle):</P>
+                    <Ol>
+                        <Li><strong>Representation</strong> — open a side panel to pick the 3D representation (line, ball-and-stick, cartoon, etc.).</Li>
+                        <Li><strong>Color by</strong> — open a side panel to choose a color scheme.</Li>
+                        <Li><strong>Labels</strong> — open a side panel to toggle atom/residue labels.</Li>
+                        <Li><strong>Light/Dark background</strong> — toggle the Mol* canvas background.</Li>
+                        <Li><strong>View</strong> — open a side panel with camera controls (reset view, lock camera).</Li>
+                        <Li><strong>Template</strong> — manage scaffold template overlays (tinted when a template is loaded).</Li>
+                        <Li><strong>Snapshot</strong> — download a PNG screenshot of the current 3D viewport.</Li>
+                        <Li><strong>Log</strong> — open a side panel showing the generation job log.</Li>
+                    </Ol>
+
+                    <P><strong>Auto sync</strong> and <strong>Generate 3D</strong>:</P>
+                    <Ul>
+                        <Li>When <strong>Auto sync</strong> is on (default for peptides &lt; 8 monomers), every valid edit triggers automatic 3D regeneration. The button reads <strong>"Live Preview"</strong>.</Li>
+                        <Li>Auto sync is automatically disabled when the peptide reaches 8+ monomers, or when a 3D template is active.</Li>
+                        <Li>When Auto sync is off, click <strong>▶ Generate 3D</strong> to submit a conformer generation job manually.</Li>
+                    </Ul>
+
+                    {/* ── Right panel ── */}
                     <SubTitle id="right-panel">Right panel (Library / Output / Jobs)</SubTitle>
 
                     <P>
@@ -580,11 +722,14 @@ const Documentation = () => {
                     </CardGrid>
                     <CardGrid>
                         <Card title="Jobs">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
                                 Lists all conformer generation jobs submitted under the current session. Each job shows its status
-                                (queued, running, success, failed), creation time, and a name that can be edited inline. Clicking a job
-                                loads its result into the 3D viewer. Jobs can also be deleted from this panel.
+                                (queued, running, success, failed), creation time, and a name that can be edited inline.
                             </Typography>
+                            <Ul>
+                                <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (SS or template + scaffold mappings), and loads the 3D conformer into the viewer. Auto-regeneration is suppressed so the restored conformer is displayed as-is.</Li>
+                                <Li><strong>⋮ menu</strong> — <em>Edit details</em> (rename/describe the job) and <em>Copy BILN</em> (copy the job's BILN to the clipboard).</Li>
+                            </Ul>
                         </Card>
                     </CardGrid>
 
@@ -659,6 +804,149 @@ const Documentation = () => {
                     </CardGrid>
 
                     <P><strong>Tip:</strong> click the Session ID chip in the header at any time to copy the full ID to your clipboard.</P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ════════════════════════════════════════════
+                        Key concepts
+                       ════════════════════════════════════════════ */}
+                    <SectionTitle id="key-concepts">Key concepts</SectionTitle>
+
+                    {/* ── BILN notation ── */}
+                    <SubTitle id="biln-notation">BILN notation</SubTitle>
+
+                    <P>
+                        BILN (Boehringer Ingelheim Line Notation) represents a peptide as monomers and connections. In its explicit
+                        form, each monomer can carry one or more connection pairs <code>(bondId, RgroupId)</code>. The BILN rules are:
+                        monomers separated by dots, connections defined by integer pairs, and a hyphen shorthand when connecting
+                        R2→R1 along the backbone.
+                    </P>
+
+                    <P>Examples:</P>
+                    <Ul>
+                        <Li>Explicit backbone connections: <code>A(1,2).G(1,1)(2,2).C(2,1)</code></Li>
+                        <Li>Shorthand for linear peptide: <code>P-E-P-T-I-D-E</code></Li>
+                        <Li>Multi-chain (dot separator): <code>A-G-K(1,3)-D.ac(1,2)</code></Li>
+                    </Ul>
+
+                    <P>
+                        If a monomer abbreviation contains a hyphen, BILN requires brackets for disambiguation
+                        (e.g. <code>A-[2-Cl-Phe]-C</code>). PEP-EDIT avoids this by using underscores (<code>_</code>) in such
+                        monomer names.
+                    </P>
+
+                    <P>
+                        In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
+                        their attachment points (R-groups). The convention is <strong>R1 = backbone N</strong> and{" "}
+                        <strong>R2 = backbone carbonyl C</strong> for amino acids (N→C reading order).
+                    </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        For a complete syntax reference, see the{" "}
+                        <MUILink href="#biln-quick-ref">BILN quick reference</MUILink> table.
+                    </Alert>
+
+                    {/* ── Monomers, R-groups & leaving groups ── */}
+                    <SubTitle id="monomers-rgroups">Monomers, R-groups & leaving groups</SubTitle>
+
+                    {/* [MEDIA: annotated monomer diagram showing R-groups] */}
+                    <Figure
+                        src="/assets/documentation/Monomer6.png"
+                        alt="Monomer with labeled R-groups"
+                        caption="Example monomer with labeled R-groups (R1, R2). Each monomer has a name, BILN symbol, and a 3-letter PDB identifier."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        A <strong>monomer</strong> is the basic building block in PEP-EDIT — an amino acid, cap, or chemical moiety.
+                        Each monomer has <strong>attachment points</strong> (R-groups) that define where it can connect to other monomers.
+                    </P>
+
+                    <Ul>
+                        <Li><strong>R1</strong> — typically the backbone nitrogen (N-terminus side).</Li>
+                        <Li><strong>R2</strong> — typically the backbone carbonyl carbon (C-terminus side).</Li>
+                        <Li><strong>R3, R4…</strong> — side chains, branching points, or specific chemical modifications.</Li>
+                    </Ul>
+
+                    <P>
+                        A monomer with only one R-group acts as a <strong>capping group</strong> (e.g. acetyl = N-cap, amide = C-cap).
+                        A monomer with three or more R-groups can serve as a <strong>branching or cyclization site</strong>.
+                    </P>
+
+                    <P>
+                        Each R-group has an associated <strong>leaving group</strong> (H or OH). If an R-group is not used in a
+                        connection, it is replaced by its leaving group in the final structure.
+                    </P>
+
+                    <Sub2Title>Monomer categories in the chain track</Sub2Title>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700, width: 50 }}>Color</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#8FB3A5", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Natural</strong></TableCell>
+                                    <TableCell>Standard proteinogenic amino acids (Ala, Gly, Leu, …).</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#E0A387", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Non-natural</strong></TableCell>
+                                    <TableCell>Modified or non-standard amino acids and custom monomers.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><Box sx={{ width: 18, height: 18, borderRadius: 0.5, bgcolor: "#6B7B8C", border: "1px solid", borderColor: "divider" }} /></TableCell>
+                                    <TableCell><strong>Cap</strong></TableCell>
+                                    <TableCell>N-terminal or C-terminal capping groups (e.g. acetyl, amide).</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    {/* ── PEP-EDIT vs pyPept ── */}
+                    <SubTitle id="pepedit-vs-pypept">PEP-EDIT vs pyPept</SubTitle>
+
+                    <P>
+                        PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and conversion,
+                        which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation).
+                    </P>
+
+                    <Ul>
+                        <Li>
+                            pyPept paper:{" "}
+                            <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
+                                Springer — J Cheminform (2023)
+                            </MUILink>
+                        </Li>
+                        <Li>
+                            BILN paper:{" "}
+                            <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
+                                ACS — J Chem Inf Model (2022)
+                            </MUILink>
+                        </Li>
+                    </Ul>
+
+                    <P>
+                        PEP-EDIT relies on pyPept, but uses a modified version with several changes to support
+                        an interactive web workflow and structure-aware peptide design:
+                    </P>
+
+                    <Ul>
+                        <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
+                        <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
+                        <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
+                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure presets or PDB template constraints.</Li>
+                        <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
+                        <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
+                        <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
+                    </Ul>
 
                     <Divider sx={{ my: 4 }} />
 

@@ -35,7 +35,7 @@ import { svgToPngBlob, dataUriToBlob } from '../../utils/svgToPng';
 const OUTPUT_CATEGORIES = Object.freeze([
     {
         id: '1d',
-        label: '1D — Sequences & Notations',
+        label: '1D - Sequences & Notations',
         fields: [
             { key: 'biln', label: 'BILN', filename: 'pep-edit_biln.txt', mime: 'text/plain' },
             { key: 'helm', label: 'HELM', filename: 'pep-edit_helm.txt', mime: 'text/plain' },
@@ -46,7 +46,7 @@ const OUTPUT_CATEGORIES = Object.freeze([
     },
     {
         id: '2d',
-        label: '2D — Depiction & Coordinates',
+        label: '2D - Depiction & Coordinates',
         fields: [
             { key: 'sdf2d', label: 'SDF 2D', filename: 'pep-edit_2d.sdf', mime: 'chemical/x-mdl-sdfile' },
         ],
@@ -54,7 +54,7 @@ const OUTPUT_CATEGORIES = Object.freeze([
     },
     {
         id: '3d',
-        label: '3D — Structures',
+        label: '3D - Structures',
         fields: [
             { key: 'structure3D', label: 'PDB', filename: 'pep-edit_structure.pdb', mime: 'chemical/x-pdb' },
             { key: 'mmcif', label: 'MMCIF', filename: 'pep-edit_structure.cif', mime: 'chemical/x-mmcif' },
