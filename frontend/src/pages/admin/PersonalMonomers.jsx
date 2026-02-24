@@ -2211,9 +2211,10 @@ export default function PersonalMonomers() {
 
                 <FormWizard.TabContent title="Define attachment points" icon="ti-settings">
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>
-                      Click one or more bonds on the left to cut the molecule into fragments.{' '}
-                      Then select the fragment that will become the monomer core from the carousel on the right. A maximum of 4 attachment points ("*") is allowed.
+                    <StepGuidelineWithError title="Guideline" error={scratchStepError}>                        
+                      <strong>1.</strong> Click a bond on the molecule to break it. Each break creates an attachment point (marked "*") on both resulting fragments.{' '}
+                      You can break up to 4 bonds.<br />
+                      <strong>2.</strong> In the carousel on the right, select the fragment you want to keep as the monomer core.
                     </StepGuidelineWithError>
                     <TabStepBondsAndFragment
                       smiles={scratchSmiles}
