@@ -82,22 +82,26 @@ function Footer() {
         {/* ── Center: copyright & affiliation ─────────────────────────── */}
         <div className="flex flex-col items-center text-center leading-tight" style={{ fontSize: '0.75rem' }}>
           <span>
-            © 2025 PEP-EDIT —{' '}
+            © 2025 PEP-EDIT -{' '}
             <ExtLink href="https://bfa.u-pariscite.fr/rpbs/" style={linkStyle} {...linkHoverHandlers}>
               RPBS Platform
             </ExtLink>
           </span>
           <span style={{ opacity: 0.8 }}>
             <ExtLink href="https://bfa.u-pariscite.fr/" style={linkStyle} {...linkHoverHandlers}>
-              BFA
-            </ExtLink>
-            {' — '}
-            <ExtLink href="https://bfa.u-pariscite.fr/" style={linkStyle} {...linkHoverHandlers}>
               UMR 8251
+            </ExtLink>
+            {' - '}
+            <ExtLink href="https://www.cnrs.fr/" style={linkStyle} {...linkHoverHandlers}>
+              CNRS
             </ExtLink>
             {' · '}
             <ExtLink href="https://u-paris.fr/" style={linkStyle} {...linkHoverHandlers}>
               Université Paris Cité
+            </ExtLink>
+            {' · '}
+            <ExtLink href="https://www.inserm.fr/" style={linkStyle} {...linkHoverHandlers}>
+              Inserm
             </ExtLink>
           </span>
         </div>
