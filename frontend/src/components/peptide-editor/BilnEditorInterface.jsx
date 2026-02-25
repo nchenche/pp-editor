@@ -1,5 +1,5 @@
 // ...existing imports...
-import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 import { alpha } from '@mui/material/styles';
 import {
     Box,
@@ -34,6 +34,9 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import ScienceIcon from '@mui/icons-material/Science';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -123,6 +126,16 @@ export default function BilnEditorInterface({
         return localStorage.getItem('pp-chains-expanded') !== 'false';
     });
 
+    // Swap: render chains above manual edition
+    const [chainsFirst, setChainsFirst] = useState(() => {
+        return localStorage.getItem('pp-chains-first') === 'true';
+    });
+    // Detach: render chains in a floating modeless dialog
+    const [chainsDetached, setChainsDetached] = useState(false);
+    // Drag position for detached dialog (null = use default top-right)
+    const [detachedPos, setDetachedPos] = useState(null);
+    const dragRef = useRef(null); // { startX, startY, origX, origY }
+
     const toggleManual = () => {
         const next = !manualExpanded;
         localStorage.setItem('pp-manual-expanded', next);
@@ -134,6 +147,66 @@ export default function BilnEditorInterface({
         localStorage.setItem('pp-chains-expanded', next);
         setChainsExpanded(next);
     };
+
+    const toggleChainsFirst = () => {
+        const next = !chainsFirst;
+        localStorage.setItem('pp-chains-first', next);
+        setChainsFirst(next);
+    };
+
+    const toggleChainsDetached = () => {
+        setChainsDetached((prev) => !prev);
+    };
+
+    // -- Drag handlers for detached chains dialog --
+    const handleDragStart = useCallback((e) => {
+        // Only drag from the header bar (left mouse button)
+        if (e.button !== 0) return;
+        const paper = e.currentTarget.closest('.MuiPaper-root');
+        if (!paper) return;
+        const rect = paper.getBoundingClientRect();
+        dragRef.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top };
+        e.preventDefault();
+
+        const handleDragMove = (ev) => {
+            const d = dragRef.current;
+            if (!d) return;
+            const dx = ev.clientX - d.startX;
+            const dy = ev.clientY - d.startY;
+            // Clamp so the dialog stays mostly on-screen
+            const x = Math.max(0, Math.min(d.origX + dx, window.innerWidth - 120));
+            const y = Math.max(0, Math.min(d.origY + dy, window.innerHeight - 60));
+            setDetachedPos({ x, y });
+        };
+        const handleDragEnd = () => {
+            dragRef.current = null;
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+        };
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+    }, []);
+
+    // -- Auto-grow editor height on reattach so chains are visible --
+    const prevChainsDetachedRef = useRef(chainsDetached);
+    useLayoutEffect(() => {
+        const was = prevChainsDetachedRef.current;
+        prevChainsDetachedRef.current = chainsDetached;
+        // Only act on reattach transition (true → false)
+        if (was && !chainsDetached && onAdjustEditorHeight) {
+            // Wait one frame for the DOM to re-render chains inline
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const wrapper = document.querySelector('[data-chains-scroll]');
+                    if (!wrapper) return;
+                    const overflow = wrapper.scrollHeight - wrapper.clientHeight;
+                    if (overflow > 4) {
+                        onAdjustEditorHeight(overflow + 8);
+                    }
+                });
+            });
+        }
+    });
 
     // -- Auto-collapse manual section during link / cut mode --
     const manualBeforeLinkRef = useRef(null);
@@ -581,6 +654,17 @@ export default function BilnEditorInterface({
                         Editor interface
                     </Typography>
 
+                    <Tooltip title={chainsFirst ? 'Move manual editor to top' : 'Move chains to top'} arrow>
+                        <IconButton
+                            size="small"
+                            onClick={toggleChainsFirst}
+                            sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
+                            aria-label="swap sections"
+                        >
+                            <SwapVertIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </Tooltip>
+
                     <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
                     <Button
@@ -772,134 +856,242 @@ export default function BilnEditorInterface({
             />
 
             {/* Manual edition — collapsible */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 0.5 }}>
-                <Box
-                    onClick={toggleManual}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
-                >
-                    {manualExpanded
-                        ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
-                        : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
-                    }
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edition</Typography>
-                    <Tooltip title="BILN format help" arrow>
-                        <IconButton onClick={(e) => { e.stopPropagation(); setBilnHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
-                            <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
-
-                {/* Right-side toolbar: Manual-edit scoped actions (icon-only) */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <Tooltip title={'Upload sequence'} arrow>
-                        <span>
-                            <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleOpenUpload}
-                                disabled={isAtMonomerLimit}
-                                sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
-                                aria-label="upload sequence"
+            {(() => {
+                const manualSection = (
+                    <React.Fragment key="manual">
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', my: 0.5 }}>
+                            <Box
+                                onClick={toggleManual}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
                             >
-                                <UploadIcon fontSize="inherit" />
-                            </Button>
-                        </span>
-                    </Tooltip>
-                </Box>
-            </Box>
+                                {manualExpanded
+                                    ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                                    : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                                }
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edition</Typography>
+                                <Tooltip title="BILN format help" arrow>
+                                    <IconButton onClick={(e) => { e.stopPropagation(); setBilnHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                                        <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
 
-            {manualExpanded && (
-                <Box ref={manualContentRef} sx={{ pb: 0.5, flex: '0 0 auto' }}>
-                    <SequenceEditorPanel
-                        biln={biln}
-                        onChangeBiln={onChangeBiln}
-                        maxMonomers={maxMonomers}
-                    />
-                </Box>
-            )}
+                            {/* Right-side toolbar: Manual-edit scoped actions (icon-only) */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                <Tooltip title={'Upload sequence'} arrow>
+                                    <span>
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            onClick={handleOpenUpload}
+                                            disabled={isAtMonomerLimit}
+                                            sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
+                                            aria-label="upload sequence"
+                                        >
+                                            <UploadIcon fontSize="inherit" />
+                                        </Button>
+                                    </span>
+                                </Tooltip>
+                            </Box>
+                        </Box>
 
-            {/* CHAINS SECTION — collapsible */}
-            <Box
-                sx={{
-                    my: 0.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    flex: '1 1 auto',
-                    minHeight: 0,
-                    overflow: 'hidden',
-                    // Elevate above the editor dim-overlay during link/cut mode
-                    // so chains remain visually un-dimmed and hoverable.
-                    ...((linkMode || bondsMode) && {
-                        position: 'relative',
-                        zIndex: 3,
-                    }),
-                }}
-            >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>
+                        {manualExpanded && (
+                            <Box ref={manualContentRef} sx={{ pb: 0.5, flex: '0 0 auto' }}>
+                                <SequenceEditorPanel
+                                    biln={biln}
+                                    onChangeBiln={onChangeBiln}
+                                    maxMonomers={maxMonomers}
+                                />
+                            </Box>
+                        )}
+                    </React.Fragment>
+                );
 
+                const chainsContent = (
+                    <>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, flex: '0 0 auto' }}>
+
+                            <Box
+                                onClick={toggleChains}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
+                            >
+                                {chainsExpanded
+                                    ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                                    : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
+                                }
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>
+                                    Chains
+                                </Typography>
+                                <Tooltip title="Chains help" arrow>
+                                    <IconButton onClick={(e) => { e.stopPropagation(); setSeqHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                                        <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
+                                    </IconButton>
+                                </Tooltip>
+                                {!chainsDetached && (
+                                    <Tooltip title="Detach chains to floating panel" arrow>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => { e.stopPropagation(); toggleChainsDetached(); }}
+                                            sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}
+                                            aria-label="detach chains"
+                                        >
+                                            <OpenInNewIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Box>
+
+                            <ChainsToolbar
+                                onAddChain={() => {
+                                    const currentChainCount = (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains;
+                                    if (currentChainCount >= 10) return;
+                                    setExtraEmptyChains((c) => c + 1);
+                                }}
+                                maxChainsReached={((Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains) >= 10}
+                                constraintMode={constraintMode}
+                                onConstraintModeChange={onConstraintModeChange}
+                                canUseTemplateMode={canUseTemplateMode}
+                            />
+                        </Box>
+
+                        {chainsExpanded && (
+                        <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
+                            <ChainSlots
+                                rowMonomerLists={rowMonomerLists}
+                                extraEmptyChains={extraEmptyChains}
+                                setExtraEmptyChains={setExtraEmptyChains}
+                                activeSeqIdx={activeSeqIdx}
+                                onSetActiveSeqIdx={onSetActiveSeqIdx}
+                                linkMap={linkMap}
+                                handleDeleteMonomerItem={handleDeleteMonomerItem}
+                                onDragStart={onDragStart}
+                                onDragEnd={onDragEnd}
+                                handleMonomerEnter={handleMonomerEnter}
+                                handleMonomerLeave={handleMonomerLeave}
+                                handleDeleteSequence={handleDeleteSequence}
+                                constraintsBySeq={constraintsBySeq}
+                                onEditConstraint={onEditConstraint}
+                                constraintMode={constraintMode}
+                                // Scaffold mapping
+                                scaffoldTemplate={scaffoldTemplate}
+                                scaffoldMappings={scaffoldMappings}
+                                onEditScaffoldMapping={onEditScaffoldMapping}
+                                onOpenTemplatePanel={onOpenTemplatePanel}
+                                onOpenScaffoldDialog={openScaffoldDialog}
+                                onClearScaffold={onClearScaffold}
+                                onCircularizeSequence={onCircularizeSequence}
+                                onUncircularizeSequence={onUncircularizeSequence}
+                                onMirrorSequence={onMirrorSequence}
+                            />
+                        </Box>
+                        )}
+                    </>
+                );
+
+                const chainsSection = (
                     <Box
-                        onClick={toggleChains}
-                        sx={{ display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer', userSelect: 'none', '&:hover .section-chevron': { color: 'text.primary' } }}
-                    >
-                        {chainsExpanded
-                            ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
-                            : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
-                        }
-                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>
-                            Chains
-                        </Typography>
-                        <Tooltip title="Chains help" arrow>
-                            <IconButton onClick={(e) => { e.stopPropagation(); setSeqHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
-                                <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-
-                    <ChainsToolbar
-                        onAddChain={() => {
-                            const currentChainCount = (Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains;
-                            if (currentChainCount >= 10) return;
-                            setExtraEmptyChains((c) => c + 1);
+                        key="chains"
+                        sx={{
+                            my: 0.5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flex: '1 1 auto',
+                            minHeight: 0,
+                            overflow: 'hidden',
+                            // Elevate above the editor dim-overlay during link/cut mode
+                            // so chains remain visually un-dimmed and hoverable.
+                            ...((linkMode || bondsMode) && {
+                                position: 'relative',
+                                zIndex: 3,
+                            }),
                         }}
-                        maxChainsReached={((Array.isArray(rowMonomerLists) ? rowMonomerLists.length : 0) + extraEmptyChains) >= 10}
-                        constraintMode={constraintMode}
-                        onConstraintModeChange={onConstraintModeChange}
-                        canUseTemplateMode={canUseTemplateMode}
-                    />
-                </Box>
+                    >
+                        {!chainsDetached && chainsContent}
+                        {chainsDetached && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1, px: 0.5, color: 'text.disabled' }}>
+                                <OpenInNewIcon sx={{ fontSize: 16 }} />
+                                <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
+                                    Chains detached — click <VerticalAlignBottomIcon sx={{ fontSize: 12, verticalAlign: 'middle', mx: 0.25 }} /> to reattach
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
+                );
 
-                {chainsExpanded && (
-                <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
-                    <ChainSlots
-                        rowMonomerLists={rowMonomerLists}
-                        extraEmptyChains={extraEmptyChains}
-                        setExtraEmptyChains={setExtraEmptyChains}
-                        activeSeqIdx={activeSeqIdx}
-                        onSetActiveSeqIdx={onSetActiveSeqIdx}
-                        linkMap={linkMap}
-                        handleDeleteMonomerItem={handleDeleteMonomerItem}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEnd}
-                        handleMonomerEnter={handleMonomerEnter}
-                        handleMonomerLeave={handleMonomerLeave}
-                        handleDeleteSequence={handleDeleteSequence}
-                        constraintsBySeq={constraintsBySeq}
-                        onEditConstraint={onEditConstraint}
-                        constraintMode={constraintMode}
-                        // Scaffold mapping
-                        scaffoldTemplate={scaffoldTemplate}
-                        scaffoldMappings={scaffoldMappings}
-                        onEditScaffoldMapping={onEditScaffoldMapping}
-                        onOpenTemplatePanel={onOpenTemplatePanel}
-                        onOpenScaffoldDialog={openScaffoldDialog}
-                        onClearScaffold={onClearScaffold}
-                        onCircularizeSequence={onCircularizeSequence}
-                        onUncircularizeSequence={onUncircularizeSequence}
-                        onMirrorSequence={onMirrorSequence}
-                    />
-                </Box>
-                )}
-            </Box>
+                const detachedDialog = (
+                    <Dialog
+                        open={chainsDetached}
+                        onClose={toggleChainsDetached}
+                        hideBackdrop
+                        disableEnforceFocus
+                        disableScrollLock
+                        maxWidth={false}
+                        PaperProps={{
+                            sx: {
+                                position: 'fixed',
+                                ...(detachedPos
+                                    ? { top: detachedPos.y, left: detachedPos.x, bottom: 'auto', right: 'auto' }
+                                    : { top: 16, right: 16, bottom: 'auto', left: 'auto' }
+                                ),
+                                m: 0,
+                                width: { xs: '95vw', sm: 520, md: 620 },
+                                maxHeight: '45vh',
+                                minHeight: 200,
+                                resize: 'both',
+                                overflow: 'auto',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxShadow: 8,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                            },
+                        }}
+                        sx={{
+                            pointerEvents: 'none',
+                            '& .MuiDialog-container': { pointerEvents: 'none' },
+                            '& .MuiPaper-root': { pointerEvents: 'auto' },
+                        }}
+                    >
+                        <Box
+                            onMouseDown={handleDragStart}
+                            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 0.75, borderBottom: '1px solid', borderColor: 'divider', flex: '0 0 auto', cursor: 'grab', userSelect: 'none', '&:active': { cursor: 'grabbing' } }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px' }}>
+                                Chains (detached)
+                            </Typography>
+                            <Tooltip title="Reattach chains" arrow>
+                                <IconButton
+                                    size="small"
+                                    onClick={toggleChainsDetached}
+                                    sx={{ color: 'primary.main', p: 0.25, '&:hover': { color: 'primary.dark' } }}
+                                    aria-label="reattach chains"
+                                >
+                                    <VerticalAlignBottomIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                        <Box
+                            sx={{
+                                flex: '1 1 auto',
+                                minHeight: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                p: 1,
+                                ...((linkMode || bondsMode) && {
+                                    position: 'relative',
+                                    zIndex: 3,
+                                }),
+                            }}
+                        >
+                            {chainsDetached && chainsContent}
+                        </Box>
+                    </Dialog>
+                );
+
+                return chainsFirst
+                    ? <>{chainsSection}{manualSection}{detachedDialog}</>
+                    : <>{manualSection}{chainsSection}{detachedDialog}</>;
+            })()}
 
 
             {/* BILN help dialog with examples */}
