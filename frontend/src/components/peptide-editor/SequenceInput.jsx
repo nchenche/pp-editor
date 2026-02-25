@@ -20,6 +20,7 @@ export function SequenceInput({
   onChangeValue,
   error,
   helperText,
+  serverError,
   maxMonomers = 40,
   ...props
 }) {
@@ -29,7 +30,6 @@ export function SequenceInput({
     [monomerCount, maxMonomers],
   );
 
-  // CHANGED: show either error/help OR counter (not both)
   const composedHelper = useMemo(() => {
     if (error) {
       return (
@@ -40,17 +40,27 @@ export function SequenceInput({
     }
 
     return (
-      <Typography
-        variant="caption"
-        sx={{
-          color: monomerCount >= maxMonomers ? 'warning.main' : 'text.secondary',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {counterText}
-      </Typography>
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: monomerCount >= maxMonomers ? 'warning.main' : 'text.secondary',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {counterText}
+        </Typography>
+        {serverError && (
+          <Typography
+            variant="caption"
+            sx={{ color: 'error.main', whiteSpace: 'nowrap' }}
+          >
+            | {serverError}
+          </Typography>
+        )}
+      </Box>
     );
-  }, [error, helperText, counterText, monomerCount, maxMonomers]);
+  }, [error, helperText, counterText, monomerCount, maxMonomers, serverError]);
 
   return (
     <TextField
@@ -76,7 +86,7 @@ export function SequenceInput({
   );
 }
 
-export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
+export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40, serverError }) {
   const [bilnText, setBilnText] = useState(biln || '');
   const [error, setError] = useState('');
 
@@ -107,6 +117,7 @@ export function SequenceEditorPanel({ biln, onChangeBiln, maxMonomers = 40 }) {
           onChangeValue={handleBilnChange}
           error={error}
           helperText={error}
+          serverError={serverError}
           maxMonomers={maxMonomers}
         />
       </Stack>

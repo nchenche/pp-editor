@@ -639,7 +639,7 @@ const Documentation = () => {
                     <SubTitle id="editor-interface">Editor interface</SubTitle>
 
                     <P>
-                        The editor interface (zone ① in the overview) occupies the top-left of the screen. It is divided
+                        The editor interface (zone (1) in the overview) occupies the top-left of the screen. It is divided
                         into two collapsible sections: <strong>Manual edition</strong> (the BILN input field and editor toolbar)
                         and <strong>Chains</strong> (the visual chain track, constraint rows, and chain-level actions).
                     </P>
@@ -676,7 +676,7 @@ const Documentation = () => {
 
                     <P><strong>Validation feedback</strong></P>
                     <Ul>
-                        <Li><strong>Unrecognized monomer</strong> — a red error message appears below the 2D Sketch.</Li>
+                        <Li><strong>Unrecognized monomer</strong> — a red error message appears next to the monomer counter below the BILN input field.</Li>
                         <Li><strong>Exceeds 40 monomers</strong> — a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
                         <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
                     </Ul>

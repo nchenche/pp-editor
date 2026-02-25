@@ -55,6 +55,7 @@ export default function BilnEditorInterface({
     biln,
     maxMonomers = 40,
     isAtMonomerLimit = false,
+    depictionError,
     onChangeBiln,
     hoveredResidueIdx,
     canUndo,
@@ -927,6 +928,7 @@ export default function BilnEditorInterface({
                                     biln={biln}
                                     onChangeBiln={onChangeBiln}
                                     maxMonomers={maxMonomers}
+                                    serverError={depictionError}
                                 />
                             </Box>
                         )}

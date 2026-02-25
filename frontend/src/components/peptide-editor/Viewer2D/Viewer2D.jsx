@@ -6,8 +6,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-
 import Box from "@mui/material/Box";
 
 
@@ -141,7 +139,6 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         handleShowingAtomIndices,
         onLinkMonomers,
         onBreakBond,
-        error,
         onModesChange
     } = props;
 
@@ -399,12 +396,7 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
                 </div>
             )}
 
-            {/* Error below viewer */}
-            {error && (
-                <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center text-red-500 text-sm">
-                    <ErrorOutlineIcon className="mr-1" /> {error}
-                </div>
-            )}
+
         </Box>
     );
 });
