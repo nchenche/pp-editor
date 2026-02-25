@@ -38,6 +38,7 @@ import PendingIcon from '@mui/icons-material/HourglassEmpty';
 import SendIcon from '@mui/icons-material/Send';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 
 import { useSessionLoader, SESSION_LOAD_STATE } from '../../hooks/useSessionLoader';
 import { useShellTheme } from '../../theme/ShellThemeProvider';
@@ -58,6 +59,7 @@ import {
   setLocalSessionMeta,
 } from '../../utils/sessionApi';
 import { InlineSessionNameEditor } from './InlineSessionNameEditor';
+import ContactDialog from '../common/ContactDialog';
 
 /**
  * Header component with automatic session loading and management UI.
@@ -77,6 +79,7 @@ function Header({ children }) {
 
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState(0); // 0: Share, 1: Recover, 2: Settings
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
 
   // Email status state (fetched from /email/status endpoint)
   const [emailStatus, setEmailStatus] = useState(null);
@@ -776,6 +779,27 @@ function Header({ children }) {
             </IconButton>
           </Tooltip>
 
+          {/* ── Contact support ── */}
+          <Button
+            size="small"
+            onClick={() => setIsContactDialogOpen(true)}
+            startIcon={<ContactSupportIcon sx={{ fontSize: 16 }} />}
+            sx={{
+              color: 'rgba(226, 232, 240, 0.75)',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              minWidth: 'auto',
+              px: 1,
+              py: 0.25,
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              '&:hover': { color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' },
+            }}
+          >
+            Contact
+          </Button>
+
           {/* ── Right: Session widget ── */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             {isLoading ? (
@@ -1322,6 +1346,14 @@ function Header({ children }) {
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        {/* Contact support dialog */}
+        <ContactDialog
+          open={isContactDialogOpen}
+          onClose={() => setIsContactDialogOpen(false)}
+          sessionId={sessionId}
+          defaultEmail={emailStatus?.email_verified ? emailStatus.email : ''}
+        />
       </header>
 
       {/* Blocking overlay if session failed to load */}

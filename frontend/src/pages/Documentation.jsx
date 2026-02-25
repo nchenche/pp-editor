@@ -330,6 +330,7 @@ const Card = ({ title, children }) => (
     </Box>
 );
 
+
 /* ─────────────────────────────────────────────
    Main component
    ───────────────────────────────────────────── */
@@ -419,7 +420,7 @@ const Documentation = () => {
                         PEP-EDIT
                     </Typography>
                     <Typography variant="h6" sx={{ color: "text.secondary", fontWeight: 400, mb: 3, lineHeight: 1.5 }}>
-                        Interactive web application for peptide design, editing and 3D conformer generation — supporting standard, non-standard, cyclic and branched peptides.
+                        Interactive web application for peptide design, editing and 3D conformer generation - supporting standard, non-standard, cyclic and branched peptides.
                     </Typography>
 
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
@@ -439,11 +440,11 @@ const Documentation = () => {
 
                     <P>
                         PEP-EDIT is an interactive web application for the easy and rapid editing and generation of peptide
-                        representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ). 
-                        Unlike <MUILink href="https://doi.org/10.1093/nar/gkad376" target="_blank" rel="noreferrer">PEP-FOLD</MUILink> or 
-                        other tools that predict peptide 3D structure from sequence alone, PEP-EDIT focuses on 
+                        representations in 1D (SMILES, BILN, HELM), 2D (SDF/MOL2) and 3D (PDB/SDF/XYZ).
+                        Unlike <MUILink href="https://doi.org/10.1093/nar/gkad376" target="_blank" rel="noreferrer">PEP-FOLD</MUILink> or
+                        other tools that predict peptide 3D structure from sequence alone, PEP-EDIT focuses on
                         <strong> building, editing and exporting</strong> peptide representations - including non-standard
-                        monomers, cyclic and branched architectures - and provides conformer generation as a preparation utility, 
+                        monomers, cyclic and branched architectures - and provides conformer generation as a preparation utility,
                         not as a structure prediction method.
                     </P>
 
@@ -492,69 +493,39 @@ const Documentation = () => {
                     <Divider sx={{ my: 4 }} />
 
                     {/* ── Quick start ── */}
-                    <SectionTitle id="quick-start">Quick start - your first peptide in 20 seconds</SectionTitle>
-
-                    <Sub2Title>Step 1 — Enter a sequence</Sub2Title>
+                    <SectionTitle id="quick-start">Quick start: your first peptide in 20 seconds</SectionTitle>
 
                     <P>
-                        In the BILN editor (top-left), type:
-                    </P>
-                    <CodeBlock>{"ac-A-G-K-D-am"}</CodeBlock>
-                    <P>
-                        This defines: acetyl cap – Ala – Gly – Lys – Asp – amide cap.
-                        The input is live — the 2D Sketch updates as you type, as soon as
-                        the BILN is syntactically valid. No need to press Enter.
+                        Watch the full workflow - from an empty editor to a downloadable 3D conformer:
                     </P>
 
-                    {/* [MEDIA #1: GIF — typing ac-A-G-K-D-am, 2D updating. ~6s] */}
                     <Figure
                         src="/assets/documentation/gifs/quick-start-step1-3.gif"
-                        alt="Typing a BILN sequence and watching the 2D view update"
-                        caption="Type a BILN sequence — the 2D Sketch updates live as you type."
+                        alt="Full PEP-EDIT workflow: type a BILN sequence, generate 3D, export"
+                        caption="From BILN input to 3D export in one take. The 2D Sketch, chain track, and 1D outputs update live as you type; clicking Generate 3D produces a conformer and unlocks all 3D export formats."
                         openLightbox={openLightbox}
                     />
 
-                    <P>
-                        Alternatively, click <strong>Examples…</strong> in the editor toolbar and pick
-                        a pre-built example to load instantly. There are 15 examples across
-                        6 categories (linear, cyclic, capped, non-natural, secondary-structure
-                        constraints, and 3D template constraints).
-                    </P>
-
-                    <Sub2Title>Step 2 — Generate 3D</Sub2Title>
+                    <P><strong>What just happened:</strong></P>
+                    <Ol>
+                        <Li>A BILN sequence was typed in the editor; the 2D Sketch and 1D outputs (SMILES, HELM…) updated live with each keystroke.</Li>
+                        <Li>The chain track populated with color-coded monomer pills.</Li>
+                        <Li><strong>Generate 3D</strong> was clicked; a conformer job ran and the 3D viewer loaded the result. All 3D export formats (PDB, mmCIF, XYZ...) became available in the <strong>Output</strong> tab.</Li>
+                    </Ol>
 
                     <P>
-                        For short peptides (&lt; 8 monomers), <strong>Auto sync</strong> is on by default —
-                        the 3D conformer generates automatically. Check the 3D viewer (bottom-right).
-                    </P>
-                    <P>
-                        For longer peptides, or if Auto sync is off, click the{" "}
-                        <strong>▶ Generate 3D</strong> button (in the 3D viewer toolbar). A job appears
-                        in the <strong>Jobs</strong> tab (right panel) and the result loads on completion.
+                        <strong>Try it yourself:</strong> type <code>ac-A-G-K-D-am</code> in the BILN editor,
+                        or click <strong>Examples...</strong> to load one of the 15 pre-built peptides.
                     </P>
 
-                    {/* [MEDIA #2: GIF — auto-sync or Generate 3D → 3D appears. ~5s] */}
                     <Figure
-                        src="/assets/documentation/quick-start-step2.gif"
-                        alt="3D conformer generating automatically"
-                        caption="Auto sync generates the 3D conformer automatically for short peptides."
-                        openLightbox={openLightbox}
-                    />
-
-                    <Sub2Title>Step 3 — Export</Sub2Title>
-
-                    <P>
-                        Open the <strong>Output</strong> tab (right panel). Formats are grouped into
-                        1D (BILN, HELM, SMILES…), 2D (SDF), and 3D (PDB, mmCIF, XYZ…).
-                        Click the download icon on any format, or use the{" "}
-                        <strong>Download all</strong> button at the top.
-                    </P>
-
-                    {/* [MEDIA #3: Screenshot — Output tab with sections visible] */}
-                    <Figure
-                        src="/assets/documentation/quick-start-step3.png"
-                        alt="Output tab showing available export formats"
-                        caption="The Output tab lists all available export formats with Copy and Download buttons."
+                        src="/assets/documentation/gifs/quick-start-examples.gif"
+                        alt="Clicking Examples... to load pre-built peptides"
+                        caption={
+                            <>
+                                Click the <strong>Examples...</strong> dropdown in the editor toolbar to load any of the 15 pre-built peptides - including linear, cyclic, and branched architectures, with various non-standard monomers. This is a great way to explore the capabilities of PEP-EDIT and jumpstart your design.
+                            </>
+                        }
                         openLightbox={openLightbox}
                     />
 
@@ -588,10 +559,10 @@ const Documentation = () => {
                     <P>The interface is organized into the following main areas:</P>
 
                     <Ol>
-                        <Li><strong>Editor interface</strong> — BILN sequence input, chain management and constraint tracks. This is the primary area for defining and editing your peptide.</Li>
-                        <Li><strong>2D viewer</strong> — interactive SVG depiction of the molecule, rendered by RDKit. Supports hover highlighting, linking, bond cutting, and monomer replacement.</Li>
-                        <Li><strong>3D viewer</strong> — conformer visualization powered by Mol*. Includes toolbar controls for representation, color scheme, labels, background, and camera.</Li>
-                        <Li><strong>Right panel</strong> — a collapsible, resizable sidebar with three tabs (see below).</Li>
+                        <Li><strong>Editor interface</strong> - BILN sequence input, chain management and constraint tracks. This is the primary area for defining and editing your peptide.</Li>
+                        <Li><strong>2D viewer</strong> - interactive SVG depiction of the molecule, rendered by RDKit. Supports hover highlighting, linking, bond cutting, and monomer replacement.</Li>
+                        <Li><strong>3D viewer</strong> - conformer visualization powered by Mol*. Includes toolbar controls for representation, color scheme, labels, background, and camera.</Li>
+                        <Li><strong>Right panel</strong> - a collapsible, resizable sidebar with three tabs (see below).</Li>
                     </Ol>
 
                     {/* ── BILN editor & chain track ── */}
@@ -610,15 +581,15 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li><strong>BILN text field</strong> — a live text input for typing or pasting BILN sequences directly. Changes are applied on every keystroke (no Enter or Apply button needed). The 2D/3D views update once the syntax is valid.</Li>
-                        <Li><strong>Editor toolbar</strong> — contains the <strong>Link</strong> tool (create bonds between monomers), <strong>Cut</strong> tool (remove bonds), a <strong>pH slider</strong> (0–12, default 7.4), <strong>Undo/Redo</strong> buttons, and the <strong>Examples…</strong> dropdown.</Li>
-                        <Li><strong>Chain track</strong> — a visual row of monomer slots for each chain. Monomers are color-coded by type (green = natural, orange = non-natural, gray = cap). You can hover to see details, click the replace icon to swap a monomer, or <strong>drag-and-drop</strong> to reorder monomers within or across chains.</Li>
-                        <Li><strong>Constraint track</strong> — visible when a constraint mode is active. Shows per-residue secondary-structure assignments (H/E/−) or 3D template mapping status.</Li>
-                        <Li><strong>Chains toolbar</strong> — a ⋮ menu on each chain row provides actions like <strong>Cyclize</strong> (head-to-tail), <strong>Mirror</strong> (swap L/D amino acids), <strong>Delete chain</strong>, and constraint bulk-set operations.</Li>
+                        <Li><strong>BILN text field</strong> - a live text input for typing or pasting BILN sequences directly. Changes are applied on every keystroke (no Enter or Apply button needed). The 2D/3D views update once the syntax is valid.</Li>
+                        <Li><strong>Editor toolbar</strong> - contains the <strong>Link</strong> tool (create bonds between monomers), <strong>Cut</strong> tool (remove bonds), a <strong>pH slider</strong> (0–12, default 7.4), <strong>Undo/Redo</strong> buttons, and the <strong>Examples…</strong> dropdown.</Li>
+                        <Li><strong>Chain track</strong> - a visual row of monomer slots for each chain. Monomers are color-coded by type (green = natural, orange = non-natural, gray = cap). You can hover to see details, click the replace icon to swap a monomer, or <strong>drag-and-drop</strong> to reorder monomers within or across chains.</Li>
+                        <Li><strong>Constraint track</strong> - visible when a constraint mode is active. Shows per-residue secondary-structure assignments (H/E/−) or 3D template mapping status.</Li>
+                        <Li><strong>Chains toolbar</strong> - a ⋮ menu on each chain row provides actions like <strong>Cyclize</strong> (head-to-tail), <strong>Mirror</strong> (swap L/D amino acids), <strong>Delete chain</strong>, and constraint bulk-set operations.</Li>
                     </Ul>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        The BILN input supports a <strong>CodeMirror</strong>-based editor with syntax highlighting as an alternative to the plain text field. Both behave identically — live updates, no submit button.
+                        The BILN input supports a <strong>CodeMirror</strong>-based editor with syntax highlighting as an alternative to the plain text field. Both behave identically - live updates, no submit button.
                     </Alert>
 
                     {/* ── 2D viewer ── */}
@@ -640,10 +611,10 @@ const Documentation = () => {
 
                     <P><strong>Toolbar</strong> (left to right):</P>
                     <Ol>
-                        <Li><strong>Link</strong> — toggle link mode: click R-groups on monomers to create a new bond.</Li>
-                        <Li><strong>Unlink</strong> — toggle cut mode: double-click an existing bond to remove it.</Li>
-                        <Li><strong>Reset View</strong> — reset any zoom/pan back to the default fitted view.</Li>
-                        <Li><strong>Download SVG</strong> — download the current 2D depiction as an SVG file.</Li>
+                        <Li><strong>Link</strong> - toggle link mode: click R-groups on monomers to create a new bond.</Li>
+                        <Li><strong>Unlink</strong> - toggle cut mode: double-click an existing bond to remove it.</Li>
+                        <Li><strong>Reset View</strong> - reset any zoom/pan back to the default fitted view.</Li>
+                        <Li><strong>Download SVG</strong> - download the current 2D depiction as an SVG file.</Li>
                     </Ol>
 
                     <P><strong>Navigation:</strong></P>
@@ -654,7 +625,7 @@ const Documentation = () => {
                     </Ul>
 
                     <P>
-                        <strong>Hover</strong> over a monomer to highlight it — the highlight is synced across
+                        <strong>Hover</strong> over a monomer to highlight it - the highlight is synced across
                         the chain track and the 3D viewer. Clicking a monomer in the 2D view has no effect
                         in normal mode; click interactions only activate when Link or Unlink mode is on.
                     </P>
@@ -679,14 +650,14 @@ const Documentation = () => {
 
                     <P><strong>Toolbar</strong> (left to right, after the Generate 3D button and Auto sync toggle):</P>
                     <Ol>
-                        <Li><strong>Representation</strong> — open a side panel to pick the 3D representation (line, ball-and-stick, cartoon, etc.).</Li>
-                        <Li><strong>Color by</strong> — open a side panel to choose a color scheme.</Li>
-                        <Li><strong>Labels</strong> — open a side panel to toggle atom/residue labels.</Li>
-                        <Li><strong>Light/Dark background</strong> — toggle the Mol* canvas background.</Li>
-                        <Li><strong>View</strong> — open a side panel with camera controls (reset view, lock camera).</Li>
-                        <Li><strong>Template</strong> — manage scaffold template overlays (tinted when a template is loaded).</Li>
-                        <Li><strong>Snapshot</strong> — download a PNG screenshot of the current 3D viewport.</Li>
-                        <Li><strong>Log</strong> — open a side panel showing the generation job log.</Li>
+                        <Li><strong>Representation</strong> - open a side panel to pick the 3D representation (line, ball-and-stick, cartoon, etc.).</Li>
+                        <Li><strong>Color by</strong> - open a side panel to choose a color scheme.</Li>
+                        <Li><strong>Labels</strong> - open a side panel to toggle atom/residue labels.</Li>
+                        <Li><strong>Light/Dark background</strong> - toggle the Mol* canvas background.</Li>
+                        <Li><strong>View</strong> - open a side panel with camera controls (reset view, lock camera).</Li>
+                        <Li><strong>Template</strong> - manage scaffold template overlays (tinted when a template is loaded).</Li>
+                        <Li><strong>Snapshot</strong> - download a PNG screenshot of the current 3D viewport.</Li>
+                        <Li><strong>Log</strong> - open a side panel showing the generation job log.</Li>
                     </Ol>
 
                     <P><strong>Auto sync</strong> and <strong>Generate 3D</strong>:</P>
@@ -727,8 +698,8 @@ const Documentation = () => {
                                 (queued, running, success, failed), creation time, and a name that can be edited inline.
                             </Typography>
                             <Ul>
-                                <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (SS or template + scaffold mappings), and loads the 3D conformer into the viewer. Auto-regeneration is suppressed so the restored conformer is displayed as-is.</Li>
-                                <Li><strong>⋮ menu</strong> — <em>Edit details</em> (rename/describe the job) and <em>Copy BILN</em> (copy the job's BILN to the clipboard).</Li>
+                                <Li><strong>Resume</strong> - restores <em>everything</em>: the BILN sequence, all constraints (SS or template + scaffold mappings), and loads the 3D conformer into the viewer. Auto-regeneration is suppressed so the restored conformer is displayed as-is.</Li>
+                                <Li><strong>⋮ menu</strong> - <em>Edit details</em> (rename/describe the job) and <em>Copy BILN</em> (copy the job's BILN to the clipboard).</Li>
                             </Ul>
                         </Card>
                     </CardGrid>
@@ -738,7 +709,7 @@ const Documentation = () => {
 
                     <P>
                         A <strong>Session ID</strong> is the key that ties together your personal monomers, conformer jobs, and editor state.
-                        No account or login is required — the session is anonymous and identified only by its unique ID.
+                        No account or login is required - the session is anonymous and identified only by its unique ID.
                     </P>
 
                     <Sub2Title>How a session is created</Sub2Title>
@@ -751,8 +722,8 @@ const Documentation = () => {
 
                     <Sub2Title>What a session contains</Sub2Title>
                     <Ul>
-                        <Li><strong>Personal monomers</strong> — custom monomers you created or uploaded in <em>My monomers</em>.</Li>
-                        <Li><strong>Conformer generation jobs</strong> — every 3D job submitted under this session.</Li>
+                        <Li><strong>Personal monomers</strong> - custom monomers you created or uploaded in <em>My monomers</em>.</Li>
+                        <Li><strong>Conformer generation jobs</strong> - every 3D job submitted under this session.</Li>
                     </Ul>
 
                     <Sub2Title>Naming a session</Sub2Title>
@@ -784,9 +755,9 @@ const Documentation = () => {
                                 Get back into a session you no longer have in your browser:
                             </Typography>
                             <Ol>
-                                <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
-                                <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
-                                <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
+                                <Li><strong>Load by ID</strong> - paste a Session ID and click Load Session.</Li>
+                                <Li><strong>Email this session ID</strong> - sends the current ID to your verified email.</Li>
+                                <Li><strong>Email all session IDs</strong> - sends every Session ID linked to your email.</Li>
                             </Ol>
                         </Card>
                     </CardGrid>
@@ -859,14 +830,14 @@ const Documentation = () => {
                     />
 
                     <P>
-                        A <strong>monomer</strong> is the basic building block in PEP-EDIT — an amino acid, cap, or chemical moiety.
+                        A <strong>monomer</strong> is the basic building block in PEP-EDIT - an amino acid, cap, or chemical moiety.
                         Each monomer has <strong>attachment points</strong> (R-groups) that define where it can connect to other monomers.
                     </P>
 
                     <Ul>
-                        <Li><strong>R1</strong> — typically the backbone nitrogen (N-terminus side).</Li>
-                        <Li><strong>R2</strong> — typically the backbone carbonyl carbon (C-terminus side).</Li>
-                        <Li><strong>R3, R4…</strong> — side chains, branching points, or specific chemical modifications.</Li>
+                        <Li><strong>R1</strong> - typically the backbone nitrogen (N-terminus side).</Li>
+                        <Li><strong>R2</strong> - typically the backbone carbonyl carbon (C-terminus side).</Li>
+                        <Li><strong>R3, R4…</strong> - side chains, branching points, or specific chemical modifications.</Li>
                     </Ul>
 
                     <P>
@@ -922,13 +893,13 @@ const Documentation = () => {
                         <Li>
                             pyPept paper:{" "}
                             <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
-                                Springer — J Cheminform (2023)
+                                Springer - J Cheminform (2023)
                             </MUILink>
                         </Li>
                         <Li>
                             BILN paper:{" "}
                             <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
-                                ACS — J Chem Inf Model (2022)
+                                ACS - J Chem Inf Model (2022)
                             </MUILink>
                         </Li>
                     </Ul>
@@ -1013,8 +984,8 @@ const Documentation = () => {
                     <SubTitle id="constraints">Setting constraints</SubTitle>
                     <P>PEP-EDIT can guide conformer generation using two mutually exclusive constraint types:</P>
                     <Ul>
-                        <Li><strong>Secondary structure constraints (2D)</strong> — per-residue backbone angle presets (H / E / -).</Li>
-                        <Li><strong>3D template constraints</strong> — backbone coordinate constraints from a PDB/mmCIF structure.</Li>
+                        <Li><strong>Secondary structure constraints (2D)</strong> - per-residue backbone angle presets (H / E / -).</Li>
+                        <Li><strong>3D template constraints</strong> - backbone coordinate constraints from a PDB/mmCIF structure.</Li>
                     </Ul>
 
                     <Sub2Title id="constraints-2d">Secondary structure (2D) constraints</Sub2Title>
@@ -1045,7 +1016,7 @@ const Documentation = () => {
                             <TableBody>
                                 <TableRow><TableCell><code><strong>H</strong></code></TableCell><TableCell>Alpha helix</TableCell><TableCell>Constrained to helical conformation.</TableCell></TableRow>
                                 <TableRow><TableCell><code><strong>E</strong></code></TableCell><TableCell>Beta strand</TableCell><TableCell>Constrained to extended strand conformation.</TableCell></TableRow>
-                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference — free to adopt any conformation.</TableCell></TableRow>
+                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference - free to adopt any conformation.</TableCell></TableRow>
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -1102,9 +1073,9 @@ const Documentation = () => {
                         independent monomer row in the editor, separated by <code>.</code> in the BILN sequence.
                     </P>
                     <Ol>
-                        <Li><strong>BILN sequence</strong> — each chain is separated by a "." in the combined BILN string.</Li>
-                        <Li><strong>Constraints</strong> — each chain has its own secondary-structure or 3D-template constraint track.</Li>
-                        <Li><strong>Viewers</strong> — the 2D and 3D viewers update to reflect all chains.</Li>
+                        <Li><strong>BILN sequence</strong> - each chain is separated by a "." in the combined BILN string.</Li>
+                        <Li><strong>Constraints</strong> - each chain has its own secondary-structure or 3D-template constraint track.</Li>
+                        <Li><strong>Viewers</strong> - the 2D and 3D viewers update to reflect all chains.</Li>
                     </Ol>
 
                     <Divider sx={{ my: 4 }} />
@@ -1128,16 +1099,16 @@ const Documentation = () => {
                     <Sub2Title>Placement mode</Sub2Title>
                     <P>The placement mode (in the library header) controls where a monomer is inserted when you click <strong>+</strong>:</P>
                     <Ul>
-                        <Li><strong>Append</strong> — adds the monomer at the C-terminus (end) of the active chain.</Li>
-                        <Li><strong>Prepend</strong> — inserts the monomer at the N-terminus (beginning) of the active chain.</Li>
-                        <Li><strong>New chain</strong> — starts a brand-new chain (default when the editor is empty).</Li>
+                        <Li><strong>Append</strong> - adds the monomer at the C-terminus (end) of the active chain.</Li>
+                        <Li><strong>Prepend</strong> - inserts the monomer at the N-terminus (beginning) of the active chain.</Li>
+                        <Li><strong>New chain</strong> - starts a brand-new chain (default when the editor is empty).</Li>
                     </Ul>
 
                     <Sub2Title>Linking mode</Sub2Title>
                     <P>The linking mode controls which bond is formed when the monomer is placed:</P>
                     <Ul>
-                        <Li><strong>Peptide</strong> — automatic peptide bond (R2→R1, standard backbone connection).</Li>
-                        <Li><strong>R3→R1, R3→R2, R3→R3</strong> — explicit R-group connections for non-standard attachments.</Li>
+                        <Li><strong>Peptide</strong> - automatic peptide bond (R2→R1, standard backbone connection).</Li>
+                        <Li><strong>R3→R1, R3→R2, R3→R3</strong> - explicit R-group connections for non-standard attachments.</Li>
                     </Ul>
 
                     <Sub2Title>Monomer replacement</Sub2Title>
@@ -1164,15 +1135,15 @@ const Documentation = () => {
                         You can create them in two ways:
                     </P>
                     <Ul>
-                        <Li><strong>BILN connectivity</strong> — write explicit bond annotations in the BILN sequence, using <code>(bondId, RgroupId)</code> pairs.</Li>
-                        <Li><strong>Link mode</strong> — activate the Link tool (chain icon in the editor toolbar), then click two compatible R-groups in the 2D viewer to create a bond.</Li>
+                        <Li><strong>BILN connectivity</strong> - write explicit bond annotations in the BILN sequence, using <code>(bondId, RgroupId)</code> pairs.</Li>
+                        <Li><strong>Link mode</strong> - activate the Link tool (chain icon in the editor toolbar), then click two compatible R-groups in the 2D viewer to create a bond.</Li>
                     </Ul>
                     <P>
                         To remove a bond, activate the <strong>Cut mode</strong> (scissors icon) and click a non-backbone bond in the 2D viewer.
                     </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        Extra bonds are flexible by design — PEP-EDIT does not automatically validate whether a given link is
+                        Extra bonds are flexible by design - PEP-EDIT does not automatically validate whether a given link is
                         chemically meaningful (that remains the user's responsibility).
                     </Alert>
 
@@ -1237,7 +1208,7 @@ const Documentation = () => {
                             </Typography>
                             <Ol>
                                 <Li>My monomers → <strong>Create</strong></Li>
-                                <Li>Paste a valid SMILES — the molecule renders live</Li>
+                                <Li>Paste a valid SMILES - the molecule renders live</Li>
                                 <Li>Click bonds to define attachment points; pick the core fragment</Li>
                                 <Li>Fill in metadata (Symbol, PDB, type…); review stereochemistry</Li>
                                 <Li>Validate the generated molblock and save</Li>
@@ -1245,7 +1216,7 @@ const Documentation = () => {
                         </Card>
                         <Card title="Import SDF">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Import monomers from a pepedit-compatible SDF file — useful for sharing, restoring, or bulk-loading monomers.
+                                Import monomers from a pepedit-compatible SDF file - useful for sharing, restoring, or bulk-loading monomers.
                             </Typography>
                             <Ol>
                                 <Li>My monomers → <strong>Import SDF</strong></Li>
@@ -1255,7 +1226,7 @@ const Documentation = () => {
                         </Card>
                     </CardGrid>
 
-                    <Sub2Title>Create a monomer — step-by-step walkthrough</Sub2Title>
+                    <Sub2Title>Create a monomer - step-by-step walkthrough</Sub2Title>
 
                     <P>
                         The wizard transforms a SMILES string into a validated SDF monomer record containing a molecular core, explicit
@@ -1263,20 +1234,20 @@ const Documentation = () => {
                     </P>
 
                     {/* Step 1 */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 1 — Choose a molecule (SMILES input)</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 1 - Choose a molecule (SMILES input)</Typography>
                     <P>
                         Paste a valid SMILES string into the input field. A live 2D depiction appears as you type.
                         Click <strong>Next</strong> once the preview matches the molecule you intend to register.
                     </P>
                     <Figure
                         src="/assets/documentation/create-monomer_step1_smiles.png"
-                        alt="Step 1 — SMILES input"
-                        caption="Step 1 — SMILES input field with live 2D preview. The example shows N-methyl-alanine."
+                        alt="Step 1 - SMILES input"
+                        caption="Step 1 - SMILES input field with live 2D preview. The example shows N-methyl-alanine."
                         openLightbox={openLightbox}
                     />
 
                     {/* Step 2 */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 2 — Define attachment points</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 2 - Define attachment points</Typography>
                     <P>
                         Click bonds in the 2D depiction to select cleavage sites. At least one bond must be selected.
                         For amino-acid-like monomers: cut the N-terminal bond (→ R1) and C-terminal bond (→ R2).
@@ -1284,17 +1255,17 @@ const Documentation = () => {
                     </P>
                     <P>
                         After bond selection, the molecule is split into fragments displayed in a carousel. Click a card to select
-                        the core fragment — PEP-EDIT automatically pre-fills metadata fields based on the chosen fragment.
+                        the core fragment - PEP-EDIT automatically pre-fills metadata fields based on the chosen fragment.
                     </P>
                     <Figure
                         src="/assets/documentation/create-monomer_step2_attachment-points.png"
-                        alt="Step 2 — Attachment points"
-                        caption="Step 2 — Bond selection and core fragment carousel."
+                        alt="Step 2 - Attachment points"
+                        caption="Step 2 - Bond selection and core fragment carousel."
                         openLightbox={openLightbox}
                     />
 
                     {/* Step 3 */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 3 — Fill in monomer metadata</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 3 - Fill in monomer metadata</Typography>
                     <P>A form appears alongside the selected fragment. Each field describes a property PEP-EDIT needs:</P>
 
                     <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
@@ -1321,26 +1292,26 @@ const Documentation = () => {
 
                     <Figure
                         src="/assets/documentation/create-monomer_step3_fill-metadata.png"
-                        alt="Step 3 — Metadata form"
-                        caption="Step 3 — Monomer metadata form with auto-filled fields."
+                        alt="Step 3 - Metadata form"
+                        caption="Step 3 - Monomer metadata form with auto-filled fields."
                         openLightbox={openLightbox}
                     />
 
                     {/* Step 4 */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 4 — Review stereochemistry</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 4 - Review stereochemistry</Typography>
                     <P>
                         If the fragment contains stereocenters, this step lets you review and modify their configuration (R/S).
                         Stereocenters are highlighted in the 2D depiction. You may override assignments if necessary.
                     </P>
                     <Figure
                         src="/assets/documentation/create-monomer_step4_stereochemistry.png"
-                        alt="Step 4 — Stereochemistry"
-                        caption="Step 4 — Stereochemistry review and override."
+                        alt="Step 4 - Stereochemistry"
+                        caption="Step 4 - Stereochemistry review and override."
                         openLightbox={openLightbox}
                     />
 
                     {/* Step 5 */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 5 — Validate and complete</Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 2, mb: 0.5 }}>Step 5 - Validate and complete</Typography>
                     <P>
                         The wizard generates the complete SDF monomer record. The molblock appears in an editable text area.
                         Click <strong>Finish</strong>; the server runs structural integrity, field consistency, and functional
@@ -1348,8 +1319,8 @@ const Documentation = () => {
                     </P>
                     <Figure
                         src="/assets/documentation/create-monomer_step5_review-sdf.png"
-                        alt="Step 5 — Validation"
-                        caption="Step 5 — Validation checks and completion."
+                        alt="Step 5 - Validation"
+                        caption="Step 5 - Validation checks and completion."
                         openLightbox={openLightbox}
                     />
 
@@ -1706,9 +1677,9 @@ const Documentation = () => {
 
                     <Sub2Title>R-group numbering</Sub2Title>
                     <Ul>
-                        <Li><strong>R1</strong> — typically the N-terminal backbone nitrogen.</Li>
-                        <Li><strong>R2</strong> — typically the C-terminal carbonyl carbon.</Li>
-                        <Li><strong>R3+</strong> — side chains, branching, or specific chemical modifications.</Li>
+                        <Li><strong>R1</strong> - typically the N-terminal backbone nitrogen.</Li>
+                        <Li><strong>R2</strong> - typically the C-terminal carbonyl carbon.</Li>
+                        <Li><strong>R3+</strong> - side chains, branching, or specific chemical modifications.</Li>
                     </Ul>
 
                     <Sub2Title>Bond identifiers</Sub2Title>
@@ -1728,7 +1699,7 @@ const Documentation = () => {
                     <Ul>
                         <Li>No more than <strong>40 monomers</strong> are allowed per construct (due to RDKit embedding limits).</Li>
                         <Li>For large, branched, or multi-fragment constructs, constrained embedding may require multiple attempts; the iterative mapping strategy is designed to improve success rates.</Li>
-                        <Li>Extra bonds are not chemically validated automatically — use domain knowledge to ensure plausibility.</Li>
+                        <Li>Extra bonds are not chemically validated automatically - use domain knowledge to ensure plausibility.</Li>
                         <Li>Secondary-structure presets provide a controlled backbone bias (φ/ψ/ω), but realistic conformations often benefit from template constraints or downstream refinement (minimization / MD).</Li>
                         <Li>When using a 3D template, auto-sync is disabled. Click <strong>Generate 3D</strong> manually after adjusting the template.</Li>
                     </Ul>
@@ -1738,7 +1709,7 @@ const Documentation = () => {
                     <SectionTitle id="policies">Accessibility & cookies</SectionTitle>
 
                     <Ul>
-                        <Li>This website is free and open to all — no login is required.</Li>
+                        <Li>This website is free and open to all - no login is required.</Li>
                         <Li>This website does not use tracking cookies. Cookie usage is restricted to strictly necessary cookies.</Li>
                     </Ul>
 

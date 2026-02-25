@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 
 import DataPolicyDialog from '../common/DataPolicyDialog';
+import ContactDialog from '../common/ContactDialog';
 import { useShellTheme } from '../../theme/ShellThemeProvider';
 import { APP_VERSION } from '../../config';
 
@@ -39,6 +40,7 @@ function ExtLink({ href, style, children, ...rest }) {
 function Footer() {
   const { shell, mode } = useShellTheme();
   const [open, setOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   const openPolicy = useCallback(() => setOpen(true), []);
   const closePolicy = useCallback(() => setOpen(false), []);
@@ -131,10 +133,22 @@ function Footer() {
           >
             Data &amp; Privacy Policy
           </button>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            style={{ color: shell.textMuted, fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = shell.text; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = shell.textMuted; }}
+            onClick={() => setIsContactOpen(true)}
+          >
+            Contact
+          </button>
         </div>
       </div>
 
       <DataPolicyDialog open={open} mode="footer" onClose={closePolicy} />
+      <ContactDialog open={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </footer>
   );
 }
