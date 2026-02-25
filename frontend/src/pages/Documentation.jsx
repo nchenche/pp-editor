@@ -639,25 +639,84 @@ const Documentation = () => {
                     <SubTitle id="editor-interface">Editor interface</SubTitle>
 
                     <P>
-                        The editor interface (zone (1) in the overview) occupies the top-left of the screen. It is divided
-                        into two collapsible sections: <strong>Manual edition</strong> (the BILN input field and editor toolbar)
-                        and <strong>Chains</strong> (the visual chain track, constraint rows, and chain-level actions).
+                        The editor interface occupies the top-left of the screen.
+                        It contains a <strong>shared toolbar</strong> at the top and two collapsible sections below it:{" "}
+                        <strong>Manual edition</strong> (BILN text input) and <strong>Chains</strong> (visual
+                        chain track, constraint rows, and chain-level actions).
                     </P>
 
                     {/* [MEDIA: annotated screenshot of the editor interface] */}
                     <Figure
                         src="/assets/documentation/pepedit_editor-interface.png"
-                        alt="Editor interface showing Manual edition section and Chains section"
-                        caption="The editor interface: Manual edition (BILN input + toolbar) at top, and Chains (sequence track + constraints) below. Both sections are collapsible."
+                        alt="Editor interface showing the shared toolbar, Manual edition section, and Chains section"
+                        caption="The editor interface: shared toolbar at top, then Manual edition and Chains sections; both are independently collapsible and their order can be swapped."
                         openLightbox={openLightbox}
                     />
+
+                    <P><strong>Editor toolbar</strong></P>
+
+                    <P>
+                        The toolbar runs across the top of the editor interface, above both sections.
+                        It provides quick access to editing tools and global settings.
+                    </P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Control</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell><strong>Swap sections</strong> (↕ icon)</TableCell>
+                                    <TableCell>Swaps the vertical position of Manual edition and Chains. Useful on smaller screens: putting Chains on top lets you see the sequence track alongside the 2D Sketch without scrolling. The preference is saved across sessions.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Examples…</strong></TableCell>
+                                    <TableCell>Opens a dialog with 15 pre-built examples across 6 categories (linear, cyclic, capped, non-natural amino acids, secondary structure constraints, 3D template constraints).</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Link mode</strong></TableCell>
+                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers — Select a second R-group to create the link." While active, Manual edition auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Cut mode</strong></TableCell>
+                                    <TableCell>Toggle: activates bond-removal mode. Click an existing bond to remove it. Same auto-collapse/auto-detach behavior as Link mode. Only one of Link/Cut can be active at a time.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>pH slider</strong></TableCell>
+                                    <TableCell>Adjusts the target pH for protonation (range 0–14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately. Protonation states also reflect in the 3D structure.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Undo / Redo</strong></TableCell>
+                                    <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo) — use the toolbar buttons for chain track operations.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Upload sequence</strong></TableCell>
+                                    <TableCell>Opens an upload dialog to populate the editor from a different notation. See the <MUILink href="#manual-edition">Upload sequence dialog</MUILink> section below.</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    {/* [GIF: swap sections animation — clicking the swap icon to move Chains above Manual edition and back] */}
+                    {/* <Figure
+                        src="/assets/documentation/pepedit_swap-sections.gif"
+                        alt="Animated demonstration of the swap sections button toggling Manual edition and Chains order"
+                        caption="Swapping sections: click the ↕ icon to move Chains above Manual edition (or vice versa) for better visibility on compact screens."
+                        openLightbox={openLightbox}
+                    /> */}
 
                     {/* ── Manual edition ── */}
                     <Sub2Title id="manual-edition">Manual edition</Sub2Title>
 
                     <P>
-                        The Manual edition section contains the BILN text field and the editor toolbar.
-                        It can be collapsed by clicking its header.
+                        The Manual edition section contains the BILN text input field.
+                        It can be collapsed by clicking its header. A <strong>?</strong> help icon next to the header
+                        opens the <em>"Manual edit (BILN) help"</em> dialog — a comprehensive quick-reference covering
+                        BILN syntax, R-group rules, and common sequence examples.
                     </P>
 
                     <P><strong>BILN input field</strong></P>
@@ -681,55 +740,47 @@ const Documentation = () => {
                         <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
                     </Ul>
 
-                    <P><strong>Editor toolbar</strong></P>
+                    {/* [GIF: Interactive edition animation with error message — BILN edition updates 2D sketch and validation feedback is illustrated from incorrect monomer input] */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_manual-edition_error_cropped.gif"
+                        alt="Animated demonstration of BILN manual edition with validation feedback: typing an invalid monomer triggers an error message"
+                        caption="BILN manual edition with validation feedback: as you type, the 2D Sketch updates when the input is valid; typing an unrecognized monomer triggers an error message below the input field."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P><strong>Upload sequence dialog</strong></P>
 
                     <P>
-                        Located above the BILN input, the toolbar provides quick access to editing tools and settings.
+                        Accessible from the <strong>Upload sequence</strong> button (⬆ icon) in the section header.
+                        This dialog lets you populate the editor from an alternative notation instead of typing BILN manually.
                     </P>
 
-                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
-                        <Table size="small">
-                            <TableHead>
-                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
-                                    <TableCell sx={{ fontWeight: 700 }}>Control</TableCell>
-                                    <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell><strong>Examples…</strong></TableCell>
-                                    <TableCell>Opens a dialog with 15 pre-built examples across 6 categories (linear, cyclic, capped, non-natural amino acids, secondary structure constraints, 3D template constraints). Click <strong>▶ Load</strong> to populate the editor.</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell><strong>Link mode</strong></TableCell>
-                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers — Select a second R-group to create the link." The BILN input auto-collapses while active.</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell><strong>Cut mode</strong></TableCell>
-                                    <TableCell>Toggle: activates bond-removal mode. Click an existing bond to remove it. The BILN input auto-collapses while active. Only one of Link/Cut can be active at a time.</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell><strong>pH slider</strong></TableCell>
-                                    <TableCell>Adjusts the target pH for protonation (range 0–14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately.</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell><strong>Undo / Redo</strong></TableCell>
-                                    <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo) — use the toolbar buttons for chain track operations.</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell><strong>Upload</strong></TableCell>
-                                    <TableCell>Upload a FASTA file or paste a HELM string to populate the editor. FASTA import supports the standard 20 amino acids.</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                    <Ul>
+                        <Li><strong>FASTA mode</strong> (default) — paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
+                        <Li><strong>HELM mode</strong> — paste a HELM string. Conversion to BILN is handled server-side.</Li>
+                    </Ul>
+
+                    <P>
+                        Select the input format via the radio buttons at the top, paste your sequence into the text area,
+                        then click <strong>Apply</strong>. An error message is displayed inline if the input is invalid.
+                    </P>
+
+                    {/* [GIF: upload sequence dialog — switching between FASTA and HELM modes and applying a FASTA sequence] */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_upload-sequence.gif"
+                        alt="Animated demonstration of the Upload Sequence dialog: selecting FASTA mode, pasting a sequence, and clicking Apply. Same process for HELM mode."
+                        caption="The Upload Sequence dialog: choose FASTA or HELM format, paste your sequence, and click Apply to populate the editor. Chains are separated by newlines in FASTA and converted to BILN with '.' separators."
+                        openLightbox={openLightbox}
+                    />
 
                     {/* ── Chains ── */}
                     <Sub2Title id="chains">Chains</Sub2Title>
 
                     <P>
                         The Chains section displays a visual representation of each chain in your peptide.
-                        It can be collapsed by clicking its header.
+                        It can be collapsed by clicking its header. A <strong>?</strong> help icon next to the header
+                        opens the <em>"Working with chains"</em> dialog — a reference covering chain management,
+                        constraint modes, sequence track interactions, and color coding.
                     </P>
 
                     {/* [MEDIA: annotated screenshot of chain track area] */}
@@ -756,8 +807,9 @@ const Documentation = () => {
 
                     <P>Interactions:</P>
                     <Ul>
-                        <Li><strong>Hover</strong> over a pill — reveals Replace and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
-                        <Li><strong>Drag-and-drop</strong> — reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog.</Li>
+                        <Li><strong>Hover</strong> over a pill — reveals Replace, Info, and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
+                        <Li><strong>Drag-and-drop</strong> — reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog. Capping groups cannot be dragged.</Li>
+                        <Li><strong>Bond indicators</strong> — colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
                     </Ul>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -774,7 +826,7 @@ const Documentation = () => {
 
                     <Ul>
                         <Li><strong>None</strong> — no constraints. Only the Sequence row is visible.</Li>
-                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Click a button to cycle through values, or use the ⋮ menu for bulk operations.</Li>
+                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Click a button to cycle through values, or use the ⋮ menu for bulk operations (All alpha, All beta, All random, Clear).</Li>
                         <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
                     </Ul>
 
@@ -782,14 +834,15 @@ const Documentation = () => {
 
                     <P>Each Sequence row has a ⋮ menu on the left side with:</P>
                     <Ul>
-                        <Li><strong>Cyclize</strong> — create a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
+                        <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
+                        <Li><strong>Cyclize / Uncyclize</strong> — create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
                         <Li><strong>Mirror</strong> — swap all L-amino acids ↔ D-amino acids in the chain.</Li>
                         <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
                     </Ul>
 
                     <P>
                         The constraint row (when visible) has its own ⋮ menu with bulk-set operations:
-                        All helix, All strand, All coil, and Clear.
+                        All alpha, All beta, All random, and Clear.
                     </P>
 
                     <P><strong>Adding chains</strong></P>
@@ -798,6 +851,40 @@ const Documentation = () => {
                         Click the <strong>+</strong> button (next to Structural constraints…) to add a new chain.
                         Chains are separated by "." in the BILN string. Each chain has its own Sequence and constraint rows.
                     </P>
+
+                    <P><strong>Detach mode</strong></P>
+
+                    <P>
+                        On smaller screens, the Chains section can take up valuable vertical space.
+                        Click the <strong>detach</strong> icon (↗) next to the Chains header to pop the section out into
+                        a <strong>floating panel</strong>. The floating panel:
+                    </P>
+
+                    <Ul>
+                        <Li>Is <strong>draggable</strong> — grab its title bar to move it anywhere on screen.</Li>
+                        <Li>Is <strong>resizable</strong> — drag the bottom-right corner to adjust its dimensions.</Li>
+                        <Li>Is <strong>non-blocking</strong> — you can still interact with the editor, 2D Sketch, and other panels behind it.</Li>
+                        <Li>Shows <strong>"Chains (detached)"</strong> in the title bar with a <strong>reattach</strong> button (↓) to snap it back inline.</Li>
+                    </Ul>
+
+                    <P>
+                        While detached, the inline area shows a placeholder message:
+                        <em>"Chains detached — click ↓ to reattach."</em>
+                    </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Auto-detach during Link / Cut mode:</strong> when you activate Link or Cut mode in the toolbar,
+                        the Manual edition section auto-collapses and Chains auto-detaches to maximize the 2D Sketch area. When
+                        you exit the mode, both sections return to their previous state automatically.
+                    </Alert>
+
+                    {/* [GIF: detach mode — clicking detach, dragging the floating panel, then reattaching] */}
+                    <Figure
+                        src="/assets/documentation/pepedit_chains-detach.gif"
+                        alt="Animated demonstration of the Chains detach mode: detaching, dragging the floating panel around, and reattaching"
+                        caption="Detach mode: pop the Chains section into a floating panel for more editing space, then reattach when done."
+                        openLightbox={openLightbox}
+                    />
 
                     {/* ── 2D viewer ── */}
                     <SubTitle id="viewer-2d">2D viewer (2D Sketch)</SubTitle>
