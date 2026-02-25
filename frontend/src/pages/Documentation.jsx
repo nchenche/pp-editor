@@ -33,14 +33,19 @@ const NAV_TREE = [
             {
                 id: "interface-overview", label: "Interface overview",
                 children: [
-                    { id: "panels", label: "Panels & layout" },
-                    { id: "biln-editor", label: "BILN editor & chain track" },
+                    {
+                        id: "editor-interface", label: "Editor interface",
+                        children: [
+                            { id: "manual-edition", label: "Manual edition" },
+                            { id: "chains", label: "Chains" },
+                        ],
+                    },
                     { id: "viewer-2d", label: "2D viewer (2D Sketch)" },
                     { id: "viewer-3d", label: "3D viewer" },
                     { id: "right-panel", label: "Right panel" },
-                    { id: "sessions", label: "Sessions" },
                 ],
             },
+            { id: "sessions", label: "Sessions" },
             {
                 id: "key-concepts", label: "Key concepts",
                 children: [
@@ -178,9 +183,14 @@ function NavItem({ item, activeId, depth = 0, onClick }) {
                 component="a"
                 href={`#${item.id}`}
                 onClick={(e) => {
+                    e.preventDefault();
                     if (hasChildren) {
                         setOpen((o) => !o);
                     }
+                    // Push hash to history so back/forward works
+                    window.history.pushState(null, "", `#${item.id}`);
+                    const el = document.getElementById(item.id);
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
                     onClick?.(item.id);
                 }}
                 sx={{
@@ -343,6 +353,34 @@ const Documentation = () => {
     const openLightbox = useCallback((src, alt) => setLightbox({ open: true, src, alt }), []);
     const closeLightbox = useCallback(() => setLightbox((prev) => ({ ...prev, open: false })), []);
 
+    /* ── hash-based history: scroll to anchor on back/forward ── */
+    useEffect(() => {
+        // On initial load, honour a hash already in the URL
+        const initialHash = window.location.hash.replace("#", "");
+        if (initialHash) {
+            requestAnimationFrame(() => {
+                const el = document.getElementById(initialHash);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth" });
+                    setActiveId(initialHash);
+                }
+            });
+        }
+
+        const onPopState = () => {
+            const hash = window.location.hash.replace("#", "");
+            if (hash) {
+                const el = document.getElementById(hash);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth" });
+                    setActiveId(hash);
+                }
+            }
+        };
+        window.addEventListener("popstate", onPopState);
+        return () => window.removeEventListener("popstate", onPopState);
+    }, []);
+
     /* scroll-spy */
     useEffect(() => {
         const allIds = [];
@@ -366,6 +404,24 @@ const Documentation = () => {
     }, []);
 
     const sidebarW = 250;
+
+    /**
+     * Delegated click handler: intercept clicks on internal hash links
+     * (href="#...") so we push proper history entries & scroll manually.
+     * This makes the browser back/forward buttons work as expected.
+     */
+    const handleContentClick = useCallback((e) => {
+        const anchor = e.target.closest('a[href^="#"]');
+        if (!anchor) return;
+        const hash = anchor.getAttribute("href");
+        if (!hash || hash === "#") return;
+        e.preventDefault();
+        const id = hash.replace("#", "");
+        window.history.pushState(null, "", hash);
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+        setActiveId(id);
+    }, []);
 
     return (
         <Box sx={{ display: "flex", height: "100%", width: "100%", mx: "auto" }}>
@@ -402,6 +458,7 @@ const Documentation = () => {
             <Box
                 ref={mainRef}
                 component="main"
+                onClick={handleContentClick}
                 sx={{
                     flex: 1,
                     overflowY: "auto",
@@ -546,170 +603,415 @@ const Documentation = () => {
                     {/* ── Interface overview ── */}
                     <SectionTitle id="interface-overview">Interface overview</SectionTitle>
 
-                    {/* Panels */}
-                    <SubTitle id="panels">Panels & layout</SubTitle>
-
-                    <Figure
-                        src="/assets/documentation/PEP-EDIT-Interface-v2.png"
-                        alt="Overview of the PEP-EDIT interface"
-                        caption="Overview of the PEP-EDIT interface. The layout is organized into a left editor area (BILN editor + chains + constraints), central viewers (2D and 3D), and a collapsible right panel."
-                        openLightbox={openLightbox}
-                    />
-
-                    <P>The interface is organized into the following main areas:</P>
-
-                    <Ol>
-                        <Li><strong>Editor interface</strong> - BILN sequence input, chain management and constraint tracks. This is the primary area for defining and editing your peptide.</Li>
-                        <Li><strong>2D viewer</strong> - interactive SVG depiction of the molecule, rendered by RDKit. Supports hover highlighting, linking, bond cutting, and monomer replacement.</Li>
-                        <Li><strong>3D viewer</strong> - conformer visualization powered by Mol*. Includes toolbar controls for representation, color scheme, labels, background, and camera.</Li>
-                        <Li><strong>Right panel</strong> - a collapsible, resizable sidebar with three tabs (see below).</Li>
-                    </Ol>
-
-                    {/* ── BILN editor & chain track ── */}
-                    <SubTitle id="biln-editor">BILN editor & chain track</SubTitle>
-
-                    {/* [MEDIA: annotated screenshot of the BILN editor area] */}
-                    <Figure
-                        src="/assets/documentation/biln-editor-overview.png"
-                        alt="BILN editor and chain track overview"
-                        caption="The BILN editor area: manual BILN input field (top), chain track with monomer slots (middle), and constraint track (bottom)."
-                        openLightbox={openLightbox}
-                    />
-
                     <P>
-                        The editor area (top-left) is where you define and manipulate your peptide. It contains:
+                        PEP-EDIT's interface is organized into four main areas, each serving a distinct role in the
+                        peptide design workflow. The annotated screenshot below shows them at a glance — detailed
+                        descriptions follow in the subsections below.
                     </P>
 
+                    <Figure
+                        src="/assets/documentation/pepedit_interface-overview_labeled.png"
+                        alt="Annotated overview of the PEP-EDIT interface. Four numbered zones: (1) Editor interface at top-left, (2) 2D Sketch at bottom-left, (3) 3D viewer at bottom-right, (4) Right panel on the right side."
+                        caption="The four main areas of PEP-EDIT: (1) Editor interface — BILN input, chain track & constraints; (2) 2D Sketch — interactive molecular depiction; (3) 3D viewer — Mol*-powered conformer visualization; (4) Right panel — monomer library, outputs & job history."
+                        openLightbox={openLightbox}
+                    />
+
+                    <Ol>
+                        <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (top-left) — where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-edition">Manual edition</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
+                        <Li><strong><MUILink href="#viewer-2d">2D Sketch</MUILink></strong> (bottom-left) — an interactive SVG depiction of the molecule, rendered by RDKit. Updates live as you type. Supports hover highlighting synced across all panels, as well as bond creation and removal.</Li>
+                        <Li><strong><MUILink href="#viewer-3d">3D viewer</MUILink></strong> (bottom-right) — conformer visualization powered by <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>. Includes controls for representation, color scheme, labels, camera, and screenshot export.</Li>
+                        <Li><strong><MUILink href="#right-panel">Right panel</MUILink></strong> (right side) — a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
+                    </Ol>
+
+                    <P>
+                        The top-left is where you <strong>define</strong> your peptide (BILN input, chain track, constraints).
+                        The bottom half is where you <strong>see</strong> it (2D chemical structure on the left, 3D conformer on the right).
+                        The right panel provides resources (monomer library), results (export formats), and history (job list).
+                    </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        The header bar at the top provides navigation between the three main pages (<strong>Design peptide</strong>,{" "}
+                        <strong>My monomers</strong>, <strong>Documentation</strong>), a theme toggle (light/dark), and session management
+                        controls (see <MUILink href="#sessions">Sessions</MUILink>).
+                    </Alert>
+
+                    {/* ── Editor interface ── */}
+                    <SubTitle id="editor-interface">Editor interface</SubTitle>
+
+                    <P>
+                        The editor interface (zone ① in the overview) occupies the top-left of the screen. It is divided
+                        into two collapsible sections: <strong>Manual edition</strong> (the BILN input field and editor toolbar)
+                        and <strong>Chains</strong> (the visual chain track, constraint rows, and chain-level actions).
+                    </P>
+
+                    {/* [MEDIA: annotated screenshot of the editor interface] */}
+                    <Figure
+                        src="/assets/documentation/pepedit_editor-interface.png"
+                        alt="Editor interface showing Manual edition section and Chains section"
+                        caption="The editor interface: Manual edition (BILN input + toolbar) at top, and Chains (sequence track + constraints) below. Both sections are collapsible."
+                        openLightbox={openLightbox}
+                    />
+
+                    {/* ── Manual edition ── */}
+                    <Sub2Title id="manual-edition">Manual edition</Sub2Title>
+
+                    <P>
+                        The Manual edition section contains the BILN text field and the editor toolbar.
+                        It can be collapsed by clicking its header.
+                    </P>
+
+                    <P><strong>BILN input field</strong></P>
+
+                    <P>
+                        A live text field for typing or pasting BILN sequences directly. Changes are applied on every
+                        keystroke — no Enter or Apply button is needed. The 2D Sketch and 1D outputs (SMILES, HELM…)
+                        update as soon as the BILN is syntactically complete (no trailing hyphen, unbalanced parentheses,
+                        or unrecognized symbol). Incomplete intermediate states are held silently until the input becomes valid.
+                    </P>
+
+                    <P>
+                        A monomer counter is displayed below the field (e.g. "6/40 monomers"), showing the current count
+                        against the maximum of 40.
+                    </P>
+
+                    <P><strong>Validation feedback</strong></P>
                     <Ul>
-                        <Li><strong>BILN text field</strong> - a live text input for typing or pasting BILN sequences directly. Changes are applied on every keystroke (no Enter or Apply button needed). The 2D/3D views update once the syntax is valid.</Li>
-                        <Li><strong>Editor toolbar</strong> - contains the <strong>Link</strong> tool (create bonds between monomers), <strong>Cut</strong> tool (remove bonds), a <strong>pH slider</strong> (0–12, default 7.4), <strong>Undo/Redo</strong> buttons, and the <strong>Examples…</strong> dropdown.</Li>
-                        <Li><strong>Chain track</strong> - a visual row of monomer slots for each chain. Monomers are color-coded by type (green = natural, orange = non-natural, gray = cap). You can hover to see details, click the replace icon to swap a monomer, or <strong>drag-and-drop</strong> to reorder monomers within or across chains.</Li>
-                        <Li><strong>Constraint track</strong> - visible when a constraint mode is active. Shows per-residue secondary-structure assignments (H/E/−) or 3D template mapping status.</Li>
-                        <Li><strong>Chains toolbar</strong> - a ⋮ menu on each chain row provides actions like <strong>Cyclize</strong> (head-to-tail), <strong>Mirror</strong> (swap L/D amino acids), <strong>Delete chain</strong>, and constraint bulk-set operations.</Li>
+                        <Li><strong>Unrecognized monomer</strong> — a red error message appears below the 2D Sketch.</Li>
+                        <Li><strong>Exceeds 40 monomers</strong> — a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
+                        <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
+                    </Ul>
+
+                    <P><strong>Editor toolbar</strong></P>
+
+                    <P>
+                        Located above the BILN input, the toolbar provides quick access to editing tools and settings.
+                    </P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Control</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell><strong>Examples…</strong></TableCell>
+                                    <TableCell>Opens a dialog with 15 pre-built examples across 6 categories (linear, cyclic, capped, non-natural amino acids, secondary structure constraints, 3D template constraints). Click <strong>▶ Load</strong> to populate the editor.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Link mode</strong></TableCell>
+                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers — Select a second R-group to create the link." The BILN input auto-collapses while active.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Cut mode</strong></TableCell>
+                                    <TableCell>Toggle: activates bond-removal mode. Click an existing bond to remove it. The BILN input auto-collapses while active. Only one of Link/Cut can be active at a time.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>pH slider</strong></TableCell>
+                                    <TableCell>Adjusts the target pH for protonation (range 0–14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Undo / Redo</strong></TableCell>
+                                    <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo) — use the toolbar buttons for chain track operations.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell><strong>Upload</strong></TableCell>
+                                    <TableCell>Upload a FASTA file or paste a HELM string to populate the editor. FASTA import supports the standard 20 amino acids.</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    {/* ── Chains ── */}
+                    <Sub2Title id="chains">Chains</Sub2Title>
+
+                    <P>
+                        The Chains section displays a visual representation of each chain in your peptide.
+                        It can be collapsed by clicking its header.
+                    </P>
+
+                    {/* [MEDIA: annotated screenshot of chain track area] */}
+                    <Figure
+                        src="/assets/documentation/pepedit_chains-section.png"
+                        alt="Chains section showing sequence row with colored monomer pills, constraint track, and chain-level actions"
+                        caption="The Chains section: each chain has a Sequence row (colored monomer pills), an optional constraint track, and a ⋮ menu for chain-level actions."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P><strong>Chain track</strong></P>
+
+                    <P>
+                        Each chain is displayed as a Sequence row — a horizontal strip of colored monomer pills.
+                        Each pill shows the monomer symbol and its position number in the chain.
+                    </P>
+
+                    <P>Color coding:</P>
+                    <Ul>
+                        <Li><strong>Green</strong> — natural amino acids.</Li>
+                        <Li><strong>Orange</strong> — non-natural / modified monomers.</Li>
+                        <Li><strong>Gray</strong> — capping groups.</Li>
+                    </Ul>
+
+                    <P>Interactions:</P>
+                    <Ul>
+                        <Li><strong>Hover</strong> over a pill — reveals Replace and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
+                        <Li><strong>Drag-and-drop</strong> — reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog.</Li>
                     </Ul>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        The BILN input supports a <strong>CodeMirror</strong>-based editor with syntax highlighting as an alternative to the plain text field. Both behave identically - live updates, no submit button.
+                        There is no arbitrary mid-chain insertion — to insert a monomer at a specific position, append it at the end and then drag it to the desired position.
                     </Alert>
+
+                    <P><strong>Constraint track</strong></P>
+
+                    <P>
+                        When a constraint mode is active, a second row appears below the Sequence row. The constraint mode
+                        is selected via the <strong>Structural constraints…</strong> dropdown button (located to the right
+                        of the Chains header):
+                    </P>
+
+                    <Ul>
+                        <Li><strong>None</strong> — no constraints. Only the Sequence row is visible.</Li>
+                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Click a button to cycle through values, or use the ⋮ menu for bulk operations.</Li>
+                        <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
+                    </Ul>
+
+                    <P><strong>Chain-level actions (⋮ menu)</strong></P>
+
+                    <P>Each Sequence row has a ⋮ menu on the left side with:</P>
+                    <Ul>
+                        <Li><strong>Cyclize</strong> — create a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
+                        <Li><strong>Mirror</strong> — swap all L-amino acids ↔ D-amino acids in the chain.</Li>
+                        <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
+                    </Ul>
+
+                    <P>
+                        The constraint row (when visible) has its own ⋮ menu with bulk-set operations:
+                        All helix, All strand, All coil, and Clear.
+                    </P>
+
+                    <P><strong>Adding chains</strong></P>
+
+                    <P>
+                        Click the <strong>+</strong> button (next to Structural constraints…) to add a new chain.
+                        Chains are separated by "." in the BILN string. Each chain has its own Sequence and constraint rows.
+                    </P>
 
                     {/* ── 2D viewer ── */}
                     <SubTitle id="viewer-2d">2D viewer (2D Sketch)</SubTitle>
 
+                    <P>
+                        The 2D Sketch (zone ② — bottom-left) displays an interactive SVG depiction of the molecule,
+                        rendered by RDKit. It updates automatically whenever the BILN input is valid.
+                    </P>
+
                     {/* [MEDIA: annotated screenshot of the 2D viewer] */}
                     <Figure
-                        src="/assets/documentation/viewer-2d-overview.png"
-                        alt="2D Sketch viewer with toolbar"
-                        caption="The 2D Sketch panel: interactive SVG depiction with toolbar controls."
+                        src="/assets/documentation/pepedit_2d-sketch.png"
+                        alt="2D Sketch panel with toolbar and monomer hover tooltip"
+                        caption="The 2D Sketch: interactive molecular depiction with Link, Unlink, Reset View, and Download SVG toolbar buttons. Hovering a monomer shows details in the bottom-right corner."
                         openLightbox={openLightbox}
                         maxWidth="md"
                     />
 
-                    <P>
-                        The 2D viewer displays an interactive SVG depiction of your peptide, rendered by RDKit.
-                        It updates automatically whenever the BILN input is valid.
-                    </P>
+                    <P><strong>Toolbar</strong> (top-right of the 2D Sketch panel):</P>
 
-                    <P><strong>Toolbar</strong> (left to right):</P>
-                    <Ol>
-                        <Li><strong>Link</strong> - toggle link mode: click R-groups on monomers to create a new bond.</Li>
-                        <Li><strong>Unlink</strong> - toggle cut mode: double-click an existing bond to remove it.</Li>
-                        <Li><strong>Reset View</strong> - reset any zoom/pan back to the default fitted view.</Li>
-                        <Li><strong>Download SVG</strong> - download the current 2D depiction as an SVG file.</Li>
-                    </Ol>
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Icon</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Tooltip</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Hub / network</TableCell>
+                                    <TableCell>Link</TableCell>
+                                    <TableCell>Toggle link mode — click R-groups on monomers to create a bond.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Broken chain</TableCell>
+                                    <TableCell>Unlink</TableCell>
+                                    <TableCell>Toggle cut mode — double-click an existing bond to remove it.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Circular arrow</TableCell>
+                                    <TableCell>Reset View</TableCell>
+                                    <TableCell>Reset any zoom/pan back to the default fitted view.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Download</TableCell>
+                                    <TableCell>Download SVG</TableCell>
+                                    <TableCell>Download the current 2D depiction as <code>pep-edit_2d.svg</code>.</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
 
                     <P><strong>Navigation:</strong></P>
                     <Ul>
-                        <Li><strong>Scroll wheel</strong> to zoom in/out.</Li>
-                        <Li><strong>Click and drag</strong> to pan.</Li>
-                        <Li><strong>Double-click</strong> to reset the view.</Li>
+                        <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
+                        <Li><strong>Click + drag</strong> — pan the view.</Li>
+                        <Li><strong>Double-click</strong> (or Reset View button) — reset to the default fitted view.</Li>
                     </Ul>
 
+                    <P><strong>Hover synchronization:</strong></P>
                     <P>
-                        <strong>Hover</strong> over a monomer to highlight it - the highlight is synced across
-                        the chain track and the 3D viewer. Clicking a monomer in the 2D view has no effect
-                        in normal mode; click interactions only activate when Link or Unlink mode is on.
+                        Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track (zone ①)
+                        and the 3D viewer (zone ③). A tooltip in the bottom-right corner shows monomer details — for
+                        example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, symbol, position, one-letter code, full name).
                     </P>
+                    <P>
+                        Clicking a monomer has no effect in normal mode. Click interactions only activate when
+                        Link or Unlink mode is on.
+                    </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        A collapse/expand toggle (<strong>&lt;</strong> / <strong>&gt;</strong>) between the 2D Sketch and 3D viewer
+                        allows you to expand either panel to full width.
+                    </Alert>
 
                     {/* ── 3D viewer ── */}
                     <SubTitle id="viewer-3d">3D viewer</SubTitle>
 
-                    {/* [MEDIA: annotated screenshot of the 3D viewer toolbar] */}
+                    <P>
+                        The 3D viewer (zone ③ — bottom-right) displays the generated conformer using{" "}
+                        <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
+                        It loads automatically when a conformer generation job completes.
+                    </P>
+
                     <Figure
-                        src="/assets/documentation/viewer-3d-overview.png"
-                        alt="3D viewer with Mol* and toolbar"
-                        caption="The 3D viewer: Mol*-powered 3D visualization with toolbar controls."
+                        src="/assets/documentation/pepedit_3d-viewer_representation-panel.png"
+                        alt="3D viewer with the Representation side panel open, showing toggles for Cartoon, Ball & Stick, Spacefill, Backbone, Licorice, Ribbon, Line (with opacity slider), Molecular Surface, Gaussian Surface, Gaussian Volume, and Putty."
+                        caption="The 3D viewer with the Representation panel open. Multiple representations can be active simultaneously."
                         openLightbox={openLightbox}
                         maxWidth="md"
                     />
 
-                    <P>
-                        The 3D viewer displays the generated conformer using{" "}
-                        <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
-                        It loads automatically when a 3D generation job completes.
-                    </P>
-
-                    <P><strong>Toolbar</strong> (left to right, after the Generate 3D button and Auto sync toggle):</P>
-                    <Ol>
-                        <Li><strong>Representation</strong> - open a side panel to pick the 3D representation (line, ball-and-stick, cartoon, etc.).</Li>
-                        <Li><strong>Color by</strong> - open a side panel to choose a color scheme.</Li>
-                        <Li><strong>Labels</strong> - open a side panel to toggle atom/residue labels.</Li>
-                        <Li><strong>Light/Dark background</strong> - toggle the Mol* canvas background.</Li>
-                        <Li><strong>View</strong> - open a side panel with camera controls (reset view, lock camera).</Li>
-                        <Li><strong>Template</strong> - manage scaffold template overlays (tinted when a template is loaded).</Li>
-                        <Li><strong>Snapshot</strong> - download a PNG screenshot of the current 3D viewport.</Li>
-                        <Li><strong>Log</strong> - open a side panel showing the generation job log.</Li>
-                    </Ol>
-
-                    <P><strong>Auto sync</strong> and <strong>Generate 3D</strong>:</P>
+                    <P><strong>Main controls</strong> (top-left of the 3D viewer):</P>
                     <Ul>
-                        <Li>When <strong>Auto sync</strong> is on (default for peptides &lt; 8 monomers), every valid edit triggers automatic 3D regeneration. The button reads <strong>"Live Preview"</strong>.</Li>
-                        <Li>Auto sync is automatically disabled when the peptide reaches 8+ monomers, or when a 3D template is active.</Li>
-                        <Li>When Auto sync is off, click <strong>▶ Generate 3D</strong> to submit a conformer generation job manually.</Li>
+                        <Li><strong>▶ Generate 3D</strong> — submit a conformer generation job manually.</Li>
+                        <Li><strong>Auto sync</strong> — toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active.</Li>
                     </Ul>
+
+                    <P><strong>Icon toolbar</strong> (top-right, left to right):</P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700, width: 30 }}>#</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Tooltip</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell>1</TableCell><TableCell>Representation</TableCell><TableCell>Opens a side panel with toggles for visual styles: Cartoon, Ball & Stick, Spacefill, Backbone, Licorice, Ribbon, Line (with opacity slider), Molecular Surface, Gaussian Surface, Gaussian Volume, Putty. Multiple can be active simultaneously.</TableCell></TableRow>
+                                <TableRow><TableCell>2</TableCell><TableCell>Color by</TableCell><TableCell>Opens a side panel to choose a color scheme (by element, chain, residue type…).</TableCell></TableRow>
+                                <TableRow><TableCell>3</TableCell><TableCell>Labels</TableCell><TableCell>Opens a side panel to toggle atom or residue labels on the structure.</TableCell></TableRow>
+                                <TableRow><TableCell>4</TableCell><TableCell>Background</TableCell><TableCell>Toggles the Mol* canvas between dark and light background.</TableCell></TableRow>
+                                <TableRow><TableCell>5</TableCell><TableCell>View</TableCell><TableCell>Opens a side panel with camera controls (reset view, lock camera…).</TableCell></TableRow>
+                                <TableRow><TableCell>6</TableCell><TableCell>Template</TableCell><TableCell>Opens the scaffold template management panel. Icon is tinted when a template is loaded.</TableCell></TableRow>
+                                <TableRow><TableCell>7</TableCell><TableCell>Snapshot</TableCell><TableCell>Downloads a PNG screenshot of the current 3D viewport.</TableCell></TableRow>
+                                <TableRow><TableCell>8</TableCell><TableCell>Log</TableCell><TableCell>Opens a side panel showing the conformer generation job log.</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <P><strong>3D navigation:</strong></P>
+                    <Ul>
+                        <Li><strong>Left-click + drag</strong> — rotate the structure.</Li>
+                        <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
+                        <Li><strong>Right-click + drag</strong> (or middle-click) — pan.</Li>
+                    </Ul>
+
+                    <P>
+                        Mol*'s built-in advanced controls are accessible via the "Show panels" tab on the right edge of the
+                        3D viewer (arrow icon: <strong>&gt;</strong>), providing structure annotations, measurements, and more.
+                    </P>
 
                     {/* ── Right panel ── */}
                     <SubTitle id="right-panel">Right panel (Library / Output / Jobs)</SubTitle>
 
                     <P>
-                        The right panel is a collapsible sidebar with three vertical tabs. It can be resized by dragging its left edge.
+                        The right panel (zone ④) is a collapsible, resizable sidebar with three vertical tabs along its
+                        right edge. Click a tab to switch between views; drag the panel's left edge to resize it.
                     </P>
 
                     <CardGrid>
                         <Card title="Monomer Library">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Searchable and filterable monomer catalog. From here you can browse, filter by class, and add monomers
-                                to your sequence using the <strong>+</strong> button. Controls for <strong>placement mode</strong> (Append / Prepend / New chain),
-                                <strong> linking mode</strong> (Peptide, R3→R1, etc.), and <strong>chain selector</strong> are accessible in the panel header.
-                                The library also provides two sub-tabs: <strong>Public</strong> (shared, read-only) and <strong>My monomers</strong> (personal, session-scoped).
+                                Searchable catalog of 331 monomers (as of v1.0.0). Use the search bar and class filters
+                                (<strong>ALL</strong>, <strong>CAPS</strong>, <strong>NATURAL</strong>, <strong>NON-NATURAL</strong>)
+                                to find monomers. Click the <strong>+</strong> button on a monomer card to add it to your sequence.
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mt: 1 }}>
+                                The <strong>Linking process mode</strong> section at the top controls how monomers are added:
+                            </Typography>
+                            <Ul>
+                                <Li><strong>Mode:</strong> Append (end of chain), Prepend (start of chain), or New chain.</Li>
+                                <Li><strong>Chain:</strong> select which chain to add to (for multi-chain peptides).</Li>
+                            </Ul>
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
+                                Card size can be toggled between <strong>Small</strong> and <strong>Large</strong> using
+                                the buttons in the panel header. Each card shows the monomer structure, symbol, PDB code,
+                                and type label.
                             </Typography>
                         </Card>
-                        <Card title="Output">
+                        <Card title="Outputs">
+                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
+                                Displays all computed output formats, organized into three sections:
+                            </Typography>
+                            <Ul>
+                                <Li><strong>1D — Sequences & Notations</strong> (5): BILN, HELM, SMILES, InChI, InChIKey</Li>
+                                <Li><strong>2D — Depiction & Coordinates</strong> (1): SDF 2D + Export depiction (SVG, PNG)</Li>
+                                <Li><strong>3D — Structures</strong> (6): PDB, MMCIF, XYZ, SDF 3D, MOL2 Tripos, PDBQT + Export snapshot (PNG)</Li>
+                            </Ul>
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Displays all computed output formats (BILN, HELM, SMILES, InChI, InChIKey, SDF 2D, PDB, MMCIF, XYZ, SDF 3D, MOL2, PDBQT).
-                                Each format is presented as a collapsible accordion with <strong>Copy</strong> and <strong>Download</strong> buttons.
-                                A <strong>Download all</strong> button is available at the top.
+                                Each format row has <strong>Copy</strong> and <strong>Download</strong> buttons.
+                                Panel controls: <strong>Wrap</strong> (wraps long text like SMILES for readability),{" "}
+                                <strong>Expand</strong> (opens all accordion sections), and a <strong>Download all</strong> button
+                                (blue icon, top-right). 1D and 2D formats update live on every valid keystroke. 3D formats
+                                require a successful conformer generation job.
                             </Typography>
                         </Card>
                     </CardGrid>
                     <CardGrid>
                         <Card title="Jobs">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Lists all conformer generation jobs submitted under the current session. Each job shows its status
-                                (queued, running, success, failed), creation time, and a name that can be edited inline.
+                                Lists all conformer generation jobs submitted in the current session. The table shows four
+                                columns: <strong>Name</strong>, <strong>BILN</strong>, <strong>State</strong>, and <strong>Action</strong>.
                             </Typography>
                             <Ul>
-                                <Li><strong>Resume</strong> - restores <em>everything</em>: the BILN sequence, all constraints (SS or template + scaffold mappings), and loads the 3D conformer into the viewer. Auto-regeneration is suppressed so the restored conformer is displayed as-is.</Li>
-                                <Li><strong>⋮ menu</strong> - <em>Edit details</em> (rename/describe the job) and <em>Copy BILN</em> (copy the job's BILN to the clipboard).</Li>
+                                <Li><strong>Name</strong> — defaults to "Untitled job". Editable via the ⋮ menu → Edit details (name up to 200 characters, description up to 2000 characters). The dialog also shows read-only metadata: Job ID, creation and update timestamps.</Li>
+                                <Li><strong>State</strong> — green "success" chip or red "failed" chip. Failed jobs show "—" in the BILN column.</Li>
+                                <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
+                                <Li><strong>⋮ menu</strong> → <em>Edit details</em> (rename/describe) and <em>Copy BILN</em> (copies the job's BILN string to the clipboard).</Li>
                             </Ul>
+                            <Figure
+                                src="/assets/documentation/pepedit_jobs_edit-details.png"
+                                alt="Edit Job Details dialog showing Name and Description fields, plus read-only Job ID and timestamps."
+                                caption="The Edit Job Details dialog: set a name and description for each job."
+                                openLightbox={openLightbox}
+                                maxWidth="sm"
+                            />
                         </Card>
                     </CardGrid>
 
-                    {/* Sessions */}
-                    <SubTitle id="sessions">Sessions</SubTitle>
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ════════════════════════════════════════════
+                        Sessions (top-level)
+                       ════════════════════════════════════════════ */}
+                    <SectionTitle id="sessions">Sessions</SectionTitle>
 
                     <P>
-                        A <strong>Session ID</strong> is the key that ties together your personal monomers, conformer jobs, and editor state.
-                        No account or login is required - the session is anonymous and identified only by its unique ID.
+                        A <strong>Session ID</strong> ties together your personal monomers, conformer jobs, and editor state.
+                        No account or login is required — the session is anonymous and identified only by its unique ID.
                     </P>
 
                     <Sub2Title>How a session is created</Sub2Title>
@@ -717,19 +1019,19 @@ const Documentation = () => {
                     <Ol>
                         <Li><strong>First visit:</strong> a Session ID is automatically generated and stored in your browser (localStorage) and on the server.</Li>
                         <Li><strong>Subsequent visits:</strong> the stored Session ID is reloaded automatically so your work is restored.</Li>
-                        <Li><strong>New session:</strong> click the <strong>+</strong> button (or <strong>Start new session</strong>) to create a fresh session. A confirmation dialog reminds you to save your current Session ID before switching.</Li>
+                        <Li><strong>New session:</strong> click the <strong>+</strong> button in the header to create a fresh session. A confirmation dialog reminds you to save your current Session ID before switching.</Li>
                     </Ol>
 
                     <Sub2Title>What a session contains</Sub2Title>
                     <Ul>
-                        <Li><strong>Personal monomers</strong> - custom monomers you created or uploaded in <em>My monomers</em>.</Li>
-                        <Li><strong>Conformer generation jobs</strong> - every 3D job submitted under this session.</Li>
+                        <Li><strong>Personal monomers</strong> — custom monomers you created or uploaded in <em>My monomers</em>.</Li>
+                        <Li><strong>Conformer generation jobs</strong> — every 3D job submitted under this session, accessible from the Jobs tab.</Li>
                     </Ul>
 
                     <Sub2Title>Naming a session</Sub2Title>
                     <P>
                         You can give a session a human-readable name (e.g. <em>"Therapeutic peptides"</em>) and a short description.
-                        Click the session name inline in the header, or open Session → <strong>Email</strong> tab → "Session notes".
+                        Click the session name in the header to edit it inline, or open Session → <strong>Email</strong> tab → "Session notes".
                     </P>
 
                     <Alert severity="warning" sx={{ mb: 2 }}>
@@ -737,12 +1039,12 @@ const Documentation = () => {
                     </Alert>
 
                     <Sub2Title>Session dialog (Share / Recover / Email)</Sub2Title>
-                    <P>Click the <strong>Session</strong> button in the header to open the Session Management dialog with three tabs:</P>
+                    <P>Click the <strong>⚙ Session</strong> button in the header to open the Session Management dialog with three tabs:</P>
 
                     <CardGrid>
                         <Card title="Share">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Send a Session ID by email. The recipient will be able to load and collaborate on the session.
+                                Send a Session ID by email. The recipient can load and collaborate on the session.
                             </Typography>
                             <Ul>
                                 <Li>Enter the recipient's email address.</Li>
@@ -755,9 +1057,9 @@ const Documentation = () => {
                                 Get back into a session you no longer have in your browser:
                             </Typography>
                             <Ol>
-                                <Li><strong>Load by ID</strong> - paste a Session ID and click Load Session.</Li>
-                                <Li><strong>Email this session ID</strong> - sends the current ID to your verified email.</Li>
-                                <Li><strong>Email all session IDs</strong> - sends every Session ID linked to your email.</Li>
+                                <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
+                                <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
+                                <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
                             </Ol>
                         </Card>
                     </CardGrid>
