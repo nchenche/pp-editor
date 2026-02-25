@@ -1359,6 +1359,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         startDrag,
         persistToStorage,
         collapsedViewer,
+        setCollapsedViewer,
         toggleCollapse2D,
         toggleCollapse3D,
     } = useSplitLayout({
@@ -1386,6 +1387,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // capped at 2 visible chain slots) so the 2D depiction gets maximum space.
     const splitRatioBeforeLinkModeRef = useRef(null);
     const editorHeightBeforeLinkModeRef = useRef(null);
+    const collapsedViewerBeforeLinkModeRef = useRef(undefined); // undefined = not saved
+    const constraintModeBeforeLinkRef = useRef(null); // null = not saved
     const wasLinkModeActiveRef = useRef(false);
     useEffect(() => {
         const active = !!viewer2DModes.linkMode || !!viewer2DModes.bondsMode;
@@ -1395,6 +1398,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             wasLinkModeActiveRef.current = true;
             splitRatioBeforeLinkModeRef.current = viewerSplitRatio;
             editorHeightBeforeLinkModeRef.current = editorAreaHeight;
+
+            // Collapse the 3D viewer to maximise the 2D sketch area.
+            collapsedViewerBeforeLinkModeRef.current = collapsedViewer; // save current state (null | '2d' | '3d')
+            if (collapsedViewer !== '3d') setCollapsedViewer('3d');
+
+            // Hide constraints (not needed while linking) to declutter chain slots.
+            constraintModeBeforeLinkRef.current = constraintMode;
+            if (constraintMode !== 'none') setConstraintMode('none');
 
             // Compute the maximum feasible ratio while keeping the 3D panel at least ~200px wide.
             const host = viewerRowRef?.current;
@@ -1436,6 +1447,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         if (!active && wasActive) {
             wasLinkModeActiveRef.current = false;
+
+            // Restore previous viewer collapse state.
+            const prevCollapse = collapsedViewerBeforeLinkModeRef.current;
+            collapsedViewerBeforeLinkModeRef.current = undefined;
+            if (prevCollapse !== undefined) setCollapsedViewer(prevCollapse);
+
+            // Restore previous constraint mode.
+            const prevConstraintMode = constraintModeBeforeLinkRef.current;
+            constraintModeBeforeLinkRef.current = null;
+            if (prevConstraintMode) setConstraintMode(prevConstraintMode);
+
             const prevRatio = splitRatioBeforeLinkModeRef.current;
             splitRatioBeforeLinkModeRef.current = null;
             if (typeof prevRatio === 'number' && Number.isFinite(prevRatio)) {

@@ -132,8 +132,11 @@ export default function BilnEditorInterface({
     });
     // Detach: render chains in a floating modeless dialog
     const [chainsDetached, setChainsDetached] = useState(false);
-    // Drag position for detached dialog (null = use default top-right)
+    // Drag position for detached dialog (null = use default top-left)
     const [detachedPos, setDetachedPos] = useState(null);
+    // Captured size of the inline chains section at the moment of detach
+    const [detachedSize, setDetachedSize] = useState(null); // { width, height }
+    const chainsSectionRef = useRef(null);
     const dragRef = useRef(null); // { startX, startY, origX, origY }
 
     const toggleManual = () => {
@@ -155,7 +158,20 @@ export default function BilnEditorInterface({
     };
 
     const toggleChainsDetached = () => {
-        setChainsDetached((prev) => !prev);
+        setChainsDetached((prev) => {
+            if (!prev) {
+                // Detaching: capture current inline size and reset position to top-left
+                const el = chainsSectionRef.current;
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    setDetachedSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+                } else {
+                    setDetachedSize(null);
+                }
+                setDetachedPos(null); // always reset to default top-left
+            }
+            return !prev;
+        });
     };
 
     // -- Drag handlers for detached chains dialog --
@@ -208,19 +224,29 @@ export default function BilnEditorInterface({
         }
     });
 
-    // -- Auto-collapse manual section during link / cut mode --
+    // -- Auto-collapse manual section & auto-detach chains during link / cut mode --
     const manualBeforeLinkRef = useRef(null);
+    const chainsDetachedBeforeLinkRef = useRef(null); // null = not saved
     useEffect(() => {
         const active = linkMode || bondsMode;
         if (active && manualBeforeLinkRef.current === null) {
-            // Entering link/cut: save current state and collapse
+            // Entering link/cut: save current state and collapse manual
             manualBeforeLinkRef.current = manualExpanded;
             if (manualExpanded) setManualExpanded(false);
+
+            // Auto-detach chains so they float above the 2D sketch
+            chainsDetachedBeforeLinkRef.current = chainsDetached;
+            if (!chainsDetached) setChainsDetached(true);
         } else if (!active && manualBeforeLinkRef.current !== null) {
             // Exiting link/cut: restore previous state
             const prev = manualBeforeLinkRef.current;
             manualBeforeLinkRef.current = null;
             if (prev) setManualExpanded(true);
+
+            // Restore previous detach state
+            const prevDetach = chainsDetachedBeforeLinkRef.current;
+            chainsDetachedBeforeLinkRef.current = null;
+            if (prevDetach === false) setChainsDetached(false);
         }
     }, [linkMode, bondsMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -991,6 +1017,7 @@ export default function BilnEditorInterface({
                 const chainsSection = (
                     <Box
                         key="chains"
+                        ref={chainsSectionRef}
                         sx={{
                             my: 0.5,
                             display: 'flex',
@@ -999,10 +1026,13 @@ export default function BilnEditorInterface({
                             minHeight: 0,
                             overflow: 'hidden',
                             // Elevate above the editor dim-overlay during link/cut mode
-                            // so chains remain visually un-dimmed and hoverable.
-                            ...((linkMode || bondsMode) && {
+                            // so the WHOLE chain section remains visually un-dimmed —
+                            // but ONLY when chains are rendered inline (not detached).
+                            ...((linkMode || bondsMode) && !chainsDetached && {
                                 position: 'relative',
                                 zIndex: 3,
+                                bgcolor: 'background.paper',
+                                borderRadius: 1,
                             }),
                         }}
                     >
@@ -1031,10 +1061,10 @@ export default function BilnEditorInterface({
                                 position: 'fixed',
                                 ...(detachedPos
                                     ? { top: detachedPos.y, left: detachedPos.x, bottom: 'auto', right: 'auto' }
-                                    : { top: 16, right: 16, bottom: 'auto', left: 'auto' }
+                                    : { top: 16, left: 16, bottom: 'auto', right: 'auto' }
                                 ),
                                 m: 0,
-                                width: { xs: '95vw', sm: 520, md: 620 },
+                                width: detachedSize?.width ?? { xs: '95vw', sm: 520, md: 620 },
                                 maxHeight: '45vh',
                                 minHeight: 200,
                                 resize: 'both',
