@@ -617,10 +617,10 @@ const Documentation = () => {
                     />
 
                     <Ol>
-                        <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (top-left) — where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-edition">Manual edition</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
-                        <Li><strong><MUILink href="#viewer-2d">2D Sketch</MUILink></strong> (bottom-left) — an interactive SVG depiction of the molecule, rendered by RDKit. Updates live as you type. Supports hover highlighting synced across all panels, as well as bond creation and removal.</Li>
-                        <Li><strong><MUILink href="#viewer-3d">3D viewer</MUILink></strong> (bottom-right) — conformer visualization powered by <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>. Includes controls for representation, color scheme, labels, camera, and screenshot export.</Li>
-                        <Li><strong><MUILink href="#right-panel">Right panel</MUILink></strong> (right side) — a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
+                        <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (1 - top-left); where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-edition">Manual edition</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
+                        <Li><strong><MUILink href="#viewer-2d">2D Sketch</MUILink></strong> (2 - bottom-left); an interactive SVG depiction of the molecule, rendered by RDKit. Updates live as you type. Supports hover highlighting synced across all panels, as well as bond creation and removal.</Li>
+                        <Li><strong><MUILink href="#viewer-3d">3D viewer</MUILink></strong> (3 - bottom-right); conformer visualization powered by <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>. Includes controls for representation, color scheme, labels, camera, and screenshot export.</Li>
+                        <Li><strong><MUILink href="#right-panel">Right panel</MUILink></strong> (4 - right side); a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
                     </Ol>
 
                     <P>
@@ -631,7 +631,7 @@ const Documentation = () => {
 
                     <Alert severity="info" sx={{ mb: 2 }}>
                         The header bar at the top provides navigation between the three main pages (<strong>Design peptide</strong>,{" "}
-                        <strong>My monomers</strong>, <strong>Documentation</strong>), a theme toggle (light/dark), and session management
+                        <strong>My monomers</strong>, <strong>Documentation</strong>), a theme toggle (light/dark), a contact access, and session management
                         controls (see <MUILink href="#sessions">Sessions</MUILink>).
                     </Alert>
 
