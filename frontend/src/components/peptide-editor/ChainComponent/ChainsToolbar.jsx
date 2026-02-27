@@ -68,7 +68,7 @@ export default function ChainsToolbar({
                 onClose={() => setMenuEl(null)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{ dense: true, 'aria-label': 'constraint mode menu' }}
+                MenuListProps={{ 'aria-label': 'constraint mode menu' }}
                 slotProps={{ paper: { sx: { minWidth: 220 } } }}
             >
                 {MODE_OPTIONS.map((opt) => (
@@ -81,7 +81,7 @@ export default function ChainsToolbar({
                             setMenuEl(null);
                         }}
                     >
-                        <ListItemIcon sx={{ minWidth: '28px !important' }}>
+                        <ListItemIcon>
                             {constraintMode === opt.value ? (
                                 <CheckIcon fontSize="small" />
                             ) : null}
@@ -89,8 +89,7 @@ export default function ChainsToolbar({
                         <ListItemText
                             primary={opt.label}
                             secondary={opt.description}
-                            primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: constraintMode === opt.value ? 600 : 400 }}
-                            secondaryTypographyProps={{ fontSize: '0.7rem' }}
+                            primaryTypographyProps={{ fontWeight: constraintMode === opt.value ? 600 : 400 }}
                         />
                     </MenuItem>
                 ))}

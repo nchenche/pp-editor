@@ -383,7 +383,7 @@ const MonomerItemComponent = (props) => {
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'center' }}
                 MenuListProps={{ dense: true }}
-                slotProps={{ paper: { sx: { minWidth: 200, p: 0.5 } } }}
+                slotProps={{ paper: { sx: { minWidth: 200 } } }}
                 disablePortal
             >
                 <MenuItem disabled sx={{ opacity: 0.85, cursor: 'default', '&:hover': { bgcolor: 'transparent' } }}>

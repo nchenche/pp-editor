@@ -255,7 +255,6 @@ export default function ChainContainer({
                         onClose={closeConstraintsMenu}
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                        MenuListProps={{ dense: true }}
                     >
                         <MenuItem
                             onClick={() => {
@@ -299,7 +298,7 @@ export default function ChainContainer({
                     onClose={closeSeqMenu}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                     transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    MenuListProps={{ dense: true, 'aria-label': 'sequence actions menu' }}
+                    MenuListProps={{ 'aria-label': 'sequence actions menu' }}
                 >
                     <MenuItem
                         onClick={() => {
@@ -346,7 +345,7 @@ export default function ChainContainer({
                         onClose={closeTemplateMenu}
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                        MenuListProps={{ dense: true, 'aria-label': 'template actions menu' }}
+                        MenuListProps={{ 'aria-label': 'template actions menu' }}
                     >
                         <MenuItem
                             onClick={() => {

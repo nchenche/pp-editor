@@ -162,7 +162,6 @@ function CompactSelect({
                         sx: {
                             minWidth,
                             bgcolor: 'background.paper',
-                            '& .MuiMenuItem-root': { fontSize: 12, minHeight: 28, py: 0.25 }
                         }
                     }}
                 >

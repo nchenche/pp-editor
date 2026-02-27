@@ -49,6 +49,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import CloseIcon from '@mui/icons-material/Close';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -2647,21 +2648,37 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 overflowX: 'hidden',
                                             }}
                                         >
-                                            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12, mb: 0.75 }}>
-                                                {active3DPanel === 'representation'
-                                                    ? 'Representation'
-                                                    : active3DPanel === 'color'
-                                                        ? 'Color by'
-                                                        : active3DPanel === 'labels'
-                                                            ? 'Labels'
-                                                            : active3DPanel === 'background'
-                                                                ? 'Background'
-                                                                : active3DPanel === 'template'
-                                                                    ? 'Template'
-                                                                    : active3DPanel === 'log'
-                                                                        ? 'Log'
-                                                                        : 'View'}
-                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                                                <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                                    {active3DPanel === 'representation'
+                                                        ? 'Representation'
+                                                        : active3DPanel === 'color'
+                                                            ? 'Color by'
+                                                            : active3DPanel === 'labels'
+                                                                ? 'Labels'
+                                                                : active3DPanel === 'background'
+                                                                    ? 'Background'
+                                                                    : active3DPanel === 'template'
+                                                                        ? 'Template'
+                                                                        : active3DPanel === 'log'
+                                                                            ? 'Log'
+                                                                            : 'View'}
+                                                </Typography>
+                                                <Tooltip title="Close panel" arrow placement="left">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => setActive3DPanel(null)}
+                                                        aria-label="close panel"
+                                                        sx={{
+                                                            color: 'text.disabled',
+                                                            p: 0.25,
+                                                            '&:hover': { color: 'text.secondary' },
+                                                        }}
+                                                    >
+                                                        <CloseIcon sx={{ fontSize: 16 }} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                             <Divider sx={{ mb: 0.75 }} />
 
                                             {active3DPanel === 'representation' && (
@@ -2815,18 +2832,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             {scaffoldTemplate?.name ? scaffoldTemplate.name : 'No template'}
                                                         </Typography>
 
-                                                        <span>
-                                                            <Button
-                                                                size="small"
-                                                                variant="text"
-                                                                color="inherit"
-                                                                onClick={() => handleClearScaffold()}
-                                                                disabled={!scaffoldTemplate}
-                                                                sx={{ textTransform: 'none', fontSize: 12, minHeight: 26, px: 0.75 }}
-                                                            >
-                                                                Remove
-                                                            </Button>
-                                                        </span>
+                                                        <Tooltip title="Remove template" arrow>
+                                                            <span>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => handleClearScaffold()}
+                                                                    disabled={!scaffoldTemplate}
+                                                                    aria-label="remove template"
+                                                                    sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'error.main' } }}
+                                                                >
+                                                                    <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                                                                </IconButton>
+                                                            </span>
+                                                        </Tooltip>
                                                     </Box>
 
                                                     <Box>
@@ -2957,12 +2975,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                                             >
                                                                                 {chainOptions.length ? (
                                                                                     chainOptions.map((id) => (
-                                                                                        <MenuItem key={id} value={id} sx={{ fontSize: 12 }}>
+                                                                                        <MenuItem key={id} value={id}>
                                                                                             {id}
                                                                                         </MenuItem>
                                                                                     ))
                                                                                 ) : (
-                                                                                    <MenuItem value="" disabled sx={{ fontSize: 12 }}>
+                                                                                    <MenuItem value="" disabled>
                                                                                         No chains
                                                                                     </MenuItem>
                                                                                 )}

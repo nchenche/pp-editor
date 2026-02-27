@@ -504,25 +504,25 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-                <MenuItem dense disabled sx={{ opacity: 1, fontWeight: 600, fontSize: 12 }}>
+                <MenuItem disabled sx={{ opacity: 1, fontWeight: 600 }}>
                     Columns
                 </MenuItem>
-                <MenuItem dense onClick={() => handleColumnToggle('biln')}>
+                <MenuItem onClick={() => handleColumnToggle('biln')}>
                     <Checkbox checked={visibleColumns.biln} size="small" sx={{ p: 0, mr: 1 }} />
-                    <ListItemText primary="BILN" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="BILN" />
                 </MenuItem>
-                <MenuItem dense onClick={() => handleColumnToggle('date')}>
+                <MenuItem onClick={() => handleColumnToggle('date')}>
                     <Checkbox checked={visibleColumns.date} size="small" sx={{ p: 0, mr: 1 }} />
-                    <ListItemText primary="Date" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="Date" />
                 </MenuItem>
-                <MenuItem dense onClick={() => handleColumnToggle('state')}>
+                <MenuItem onClick={() => handleColumnToggle('state')}>
                     <Checkbox checked={visibleColumns.state} size="small" sx={{ p: 0, mr: 1 }} />
-                    <ListItemText primary="State" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="State" />
                 </MenuItem>
                 <Divider sx={{ my: 0.5 }} />
-                <MenuItem dense onClick={() => setShowDescriptions((v) => !v)}>
+                <MenuItem onClick={() => setShowDescriptions((v) => !v)}>
                     <Checkbox checked={showDescriptions} size="small" sx={{ p: 0, mr: 1 }} />
-                    <ListItemText primary="Show descriptions" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="Show descriptions" />
                 </MenuItem>
             </Menu>
 
@@ -752,17 +752,17 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-                <MenuItem dense onClick={handleOpenDetailsDialog}>
+                <MenuItem onClick={handleOpenDetailsDialog}>
                     <ListItemIcon>
                         <EditIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Edit details" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="Edit details" />
                 </MenuItem>
-                <MenuItem dense onClick={handleCopyBiln}>
+                <MenuItem onClick={handleCopyBiln}>
                     <ListItemIcon>
                         <ContentCopyIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Copy BILN" primaryTypographyProps={{ fontSize: 13 }} />
+                    <ListItemText primary="Copy BILN" />
                 </MenuItem>
             </Menu>
 

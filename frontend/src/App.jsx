@@ -19,9 +19,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import { ThemeProvider } from '@mui/material/styles';
 
 import { useSessionId } from './hooks/useSessionId';
 import { ShellThemeProvider } from './theme/ShellThemeProvider';
+import muiTheme from './theme/muiTheme';
 
 import DataPolicyDialog from './components/common/DataPolicyDialog';
 
@@ -270,6 +272,7 @@ function App() {
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ThemeProvider theme={muiTheme}>
       <ShellThemeProvider defaultMode="dark">
       <Box
         sx={{
@@ -292,6 +295,7 @@ function App() {
         <OwnerIdRequiredDialog open={isOwnerRequiredOpen} onClose={closeOwnerRequired} />
       </Box>
       </ShellThemeProvider>
+      </ThemeProvider>
     </Router>
   );
 }
