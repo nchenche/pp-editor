@@ -2313,7 +2313,7 @@ export default function BilnEditorInterface({
             </Dialog>
 
             {/* Scaffold upload / fetch / preset dialog */}
-            <Dialog open={scaffoldDialogOpen} onClose={closeScaffoldDialog} maxWidth={scaffoldMode === 'preset' ? 'sm' : 'xs'} fullWidth>
+            <Dialog open={scaffoldDialogOpen} onClose={closeScaffoldDialog} maxWidth={'xs'} fullWidth>
                 <DialogTitle>Select scaffold source</DialogTitle>
                 <DialogContent dividers>
                     <RadioGroup
@@ -2324,7 +2324,7 @@ export default function BilnEditorInterface({
                     >
                         <FormControlLabel value="file" control={<Radio size="small" />} label="Upload file" />
                         <FormControlLabel value="pdbId" control={<Radio size="small" />} label="PDB ID" />
-                        <FormControlLabel value="preset" control={<Radio size="small" />} label="Presets" />
+                        {/* <FormControlLabel value="preset" control={<Radio size="small" />} label="Presets" /> */}
                     </RadioGroup>
 
                     {scaffoldMode === 'file' && (
@@ -2364,6 +2364,7 @@ export default function BilnEditorInterface({
                         </Box>
                     )}
 
+                    {/* Presets functionality commented out
                     {scaffoldMode === 'preset' && (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 420, overflowY: 'auto' }}>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
@@ -2471,6 +2472,7 @@ export default function BilnEditorInterface({
                             ))}
                         </Box>
                     )}
+                    */}
                 </DialogContent>
                 <DialogActions>
                     <Button size="small" onClick={closeScaffoldDialog}>
