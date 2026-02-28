@@ -39,6 +39,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { parseFastaToBiln, convertHelmToBiln } from '../../utils/bilnUtils';
 import { API_URL } from '../../config';
@@ -56,6 +57,7 @@ export default function BilnEditorInterface({
     maxMonomers = 40,
     isAtMonomerLimit = false,
     depictionError,
+    depictionLoading = false,
     onChangeBiln,
     hoveredResidueIdx,
     canUndo,
@@ -983,7 +985,20 @@ export default function BilnEditorInterface({
                         </Box>
 
                         {chainsExpanded && (
-                        <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5 }}>
+                        <Box data-chains-scroll sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', mt: 1, pt: 0.5, position: 'relative' }}>
+                            {depictionLoading && (
+                                <LinearProgress
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        zIndex: 2,
+                                        height: 2,
+                                        borderRadius: 1,
+                                    }}
+                                />
+                            )}
                             <ChainSlots
                                 rowMonomerLists={rowMonomerLists}
                                 extraEmptyChains={extraEmptyChains}

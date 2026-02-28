@@ -1592,6 +1592,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         maxMonomers={MAX_MONOMERS}
                         isAtMonomerLimit={isAtMonomerLimit}
                         depictionError={depictionError}
+                        depictionLoading={depictionLoading}
                         onChangeBiln={handleBilnChange}
                         hoveredResidueIdx={null}
                         isDragging={isDragging}

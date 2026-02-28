@@ -7,6 +7,8 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Fade from "@mui/material/Fade";
 
 
 
@@ -139,7 +141,9 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         handleShowingAtomIndices,
         onLinkMonomers,
         onBreakBond,
-        onModesChange
+        onModesChange,
+        loading = false,
+        error,
     } = props;
 
     const processedSvg = useMemo(() => makeTightResponsiveSvg(svgData, { padding: 16, preserve: 'xMidYMid meet' }), [svgData]);
@@ -353,6 +357,51 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             </div>
 
             {/* Removed old vertical controls */}
+
+            {/* Loading overlay */}
+            <Fade in={loading} timeout={{ enter: 400, exit: 200 }} unmountOnExit>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'rgba(255,255,255,0.6)',
+                        backdropFilter: 'blur(1px)',
+                        zIndex: 5,
+                        gap: 1.5,
+                    }}
+                >
+                    <CircularProgress size={32} thickness={4} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                        Generating 2D sketch…
+                    </Typography>
+                </Box>
+            </Fade>
+
+            {/* Error overlay */}
+            {!loading && error && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: 8,
+                        left: 8,
+                        right: 8,
+                        zIndex: 5,
+                        bgcolor: 'error.light',
+                        color: 'error.contrastText',
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 0.75,
+                        fontSize: 12,
+                        boxShadow: 1,
+                    }}
+                >
+                    {String(error)}
+                </Box>
+            )}
 
             {/* Hover label – bottom-right corner */}
             {hoverInfo && (
