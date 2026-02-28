@@ -351,7 +351,7 @@ export default function BilnEditorInterface({
                 },
                 {
                     label: 'Semaglutide with lipid linker',
-                    biln: 'H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)',
+                    biln: 'H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,3)',
                     note: 'SemaB linked to Lys20 side chain (R3).',
                 },
                 {
