@@ -20,6 +20,34 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
+import UploadIcon from "@mui/icons-material/Upload";
+import QuestionMarkSharpIcon from "@mui/icons-material/QuestionMarkSharp";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import DownloadIcon from "@mui/icons-material/Download";
+import CategoryIcon from "@mui/icons-material/Category";
+import PaletteIcon from "@mui/icons-material/Palette";
+import LabelIcon from "@mui/icons-material/Label";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LayersIcon from "@mui/icons-material/Layers";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import SubjectIcon from "@mui/icons-material/Subject";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+
+/* shorthand for inline icon in doc text */
+const Ic = ({ icon: Icon, label }) => (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', gap: 0.3 }}>
+        <Icon sx={{ fontSize: 16 }} />{label && <span>{label}</span>}
+    </Box>
+);
 
 /* ─────────────────────────────────────────────
    Hierarchical navigation model
@@ -290,32 +318,51 @@ const CodeBlock = ({ children }) => (
     </Typography>
 );
 
-const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => (
-    <Box component="figure" sx={{ my: 3, mx: 0 }}>
-        <Box
-            component="img"
-            src={src}
-            alt={alt}
-            onClick={() => openLightbox(src, alt)}
-            sx={{
-                maxWidth: maxWidth === "xs" ? 280 : maxWidth === "sm" ? 380 : maxWidth === "md" ? 480 : 640,
-                width: "100%",
-                mx: "auto",
-                display: "block",
-                borderRadius: 2.5,
-                boxShadow: 2,
-                cursor: "pointer",
-                transition: "box-shadow 0.2s",
-                "&:hover": { boxShadow: 6 },
-            }}
-        />
-        {caption && (
-            <Typography variant="caption" display="block" align="center" sx={{ mt: 1, color: "text.secondary", maxWidth: 640, mx: "auto" }}>
-                {caption}
-            </Typography>
-        )}
-    </Box>
-);
+const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => {
+    const isVideo = typeof src === "string" && /\.(mp4|webm|ogg)$/i.test(src);
+    const resolvedMax = maxWidth === "xs" ? 280 : maxWidth === "sm" ? 380 : maxWidth === "md" ? 480 : 640;
+    const mediaSx = {
+        maxWidth: resolvedMax,
+        width: "100%",
+        mx: "auto",
+        display: "block",
+        borderRadius: 2.5,
+        boxShadow: 2,
+        cursor: "pointer",
+        transition: "box-shadow 0.2s",
+        "&:hover": { boxShadow: 6 },
+    };
+
+    return (
+        <Box component="figure" sx={{ my: 3, mx: 0 }}>
+            {isVideo ? (
+                <Box
+                    component="video"
+                    src={src}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onClick={() => openLightbox(src, alt)}
+                    sx={mediaSx}
+                />
+            ) : (
+                <Box
+                    component="img"
+                    src={src}
+                    alt={alt}
+                    onClick={() => openLightbox(src, alt)}
+                    sx={mediaSx}
+                />
+            )}
+            {caption && (
+                <Typography variant="caption" display="block" align="center" sx={{ mt: 1, color: "text.secondary", maxWidth: 640, mx: "auto" }}>
+                    {caption}
+                </Typography>
+            )}
+        </Box>
+    );
+};
 
 const InfoBox = ({ children, color = "info" }) => {
     const theme = useTheme();
@@ -670,19 +717,19 @@ const Documentation = () => {
                             </TableHead>
                             <TableBody>
                                 <TableRow>
-                                    <TableCell><strong>Swap sections</strong> (↕ icon)</TableCell>
+                                    <TableCell><Ic icon={SwapVertIcon} /> <strong>Swap sections</strong></TableCell>
                                     <TableCell>Swaps the vertical position of Manual edition and Chains. Useful on smaller screens: putting Chains on top lets you see the sequence track alongside the 2D Sketch without scrolling. The preference is saved across sessions.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell><strong>Examples…</strong></TableCell>
+                                    <TableCell><Ic icon={PlayArrowIcon} /> <strong>Examples…</strong></TableCell>
                                     <TableCell>Opens a dialog with 15 pre-built examples across 6 categories (linear, cyclic, capped, non-natural amino acids, secondary structure constraints, 3D template constraints).</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell><strong>Link mode</strong></TableCell>
+                                    <TableCell><Ic icon={DeviceHubIcon} /> <strong>Link mode</strong></TableCell>
                                     <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers — Select a second R-group to create the link." While active, Manual edition auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell><strong>Cut mode</strong></TableCell>
+                                    <TableCell><Ic icon={LinkOffIcon} /> <strong>Cut mode</strong></TableCell>
                                     <TableCell>Toggle: activates bond-removal mode. Click an existing bond to remove it. Same auto-collapse/auto-detach behavior as Link mode. Only one of Link/Cut can be active at a time.</TableCell>
                                 </TableRow>
                                 <TableRow>
@@ -690,11 +737,11 @@ const Documentation = () => {
                                     <TableCell>Adjusts the target pH for protonation (range 0–14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately. Protonation states also reflect in the 3D structure.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell><strong>Undo / Redo</strong></TableCell>
+                                    <TableCell><Ic icon={UndoIcon} /> <strong>Undo</strong> / <Ic icon={RedoIcon} /> <strong>Redo</strong></TableCell>
                                     <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo) — use the toolbar buttons for chain track operations.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell><strong>Upload sequence</strong></TableCell>
+                                    <TableCell><Ic icon={UploadIcon} /> <strong>Upload sequence</strong></TableCell>
                                     <TableCell>Opens an upload dialog to populate the editor from a different notation. See the <MUILink href="#manual-edition">Upload sequence dialog</MUILink> section below.</TableCell>
                                 </TableRow>
                             </TableBody>
@@ -714,7 +761,7 @@ const Documentation = () => {
 
                     <P>
                         The Manual edition section contains the BILN text input field.
-                        It can be collapsed by clicking its header. A <strong>?</strong> help icon next to the header
+                        It can be collapsed by clicking its header. A <Ic icon={QuestionMarkSharpIcon} /> help icon next to the header
                         opens the <em>"Manual edit (BILN) help"</em> dialog — a comprehensive quick-reference covering
                         BILN syntax, R-group rules, and common sequence examples.
                     </P>
@@ -753,7 +800,7 @@ const Documentation = () => {
                     <P><strong>Upload sequence dialog</strong></P>
 
                     <P>
-                        Accessible from the <strong>Upload sequence</strong> button (⬆ icon) in the section header.
+                        Accessible from the <Ic icon={UploadIcon} /> <strong>Upload sequence</strong> button in the section header.
                         This dialog lets you populate the editor from an alternative notation instead of typing BILN manually.
                     </P>
 
@@ -780,20 +827,18 @@ const Documentation = () => {
 
                     <P>
                         The Chains section displays a visual representation of each chain in your peptide.
-                        It can be collapsed by clicking its header. A <strong>?</strong> help icon next to the header
+                        It can be collapsed by clicking its header. A <Ic icon={QuestionMarkSharpIcon} /> help icon next to the header
                         opens the <em>"Working with chains"</em> dialog — a reference covering chain management,
                         constraint modes, sequence track interactions, and color coding.
                     </P>
 
                     {/* [MEDIA: annotated screenshot of chain track area] */}
                     <Figure
-                        src="/assets/documentation/pepedit_chains-section.png"
+                        src="/assets/documentation/gifs/pepedit_chain-track_example.gif"
                         alt="Chains section showing sequence row with colored monomer pills, constraint track, and chain-level actions"
                         caption="The Chains section: each chain has a Sequence row (colored monomer pills), an optional constraint track, and a ⋮ menu for chain-level actions."
                         openLightbox={openLightbox}
                     />
-
-                    <P><strong>Chain track</strong></P>
 
                     <P>
                         Each chain is displayed as a Sequence row — a horizontal strip of colored monomer pills.
@@ -814,8 +859,22 @@ const Documentation = () => {
                         <Li><strong>Bond indicators</strong> — colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
                     </Ul>
 
+                    <P>Each Sequence row has a ⋮ menu on the left side with:</P>
+                    <Ul>
+                        <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
+                        <Li><strong>Cyclize / Uncyclize</strong> — create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
+                        <Li><strong>Mirror</strong> — swap all L-amino acids ↔ D-amino acids in the chain.</Li>
+                        <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
+                    </Ul>
 
                     <P><strong>Constraint track</strong></P>
+
+                    <Figure 
+                        src="/assets/documentation/pepedit_chain_constraint-modes.png"
+                        alt="Constraint track showing secondary structure buttons and 3D template mapping"
+                        caption="The Constraint track: displays per-residue buttons for secondary structure or a template mapping row for 3D templates."
+                        openLightbox={openLightbox}
+                    />
 
                     <P>
                         When a constraint mode is active, a second row appears below the Sequence row. The constraint mode
@@ -829,21 +888,6 @@ const Documentation = () => {
                         <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
                     </Ul>
 
-                    <P><strong>Chain-level actions (⋮ menu)</strong></P>
-
-                    <P>Each Sequence row has a ⋮ menu on the left side with:</P>
-                    <Ul>
-                        <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
-                        <Li><strong>Cyclize / Uncyclize</strong> — create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
-                        <Li><strong>Mirror</strong> — swap all L-amino acids ↔ D-amino acids in the chain.</Li>
-                        <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
-                    </Ul>
-
-                    <P>
-                        The constraint row (when visible) has its own ⋮ menu with bulk-set operations:
-                        All alpha, All beta, All random, and Clear.
-                    </P>
-
                     <P><strong>Adding chains</strong></P>
 
                     <P>
@@ -853,9 +897,17 @@ const Documentation = () => {
 
                     <P><strong>Detach mode</strong></P>
 
+                    {/* [GIF: detach mode — clicking detach, dragging the floating panel, then reattaching] */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_chains-detach.gif"
+                        alt="Animated demonstration of the Chains detach mode: detaching, dragging the floating panel around, and reattaching"
+                        caption="Detach mode: pop the Chains section into a floating panel for more editing space, then reattach when done."
+                        openLightbox={openLightbox}
+                    />
+
                     <P>
                         On smaller screens, the Chains section can take up valuable vertical space.
-                        Click the <strong>detach</strong> icon (↗) next to the Chains header to pop the section out into
+                        Click the <Ic icon={OpenInNewIcon} /> <strong>detach</strong> button next to the Chains header to pop the section out into
                         a <strong>floating panel</strong>. The floating panel:
                     </P>
 
@@ -863,12 +915,12 @@ const Documentation = () => {
                         <Li>Is <strong>draggable</strong> — grab its title bar to move it anywhere on screen.</Li>
                         <Li>Is <strong>resizable</strong> — drag the bottom-right corner to adjust its dimensions.</Li>
                         <Li>Is <strong>non-blocking</strong> — you can still interact with the editor, 2D Sketch, and other panels behind it.</Li>
-                        <Li>Shows <strong>"Chains (detached)"</strong> in the title bar with a <strong>reattach</strong> button (↓) to snap it back inline.</Li>
+                        <Li>Shows <strong>"Chains (detached)"</strong> in the title bar with a <Ic icon={VerticalAlignBottomIcon} /> <strong>reattach</strong> button to snap it back inline.</Li>
                     </Ul>
 
                     <P>
                         While detached, the inline area shows a placeholder message:
-                        <em>"Chains detached — click ↓ to reattach."</em>
+                        <em>"Chains detached — click <Ic icon={VerticalAlignBottomIcon} /> to reattach."</em>
                     </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -877,19 +929,11 @@ const Documentation = () => {
                         you exit the mode, both sections return to their previous state automatically.
                     </Alert>
 
-                    {/* [GIF: detach mode — clicking detach, dragging the floating panel, then reattaching] */}
-                    <Figure
-                        src="/assets/documentation/pepedit_chains-detach.gif"
-                        alt="Animated demonstration of the Chains detach mode: detaching, dragging the floating panel around, and reattaching"
-                        caption="Detach mode: pop the Chains section into a floating panel for more editing space, then reattach when done."
-                        openLightbox={openLightbox}
-                    />
-
                     {/* ── 2D viewer ── */}
                     <SubTitle id="viewer-2d">2D viewer (2D Sketch)</SubTitle>
 
                     <P>
-                        The 2D Sketch (zone ② — bottom-left) displays an interactive SVG depiction of the molecule,
+                        The 2D Sketch displays an interactive SVG depiction of the molecule,
                         rendered by RDKit. It updates automatically whenever the BILN input is valid.
                     </P>
 
@@ -915,22 +959,22 @@ const Documentation = () => {
                             </TableHead>
                             <TableBody>
                                 <TableRow>
-                                    <TableCell>Hub / network</TableCell>
+                                    <TableCell><Ic icon={DeviceHubIcon} /></TableCell>
                                     <TableCell>Link</TableCell>
                                     <TableCell>Toggle link mode — click R-groups on monomers to create a bond.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell>Broken chain</TableCell>
+                                    <TableCell><Ic icon={LinkOffIcon} /></TableCell>
                                     <TableCell>Unlink</TableCell>
                                     <TableCell>Toggle cut mode — double-click an existing bond to remove it.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell>Circular arrow</TableCell>
+                                    <TableCell><Ic icon={RestartAltIcon} /></TableCell>
                                     <TableCell>Reset View</TableCell>
                                     <TableCell>Reset any zoom/pan back to the default fitted view.</TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell>Download</TableCell>
+                                    <TableCell><Ic icon={DownloadIcon} /></TableCell>
                                     <TableCell>Download SVG</TableCell>
                                     <TableCell>Download the current 2D depiction as <code>pep-edit_2d.svg</code>.</TableCell>
                                 </TableRow>
@@ -947,8 +991,8 @@ const Documentation = () => {
 
                     <P><strong>Hover synchronization:</strong></P>
                     <P>
-                        Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track (zone ①)
-                        and the 3D viewer (zone ③). A tooltip in the bottom-right corner shows monomer details — for
+                        Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track 
+                        and the 3D viewer. A tooltip in the bottom-right corner shows monomer details — for
                         example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, symbol, position, one-letter code, full name).
                     </P>
                     <P>
@@ -990,20 +1034,20 @@ const Documentation = () => {
                         <Table size="small">
                             <TableHead>
                                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
-                                    <TableCell sx={{ fontWeight: 700, width: 30 }}>#</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, width: 40 }}>Icon</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Tooltip</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                <TableRow><TableCell>1</TableCell><TableCell>Representation</TableCell><TableCell>Opens a side panel with toggles for visual styles: Cartoon, Ball & Stick, Spacefill, Backbone, Licorice, Ribbon, Line (with opacity slider), Molecular Surface, Gaussian Surface, Gaussian Volume, Putty. Multiple can be active simultaneously.</TableCell></TableRow>
-                                <TableRow><TableCell>2</TableCell><TableCell>Color by</TableCell><TableCell>Opens a side panel to choose a color scheme (by element, chain, residue type…).</TableCell></TableRow>
-                                <TableRow><TableCell>3</TableCell><TableCell>Labels</TableCell><TableCell>Opens a side panel to toggle atom or residue labels on the structure.</TableCell></TableRow>
-                                <TableRow><TableCell>4</TableCell><TableCell>Background</TableCell><TableCell>Toggles the Mol* canvas between dark and light background.</TableCell></TableRow>
-                                <TableRow><TableCell>5</TableCell><TableCell>View</TableCell><TableCell>Opens a side panel with camera controls (reset view, lock camera…).</TableCell></TableRow>
-                                <TableRow><TableCell>6</TableCell><TableCell>Template</TableCell><TableCell>Opens the scaffold template management panel. Icon is tinted when a template is loaded.</TableCell></TableRow>
-                                <TableRow><TableCell>7</TableCell><TableCell>Snapshot</TableCell><TableCell>Downloads a PNG screenshot of the current 3D viewport.</TableCell></TableRow>
-                                <TableRow><TableCell>8</TableCell><TableCell>Log</TableCell><TableCell>Opens a side panel showing the conformer generation job log.</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={CategoryIcon} /></TableCell><TableCell>Representation</TableCell><TableCell>Opens a side panel with toggles for visual styles: Cartoon, Ball & Stick, Spacefill, Backbone, Licorice, Ribbon, Line (with opacity slider), Molecular Surface, Gaussian Surface, Gaussian Volume, Putty. Multiple can be active simultaneously.</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={PaletteIcon} /></TableCell><TableCell>Color by</TableCell><TableCell>Opens a side panel to choose a color scheme (by element, chain, residue type…).</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={LabelIcon} /></TableCell><TableCell>Labels</TableCell><TableCell>Opens a side panel to toggle atom or residue labels on the structure.</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={LightModeIcon} /> / <Ic icon={DarkModeIcon} /></TableCell><TableCell>Background</TableCell><TableCell>Toggles the Mol* canvas between dark and light background.</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={RestartAltIcon} /></TableCell><TableCell>View / Reset</TableCell><TableCell>Resets the camera to the default orientation (available via the <Ic icon={MoreVertIcon} /> overflow menu).</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={LayersIcon} /></TableCell><TableCell>Template</TableCell><TableCell>Opens the scaffold template management panel. Icon is tinted when a template is loaded.</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={PhotoCameraIcon} /></TableCell><TableCell>Snapshot</TableCell><TableCell>Downloads a PNG screenshot of the current 3D viewport (available via the <Ic icon={MoreVertIcon} /> overflow menu).</TableCell></TableRow>
+                                <TableRow><TableCell><Ic icon={SubjectIcon} /></TableCell><TableCell>Log</TableCell><TableCell>Opens a side panel showing the conformer generation job log (available via the <Ic icon={MoreVertIcon} /> overflow menu).</TableCell></TableRow>
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -2114,7 +2158,20 @@ const Documentation = () => {
                         <CloseIcon />
                     </IconButton>
                     {lightbox.src && (
-                        <Box component="img" src={lightbox.src} alt={lightbox.alt} sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }} />
+                        /\.(mp4|webm|ogg)$/i.test(lightbox.src) ? (
+                            <Box
+                                component="video"
+                                src={lightbox.src}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                controls
+                                sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }}
+                            />
+                        ) : (
+                            <Box component="img" src={lightbox.src} alt={lightbox.alt} sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }} />
+                        )
                     )}
                 </Box>
             </Dialog>
