@@ -440,11 +440,15 @@ const MonomerItemComponent = (props) => {
         handleContextMenuFocus,
     ]);
 
-    // If capped, not draggable
-    if (isCapped) return <MonomerContent />;
-
+    // Always wrap in Draggable so @hello-pangea/dnd tracks every item for
+    // displacement calculations. Caps use isDragDisabled so they can't be
+    // picked up, but still shift correctly when a sibling is dragged.
     return (
-        <Draggable draggableId={monomer['res-idx'].toString()} index={index} isDragDisabled={dndDisabled}>
+        <Draggable
+            draggableId={monomer['res-idx'].toString()}
+            index={index}
+            isDragDisabled={isCapped || dndDisabled}
+        >
             {(provided, snapshot) => <MonomerContent provided={provided} snapshot={snapshot} />}
         </Draggable>
     );

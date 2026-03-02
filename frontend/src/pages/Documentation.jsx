@@ -733,12 +733,14 @@ const Documentation = () => {
                         against the maximum of 40.
                     </P>
 
-                    <P><strong>Validation feedback</strong></P>
-                    <Ul>
-                        <Li><strong>Unrecognized monomer</strong> — a red error message appears next to the monomer counter below the BILN input field.</Li>
-                        <Li><strong>Exceeds 40 monomers</strong> — a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
-                        <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
-                    </Ul>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <P sx={{ mb: 1 }}><strong>Validation feedback</strong></P>
+                        <Ul>
+                            <Li><strong>Unrecognized monomer</strong> — a red error message appears next to the monomer counter below the BILN input field.</Li>
+                            <Li><strong>Exceeds 40 monomers</strong> — a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
+                            <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
+                        </Ul>
+                    </Alert>
 
                     {/* [GIF: Interactive edition animation with error message — BILN edition updates 2D sketch and validation feedback is illustrated from incorrect monomer input] */}
                     <Figure
@@ -812,9 +814,6 @@ const Documentation = () => {
                         <Li><strong>Bond indicators</strong> — colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
                     </Ul>
 
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                        There is no arbitrary mid-chain insertion — to insert a monomer at a specific position, append it at the end and then drag it to the desired position.
-                    </Alert>
 
                     <P><strong>Constraint track</strong></P>
 
@@ -826,7 +825,7 @@ const Documentation = () => {
 
                     <Ul>
                         <Li><strong>None</strong> — no constraints. Only the Sequence row is visible.</Li>
-                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Click a button to cycle through values, or use the ⋮ menu for bulk operations (All alpha, All beta, All random, Clear).</Li>
+                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Use the ⋮ menu for bulk operations (All alpha, All beta, All random, Clear).</Li>
                         <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
                     </Ul>
 
