@@ -993,7 +993,7 @@ const Documentation = () => {
                     <P>
                         Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track 
                         and the 3D viewer. A tooltip in the bottom-right corner shows monomer details — for
-                        example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, symbol, position, one-letter code, full name).
+                        example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, PDB code, position, BILN symbol, full name).
                     </P>
                     <P>
                         Clicking a monomer has no effect in normal mode. Click interactions only activate when
@@ -1009,7 +1009,7 @@ const Documentation = () => {
                     <SubTitle id="viewer-3d">3D viewer</SubTitle>
 
                     <P>
-                        The 3D viewer (zone ③ — bottom-right) displays the generated conformer using{" "}
+                        The 3D viewer displays the generated conformer using{" "}
                         <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
                         It loads automatically when a conformer generation job completes.
                     </P>
@@ -1034,7 +1034,7 @@ const Documentation = () => {
                         <Table size="small">
                             <TableHead>
                                 <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
-                                    <TableCell sx={{ fontWeight: 700, width: 40 }}>Icon</TableCell>
+                                    <TableCell sx={{ fontWeight: 700, width: 80 }}>Icon</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Tooltip</TableCell>
                                     <TableCell sx={{ fontWeight: 700 }}>Function</TableCell>
                                 </TableRow>
