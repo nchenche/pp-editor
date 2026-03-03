@@ -24,6 +24,8 @@ import { getSessionId } from '../utils/sessionApi';
 
 import { formatConformerJobProgressMessage } from '../utils/conformerJobProgress';
 
+import { trackConformerGeneration } from '../utils/analyticsApi';
+
 const TERMINAL_STATES = new Set(['success', 'failed', 'canceled']);
 
 function isTerminal(state) {
@@ -531,6 +533,11 @@ export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId 
       clearProgressLog();
 
       setIsStarting(true);
+
+      // Analytics – track conformer generation intent (fire-and-forget)
+      trackConformerGeneration({
+        sequence_length: biln ? String(biln).split('-').length : 0,
+      });
 
       // Use override or effective session ID (convention: session_id == owner_id)
       const startSessionId = sessionIdOverride ?? effectiveSessionId;

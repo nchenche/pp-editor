@@ -8,6 +8,7 @@ import NavBar from './components/layout/Navbar';
 import Home from './pages/Home';
 import PersonalMonomers from './pages/admin/PersonalMonomers';
 import PublicMonomers from './pages/admin/PublicMonomers';
+import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 import Documentation from './pages/Documentation';
 import SubmitPublicMonomers from './pages/SubmitPublicMonomers';
 import './App.css'
@@ -26,6 +27,7 @@ import { ShellThemeProvider } from './theme/ShellThemeProvider';
 import muiTheme from './theme/muiTheme';
 
 import DataPolicyDialog from './components/common/DataPolicyDialog';
+import { trackPageView } from './utils/analyticsApi';
 
 
 const IS_DOCS_ONLY = import.meta.env.VITE_DOCS_ONLY === 'true';
@@ -91,6 +93,18 @@ function OwnerIdRequiredRouteDialog() {
   }, [navigate, returnTo]);
 
   return <OwnerIdRequiredDialog open={true} onClose={handleClose} />;
+}
+
+
+/** Fires a page_view analytics event on every client-side route change. */
+function AnalyticsPageTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+
+  return null;
 }
 
 
@@ -224,6 +238,14 @@ function AppRoutes() {
             </Box>
           }
         />
+        <Route
+          path="/admin/analytics"
+          element={
+            <Box sx={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+              <AnalyticsDashboard />
+            </Box>
+          }
+        />
       </Routes>
     </Box>
   );
@@ -288,6 +310,7 @@ function App() {
         </Header>
 
         <CookieConsentController />
+        <AnalyticsPageTracker />
 
         <AppRoutes />
         <Footer />
