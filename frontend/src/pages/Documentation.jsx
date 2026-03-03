@@ -70,7 +70,7 @@ const NAV_TREE = [
                     },
                     { id: "viewer-2d", label: "2D viewer (2D Sketch)" },
                     { id: "viewer-3d", label: "3D viewer" },
-                    { id: "right-panel", label: "Right panel" },
+                    { id: "right-panel", label: "Resource panel" },
                 ],
             },
             { id: "sessions", label: "Sessions" },
@@ -658,8 +658,8 @@ const Documentation = () => {
 
                     <Figure
                         src="/assets/documentation/pepedit_interface-overview_labeled.png"
-                        alt="Annotated overview of the PEP-EDIT interface. Four numbered zones: (1) Editor interface at top-left, (2) 2D Sketch at bottom-left, (3) 3D viewer at bottom-right, (4) Right panel on the right side."
-                        caption="The four main areas of PEP-EDIT: (1) Editor interface — BILN input, chain track & constraints; (2) 2D Sketch — interactive molecular depiction; (3) 3D viewer — Mol*-powered conformer visualization; (4) Right panel — monomer library, outputs & job history."
+                        alt="Annotated overview of the PEP-EDIT interface. Four numbered zones: (1) Editor interface at top-left, (2) 2D Sketch at bottom-left, (3) 3D viewer at bottom-right, (4) Resource panel on the right side."
+                        caption="The four main areas of PEP-EDIT: (1) Editor interface — BILN input, chain track & constraints; (2) 2D Sketch — interactive molecular depiction; (3) 3D viewer — Mol*-powered conformer visualization; (4) Resource panel — monomer library, outputs & job history."
                         openLightbox={openLightbox}
                     />
 
@@ -667,7 +667,7 @@ const Documentation = () => {
                         <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (1 - top-left); where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-edition">Manual edition</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
                         <Li><strong><MUILink href="#viewer-2d">2D Sketch</MUILink></strong> (2 - bottom-left); an interactive SVG depiction of the molecule, rendered by RDKit. Updates live as you type. Supports hover highlighting synced across all panels, as well as bond creation and removal.</Li>
                         <Li><strong><MUILink href="#viewer-3d">3D viewer</MUILink></strong> (3 - bottom-right); conformer visualization powered by <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>. Includes controls for representation, color scheme, labels, camera, and screenshot export.</Li>
-                        <Li><strong><MUILink href="#right-panel">Right panel</MUILink></strong> (4 - right side); a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
+                        <Li><strong><MUILink href="#right-panel">Resource panel</MUILink></strong> (4 - right side); a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
                     </Ol>
 
                     <P>
@@ -1059,16 +1059,12 @@ const Documentation = () => {
                         <Li><strong>Right-click + drag</strong> (or middle-click) — pan.</Li>
                     </Ul>
 
-                    <P>
-                        Mol*'s built-in advanced controls are accessible via the "Show panels" tab on the right edge of the
-                        3D viewer (arrow icon: <strong>&gt;</strong>), providing structure annotations, measurements, and more.
-                    </P>
 
                     {/* ── Right panel ── */}
-                    <SubTitle id="right-panel">Right panel (Library / Output / Jobs)</SubTitle>
+                    <SubTitle id="right-panel">Resource panel (Library / Output / Jobs)</SubTitle>
 
                     <P>
-                        The right panel (zone ④) is a collapsible, resizable sidebar with three vertical tabs along its
+                        The right-hand resource panel is a collapsible, resizable sidebar with three vertical tabs along its
                         right edge. Click a tab to switch between views; drag the panel's left edge to resize it.
                     </P>
 

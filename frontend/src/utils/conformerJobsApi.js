@@ -297,3 +297,60 @@ export async function patchConformerJob({
     signal,
   });
 }
+
+/**
+ * Delete a single conformer job.
+ * Uses DELETE /api/core/molecules/conformer_jobs/<job_id>
+ */
+export async function deleteConformerJob({
+  jobId,
+  sessionId,
+  dbName = 'pepedit',
+  baseUrlOverride,
+  signal,
+} = {}) {
+  if (!jobId) throw new Error('Missing jobId');
+
+  const effectiveSessionId = sessionId ?? getSessionId();
+
+  const url = buildApiUrl(`/api/core/molecules/conformer_jobs/${encodeURIComponent(jobId)}`, {
+    baseUrlOverride,
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
+  });
+
+  return apiFetchNoOwner(url, { method: 'DELETE', signal });
+}
+
+/**
+ * Bulk-delete conformer jobs.
+ * Uses DELETE /api/core/molecules/conformer_jobs  with body { job_ids: [...] }
+ */
+export async function bulkDeleteConformerJobs({
+  jobIds,
+  sessionId,
+  dbName = 'pepedit',
+  baseUrlOverride,
+  signal,
+} = {}) {
+  if (!Array.isArray(jobIds) || jobIds.length === 0) throw new Error('Missing or empty jobIds');
+
+  const effectiveSessionId = sessionId ?? getSessionId();
+
+  const url = buildApiUrl('/api/core/molecules/conformer_jobs', {
+    baseUrlOverride,
+    query: {
+      db_name: dbName,
+      ...(effectiveSessionId ? { session_id: effectiveSessionId } : {}),
+    },
+  });
+
+  return apiFetchNoOwner(url, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_ids: jobIds }),
+    signal,
+  });
+}

@@ -4,6 +4,11 @@ import {
     Box,
     Button,
     Chip,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     Divider,
     IconButton,
     Menu,
@@ -28,6 +33,8 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import EditIcon from '@mui/icons-material/Edit';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 import { API_BASE_URL } from '../../config';
 import { useSessionId } from '../../hooks/useSessionId';
@@ -36,7 +43,7 @@ import { getLocalSessionMeta, formatSessionIdShort, SESSION_META_CHANGED_EVENT }
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
 import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
 import { getConformerJobInputsFromStorage } from '../../utils/conformerJobInputsStorage';
-import { getConformerJob, patchConformerJob } from '../../utils/conformerJobsApi';
+import { getConformerJob, patchConformerJob, deleteConformerJob, bulkDeleteConformerJobs } from '../../utils/conformerJobsApi';
 import { InlineJobNameEditor } from './InlineJobNameEditor';
 import { JobDetailsDialog } from './JobDetailsDialog';
 
@@ -251,6 +258,11 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
     // Snackbar state
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+    // Delete state
+    const [deletingJobId, setDeletingJobId] = useState(null);
+    const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
     // Cache per-job server details (includes inputs.payload) to drive constraints display.
     const [jobDetailsById, setJobDetailsById] = useState({});
     const jobDetailsRef = useRef(jobDetailsById);
@@ -365,6 +377,65 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
         }
         handleCloseRowMenu();
     }, [rowMenuJob, handleCloseRowMenu]);
+
+    // Delete a single job
+    const handleDeleteJob = useCallback(async () => {
+        const jobId = rowMenuJob?.job_id || rowMenuJob?.id || '';
+        if (!jobId) return;
+        handleCloseRowMenu();
+        setDeletingJobId(jobId);
+        try {
+            const res = await deleteConformerJob({
+                jobId,
+                sessionId: sessionId || undefined,
+                dbName,
+                baseUrlOverride: API_BASE_URL,
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => null);
+                throw new Error(json?.message || `Failed to delete job (${res.status})`);
+            }
+            setSnackbar({ open: true, message: 'Job deleted', severity: 'success' });
+            refresh();
+        } catch (e) {
+            setSnackbar({ open: true, message: e?.message || 'Failed to delete job', severity: 'error' });
+        } finally {
+            setDeletingJobId(null);
+        }
+    }, [rowMenuJob, handleCloseRowMenu, sessionId, dbName, refresh]);
+
+    // Bulk delete all jobs
+    const handleBulkDelete = useCallback(async () => {
+        setBulkDeleteDialogOpen(false);
+        const jobIds = (items || []).map((j) => j?.job_id || j?.id || '').filter(Boolean);
+        if (jobIds.length === 0) return;
+        setBulkDeleting(true);
+        try {
+            const res = await bulkDeleteConformerJobs({
+                jobIds,
+                sessionId: sessionId || undefined,
+                dbName,
+                baseUrlOverride: API_BASE_URL,
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => null);
+                throw new Error(json?.message || `Failed to delete jobs (${res.status})`);
+            }
+            const json = await res.json().catch(() => null);
+            const deleted = json?.data?.deleted || [];
+            const notFound = json?.data?.not_found || [];
+            const errorCount = Object.keys(json?.data?.errors || {}).length;
+            let msg = `${deleted.length} job${deleted.length !== 1 ? 's' : ''} deleted`;
+            if (notFound.length) msg += `, ${notFound.length} not found`;
+            if (errorCount) msg += `, ${errorCount} error${errorCount !== 1 ? 's' : ''}`;
+            setSnackbar({ open: true, message: msg, severity: notFound.length || errorCount ? 'warning' : 'success' });
+            refresh();
+        } catch (e) {
+            setSnackbar({ open: true, message: e?.message || 'Failed to delete jobs', severity: 'error' });
+        } finally {
+            setBulkDeleting(false);
+        }
+    }, [items, sessionId, dbName, refresh]);
 
     // Save job name/description via PATCH
     const saveJobMetadata = useCallback(async (jobId, updates, { showSnackbar = true, isDialog = false } = {}) => {
@@ -481,6 +552,18 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                     {title} ({(items || []).length})
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title="Delete all jobs">
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => setBulkDeleteDialogOpen(true)}
+                                disabled={!items || items.length === 0 || bulkDeleting}
+                                sx={{ color: 'error.main' }}
+                            >
+                                <DeleteSweepIcon fontSize="small" />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
                     <Tooltip title="Columns & view">
                         <IconButton
                             size="small"
@@ -764,6 +847,13 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                     </ListItemIcon>
                     <ListItemText primary="Copy BILN" />
                 </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleDeleteJob} sx={{ color: 'error.main' }}>
+                    <ListItemIcon>
+                        <DeleteIcon fontSize="small" color="error" />
+                    </ListItemIcon>
+                    <ListItemText primary="Delete job" />
+                </MenuItem>
             </Menu>
 
             {/* Edit details dialog */}
@@ -779,6 +869,23 @@ export function ConformerJobsPanel({ dbName = 'pepedit' }) {
                 saving={detailsDialogSaving}
                 error={detailsDialogError}
             />
+
+            {/* Bulk delete confirmation dialog */}
+            <Dialog
+                open={bulkDeleteDialogOpen}
+                onClose={() => setBulkDeleteDialogOpen(false)}
+            >
+                <DialogTitle>Delete all jobs</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to delete all {(items || []).length} conformer job{(items || []).length !== 1 ? 's' : ''}? This action cannot be undone.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setBulkDeleteDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleBulkDelete} color="error" variant="contained">Delete all</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Feedback snackbar */}
             <Snackbar
