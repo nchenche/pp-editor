@@ -54,24 +54,25 @@ export function trackEvent(type, metadata, path) {
   if (!type) return;
 
   const url = `${API_BASE_URL}/api/analytics/event`;
-  const body = { type };
+  const body = { type, session_id: getSessionId() };
 
   if (path !== undefined) body.path = path;
   if (metadata !== undefined && metadata !== null) body.metadata = metadata;
 
   try {
-    // Prefer sendBeacon for its fire-and-forget / survives-unload guarantee.
-    // sendBeacon only supports Blob/FormData/USVString payloads with limited
-    // content-type support, so we fall through to fetch when it isn't available.
+    // sendBeacon is the most reliable fire-and-forget method across browsers.
+    // It survives page unloads and doesn't require keepalive support.
+    // It cannot send custom headers, so we include session_id in the body
+    // (the backend accepts it via header, body, or query param).
     if (typeof navigator?.sendBeacon === 'function') {
       const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
-      const headers = new Headers({ 'X-Session-Id': getSessionId() });
-
-      // sendBeacon does not support custom headers, so fall back to fetch.
-      // We keep the sendBeacon attempt as a final safety net inside
-      // beforeunload (see trackPageView), using the session_id in the body.
+      const sent = navigator.sendBeacon(url, blob);
+      if (sent) return; // success — done
+      // sendBeacon can return false if the browser rejected it (e.g. quota);
+      // fall through to fetch as backup.
     }
 
+    // Fallback for environments without sendBeacon.
     fetch(url, {
       method: 'POST',
       headers: {
@@ -79,7 +80,7 @@ export function trackEvent(type, metadata, path) {
         'X-Session-Id': getSessionId(),
       },
       body: JSON.stringify(body),
-      keepalive: true, // survives page unloads
+      keepalive: true,
     }).catch(() => {});
   } catch {
     // Silently ignore – analytics must never break the app.
