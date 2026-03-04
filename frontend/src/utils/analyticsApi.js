@@ -60,19 +60,9 @@ export function trackEvent(type, metadata, path) {
   if (metadata !== undefined && metadata !== null) body.metadata = metadata;
 
   try {
-    // sendBeacon is the most reliable fire-and-forget method across browsers.
-    // It survives page unloads and doesn't require keepalive support.
-    // It cannot send custom headers, so we include session_id in the body
-    // (the backend accepts it via header, body, or query param).
-    if (typeof navigator?.sendBeacon === 'function') {
-      const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
-      const sent = navigator.sendBeacon(url, blob);
-      if (sent) return; // success — done
-      // sendBeacon can return false if the browser rejected it (e.g. quota);
-      // fall through to fetch as backup.
-    }
-
-    // Fallback for environments without sendBeacon.
+    // Use a regular fetch POST — this is the most cross-browser-compatible
+    // approach. In a SPA, route changes don't unload the page, so keepalive
+    // and sendBeacon are unnecessary for normal tracking.
     fetch(url, {
       method: 'POST',
       headers: {
@@ -80,7 +70,6 @@ export function trackEvent(type, metadata, path) {
         'X-Session-Id': getSessionId(),
       },
       body: JSON.stringify(body),
-      keepalive: true,
     }).catch(() => {});
   } catch {
     // Silently ignore – analytics must never break the app.
