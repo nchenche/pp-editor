@@ -80,6 +80,7 @@ function Header({ children }) {
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState(0); // 0: Share, 1: Recover, 2: Settings
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [isNewSessionDialogOpen, setIsNewSessionDialogOpen] = useState(false);
 
   // Email status state (fetched from /email/status endpoint)
   const [emailStatus, setEmailStatus] = useState(null);
@@ -625,15 +626,12 @@ function Header({ children }) {
     }
   }, [emailStatus?.email, fetchEmailStatus, sessionId]);
 
-  const handleStartNewSession = useCallback(async () => {
-    if (!window.confirm(
-      'Start a new session?\n\n' +
-      'Your current session data (monomers, jobs) will no longer be accessible unless you save your current session ID.\n\n' +
-      'Tip: click the session ID chip (top-right) to copy it, or use Recover → “Email me this session ID” (requires verified email).'
-    )) {
-      return;
-    }
+  const handleStartNewSession = useCallback(() => {
+    setIsNewSessionDialogOpen(true);
+  }, []);
 
+  const handleConfirmNewSession = useCallback(async () => {
+    setIsNewSessionDialogOpen(false);
     setErrorMessage('');
     setInfoMessage('');
     setIsWorking(true);
@@ -1029,7 +1027,7 @@ function Header({ children }) {
                       label="Session ID to share"
                       value={shareSessionIdInput}
                       onChange={(e) => setShareSessionIdInput(e.target.value)}
-                      placeholder="pep-..."
+                      placeholder=""
                       autoComplete="off"
                       slotProps={{ htmlInput: { spellCheck: 'false' } }}
                       fullWidth
@@ -1103,7 +1101,7 @@ function Header({ children }) {
                       label="Session ID"
                       value={recoverSessionIdInput}
                       onChange={(e) => setRecoverSessionIdInput(e.target.value)}
-                      placeholder="pep-..."
+                      placeholder=""
                       autoComplete="off"
                       slotProps={{ htmlInput: { spellCheck: 'false' } }}
                       fullWidth
@@ -1354,6 +1352,31 @@ function Header({ children }) {
           sessionId={sessionId}
           defaultEmail={emailStatus?.email_verified ? emailStatus.email : ''}
         />
+
+        {/* New session confirmation dialog */}
+        <Dialog
+          open={isNewSessionDialogOpen}
+          onClose={() => setIsNewSessionDialogOpen(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Start a new session?</DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+              Your current session data (monomers, jobs) will no longer be accessible unless you save your current session ID.
+              {'\n\n'}
+              Tip: click the session ID chip (top-right) to copy it, or use Recover → "Email me this session ID" (requires verified email).
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsNewSessionDialogOpen(false)} color="inherit" variant="text">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmNewSession} color="primary" variant="contained">
+              New session
+            </Button>
+          </DialogActions>
+        </Dialog>
       </header>
 
       {/* Blocking overlay if session failed to load */}

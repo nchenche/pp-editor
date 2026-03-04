@@ -56,7 +56,12 @@ const NAV_TREE = [
     {
         group: "Getting started",
         children: [
-            { id: "introduction", label: "Introduction" },
+            {
+                id: "introduction", label: "Introduction",
+                children: [{ id: "pepedit-vs-pypept", label: "PEP-EDIT vs pyPept" },
+                ]
+            },
+
             { id: "quick-start", label: "Quick start" },
             {
                 id: "interface-overview", label: "Interface overview",
@@ -78,8 +83,7 @@ const NAV_TREE = [
                 id: "key-concepts", label: "Key concepts",
                 children: [
                     { id: "biln-notation", label: "BILN notation" },
-                    { id: "monomers-rgroups", label: "Monomers, R-groups & leaving groups" },
-                    { id: "pepedit-vs-pypept", label: "PEP-EDIT vs pyPept" },
+                    { id: "monomers-rgroups", label: "Monomer definition" },
                 ],
             },
             { id: "protonation", label: "Protonation (pH)" },
@@ -288,6 +292,12 @@ const SubTitle = ({ children, id, ...rest }) => (
 
 const Sub2Title = ({ children, id, ...rest }) => (
     <Typography id={id} variant="subtitle1" sx={{ fontWeight: 600, scrollMarginTop: 24, mt: 2.5, mb: 0.75, fontSize: "0.95rem", ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
+const Sub3Title = ({ children, ...rest }) => (
+    <Typography variant="subtitle2" sx={{ fontWeight: 600, mt: 2, mb: 0.5, fontSize: "0.85rem", color: "text.secondary", ...rest.sx }} {...rest}>
         {children}
     </Typography>
 );
@@ -594,6 +604,44 @@ const Documentation = () => {
                         </Typography>
                     </InfoBox>
 
+                    {/* ── PEP-EDIT vs pyPept ── */}
+                    <Sub2Title id="pepedit-vs-pypept">PEP-EDIT vs pyPept</Sub2Title>
+
+                    <P>
+                        PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and conversion,
+                        which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation).
+                    </P>
+
+                    <Ul>
+                        <Li>
+                            pyPept paper:{" "}
+                            <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
+                                Springer - J Cheminform (2023)
+                            </MUILink>
+                        </Li>
+                        <Li>
+                            BILN paper:{" "}
+                            <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
+                                ACS - J Chem Inf Model (2022)
+                            </MUILink>
+                        </Li>
+                    </Ul>
+
+                    <P>
+                        PEP-EDIT relies on pyPept, but uses a modified version with several changes to support
+                        an interactive web workflow and structure-aware peptide design:
+                    </P>
+
+                    <Ul>
+                        <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
+                        <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
+                        <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
+                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure with dihedral angle presets or PDB template constraints. In multi-chain peptides, constraints can be set independently per chain — a capability not available in pyPept, which only supports secondary-structure constraints (distance-based, from bound matrix settings) on single-chain peptides.</Li>
+                        <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
+                        <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
+                        <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
+                    </Ul>
+
                     <Divider sx={{ my: 4 }} />
 
                     {/* ── Quick start ── */}
@@ -686,7 +734,7 @@ const Documentation = () => {
                     <SubTitle id="editor-interface">Editor interface</SubTitle>
 
                     <P>
-                        The editor interface occupies the top-left of the screen.
+                        The editor interface (zone 1) occupies the top-left of the screen.
                         It contains a <strong>shared toolbar</strong> at the top and two collapsible sections below it:{" "}
                         <strong>Manual edition</strong> (BILN text input) and <strong>Chains</strong> (visual
                         chain track, constraint rows, and chain-level actions).
@@ -700,7 +748,7 @@ const Documentation = () => {
                         openLightbox={openLightbox}
                     />
 
-                    <P><strong>Editor toolbar</strong></P>
+                    <Sub3Title>Editor toolbar</Sub3Title>
 
                     <P>
                         The toolbar runs across the top of the editor interface, above both sections.
@@ -766,7 +814,7 @@ const Documentation = () => {
                         BILN syntax, R-group rules, and common sequence examples.
                     </P>
 
-                    <P><strong>BILN input field</strong></P>
+                    <Sub3Title>BILN input field</Sub3Title>
 
                     <P>
                         A live text field for typing or pasting BILN sequences directly. Changes are applied on every
@@ -797,7 +845,7 @@ const Documentation = () => {
                         openLightbox={openLightbox}
                     />
 
-                    <P><strong>Upload sequence dialog</strong></P>
+                    <Sub3Title>Upload sequence dialog</Sub3Title>
 
                     <P>
                         Accessible from the <Ic icon={UploadIcon} /> <strong>Upload sequence</strong> button in the section header.
@@ -845,20 +893,21 @@ const Documentation = () => {
                         Each pill shows the monomer symbol and its position number in the chain.
                     </P>
 
-                    <P>Color coding:</P>
+                    <Sub3Title>Color coding</Sub3Title>
                     <Ul>
                         <Li><strong>Green</strong> — natural amino acids.</Li>
                         <Li><strong>Orange</strong> — non-natural / modified monomers.</Li>
                         <Li><strong>Gray</strong> — capping groups.</Li>
                     </Ul>
 
-                    <P>Interactions:</P>
+                    <Sub3Title>Interactions</Sub3Title>
                     <Ul>
                         <Li><strong>Hover</strong> over a pill — reveals Replace, Info, and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
                         <Li><strong>Drag-and-drop</strong> — reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog. Capping groups cannot be dragged.</Li>
                         <Li><strong>Bond indicators</strong> — colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
                     </Ul>
 
+                    <Sub3Title>Chain-level actions (⋮ menu)</Sub3Title>
                     <P>Each Sequence row has a ⋮ menu on the left side with:</P>
                     <Ul>
                         <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
@@ -867,9 +916,9 @@ const Documentation = () => {
                         <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
                     </Ul>
 
-                    <P><strong>Constraint track</strong></P>
+                    <Sub3Title>Constraint track</Sub3Title>
 
-                    <Figure 
+                    <Figure
                         src="/assets/documentation/pepedit_chain_constraint-modes.png"
                         alt="Constraint track showing secondary structure buttons and 3D template mapping"
                         caption="The Constraint track: displays per-residue buttons for secondary structure or a template mapping row for 3D templates."
@@ -888,14 +937,19 @@ const Documentation = () => {
                         <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
                     </Ul>
 
-                    <P><strong>Adding chains</strong></P>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        In multi-chain peptides, each chain has its own independent constraint row. You can assign different
+                        constraint types and values per chain — for example, helix on chain A and strand on chain B.
+                    </Alert>
+
+                    <Sub3Title>Adding chains</Sub3Title>
 
                     <P>
                         Click the <strong>+</strong> button (next to Structural constraints…) to add a new chain.
                         Chains are separated by "." in the BILN string. Each chain has its own Sequence and constraint rows.
                     </P>
 
-                    <P><strong>Detach mode</strong></P>
+                    <Sub3Title>Detach mode</Sub3Title>
 
                     {/* [GIF: detach mode — clicking detach, dragging the floating panel, then reattaching] */}
                     <Figure
@@ -933,7 +987,7 @@ const Documentation = () => {
                     <SubTitle id="viewer-2d">2D viewer (2D Sketch)</SubTitle>
 
                     <P>
-                        The 2D Sketch displays an interactive SVG depiction of the molecule,
+                        The 2D Sketch (zone 2) displays an interactive SVG depiction of the molecule,
                         rendered by RDKit. It updates automatically whenever the BILN input is valid.
                     </P>
 
@@ -946,7 +1000,7 @@ const Documentation = () => {
                         maxWidth="md"
                     />
 
-                    <P><strong>Toolbar</strong> (top-right of the 2D Sketch panel):</P>
+                    <Sub3Title>Toolbar (top-right of the 2D Sketch panel)</Sub3Title>
 
                     <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
                         <Table size="small">
@@ -982,16 +1036,16 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
-                    <P><strong>Navigation:</strong></P>
+                    <Sub3Title>Navigation</Sub3Title>
                     <Ul>
                         <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
                         <Li><strong>Click + drag</strong> — pan the view.</Li>
                         <Li><strong>Double-click</strong> (or Reset View button) — reset to the default fitted view.</Li>
                     </Ul>
 
-                    <P><strong>Hover synchronization:</strong></P>
+                    <Sub3Title>Hover synchronization</Sub3Title>
                     <P>
-                        Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track 
+                        Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track
                         and the 3D viewer. A tooltip in the bottom-right corner shows monomer details — for
                         example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, PDB code, position, BILN symbol, full name).
                     </P>
@@ -1009,7 +1063,7 @@ const Documentation = () => {
                     <SubTitle id="viewer-3d">3D viewer</SubTitle>
 
                     <P>
-                        The 3D viewer displays the generated conformer using{" "}
+                        The 3D viewer (zone 3) displays the generated conformer using{" "}
                         <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
                         It loads automatically when a conformer generation job completes.
                     </P>
@@ -1022,13 +1076,13 @@ const Documentation = () => {
                         maxWidth="md"
                     />
 
-                    <P><strong>Main controls</strong> (top-left of the 3D viewer):</P>
+                    <Sub3Title>Main controls (top-left of the 3D viewer)</Sub3Title>
                     <Ul>
                         <Li><strong>▶ Generate 3D</strong> — submit a conformer generation job manually.</Li>
                         <Li><strong>Auto sync</strong> — toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active.</Li>
                     </Ul>
 
-                    <P><strong>Icon toolbar</strong> (top-right, left to right):</P>
+                    <Sub3Title>Icon toolbar (top-right)</Sub3Title>
 
                     <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
                         <Table size="small">
@@ -1052,7 +1106,7 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
-                    <P><strong>3D navigation:</strong></P>
+                    <Sub3Title>3D navigation</Sub3Title>
                     <Ul>
                         <Li><strong>Left-click + drag</strong> — rotate the structure.</Li>
                         <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
@@ -1064,69 +1118,100 @@ const Documentation = () => {
                     <SubTitle id="right-panel">Resource panel (Library / Output / Jobs)</SubTitle>
 
                     <P>
-                        The right-hand resource panel is a collapsible, resizable sidebar with three vertical tabs along its
-                        right edge. Click a tab to switch between views; drag the panel's left edge to resize it.
+                        The resource panel (zone 4) is a collapsible, resizable sidebar with three vertical tabs along its
+                        right edge. Click a tab to switch views; drag the panel's left edge to resize, or click the very top-right icon
+                        to maximize width. The panel stays consistent across all tabs, only the content area changes.
                     </P>
 
-                    <CardGrid>
-                        <Card title="Monomer Library">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Searchable catalog of 331 monomers (as of v1.0.0). Use the search bar and class filters
-                                (<strong>ALL</strong>, <strong>CAPS</strong>, <strong>NATURAL</strong>, <strong>NON-NATURAL</strong>)
-                                to find monomers. Click the <strong>+</strong> button on a monomer card to add it to your sequence.
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mt: 1 }}>
-                                The <strong>Linking process mode</strong> section at the top controls how monomers are added:
-                            </Typography>
-                            <Ul>
-                                <Li><strong>Mode:</strong> Append (end of chain), Prepend (start of chain), or New chain.</Li>
-                                <Li><strong>Chain:</strong> select which chain to add to (for multi-chain peptides).</Li>
-                            </Ul>
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Card size can be toggled between <strong>Small</strong> and <strong>Large</strong> using
-                                the buttons in the panel header. Each card shows the monomer structure, symbol, PDB code,
-                                and type label.
-                            </Typography>
-                        </Card>
-                        <Card title="Outputs">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Displays all computed output formats, organized into three sections:
-                            </Typography>
-                            <Ul>
-                                <Li><strong>1D — Sequences & Notations</strong> (5): BILN, HELM, SMILES, InChI, InChIKey</Li>
-                                <Li><strong>2D — Depiction & Coordinates</strong> (1): SDF 2D + Export depiction (SVG, PNG)</Li>
-                                <Li><strong>3D — Structures</strong> (6): PDB, MMCIF, XYZ, SDF 3D, MOL2 Tripos, PDBQT + Export snapshot (PNG)</Li>
-                            </Ul>
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-                                Each format row has <strong>Copy</strong> and <strong>Download</strong> buttons.
-                                Panel controls: <strong>Wrap</strong> (wraps long text like SMILES for readability),{" "}
-                                <strong>Expand</strong> (opens all accordion sections), and a <strong>Download all</strong> button
-                                (blue icon, top-right). 1D and 2D formats update live on every valid keystroke. 3D formats
-                                require a successful conformer generation job.
-                            </Typography>
-                        </Card>
-                    </CardGrid>
-                    <CardGrid>
-                        <Card title="Jobs">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Lists all conformer generation jobs submitted in the current session. The table shows four
-                                columns: <strong>Name</strong>, <strong>BILN</strong>, <strong>State</strong>, and <strong>Action</strong>.
-                            </Typography>
-                            <Ul>
-                                <Li><strong>Name</strong> — defaults to "Untitled job". Editable via the ⋮ menu → Edit details (name up to 200 characters, description up to 2000 characters). The dialog also shows read-only metadata: Job ID, creation and update timestamps.</Li>
-                                <Li><strong>State</strong> — green "success" chip or red "failed" chip. Failed jobs show "—" in the BILN column.</Li>
-                                <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
-                                <Li><strong>⋮ menu</strong> → <em>Edit details</em> (rename/describe) and <em>Copy BILN</em> (copies the job's BILN string to the clipboard).</Li>
-                            </Ul>
-                            <Figure
-                                src="/assets/documentation/pepedit_jobs_edit-details.png"
-                                alt="Edit Job Details dialog showing Name and Description fields, plus read-only Job ID and timestamps."
-                                caption="The Edit Job Details dialog: set a name and description for each job."
-                                openLightbox={openLightbox}
-                                maxWidth="sm"
-                            />
-                        </Card>
-                    </CardGrid>
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_right-panel.gif"
+                        alt="Animated demonstration of the resource panel: resizing and maximizing panel width, switching between Small and Large monomer cards, toggling class filters (Natural, Cap, Non-natural, All), switching to the Outputs tab with Expand and Wrap toggles, and switching to the Jobs tab to generate a conformer, watch status updates, and rename a job."
+                        caption="The resource panel in action: resize and maximize the panel, toggle card sizes and class filters in the Library, use Expand/Wrap in Outputs, and generate, monitor, and name conformer jobs."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
+                    {/* ── Monomer Library ── */}
+                    <Sub2Title>Monomer Library</Sub2Title>
+
+                    <P>
+                        A searchable catalog of all available monomers. Use the search bar to filter by name or symbol,
+                        and the class buttons (<strong>ALL</strong>, <strong>NATURAL</strong>, <strong>CAP</strong>,{" "}
+                        <strong>NON-NATURAL</strong>) to narrow the list. Click the info icon to view details or click the <strong>+</strong> button on a monomer
+                        card to add it to your sequence.
+                    </P>
+
+                    <Sub3Title>Linking process mode (top of the panel)</Sub3Title>
+                    <Ul>
+                        <Li><strong>Mode</strong> — <em>Append</em> (add to the end of the chain), <em>Prepend</em> (add to the start), or <em>New chain</em> (creates a separate chain).</Li>
+                        <Li><strong>Chain</strong> — selects which chain to add to (relevant for multi-chain peptides).</Li>
+                    </Ul>
+
+                    <Sub3Title>Display options (panel header)</Sub3Title>
+                    <Ul>
+                        <Li><strong>Small / Large</strong> — toggles monomer card size.</Li>
+                    </Ul>
+
+                    {/* ── Outputs ── */}
+                    <Sub2Title>Outputs</Sub2Title>
+
+                    <P>
+                        Displays all computed molecular representations, organized into three collapsible accordion sections:
+                    </P>
+
+                    <Ul>
+                        <Li><strong>1D — Sequences & Notations</strong> (5 formats): BILN, HELM, SMILES, InChI, InChIKey.</Li>
+                        <Li><strong>2D — Depiction & Coordinates</strong> (1 format): SDF 2D + Export depiction (SVG, PNG).</Li>
+                        <Li><strong>3D — Structures</strong> (6 formats): PDB, MMCIF, XYZ, SDF 3D, MOL2 Tripos, PDBQT + Export snapshot (PNG).</Li>
+                    </Ul>
+
+                    <P>
+                        Each format row has <strong>Copy</strong> and <strong>Download</strong> buttons.
+                        1D and 2D formats update live on every valid keystroke. 3D formats require a successful conformer generation job.
+                    </P>
+
+                    <Sub3Title>Panel controls (header bar)</Sub3Title>
+                    <Ul>
+                        <Li><strong>Wrap</strong> — wraps long text (e.g. SMILES, InChI) for readability instead of horizontal scrolling.</Li>
+                        <Li><strong>Expand</strong> — opens all accordion sections at once so every format is visible.</Li>
+                        <Li><Ic icon={DownloadIcon} /> <strong>Download all</strong> — exports all available formats in a single action.</Li>
+                    </Ul>
+
+                    {/* ── Jobs ── */}
+                    <Sub2Title>Jobs</Sub2Title>
+
+                    <P>
+                        Lists the 50 latest conformer generation jobs submitted in the current session. The table header shows
+                        the session name (or short ID) and the total job count.
+                    </P>
+
+                    <Sub3Title>Table columns</Sub3Title>
+                    <P>Name and Action are always visible; others can be toggled via <strong>Columns & view</strong>:</P>
+                    <Ul>
+                        <Li><strong>Name</strong> — defaults to "Untitled job". Click to edit inline, or use ⋮ → Edit details for a full dialog (name up to 200 characters, description up to 2 000 characters, plus read-only Job ID and timestamps).</Li>
+                        <Li><strong>BILN</strong> — the BILN string used for the job. Shows "—" for failed jobs.</Li>
+                        <Li><strong>Date</strong> — creation timestamp.</Li>
+                        <Li><strong>State</strong> — green "success" chip or red "failed" chip.</Li>
+                    </Ul>
+
+                    <Sub3Title>Actions</Sub3Title>
+                    <Ul>
+                        <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
+                        <Li><strong>⋮ menu</strong> per job:</Li>
+                    </Ul>
+                    <Ol>
+                        <Li><strong>Edit details</strong> — opens a dialog to set name and description.</Li>
+                        <Li><strong>Copy BILN</strong> — copies the job's BILN string to the clipboard.</Li>
+                        <Li><strong>Delete job</strong> — permanently deletes the individual job (immediate, no undo).</Li>
+                    </Ol>
+
+                    <Sub3Title>Bulk actions (header bar)</Sub3Title>
+                    <Ul>
+                        <Li><strong>Delete all jobs</strong> — removes every job in the current session. A confirmation dialog shows the job count and warns that the action cannot be undone.</Li>
+                        <Li><strong>Refresh</strong> — re-fetches the job list from the server.</Li>
+                        <Li><strong>Columns & view</strong> — toggles optional columns (BILN, Date, State) and the "Show descriptions" option.</Li>
+                    </Ul>
+
 
                     <Divider sx={{ my: 4 }} />
 
@@ -1161,49 +1246,66 @@ const Documentation = () => {
                     </P>
 
                     <Alert severity="warning" sx={{ mb: 2 }}>
-                        Sessions are automatically deleted after <strong>1 month of inactivity</strong>. Each visit refreshes the expiration timer.
+                        Sessions are automatically deleted after <strong>15 days of inactivity</strong>. Each visit refreshes the expiration timer.
                     </Alert>
 
                     <Sub2Title>Session dialog (Share / Recover / Email)</Sub2Title>
                     <P>Click the <strong>⚙ Session</strong> button in the header to open the Session Management dialog with three tabs:</P>
 
-                    <CardGrid>
-                        <Card title="Share">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Send a Session ID by email. The recipient can load and collaborate on the session.
-                            </Typography>
-                            <Ul>
-                                <Li>Enter the recipient's email address.</Li>
-                                <Li>Choose whether to share the current session or a different Session ID.</Li>
-                                <Li>Click <strong>Send by Email</strong>.</Li>
-                            </Ul>
-                        </Card>
-                        <Card title="Recover">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Get back into a session you no longer have in your browser:
-                            </Typography>
-                            <Ol>
-                                <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
-                                <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
-                                <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
-                            </Ol>
-                        </Card>
-                    </CardGrid>
-                    <CardGrid>
-                        <Card title="Email">
-                            <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Link an email address to enable recovery and sharing features.
-                            </Typography>
-                            <Ul>
-                                <Li><strong>Link email:</strong> enter your email; verify via the link sent to you.</Li>
-                                <Li><strong>Change email:</strong> two-step verification (current + new email).</Li>
-                                <Li><strong>Session notes:</strong> set or update session name and description.</Li>
-                            </Ul>
-                        </Card>
-                    </CardGrid>
+                    <Sub3Title>Share</Sub3Title>
+                    <P>
+                        Send a Session ID by email. The recipient can load and collaborate on the session.
+                    </P>
+                    <Ul>
+                        <Li>Enter the recipient's email address.</Li>
+                        <Li>Choose whether to share the current session or a different Session ID.</Li>
+                        <Li>Click <strong>Send by Email</strong>.</Li>
+                    </Ul>
+                    <Figure
+                        src="/assets/documentation/pepedit_session-share.png"
+                        alt="Session dialog — Share tab showing email input and session ID selection"
+                        caption="The Share tab: send a Session ID to a collaborator by email."
+                        openLightbox={openLightbox}
+                        maxWidth="sm"
+                    />
 
-                    <P><strong>Tip:</strong> click the Session ID chip in the header at any time to copy the full ID to your clipboard.</P>
+                    <Sub3Title>Recover</Sub3Title>
+                    <P>
+                        Get back into a session you no longer have in your browser:
+                    </P>
+                    <Ol>
+                        <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
+                        <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
+                        <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
+                    </Ol>
+                    <Figure
+                        src="/assets/documentation/pepedit_session-recover.png"
+                        alt="Session dialog — Recover tab showing Load by ID field and email recovery options"
+                        caption="The Recover tab: load an existing session by ID or request it via email."
+                        openLightbox={openLightbox}
+                        maxWidth="sm"
+                    />
 
+                    <Sub3Title>Email</Sub3Title>
+                    <P>
+                        Link an email address to enable recovery and sharing features.
+                    </P>
+                    <Ul>
+                        <Li><strong>Link email:</strong> enter your email; verify via the link sent to you.</Li>
+                        <Li><strong>Change email:</strong> two-step verification (current + new email).</Li>
+                        <Li><strong>Session notes:</strong> set or update session name and description.</Li>
+                    </Ul>
+                    <Figure
+                        src="/assets/documentation/pepedit_session-email.png"
+                        alt="Session dialog — Email tab showing email linking and session notes fields"
+                        caption="The Email tab: link an email for recovery, and set session name and description."
+                        openLightbox={openLightbox}
+                        maxWidth="sm"
+                    />
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Tip:</strong> click the Session ID chip in the header at any time to copy the full ID to your clipboard.
+                    </Alert>
                     <Divider sx={{ my: 4 }} />
 
                     {/* ════════════════════════════════════════════
@@ -1246,13 +1348,13 @@ const Documentation = () => {
                     </Alert>
 
                     {/* ── Monomers, R-groups & leaving groups ── */}
-                    <SubTitle id="monomers-rgroups">Monomers, R-groups & leaving groups</SubTitle>
+                    <SubTitle id="monomers-rgroups">Monomer definition</SubTitle>
 
                     {/* [MEDIA: annotated monomer diagram showing R-groups] */}
                     <Figure
-                        src="/assets/documentation/Monomer6.png"
-                        alt="Monomer with labeled R-groups"
-                        caption="Example monomer with labeled R-groups (R1, R2). Each monomer has a name, BILN symbol, and a 3-letter PDB identifier."
+                        src="/assets/documentation/pepedit_monomer-card-details.png"
+                        alt="D-Asparagine monomer card details"
+                        caption="D-Asparagine (dN) monomer card showing its name, BILN symbol, PDB 3-letter code, and labeled R-groups (R1, R2)."
                         openLightbox={openLightbox}
                         maxWidth="xs"
                     />
@@ -1265,7 +1367,7 @@ const Documentation = () => {
                     <Ul>
                         <Li><strong>R1</strong> - typically the backbone nitrogen (N-terminus side).</Li>
                         <Li><strong>R2</strong> - typically the backbone carbonyl carbon (C-terminus side).</Li>
-                        <Li><strong>R3, R4…</strong> - side chains, branching points, or specific chemical modifications.</Li>
+                        <Li><strong>R3, R4</strong> - side chains, branching points, or specific chemical modifications.</Li>
                     </Ul>
 
                     <P>
@@ -1309,68 +1411,34 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
-                    {/* ── PEP-EDIT vs pyPept ── */}
-                    <SubTitle id="pepedit-vs-pypept">PEP-EDIT vs pyPept</SubTitle>
-
-                    <P>
-                        PEP-EDIT is built upon <strong>pyPept</strong>, a Python toolkit for peptide representation and conversion,
-                        which itself relies on the <strong>BILN</strong> notation (Boehringer Ingelheim Line Notation).
-                    </P>
-
-                    <Ul>
-                        <Li>
-                            pyPept paper:{" "}
-                            <MUILink href="https://link.springer.com/article/10.1186/s13321-023-00748-2" target="_blank" rel="noreferrer">
-                                Springer - J Cheminform (2023)
-                            </MUILink>
-                        </Li>
-                        <Li>
-                            BILN paper:{" "}
-                            <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00703" target="_blank" rel="noreferrer">
-                                ACS - J Chem Inf Model (2022)
-                            </MUILink>
-                        </Li>
-                    </Ul>
-
-                    <P>
-                        PEP-EDIT relies on pyPept, but uses a modified version with several changes to support
-                        an interactive web workflow and structure-aware peptide design:
-                    </P>
-
-                    <Ul>
-                        <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
-                        <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
-                        <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
-                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure presets or PDB template constraints.</Li>
-                        <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
-                        <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
-                        <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
-                    </Ul>
-
                     <Divider sx={{ my: 4 }} />
 
                     {/* ── Protonation ── */}
                     <SectionTitle id="protonation">Protonation (pH)</SectionTitle>
 
                     <P>
-                        Protonation is handled after building the peptide-derived SMILES. The SMILES is submitted to{" "}
+                        After molecular assembly, PEP-EDIT performs pH-dependent protonation using a modified version of{" "}
                         <MUILink href="https://link.springer.com/article/10.1186/s13321-019-0336-9" target="_blank" rel="noreferrer">
                             Dimorphite-DL
                         </MUILink>{" "}
-                        to predict a protonated form at the chosen pH (default: 7.4). The protonated state is propagated to all exports
-                        (SMILES, PDB, etc.).
+                        at a user-specified pH (default 7.4). Selected SMARTS pKa definitions were adjusted to better
+                        match known amino-acid behaviour at physiological pH — for instance, phenol, imide and amide
+                        groups are kept neutral.
                     </P>
-                    <Ul>
-                        <Li>
-                            PEP-EDIT uses a <strong>modified Dimorphite-DL</strong> where selected SMARTS pKa values were adjusted
-                            (file: <code>site_substructures.smarts</code>) to better match known amino-acid pKa behavior. In brief:
-                            neutral phenol, neutral imide and neutral amide at physiological pH.
-                        </Li>
-                    </Ul>
                     <P>
-                        The pH slider is available in the editor toolbar. Adjusting pH changes how titratable groups are protonated
-                        in the exported representations.
+                        The resulting protonated molecular graph serves as the common starting point for both the 2D
+                        depiction and the 3D conformer generation. You can adjust the target pH with the slider in the
+                        editor toolbar; changes are reflected immediately in SMILES/InChI outputs and in the 3D structure.
                     </P>
+
+                    {/* GIF animation showing protonation state reflection on 2D depiction */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_protonation.gif"
+                        alt="Protonation state reflection"
+                        caption="Adjusting the pH slider updates the protonation state in the 2D depiction."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
 
                     <Divider sx={{ my: 4 }} />
 
@@ -1454,6 +1522,12 @@ const Documentation = () => {
                         chains toolbar. Each residue can be toggled individually, or bulk-set via the ⋮ menu on the constraint row
                         (All alpha, All beta, All random, Clear).
                     </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        PEP-EDIT supports secondary-structure constraints on <strong>multi-chain peptides</strong> — each chain
+                        can have its own independent H/E/− assignments. This extends pyPept's underlying constraint engine,
+                        which only supports distance-based bound-matrix constraints on single-chain peptides.
+                    </Alert>
 
                     <Sub2Title id="constraints-3d">3D template (scaffold) constraints</Sub2Title>
 
@@ -2014,7 +2088,7 @@ const Documentation = () => {
                     <SectionTitle id="monomer-library-ref">Monomer library & R-groups</SectionTitle>
 
                     <Figure
-                        src="/assets/documentation/Monomer6.png"
+                        src="/assets/documentation/pepedit_monomer-card-details.png"
                         alt="Monomer detail view with R-groups"
                         caption="Example monomer with labeled R-groups (R1, R2). Each monomer has three labels: its name, the BILN symbol, and a 3-letter PDB identifier."
                         openLightbox={openLightbox}
@@ -2171,7 +2245,7 @@ const Documentation = () => {
                     )}
                 </Box>
             </Dialog>
-        </Box>
+        </Box >
     );
 };
 
