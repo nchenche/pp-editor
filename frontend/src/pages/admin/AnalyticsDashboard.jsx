@@ -387,7 +387,7 @@ const CountryTable = memo(function CountryTable({ topCountries }) {
                 <span title={c.country_code}>{c.country || c.country_code}</span>
               </TableCell>
               <TableCell align="right" sx={{ fontSize: 12, py: 0.5, fontVariantNumeric: 'tabular-nums' }}>
-                {fmtNumber(c.count)}
+                {fmtNumber(c.visitors)}
               </TableCell>
             </TableRow>
           ))}
@@ -568,8 +568,8 @@ const ConformerStatsSection = memo(function ConformerStatsSection({ stats, scope
     <Section title={`Conformer Performance${scopeLabel ? ` (${scopeLabel})` : ''}`}>
       {/* KPI cards row */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2.5 }}>
-        <KpiCard title="Total Generations" value={fmtNumber(stats.total)} />
-        <KpiCard title="Successful" value={fmtNumber(stats.success_count)} color="#34d399" />
+        <KpiCard title="Conformers Completed" value={fmtNumber(stats.total)} />
+        <KpiCard title="Succeeded" value={fmtNumber(stats.success_count)} color="#34d399" />
         <KpiCard
           title="Success Rate"
           value={fmtPercent(stats.success_rate)}
@@ -946,7 +946,7 @@ function AnalyticsDashboard() {
               color="#60a5fa"
             />
             <KpiCard
-              title="Conformer Gens"
+              title="Conformers Requested"
               value={fmtNumber(effectiveData.event_counts?.conformer_generation)}
               color="#34d399"
             />
