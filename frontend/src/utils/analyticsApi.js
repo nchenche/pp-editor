@@ -2,7 +2,7 @@
 // Analytics – fire-and-forget event tracking (no cookies, no fingerprinting)
 // ---------------------------------------------------------------------------
 //
-// The backend accepts events at  POST /api/analytics/event
+// The backend accepts events at  POST /api/usage/event
 // Session identity is carried via the  X-Session-Id  header using a UUID v4
 // that lives in sessionStorage (per-tab lifetime).
 //
@@ -53,7 +53,7 @@ export function getSessionId() {
 export function trackEvent(type, metadata, path) {
   if (!type) return;
 
-  const url = `${API_BASE_URL}/api/analytics/event`;
+  const url = `${API_BASE_URL}/api/usage/event`;
   const body = { type, session_id: getSessionId() };
 
   if (path !== undefined) body.path = path;

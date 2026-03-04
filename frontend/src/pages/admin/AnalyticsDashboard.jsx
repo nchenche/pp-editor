@@ -2,7 +2,7 @@
 // Analytics Dashboard – admin page for traffic & usage statistics
 // ---------------------------------------------------------------------------
 //
-// Fetches data from  GET /api/analytics/summary  and renders KPI cards,
+// Fetches data from  GET /api/usage/summary  and renders KPI cards,
 // line charts (daily traffic), bar charts (event breakdown), pie charts
 // (browsers, OS), and tables (countries, pages, errors).
 //
@@ -127,7 +127,7 @@ async function fetchSummary(scope = 'recent', options = {}, adminToken = null) {
   const t = String(adminToken ?? '').trim();
   if (t) headers['X-Admin-Token'] = t;
 
-  const res = await fetch(`${API_BASE_URL}/api/analytics/summary?${params}`, { headers });
+  const res = await fetch(`${API_BASE_URL}/api/usage/summary?${params}`, { headers });
   if (res.status === 401 || res.status === 403) {
     throw new Error('Unauthorized — invalid or missing admin token.');
   }
