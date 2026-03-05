@@ -1317,29 +1317,91 @@ const Documentation = () => {
                     <SubTitle id="biln-notation">BILN notation</SubTitle>
 
                     <P>
-                        BILN (Boehringer Ingelheim Line Notation) represents a peptide as monomers and connections. In its explicit
-                        form, each monomer can carry one or more connection pairs <code>(bondId, RgroupId)</code>. The BILN rules are:
-                        monomers separated by dots, connections defined by integer pairs, and a hyphen shorthand when connecting
-                        R2→R1 along the backbone.
+                        BILN (Boehringer Ingelheim Line Notation) is a human-readable line notation for complex peptides
+                        (Fox et al.,{" "}
+                        <MUILink href="https://pubs.acs.org/doi/10.1021/acs.jcim.2c00035" target="_blank" rel="noreferrer">
+                            <em>J. Chem. Inf. Model.</em> 2022
+                        </MUILink>
+                        ). It represents a peptide as an ordered list of monomers connected through numbered attachment
+                        points (R-groups). Together with a monomer library that maps each abbreviation to its chemical
+                        structure, a BILN string unambiguously defines the atomistic structure of any peptide — including
+                        cyclic, branched, and multi-chain architectures with non-natural building blocks.
                     </P>
 
-                    <P>Examples:</P>
+                    <P>In BILN, polymers are described as a chain of monomers following these conventions:</P>
                     <Ul>
-                        <Li>Explicit backbone connections: <code>A(1,2).G(1,1)(2,2).C(2,1)</code></Li>
-                        <Li>Shorthand for linear peptide: <code>P-E-P-T-I-D-E</code></Li>
-                        <Li>Multi-chain (dot separator): <code>A-G-K(1,3)-D.ac(1,2)</code></Li>
+                        <Li>
+                            Unconnected monomers are listed by their abbreviation and separated by
+                            dots: <code>A.G.C</code>
+                        </Li>
+                        <Li>
+                            Connections between monomers are specified by integer pairs in parentheses after the
+                            abbreviation. The first integer is a bond identifier (which must appear exactly twice in
+                            the BILN string), and the second denotes the R-group
+                            involved. When a monomer participates in more than one bond, pairs are
+                            concatenated: <code>A(1,2).G(1,1)(2,2).C(2,1)</code>
+                        </Li>
+                        <Li>
+                            When a connection goes from R2 of one monomer to R1 of the next — the standard backbone
+                            peptide bond — the explicit notation can be replaced by a simple
+                            hyphen: <code>A-G-C</code>. Combined with the convention that R1 sits on the backbone
+                            nitrogen and R2 on the backbone carbonyl carbon, this gives a natural N→C reading order.
+                        </Li>
                     </Ul>
 
+                    <P>These conventions allow a wide range of peptide architectures to be expressed concisely:</P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>BILN</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Linear peptide</TableCell>
+                                    <TableCell><code>P-E-P-T-I-D-E</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Internal disulfide bridge + C-terminal amidation</TableCell>
+                                    <TableCell><code>A-C(1,3)-G-A-G-C(1,3)-D-am</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Head-to-tail cyclic peptide</TableCell>
+                                    <TableCell><code>C(1,1)-Y-C-L-I-C(1,2)</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Same peptide, C–C disulfide instead</TableCell>
+                                    <TableCell><code>C(1,3)-Y-C-L-I-C(1,3)</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Side-chain modification (acetyl on Lys Nε)</TableCell>
+                                    <TableCell><code>A-G-K(1,3)-D-D.ac(1,2)</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Branched peptide (poly-glycine linked on Lys Nε)</TableCell>
+                                    <TableCell><code>A-G-K(1,3)-D-D.A-G-G-G(1,2)</code></TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Multi-chain (dot separator)</TableCell>
+                                    <TableCell><code>A-G-K.E-H-I</code></TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
                     <P>
-                        If a monomer abbreviation contains a hyphen, BILN requires brackets for disambiguation
-                        (e.g. <code>A-[2-Cl-Phe]-C</code>). PEP-EDIT avoids this by using underscores (<code>_</code>) in such
-                        monomer names.
+                        If a monomer abbreviation contains a hyphen, BILN requires square brackets for disambiguation
+                        (e.g. <code>A-[2-Cl-Phe]-C</code>). PEP-EDIT avoids this by using underscores in monomer symbols
+                        that would otherwise contain hyphens.
                     </P>
 
                     <P>
-                        In practice, BILN describes a peptide as an ordered list of monomers plus explicit connections between
-                        their attachment points (R-groups). The convention is <strong>R1 = backbone N</strong> and{" "}
-                        <strong>R2 = backbone carbonyl C</strong> for amino acids (N→C reading order).
+                        For fully defined molecular entities, a BILN string carries the same structural information as a
+                        HELM string and can be converted to or from HELM. PEP-EDIT accepts both notations as input and
+                        provides HELM among its output formats.
                     </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -1360,24 +1422,40 @@ const Documentation = () => {
                     />
 
                     <P>
-                        A <strong>monomer</strong> is the basic building block in PEP-EDIT - an amino acid, cap, or chemical moiety.
-                        Each monomer has <strong>attachment points</strong> (R-groups) that define where it can connect to other monomers.
+                        A monomer is the basic building block in PEP-EDIT — an amino acid, capping group, or arbitrary
+                        chemical moiety. Each monomer is defined by four properties:
                     </P>
 
                     <Ul>
-                        <Li><strong>R1</strong> - typically the backbone nitrogen (N-terminus side).</Li>
-                        <Li><strong>R2</strong> - typically the backbone carbonyl carbon (C-terminus side).</Li>
-                        <Li><strong>R3, R4</strong> - side chains, branching points, or specific chemical modifications.</Li>
+                        <Li><strong>Structure</strong> — the chemical structure, stored as an SDF MolBlock in PEP-EDIT.</Li>
+                        <Li><strong>Abbreviation (symbol)</strong> — a unique identifier used in the BILN string (e.g. "A" for alanine, "am" for C-terminal amine
+
+).</Li>
+                        <Li><strong>Attachment points (R-groups)</strong> — numbered positions (R1, R2, R3…) where the monomer can form bonds with other monomers.</Li>
+                        <Li><strong>Leaving groups</strong> — the atoms (H or OH) that cap an R-group when it is not involved in a bond.</Li>
+                    </Ul>
+
+                    <Sub2Title>R-group conventions</Sub2Title>
+                    <P>By convention:</P>
+                    <Ul>
+                        <Li><strong>R1</strong> — backbone nitrogen (N-terminus side).</Li>
+                        <Li><strong>R2</strong> — backbone carbonyl carbon (C-terminus side).</Li>
+                        <Li><strong>R3, R4…</strong> — side chains, branching points, or chemical modifications.</Li>
                     </Ul>
 
                     <P>
-                        A monomer with only one R-group acts as a <strong>capping group</strong> (e.g. acetyl = N-cap, amide = C-cap).
-                        A monomer with three or more R-groups can serve as a <strong>branching or cyclization site</strong>.
+                        The number of R-groups determines the monomer's role. A monomer with a single R-group acts as a
+                        capping group (e.g. acetyl caps via R2, amide caps via R1). Two R-groups make a standard backbone
+                        unit. Three or more R-groups open up branching or cyclization — for instance, lysine carries R1
+                        and R2 on the backbone and R3 on the side-chain amine, allowing a modification at Nε while
+                        remaining part of the main chain.
                     </P>
 
+                    <Sub2Title>Leaving groups</Sub2Title>
                     <P>
-                        Each R-group has an associated <strong>leaving group</strong> (H or OH). If an R-group is not used in a
-                        connection, it is replaced by its leaving group in the final structure.
+                        Each R-group carries a leaving group (H or OH). When an R-group is not involved in a bond, it is
+                        replaced by its leaving group in the final structure. For example, a free alanine has R1 capped
+                        with H (→ backbone NH₂) and R2 capped with OH (→ backbone COOH), yielding the complete amino acid.
                     </P>
 
                     <Sub2Title>Monomer categories in the chain track</Sub2Title>
@@ -1411,6 +1489,13 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
+                    <P>
+                        PEP-EDIT ships with a public library of 324 monomers covering all 20 canonical amino acids and
+                        common non-natural residues. Users can create additional monomers through the guided wizard on
+                        the <em>My monomers</em> page — see{" "}
+                        <MUILink href="#adding-monomers">Adding monomers to the library</MUILink>.
+                    </P>
+
                     <Divider sx={{ my: 4 }} />
 
                     {/* ── Protonation ── */}
@@ -1425,6 +1510,18 @@ const Documentation = () => {
                         match known amino-acid behaviour at physiological pH — for instance, phenol, imide and amide
                         groups are kept neutral.
                     </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Modified pKa rules</strong> — The following SMARTS pKa adjustments were applied to the
+                        original Dimorphite-DL definitions:
+                        <Ul sx={{ mb: 0 }}>
+                            <Li><strong>Phenols</strong> (e.g. Tyrosine): pKa raised from ~7.1 to 10.0 so they stay neutral at pH 7.4. A separate rule keeps a lower pKa (6.8) for heavily substituted, electron-withdrawing phenols.</Li>
+                            <Li><strong>Imides</strong>: pKa for ringed imides raised by 2 units (~6.45 → 8.45) to prevent erroneous deprotonation.</Li>
+                            <Li><strong>Secondary amides</strong> (e.g. peptide bonds): assigned an artificial pKa of −100, effectively locking them in their neutral state.</Li>
+                            <Li><strong>Aromatic nitrogens</strong>: pKa for protonated aromatic nitrogens raised from ~7.2 to 14.0, preventing proton loss at physiological pH.</Li>
+                        </Ul>
+                    </Alert>
+
                     <P>
                         The resulting protonated molecular graph serves as the common starting point for both the 2D
                         depiction and the 3D conformer generation. You can adjust the target pH with the slider in the

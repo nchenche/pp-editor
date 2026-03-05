@@ -1238,13 +1238,17 @@ export default function BilnEditorInterface({
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td><strong>Backbone connection</strong> (automatic <code>R2 → R1</code>)</td>
-                                            <td><code>A-C</code></td>
+                                            <td><strong>Independent chain of monomers</strong> (monomers separated by <code>.</code>)</td>
+                                            <td><code>A.C</code></td>
                                         </tr>
                                         <tr>
-                                            <td><strong>Explicit equivalent</strong> (same as <code>A-C</code>)</td>
+                                            <td><strong>Explicit backbone connection</strong> (same as <code>A-C</code>)</td>
                                             <td><code>A(1,2).C(1,1)</code></td>
                                         </tr>
+                                        <tr>
+                                            <td><strong>Implicit Backbone connection</strong> (automatic <code>R2 → R1</code>)</td>
+                                            <td><code>A-C</code></td>
+                                        </tr>                                        
                                         <tr>
                                             <td><strong>Branch / side-chain capping</strong> (branch separated by <code>.</code>)</td>
                                             <td><code>A-G-K(1,3)-D.ac(1,2)</code></td>
@@ -1466,6 +1470,11 @@ export default function BilnEditorInterface({
                                             <td><code>A-G-K(1,3)-D.ac(1,2)</code></td>
                                             <td>The <code>.</code> separates the main chain from the branch.</td>
                                         </tr>
+                                        <tr>
+                                            <td><strong>Two separated chains</strong></td>
+                                            <td><code>A-G-K.E-H-I</code></td>
+                                            <td>The <code>.</code> separates the two chains.</td>
+                                        </tr>
                                     </tbody>
                                 </Box>
                             </Box>
@@ -1483,7 +1492,7 @@ export default function BilnEditorInterface({
                                 </li>
                                 <li>
                                     <Typography component="span">
-                                        <strong>Concatenation:</strong> If a monomer has multiple connections, concatenate the bond pairs: <code>K(1,3)(2,3)</code>
+                                        <strong>Concatenation:</strong> If a monomer has multiple connections, concatenate the bond pairs: <code>K(1,3)(2,2)</code>
                                     </Typography>
                                 </li>
                                 <li>
