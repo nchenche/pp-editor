@@ -1370,7 +1370,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         initialViewerSplitRatio: 0.5,
     });
 
+    // While restoring layout after link/cut mode, suppress delta adjustments that
+    // BilnEditorInterface fires as side-effects (manual section re-expand, chains
+    // re-attach), because the absolute saved height is already being restored.
+    const suppressAdjustRef = useRef(false);
+
     const handleAdjustEditorHeight = useCallback((delta) => {
+        if (suppressAdjustRef.current) return;
         setEditorAreaHeight(prev => {
             const mainEl = mainAreaRef.current;
             const maxH = mainEl
@@ -1449,6 +1455,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!active && wasActive) {
             wasLinkModeActiveRef.current = false;
 
+            // Suppress delta-based height adjustments from BilnEditorInterface
+            // (manual section re-expand, chains re-attach) while we restore the
+            // absolute saved height.  The double-rAF matches the chain reattach
+            // delay so the flag stays active long enough.
+            suppressAdjustRef.current = true;
+
             // Restore previous viewer collapse state.
             const prevCollapse = collapsedViewerBeforeLinkModeRef.current;
             collapsedViewerBeforeLinkModeRef.current = undefined;
@@ -1470,6 +1482,13 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 setEditorAreaHeight(prevHeight);
                 requestAnimationFrame(() => persistToStorage());
             }
+
+            // Clear suppression after the chain-reattach double-rAF window.
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    suppressAdjustRef.current = false;
+                });
+            });
         }
     }, [viewer2DModes.linkMode, viewer2DModes.bondsMode, viewerSplitRatio, setViewerSplitRatio, viewerRowRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
