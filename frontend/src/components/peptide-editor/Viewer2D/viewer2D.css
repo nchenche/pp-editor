@@ -240,12 +240,14 @@ svg:has(rect:first-of-type.linking-mode) g.r-group path {
 }
 
 svg:has(rect:first-of-type.linking-mode) g.r-group rect.visible {
-    stroke-width: 1.5px;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
 }
 
 svg g.bond rect.visible {
     stroke: slategray;
-    stroke-width: 1px;
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
     fill: gray;
     fill-opacity: 0.25;
     rx: 5%;
@@ -304,9 +306,10 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 #svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
     stroke: #ef4444;
     /* red-500: signals "cut" action */
-    stroke-width: 1px;
+    stroke-width: 2px;
     stroke-dasharray: 8 6;
-    fill: rgba(239, 68, 68, 0.06);
+    vector-effect: non-scaling-stroke;
+    fill: rgba(239, 68, 68, 0.10);
     fill-opacity: 1;
     rx: 4%;
     animation: marchingAnts 1s linear infinite;
@@ -319,8 +322,8 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 #svg-container.bonds-on svg g.cuttable-bond:hover rect.extra-bond {
     stroke: #dc2626;
     /* red-600 */
-    stroke-width: 1.5px;
-    fill: rgba(239, 68, 68, 0.14);
+    stroke-width: 2.5px;
+    fill: rgba(239, 68, 68, 0.18);
     animation: marchingAnts 0.7s linear infinite, cutGlow 1.6s ease-in-out infinite;
 }
 
@@ -354,10 +357,11 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 #svg-container.rgroups-emphasis svg g.r-group rect {
     stroke: #334155;
     /* inkLight */
-    stroke-width: 0.67px;
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
     fill: #1e293b;
     /* ink */
-    fill-opacity: 0.05;
+    fill-opacity: 0.08;
     rx: 5%;
     transition: stroke-width 50ms ease-in-out, fill-opacity 50ms ease-in-out;
     cursor: pointer;
@@ -377,7 +381,8 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 /* Make selected R-group overlay box prominent (dashFlow already defined below) */
 #svg-container.linking-mode svg g.r-group.selected rect {
     stroke: #334155;
-    stroke-width: 1.25px;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
     fill: #1e293b62;
     fill-opacity: 0.25;
     stroke-dasharray: 5;
