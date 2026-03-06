@@ -209,6 +209,28 @@ svg g.r-group.selected:hover rect.visible {
     }
 }
 
+/* Marching-ants animation for cuttable bond highlights */
+@keyframes marchingAnts {
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -28;
+    }
+}
+
+/* Subtle pulse glow on hover */
+@keyframes cutGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.55));
+    }
+}
+
 svg:has(rect:first-of-type.linking-mode) path {
     opacity: 0.33;
 }
@@ -271,42 +293,45 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
     opacity: 1 !important;
 }
 
-/* Make the extra-bond hit-rect actually visible while bonds-on */
-/* #svg-container.bonds-on svg g.type-other rect.extra-bond {
-    stroke: #334155;
-    stroke-width: 0.75px;
-    stroke-dasharray: 5;
-    animation: dashFlow 5s linear infinite;
-    rx: 2%;
-} */
-
-#svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
-    stroke: #334155;
-    /* inkLight */
-    stroke-width: 0.67px;
-    fill: #1e293b;
-    /* ink */
-    fill-opacity: 0.05;
-    rx: 4%;
-    transition: stroke-width 50ms ease-in-out, fill-opacity 50ms ease-in-out;
-    cursor: pointer;
-    pointer-events: auto;
+/* Tint the participating atoms red to match the cut theme */
+#svg-container.bonds-on svg text.highlight-extra-bond-atom {
+    fill: #dc2626;
+    transition: fill 150ms ease;
 }
 
-/* Distinguish peptide vs other cuttable bonds */
+/* ── Cuttable-bond highlight (unlinking mode) ────────────────────────── */
+
+/* Scissors cursor for cuttable bonds */
+#svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
+    stroke: #ef4444;
+    /* red-500: signals "cut" action */
+    stroke-width: 1px;
+    stroke-dasharray: 8 6;
+    fill: rgba(239, 68, 68, 0.06);
+    fill-opacity: 1;
+    rx: 4%;
+    animation: marchingAnts 1s linear infinite;
+    transition: stroke-width 120ms ease, fill 120ms ease;
+    pointer-events: auto;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6' r='3'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Cline x1='20' y1='4' x2='8.12' y2='15.88'/%3E%3Cline x1='14.47' y1='14.48' x2='20' y2='20'/%3E%3Cline x1='8.12' y1='8.12' x2='12' y2='12'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* Hover: intensify fill + glow */
+#svg-container.bonds-on svg g.cuttable-bond:hover rect.extra-bond {
+    stroke: #dc2626;
+    /* red-600 */
+    stroke-width: 1.5px;
+    fill: rgba(239, 68, 68, 0.14);
+    animation: marchingAnts 0.7s linear infinite, cutGlow 1.6s ease-in-out infinite;
+}
+
+/* Distinguish peptide vs other cuttable bonds by dash pattern */
 #svg-container.bonds-on svg g.cuttable-bond.type-peptide rect.extra-bond {
-    stroke-dasharray: none;
+    stroke-dasharray: 12 6;
 }
 
 #svg-container.bonds-on svg g.cuttable-bond.type-other rect.extra-bond {
-    stroke-dasharray: 4 3;
-}
-
-
-/* Optional: ensure it’s clickable in this mode */
-#svg-container.bonds-on svg g.cuttable-bond rect.extra-bond {
-    pointer-events: auto;
-    cursor: pointer;
+    stroke-dasharray: 6 4;
 }
 
 

@@ -239,7 +239,16 @@ export default function BilnEditorInterface({
 
             // Auto-detach chains so they float above the 2D sketch
             chainsDetachedBeforeLinkRef.current = chainsDetached;
-            if (!chainsDetached) setChainsDetached(true);
+            if (!chainsDetached) {
+                // Capture current inline size so the detached dialog matches the panel width
+                const el = chainsSectionRef.current;
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    setDetachedSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+                }
+                setDetachedPos(null);
+                setChainsDetached(true);
+            }
         } else if (!active && manualBeforeLinkRef.current !== null) {
             // Exiting link/cut: restore previous state
             const prev = manualBeforeLinkRef.current;

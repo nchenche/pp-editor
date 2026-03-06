@@ -90,9 +90,8 @@ const NAV_TREE = [
             {
                 id: "conformer-generation", label: "Conformer generation",
                 children: [
-                    { id: "auto-vs-manual", label: "Automatic vs. manual" },
-                    { id: "constraints-2d", label: "Secondary structure (2D)" },
-                    { id: "constraints-3d", label: "3D template (scaffold)" },
+                    { id: "embedding", label: "Iterative embedding strategy" },
+                    { id: "constraint-modes", label: "Constraint modes" },
                 ],
             },
         ],
@@ -100,8 +99,23 @@ const NAV_TREE = [
     {
         group: "How-to guides",
         children: [
-            { id: "building-peptide", label: "Building a peptide" },
+            {
+                id: "building-peptide", label: "Building a peptide",
+                children: [
+                    { id: "from-biln", label: "From a BILN sequence" },
+                    { id: "from-library", label: "From the monomer library" },
+                    { id: "from-import", label: "From FASTA or HELM" },
+                    { id: "editing-peptide", label: "Editing your peptide" },
+                ],
+            },
             { id: "linking", label: "Linking monomers" },
+            {
+                id: "applying-constraints", label: "Applying structural constraints",
+                children: [
+                    { id: "constraints-2d-howto", label: "Secondary structure constraints" },
+                    { id: "constraints-3d-howto", label: "3D template constraints" },
+                ],
+            },
             { id: "complex-topologies", label: "Complex topologies" },
             { id: "adding-monomers", label: "Adding monomers to the library" },
             { id: "exporting", label: "Exporting results" },
@@ -222,7 +236,7 @@ function NavItem({ item, activeId, depth = 0, onClick }) {
                     // Push hash to history so back/forward works
                     window.history.pushState(null, "", `#${item.id}`);
                     const el = document.getElementById(item.id);
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                    if (el) el.scrollIntoView({ behavior: "instant" });
                     onClick?.(item.id);
                 }}
                 sx={{
@@ -328,7 +342,7 @@ const CodeBlock = ({ children }) => (
     </Typography>
 );
 
-const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => {
+const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl", lightboxMaxWidth }) => {
     const isVideo = typeof src === "string" && /\.(mp4|webm|ogg)$/i.test(src);
     const resolvedMax = maxWidth === "xs" ? 280 : maxWidth === "sm" ? 380 : maxWidth === "md" ? 480 : 640;
     const mediaSx = {
@@ -343,6 +357,8 @@ const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => {
         "&:hover": { boxShadow: 6 },
     };
 
+    const handleClick = () => openLightbox(src, alt, lightboxMaxWidth);
+
     return (
         <Box component="figure" sx={{ my: 3, mx: 0 }}>
             {isVideo ? (
@@ -353,7 +369,7 @@ const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => {
                     loop
                     muted
                     playsInline
-                    onClick={() => openLightbox(src, alt)}
+                    onClick={handleClick}
                     sx={mediaSx}
                 />
             ) : (
@@ -361,7 +377,7 @@ const Figure = ({ src, alt, caption, openLightbox, maxWidth = "2xl" }) => {
                     component="img"
                     src={src}
                     alt={alt}
-                    onClick={() => openLightbox(src, alt)}
+                    onClick={handleClick}
                     sx={mediaSx}
                 />
             )}
@@ -406,8 +422,8 @@ const Documentation = () => {
     const [activeId, setActiveId] = useState("");
     const mainRef = useRef(null);
 
-    const [lightbox, setLightbox] = useState({ open: false, src: "", alt: "" });
-    const openLightbox = useCallback((src, alt) => setLightbox({ open: true, src, alt }), []);
+    const [lightbox, setLightbox] = useState({ open: false, src: "", alt: "", lbMax: undefined });
+    const openLightbox = useCallback((src, alt, lbMax) => setLightbox({ open: true, src, alt, lbMax }), []);
     const closeLightbox = useCallback(() => setLightbox((prev) => ({ ...prev, open: false })), []);
 
     /* ── hash-based history: scroll to anchor on back/forward ── */
@@ -418,7 +434,7 @@ const Documentation = () => {
             requestAnimationFrame(() => {
                 const el = document.getElementById(initialHash);
                 if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
+                    el.scrollIntoView({ behavior: "instant" });
                     setActiveId(initialHash);
                 }
             });
@@ -429,7 +445,7 @@ const Documentation = () => {
             if (hash) {
                 const el = document.getElementById(hash);
                 if (el) {
-                    el.scrollIntoView({ behavior: "smooth" });
+                    el.scrollIntoView({ behavior: "instant" });
                     setActiveId(hash);
                 }
             }
@@ -476,7 +492,7 @@ const Documentation = () => {
         const id = hash.replace("#", "");
         window.history.pushState(null, "", hash);
         const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ behavior: "smooth" });
+        if (el) el.scrollIntoView({ behavior: "instant" });
         setActiveId(id);
     }, []);
 
@@ -666,24 +682,14 @@ const Documentation = () => {
                     </Ol>
 
                     <P>
-                        <strong>Try it yourself:</strong> type <code>ac-A-G-K-D-am</code> in the BILN editor,
-                        or click <strong>Examples...</strong> to load one of the 15 pre-built peptides.
+                        <strong>Try it yourself:</strong> type <code>ac-A-G-K-D-am</code> in the BILN editor and see the 2D Sketch updates live.
                     </P>
 
-                    <Figure
-                        src="/assets/documentation/gifs/quick-start-examples.gif"
-                        alt="Clicking Examples... to load pre-built peptides"
-                        caption={
-                            <>
-                                Click the <strong>Examples...</strong> dropdown in the editor toolbar to load any of the 15 pre-built peptides - including linear, cyclic, and branched architectures, with various non-standard monomers. This is a great way to explore the capabilities of PEP-EDIT and jumpstart your design.
-                            </>
-                        }
-                        openLightbox={openLightbox}
-                    />
+
 
                     <Sub2Title>What's next?</Sub2Title>
                     <Ul>
-                        <Li>Load a pre-built example → click <strong>Examples…</strong> in the editor toolbar.</Li>
+                        <Li>Load a pre-built example → see <MUILink href="#from-example">Examples</MUILink>.</Li>
                         <Li>Build from the monomer library → see <MUILink href="#building-peptide">Building a peptide</MUILink>.</Li>
                         <Li>Apply constraints → see <MUILink href="#conformer-generation">Conformer generation</MUILink>.</Li>
                         <Li>Add custom monomers → see <MUILink href="#adding-monomers">Adding monomers to the library</MUILink>.</Li>
@@ -845,7 +851,7 @@ const Documentation = () => {
                         openLightbox={openLightbox}
                     />
 
-                    <Sub3Title>Upload sequence dialog</Sub3Title>
+                    {/* <Sub3Title id="upload-sequence-dialog">Upload sequence dialog</Sub3Title>
 
                     <P>
                         Accessible from the <Ic icon={UploadIcon} /> <strong>Upload sequence</strong> button in the section header.
@@ -863,12 +869,12 @@ const Documentation = () => {
                     </P>
 
                     {/* [GIF: upload sequence dialog — switching between FASTA and HELM modes and applying a FASTA sequence] */}
-                    <Figure
+                    {/* <Figure
                         src="/assets/documentation/gifs/pepedit_upload-sequence.gif"
                         alt="Animated demonstration of the Upload Sequence dialog: selecting FASTA mode, pasting a sequence, and clicking Apply. Same process for HELM mode."
                         caption="The Upload Sequence dialog: choose FASTA or HELM format, paste your sequence, and click Apply to populate the editor. Chains are separated by newlines in FASTA and converted to BILN with '.' separators."
                         openLightbox={openLightbox}
-                    />
+                    /> */}
 
                     {/* ── Chains ── */}
                     <Sub2Title id="chains">Chains</Sub2Title>
@@ -1430,7 +1436,7 @@ const Documentation = () => {
                         <Li><strong>Structure</strong> — the chemical structure, stored as an SDF MolBlock in PEP-EDIT.</Li>
                         <Li><strong>Abbreviation (symbol)</strong> — a unique identifier used in the BILN string (e.g. "A" for alanine, "am" for C-terminal amine
 
-).</Li>
+                            ).</Li>
                         <Li><strong>Attachment points (R-groups)</strong> — numbered positions (R1, R2, R3…) where the monomer can form bonds with other monomers.</Li>
                         <Li><strong>Leaving groups</strong> — the atoms (H or OH) that cap an R-group when it is not involved in a bond.</Li>
                     </Ul>
@@ -1543,58 +1549,64 @@ const Documentation = () => {
                     <SectionTitle id="conformer-generation">Conformer generation</SectionTitle>
 
                     <P>
-                        PEP-EDIT generates 3D conformers using RDKit embedding with optional coordinate maps. When constraints are
-                        provided (from secondary-structure presets or a PDB template), backbone coordinates are used as reference to bias
-                        embedding toward the desired backbone, while side chains and unconstrained atoms are generated more freely.
+                        PEP-EDIT generates single three-dimensional conformers using RDKit's ETKDGv3 distance geometry
+                        method. Three generation modes are supported, depending on whether and how structural constraints
+                        are specified:
                     </P>
-
-                    <SubTitle id="embedding">RDKit-based embedding</SubTitle>
-                    <P>
-                        The conformer generation starts from the SMILES representation of the peptide. RDKit's distance geometry
-                        embedding is used to generate initial 3D coordinates. When no constraints are provided, this produces
-                        a reasonable starting conformation that can be refined downstream.
-                    </P>
-
-                    <SubTitle id="iterative-process">Iterative process</SubTitle>
-                    <P>
-                        To increase robustness, constrained embedding is performed iteratively using partial coordinate maps:
-                        for each mapping ratio, a random subset of mapped atoms is selected and multiple attempts are run with
-                        different random seeds. This improves the likelihood of finding a valid conformer even when a fully
-                        constrained embedding is too strict.
-                    </P>
-
-                    <CodeBlock>
-                        {`mapping_ratios = [(1.0, 5), (0.9, 5), (0.8, 10), (0.5, 50)]
-# (ratio_of_mapped_atoms_to_keep, number_of_attempts)`}
-                    </CodeBlock>
-
-                    <P>
-                        Practically, mapping ratios as low as 0.5 can still preserve the global backbone conformation while allowing
-                        enough flexibility for RDKit to embed successfully (especially for complex peptides or multi-fragment systems).
-                    </P>
-
-                    {/* Constraints */}
-                    <SubTitle id="constraints">Setting constraints</SubTitle>
-                    <P>PEP-EDIT can guide conformer generation using two mutually exclusive constraint types:</P>
                     <Ul>
-                        <Li><strong>Secondary structure constraints (2D)</strong> - per-residue backbone angle presets (H / E / -).</Li>
-                        <Li><strong>3D template constraints</strong> - backbone coordinate constraints from a PDB/mmCIF structure.</Li>
+                        <Li><strong><i>De novo</i></strong> — no spatial constraints; the conformer geometry is determined by molecular topology and ETKDGv3's built-in knowledge terms.</Li>
+                        <Li><strong>Secondary-structure–guided</strong> — per-residue backbone dihedral angles are preset to canonical Ramachandran values before embedding.</Li>
+                        <Li><strong>Template-guided</strong> — backbone atom positions are extracted from an experimental or modeled PDB structure and used as spatial reference during embedding.</Li>
                     </Ul>
+                    <P>
+                        In the constrained modes, a coordinate mapping step translates the user-specified constraints into
+                        atom-level spatial references that are passed to RDKit's embedding engine. The sections below
+                        describe the iterative embedding strategy common to all modes, followed by each constraint type
+                        in detail.
+                    </P>
 
-                    <Sub2Title id="constraints-2d">Secondary structure (2D) constraints</Sub2Title>
+                    <SubTitle id="embedding">Iterative embedding strategy</SubTitle>
+                    <P>
+                        Regardless of mode, PEP-EDIT uses an iterative strategy with progressive relaxation to maximize
+                        embedding success. Embedding is first attempted with 100 % of constraints enforced. If that fails,
+                        it is retried with randomly sampled subsets of the constraint set (90 %, 80 %, then 50 %), with an
+                        increasing number of attempts at each stage.
+                    </P>
 
-                    <Figure
-                        src="/assets/documentation/SecondaryStructure.png"
-                        alt="Secondary structure constraints"
-                        caption="Imposing secondary-structure constraints on a peptide chain. Each residue can be assigned H (helix), E (strand), or - (random coil)."
-                        openLightbox={openLightbox}
-                        maxWidth="xs"
-                    />
+                    <Alert severity="info" sx={{ mb: 2, pb: 0 }}>
+                        <strong>The number of attempts is determined by the following schedule:</strong>
+                        <Ul sx={{ mb: 0 }}>
+                            <Li>100 % constraints: 10 attempts</Li>
+                            <Li>90 % constraints: 10 attempts</Li>
+                            <Li>80 % constraints: 20 attempts</Li>
+                            <Li>50 % constraints: 50 attempts</Li>
+                        </Ul>
+                    </Alert>
 
                     <P>
-                        Secondary-structure presets are implemented by setting backbone dihedral angles (φ/ψ, plus ω) using reference
-                        values for helices and extended conformations. The target angles are adjusted depending on residue chirality
-                        (L vs D), mirroring in Ramachandran space for D residues.
+                        The first successful embedding terminates the procedure. This schedule addresses geometric
+                        conflicts that can arise when external coordinate constraints cannot be perfectly reconciled with
+                        the molecule's bonding geometry — a common situation for complex or multi-fragment peptides. Even
+                        at 50 % constraint retention, the global backbone fold is generally preserved while giving RDKit
+                        enough freedom to resolve local clashes.
+                    </P>
+                    <P>
+                        The same multi-attempt strategy is applied in <i>de novo</i> mode (without constraints) to maximize
+                        success on topologically challenging molecules.
+                    </P>
+
+                    {/* Constraint modes */}
+                    <SubTitle id="constraint-modes">Constraint modes</SubTitle>
+                    <P>
+                        PEP-EDIT supports two mutually exclusive constraint types that guide conformer generation. Both
+                        translate user input into atom-level spatial references passed to the embedding engine.
+                    </P>
+
+                    <P>
+                        <strong>Secondary-structure–guided mode</strong><br />
+                        In this mode, backbone dihedral angles (φ, ψ, and ω) are preset to canonical Ramachandran values
+                        for each residue according to its assigned code. For D-amino acids, angles are automatically
+                        mirrored in Ramachandran space.
                     </P>
 
                     <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
@@ -1609,16 +1621,15 @@ const Documentation = () => {
                             <TableBody>
                                 <TableRow><TableCell><code><strong>H</strong></code></TableCell><TableCell>Alpha helix</TableCell><TableCell>Constrained to helical conformation.</TableCell></TableRow>
                                 <TableRow><TableCell><code><strong>E</strong></code></TableCell><TableCell>Beta strand</TableCell><TableCell>Constrained to extended strand conformation.</TableCell></TableRow>
-                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference - free to adopt any conformation.</TableCell></TableRow>
+                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference — free to adopt any conformation.</TableCell></TableRow>
                             </TableBody>
                         </Table>
                     </TableContainer>
 
-                    <P>
-                        The constraint track is visible when the constraint mode is set to <strong>Secondary structure</strong> in the
-                        chains toolbar. Each residue can be toggled individually, or bulk-set via the ⋮ menu on the constraint row
-                        (All alpha, All beta, All random, Clear).
-                    </P>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        Reference angles — α-helix (<strong>H</strong>): φ = −57°, ψ = −47°; β-strand (<strong>E</strong>): φ = −120°, ψ = 120°.
+                        These are standard Ramachandran values for L-amino acids; D-amino acid values are sign-mirrored.
+                    </Alert>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
                         PEP-EDIT supports secondary-structure constraints on <strong>multi-chain peptides</strong> — each chain
@@ -1626,32 +1637,26 @@ const Documentation = () => {
                         which only supports distance-based bound-matrix constraints on single-chain peptides.
                     </Alert>
 
-                    <Sub2Title id="constraints-3d">3D template (scaffold) constraints</Sub2Title>
-
-                    <Figure
-                        src="/assets/documentation/3DTemplateProcess.png"
-                        alt="3D template constraint workflow"
-                        caption="Imposing 3D template constraints. A PDB/mmCIF file is uploaded or fetched by ID; the backbone atoms of the designed peptide are mapped onto the template to bias conformer generation."
-                        openLightbox={openLightbox}
-                        maxWidth="xs"
-                    />
+                    <P>
+                        <strong>Template-guided mode</strong><br />
+                        In this mode, backbone atom positions are extracted from an experimentally determined or modeled
+                        PDB structure and used as spatial constraints during embedding. The designed peptide's backbone
+                        atoms are mapped onto the corresponding template atoms, so that constrained regions adopt the
+                        template fold while modified or unmatched positions are resolved <i>de novo</i>.
+                    </P>
+                    <P>
+                        Users can select which chain and residue range to map from the template, apply an offset for
+                        leading unconstrained positions, and mask individual residues to exclude them from the constraint
+                        set.
+                    </P>
+                    <P>
+                        Please note that only a single chain can be used as a template to guide the embedding; yet multi-chain peptides are supported as long as only one chain is designated as the template source.
+                    </P>
 
                     <P>
-                        3D template constraints apply backbone coordinate constraints by mapping the peptide backbone atoms onto
-                        the corresponding backbone atoms in the template, then performing constrained embedding using those mapped
-                        coordinates. Specifying a 3D template is done using the <strong>Upload Scaffold</strong> facility.
+                        For step-by-step instructions on how to apply either constraint type in the editor, see{" "}
+                        <MUILink href="#applying-constraints">Applying structural constraints</MUILink>.
                     </P>
-                    <Ul>
-                        <Li>Provide a template by its <strong>PDB identifier</strong> (fetched from the PDB) or as a <strong>local file upload</strong> (PDB/mmCIF).</Li>
-                        <Li>Select the fragment to use: choose the <strong>chain</strong>, <strong>start/end residue</strong> and optional <strong>offset</strong> (number of leading peptide positions left unconstrained).</Li>
-                        <Li>For multi-chain peptides, different PDB chains can be selected for each peptide chain.</Li>
-                        <Li>Fine-tune on a per-residue basis by <strong>masking/unmasking</strong> residues (masked = constraint not applied).</Li>
-                    </Ul>
-
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                        Using a 3D template disables automatic 3D synchronization. You must click the <strong>Generate 3D</strong> button
-                        to trigger conformer generation.
-                    </Alert>
 
                     <Divider sx={{ my: 4 }} />
 
@@ -1659,62 +1664,283 @@ const Documentation = () => {
                         2 · HOW-TO GUIDES
                        ════════════════════════════════════════════ */}
 
-                    {/* ── Editing BILN ── */}
-                    <SectionTitle id="editing-biln">Editing a BILN sequence</SectionTitle>
+                    {/* ── Building a peptide ── */}
+                    <SectionTitle id="building-peptide">Building a peptide</SectionTitle>
 
                     <P>
-                        You can define a peptide by typing a BILN sequence directly in the manual edit field
-                        (e.g. <code>P-E-P-T-I-D-E</code>), or by uploading a peptide sequence in FASTA format (limited to the
-                        20 standard amino acids). The sequence editor also supports HELM input.
+                        There are several ways to start building a peptide in PEP-EDIT, depending on your starting point:
+                    </P>
+                    <Ul>
+                        <Li><MUILink href="#from-biln">From a BILN sequence</MUILink> — type or paste a sequence directly if you know the monomer symbols.</Li>
+                        <Li><MUILink href="#from-library">From the monomer library</MUILink> — browse, search, and add monomers interactively.</Li>
+                        <Li><MUILink href="#from-example">From a pre-built example</MUILink> — load one of the 15 pre-built peptides as a starting point.</Li>
+                        <Li><MUILink href="#from-import">From FASTA or HELM</MUILink> — import an existing sequence from another format.</Li>
+                    </Ul>
+                    <P>
+                        Once your peptide is in the editor, see{" "}
+                        <MUILink href="#editing-peptide">Editing your peptide</MUILink> for how to refine it.
+                    </P>
+
+                    <SubTitle id="from-biln">From a BILN sequence</SubTitle>
+
+                    <P>
+                        If you already know the sequence you want, type or paste it directly into the BILN input field
+                        (Manual edition section). The input is live — the 2D Sketch updates on every valid
+                        keystroke, with no need to press Enter or click Apply.
                     </P>
                     <P>
-                        Several chains can be defined independently using separate chain slots. Each chain appears as an
-                        independent monomer row in the editor, separated by <code>.</code> in the BILN sequence.
+                        A simple linear peptide is just monomers separated by hyphens
+                        (e.g. <code>P-E-P-T-I-D-E</code>). For cyclic, branched, or multi-chain peptides, BILN uses
+                        explicit bond annotations and dot separators — see the{" "}
+                        <MUILink href="#biln-notation">BILN notation</MUILink> section for syntax details.
                     </P>
-                    <Ol>
-                        <Li><strong>BILN sequence</strong> - each chain is separated by a "." in the combined BILN string.</Li>
-                        <Li><strong>Constraints</strong> - each chain has its own secondary-structure or 3D-template constraint track.</Li>
-                        <Li><strong>Viewers</strong> - the 2D and 3D viewers update to reflect all chains.</Li>
-                    </Ol>
+                    <P>
+                        Typing BILN directly requires knowing the monomer symbols available in the library. If you're
+                        unsure which symbol to use for a particular residue, use the monomer library (described below) to
+                        search by name, PDB code, or other attributes.
+                    </P>
 
-                    <Divider sx={{ my: 4 }} />
-
-                    {/* ── Editing from library ── */}
-                    <SectionTitle id="editing-library">Editing from monomer library</SectionTitle>
-
+                    {/* GIFs showing editing of PEPTIDE from biln sequence */}
                     <Figure
-                        src="/assets/documentation/MonomerSelection.png"
-                        alt="Monomer selection and insertion panel"
-                        caption="Monomer search and selection from the library panel. Use the search field and class filters to find the desired monomer, then click + to add it."
+                        src="/assets/documentation/gifs/pepedit_building-from-biln.gif"
+                        alt="Typing a BILN sequence into the input field, with live 2D update."
+                        caption="Type or paste a BILN sequence directly into the input field. The 2D Sketch updates live with every valid keystroke."
                         openLightbox={openLightbox}
                         maxWidth="md"
                     />
 
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        The monomer counter below the input field shows the current count against the maximum
+                        (e.g. "6/40 monomers"). PEP-EDIT supports up to 40 monomers per peptide. Attempting to exceed
+                        this limit shows a red border and a warning dialog.
+                    </Alert>
+
+                    <SubTitle id="from-library">From the monomer library</SubTitle>
+
                     <P>
-                        Instead of typing BILN manually, you can build your sequence from the <strong>Monomer Library</strong> tab in the right panel.
-                        The library provides a searchable, filterable catalog of all available monomers (public + personal).
+                        If you prefer to build interactively — or if you need to explore what monomers are available —
+                        open the <strong>Monomer Library</strong> tab in the right panel.
                     </P>
 
-                    <Sub2Title>Placement mode</Sub2Title>
-                    <P>The placement mode (in the library header) controls where a monomer is inserted when you click <strong>+</strong>:</P>
-                    <Ul>
-                        <Li><strong>Append</strong> - adds the monomer at the C-terminus (end) of the active chain.</Li>
-                        <Li><strong>Prepend</strong> - inserts the monomer at the N-terminus (beginning) of the active chain.</Li>
-                        <Li><strong>New chain</strong> - starts a brand-new chain (default when the editor is empty).</Li>
-                    </Ul>
-
-                    <Sub2Title>Linking mode</Sub2Title>
-                    <P>The linking mode controls which bond is formed when the monomer is placed:</P>
-                    <Ul>
-                        <Li><strong>Peptide</strong> - automatic peptide bond (R2→R1, standard backbone connection).</Li>
-                        <Li><strong>R3→R1, R3→R2, R3→R3</strong> - explicit R-group connections for non-standard attachments.</Li>
-                    </Ul>
-
-                    <Sub2Title>Monomer replacement</Sub2Title>
                     <P>
-                        Hover over any monomer in the chain track and click the <strong>Replace</strong> icon. The library panel opens
-                        automatically so you can pick a replacement monomer. The swap preserves existing connections where possible.
+                        <strong>Browsing and searching</strong><br />
+                        The library contains all public monomers (324 as of v1.0.0) plus any personal monomers from your
+                        session. Two ways to find what you need:
                     </P>
+                    <Ul>
+                        <Li><strong>Quick filters</strong> — click ALL, CAPS, NATURAL, or NON-NATURAL to filter by monomer category.</Li>
+                        <Li><strong>Search field</strong> — type any text to filter across multiple attributes simultaneously: name, symbol, PDB code, analog, SMILES, and more. For example, typing "phe" will match Phenylalanine, D-Phenylalanine, chloro-Phenylalanine variants, etc.</Li>
+                    </Ul>
+                    <P>
+                        Card size can be toggled between <strong>Small</strong> (compact grid, more visible at once) and{" "}
+                        <strong>Large</strong> (bigger structures, easier to read) using the buttons in the panel header.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_monomer-filtering.gif"
+                        alt="Monomer library panel showing search and filter options, with example search results for 'phe'."
+                        caption="Use quick filters and the search field to find monomers by name, symbol, PDB code, and more. Here, 'phe' matches multiple phenylalanine variants."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
+                    <P>
+                        <strong>Inspecting a monomer</strong><br />
+                        Before adding a monomer, you can inspect its full details by clicking the <strong>ⓘ</strong> (info)
+                        icon on its card. This opens a detailed view showing:
+                    </P>
+                    <Ul>
+                        <Li>BILN symbol and Full name </Li>
+                        <Li>PDB 3-letter code</Li>
+                        <Li>Natural analog</Li>
+                        <Li>Monomer type and subtype (natural amino acid, non-natural, cap, other)</Li>
+                        <Li>2D structure with labeled R-groups</Li>
+                        <Li>Canonical SMILES</Li>
+                        <Li>Leaving groups for each R-group</Li>
+                    </Ul>
+                    <P>
+                        This is especially useful for non-natural monomers where the symbol alone may not be immediately
+                        recognizable.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/pepedit_monomer-card-details2.png"
+                        alt="Dichloro-phenylalanine monomer card details"
+                        caption="Detailed view of the Dichloro-phenylalanine monomer card after clicking ⓘ."
+                        openLightbox={openLightbox}
+                        maxWidth="sm"
+                    />
+
+                    <P>
+                        <strong>Adding a monomer to your sequence</strong><br />
+                        Click the <strong>+</strong> button on a monomer card to add it to the current peptide. Where and
+                        how it's inserted depends on two settings in the <em>Linking process mode</em> section at the top
+                        of the library panel:
+                    </P>
+
+                    <P><strong>Placement mode:</strong></P>
+                    <Ul>
+                        <Li><strong>Append</strong> — adds the monomer at the C-terminus (end) of the selected chain. This is the default and most common mode.</Li>
+                        <Li><strong>Prepend</strong> — inserts the monomer at the N-terminus (beginning) of the selected chain.</Li>
+                        <Li><strong>New chain</strong> — starts a new chain. This is the default when the editor is empty.</Li>
+                    </Ul>
+
+                    <P><strong>Chain selector:</strong></P>
+                    <P>
+                        For multi-chain peptides, use the <strong>Chain</strong> dropdown to choose which chain receives
+                        the new monomer (Chain: 1, Chain: 2, etc.).
+                    </P>
+
+                    {/* GIFs showing building a peptide interactively from the monomer library */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_building-from-library.gif"
+                        alt="Adding monomers from the library to the sequence, showing placement modes and chain selection."
+                        caption="Click + on a monomer card to add it to your sequence. Placement depends on the selected mode (Append, Prepend, New chain) and, for multi-chain peptides, the Chain selector."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                        lightboxMaxWidth={1200}
+                    />
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        The active chain where monomers are added is indicated by the Chain selector and by the
+                        highlight on the corresponding Sequence row in the chain track. A click on any Sequence row also switches the active chain.
+                        When the editor is empty, the default placement mode is New chain, which creates Chain 1.
+                        Once a chain exists, the default mode switches to Append for that chain.
+                    </Alert>
+
+                    <SubTitle id="from-example">From a preset example</SubTitle>
+
+                    <Figure
+                        src="/assets/documentation/gifs/quick-start-examples.gif"
+                        alt="Clicking Examples... to load pre-built peptides"
+                        caption={
+                            <>
+                                Click the <strong>Examples...</strong> dropdown in the editor toolbar to load any of the 15 pre-built peptides - including linear, cyclic, and branched architectures, with various non-standard monomers. This is a great way to explore the capabilities of PEP-EDIT and jumpstart your design.
+                            </>
+                        }
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        Click <strong>Examples…</strong> in the editor toolbar to open a dialog with 15 pre-built
+                        examples across 6 categories. This is a good way to explore PEP-EDIT's capabilities or to use
+                        as a starting point for your own designs.
+                    </P>
+                    <Ul>
+                        <Li><strong>Linear peptides</strong> — simple backbone-connected sequences</Li>
+                        <Li><strong>Cyclic peptides</strong> — head-to-tail cyclization with L and/or D amino acids</Li>
+                        <Li><strong>Capped peptides</strong> — N-terminal acetyl, C-terminal amide, both caps, side-chain capping</Li>
+                        <Li><strong>Non-natural amino acids</strong> — semaglutide variants, cyclic with D-amino acids</Li>
+                        <Li><strong>Secondary structure constraints</strong> — full helix, helix-loop-helix, beta strand, mixed</Li>
+                        <Li><strong>3D template constraints</strong> — somatostatin with PDB template (auto-fetched)</Li>
+                    </Ul>
+                    <P>
+                        Click <strong>▶ Load</strong> on any example to populate the editor with its BILN sequence and,
+                        where applicable, its associated constraints (secondary structure assignments or template scaffold
+                        mappings).
+                    </P>
+
+                    <SubTitle id="from-import">From FASTA or HELM import</SubTitle>
+
+                    <P>
+                        Accessible from the <Ic icon={UploadIcon} /> <strong>Upload sequence</strong> button in the section header.
+                        This dialog lets you populate the editor from an alternative notation instead of typing BILN manually.
+                    </P>
+
+                    <Ul>
+                        <Li><strong>FASTA mode</strong> (default) — paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
+                        <Li><strong>HELM mode</strong> — paste a HELM string. Conversion to BILN is handled server-side.</Li>
+                    </Ul>
+
+                    <P>
+                        Select the input format via the radio buttons at the top, paste your sequence into the text area,
+                        then click <strong>Apply</strong>. An error message is displayed inline if the input is invalid.
+                    </P>
+
+                    {/* [GIF: upload sequence dialog — switching between FASTA and HELM modes and applying a FASTA sequence] */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_upload-sequence.gif"
+                        alt="Animated demonstration of the Upload Sequence dialog: selecting FASTA mode, pasting a sequence, and clicking Apply. Same process for HELM mode."
+                        caption="The Upload Sequence dialog: choose FASTA or HELM format, paste your sequence, and click Apply to populate the editor. Chains are separated by newlines in FASTA and converted to BILN with '.' separators."
+                        openLightbox={openLightbox}
+                    />
+
+                    <SubTitle id="editing-peptide">Editing your peptide</SubTitle>
+
+
+                    <P>
+                        Once your peptide is in the editor, you can refine it using the chain track and editor toolbar.
+                    </P>
+
+                    <P>
+                        <strong>Deleting a monomer</strong><br />
+                        Hover over a monomer pill and click the Delete icon. The monomer is removed and the chain
+                        reconnects automatically. Any bonds involving the deleted monomer's R-groups are also removed.
+                    </P>
+
+                    <P>
+                        <strong>Reordering monomers</strong><br />
+                        Drag and drop monomer pills to reorder them within a chain or move them between chains. The editor
+                        validates every move: if the new position creates an R-group conflict (e.g. placing a cap in
+                        mid-chain), the move is rejected with an explanatory dialog.
+                    </P>
+
+                    <P>
+                        <strong>Replacing a monomer</strong><br />
+                        Hover over any monomer pill in the chain track — a Replace icon appears. Click it, then select
+                        the replacement monomer from the library panel (which opens automatically). The swap preserves
+                        existing connections where the R-group configuration is compatible.
+                    </P>
+                    <P>
+                        Only monomers with a compatible R-group configuration are offered as replacements. For example,
+                        you cannot replace a backbone residue (R1 + R2) with a cap (single R-group) without first
+                        breaking the relevant bonds.
+                    </P>
+
+                    {/* GIF ~5s — Swap monomers → Delete one monomer → Click on replace -> library opens → pick replacement Crop: chain track + library panel.] */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_editing-peptide-from-chain.gif"
+                        alt="Editing a peptide: replacing a monomer, deleting a monomer, and adding a new one from the library."
+                        caption="Refine your peptide using the chain track and editor toolbar. Here, a monomer is replaced, another is deleted, and a new one is added from the library."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
+
+                    <P>
+                        <strong>Chain-level operations</strong><br />
+                        Click the ⋮ menu on a chain's Sequence row for bulk operations:
+                    </P>
+                    <Ul>
+                        <Li><strong>Cyclize</strong> — create a head-to-tail bond (R1 of first residue ↔ R2 of last residue), converting a linear chain to a cyclic peptide.</Li>
+                        <Li><strong>Mirror</strong> — swap all L-amino acids to their D equivalents (and vice versa) across the entire chain.</Li>
+                        <Li><strong>Delete chain</strong> — remove the chain entirely.</Li>
+                    </Ul>
+
+                    <P>
+                        <strong>Adding a new chain</strong><br />
+                        Click the <strong>+</strong> button next to the <strong>Structural constraints…</strong> dropdown
+                        to add a new chain. In the BILN string, chains are separated by a dot
+                        (e.g. <code>A-G-K.E-H-I</code>). Each chain has its own Sequence row and, if active, its own
+                        constraint row.
+                    </P>
+
+                    <P>
+                        <strong>Undo and redo</strong><br />
+                        The editor toolbar provides <Ic icon={UndoIcon} label="Undo" /> and <Ic icon={RedoIcon} label="Redo" />{" "}
+                        buttons covering all operations: adding, deleting, reordering, replacing, linking, and constraint
+                        changes (up to 20 steps). Note that Ctrl+Z / Ctrl+Y only work inside the BILN text field (native
+                        browser undo) — use the toolbar buttons for chain track operations.
+                    </P>
+
+                    {/* GIF showing click on menu -> mirror -> cyclize -> add chain -> swap monomer -> remove chain -> undo */}
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_chain-operations.gif"
+                        alt="Performing various chain operations: mirror, cyclize, add chain, swap monomer, remove chain, and undo."
+                        caption="Demonstration of chain operations in PEP-EDIT: mirror, cyclize, add chain, swap monomer, remove chain, and undo."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
 
                     <Divider sx={{ my: 4 }} />
 
@@ -1745,6 +1971,116 @@ const Documentation = () => {
                         Extra bonds are flexible by design - PEP-EDIT does not automatically validate whether a given link is
                         chemically meaningful (that remains the user's responsibility).
                     </Alert>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    {/* ── Applying structural constraints ── */}
+                    <SectionTitle id="applying-constraints">Applying structural constraints</SectionTitle>
+
+                    <P>
+                        This guide walks through the two ways to constrain conformer generation in PEP-EDIT: secondary
+                        structure presets and 3D template scaffolds. For the underlying principles of how constraints
+                        affect embedding, see{" "}
+                        <MUILink href="#conformer-generation">Conformer generation</MUILink>.
+                    </P>
+
+                    <P>
+                        <strong>Choosing a constraint mode</strong><br />
+                        Click the <strong>Structural constraints…</strong> dropdown button in the Chains section header.
+                        Three options are available:
+                    </P>
+                    <Ul>
+                        <Li><strong>None</strong> — no constraints (default). Only the Sequence row is visible.</Li>
+                        <Li><strong>Secondary structure</strong> — adds a constraint row with per-residue H/E/- buttons.</Li>
+                        <Li><strong>3D template</strong> — adds a template mapping row and opens the scaffold upload workflow.</Li>
+                    </Ul>
+                    <P>The two constraint modes are mutually exclusive — selecting one replaces the other.</P>
+
+                    <SubTitle id="constraints-2d-howto">Secondary structure constraints</SubTitle>
+
+                    <Figure
+                        src="/assets/documentation/SecondaryStructure.png"
+                        alt="Secondary structure constraints on a peptide chain."
+                        caption="The constraint track with per-residue secondary structure assignments. Each residue can be set to H (helix), E (strand), or − (coil)."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P>
+                        <strong>Setting constraints per residue</strong><br />
+                        Once <em>Secondary structure</em> mode is active, a constraint row appears below the chain track.
+                        Each position shows a clickable button that cycles through H → E → − → H.
+                    </P>
+
+                    <P>
+                        <strong>Bulk operations</strong><br />
+                        Click the ⋮ menu on the constraint row for quick bulk assignments:
+                    </P>
+                    <Ul>
+                        <Li><strong>All helix</strong> — sets every residue to H.</Li>
+                        <Li><strong>All strand</strong> — sets every residue to E.</Li>
+                        <Li><strong>All coil</strong> — sets every residue to −.</Li>
+                        <Li><strong>Clear</strong> — removes all assignments (equivalent to all coil).</Li>
+                    </Ul>
+
+                    <P>
+                        <strong>Multi-chain</strong><br />
+                        For multi-chain peptides, each chain has its own independent constraint row. Different chains can
+                        have different secondary structure assignments.
+                    </P>
+
+                    <P>
+                        <strong>Generating the conformer</strong><br />
+                        After setting constraints, click <strong>▶ Generate 3D</strong> (or rely on Auto sync if the
+                        peptide has fewer than 8 monomers). The embedding engine will use the assigned angles as spatial
+                        targets.
+                    </P>
+
+                    {/* [MEDIA SUGGESTION: GIF ~6s — select SS mode → set residues → ⋮ All helix → Generate 3D. Crop: Chains + 3D viewer.] */}
+
+                    <SubTitle id="constraints-3d-howto">3D template constraints</SubTitle>
+
+                    <Figure
+                        src="/assets/documentation/3DTemplateProcess.png"
+                        alt="3D template constraint workflow."
+                        caption="The template-guided workflow: upload or fetch a PDB structure, select chain and residue range, then generate the constrained conformer."
+                        openLightbox={openLightbox}
+                        maxWidth="xs"
+                    />
+
+                    <P><strong>Step-by-step workflow</strong></P>
+                    <Ol>
+                        <Li>Click <strong>Structural constraints…</strong> → select <strong>3D template</strong>. A template mapping row appears in the chain track.</Li>
+                        <Li>Click <strong>Upload Scaffold</strong> (or use the Template icon in the 3D viewer toolbar). Two options are available: enter a <strong>PDB identifier</strong> (fetched from the RCSB PDB) or upload a <strong>local PDB/mmCIF file</strong>.</Li>
+                        <Li>Select the <strong>chain</strong> to use from the template structure.</Li>
+                        <Li>Set the <strong>start</strong> and <strong>end residues</strong> to define which portion of the template chain serves as scaffold.</Li>
+                        <Li>Optionally set an <strong>offset</strong> — the number of leading peptide positions that remain unconstrained (useful when the peptide's N-terminus extends beyond the template).</Li>
+                        <Li>Fine-tune by <strong>masking</strong> individual residues. Masked residues are excluded from the constraint set and resolved <i>de novo</i> during embedding.</Li>
+                        <Li>Click <strong>▶ Generate 3D</strong> to launch the constrained conformer generation job.</Li>
+                    </Ol>
+
+                    <P>
+                        <strong>Multi-chain templates</strong><br />
+                        For multi-chain peptides, different PDB chains can be selected for each peptide chain. Repeat the
+                        template assignment for each chain as needed.
+                    </P>
+
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        Using a 3D template automatically disables <strong>Auto sync</strong>. You must click{" "}
+                        <strong>▶ Generate 3D</strong> manually to trigger conformer generation. This prevents accidental
+                        regeneration while you are still configuring the template mapping.
+                    </Alert>
+
+                    {/* [MEDIA SUGGESTION: Screenshot of template upload dialog showing chain selector, start/end, offset fields.] */}
+                    {/* [MEDIA SUGGESTION: GIF ~8s — Structural constraints → 3D template → Upload Scaffold → enter PDB ID → select chain → Generate 3D → conformer with overlay. Crop: Chains + 3D viewer.] */}
+
+                    <P>
+                        <strong>Choosing between constraint types</strong><br />
+                        Secondary structure constraints are best when you want to impose a generic fold (e.g. all-helix,
+                        helix-loop-helix) without a specific reference structure. Template-guided constraints are best
+                        when you want the peptide to adopt the backbone conformation of a known experimental or modeled
+                        structure.
+                    </P>
 
                     <Divider sx={{ my: 4 }} />
 
@@ -2079,7 +2415,7 @@ const Documentation = () => {
                     <P>
                         SMILES generated by PEP-EDIT can be used as input to Chai-1 (or AlphaFold 3, Boltz) together with a protein
                         sequence to predict protein–peptide complexes involving modified peptides.
-                        The peptide drug Degarelix (<CodeBlock>ac-D_2Nal-D_Phe_4Cl-D_3Pal-S-Phe_4Sdihydroorotamido-D_Phe_4ureido-L-G-Lys_iPr-dA-am</CodeBlock>),
+                        The peptide drug Degarelix (<code>ac-D_2Nal-D_Phe_4Cl-D_3Pal-S-Phe_4Sdihydroorotamido-D_Phe_4ureido-L-G-Lys_iPr-dA-am</code>),
                         was predicted in complex with its target, the GnRH receptor, using the Chai-1 webserver.
                     </P>
 
@@ -2312,18 +2648,25 @@ const Documentation = () => {
             <Dialog
                 open={lightbox.open}
                 onClose={closeLightbox}
-                maxWidth="lg"
-                fullWidth
-                PaperProps={{ sx: { bgcolor: "transparent", boxShadow: "none" } }}
+                fullScreen
+                PaperProps={{ sx: { bgcolor: "rgba(0,0,0,0.85)", boxShadow: "none" } }}
             >
-                <Box sx={{ position: "relative", p: 2, width: "100%", height: "90vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                    <IconButton
-                        aria-label="Close"
-                        onClick={closeLightbox}
-                        sx={{ position: "absolute", top: 8, right: 8, color: "grey.100", zIndex: 2, bgcolor: "rgba(0,0,0,0.4)", "&:hover": { bgcolor: "rgba(0,0,0,0.6)" } }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
+                <IconButton
+                    aria-label="Close"
+                    onClick={closeLightbox}
+                    sx={{ position: "absolute", top: 8, right: 8, zIndex: 2, color: "grey.100", bgcolor: "rgba(0,0,0,0.4)", "&:hover": { bgcolor: "rgba(0,0,0,0.6)" } }}
+                >
+                    <CloseIcon />
+                </IconButton>
+                <Box
+                    onClick={(e) => { if (e.target === e.currentTarget) closeLightbox(); }}
+                    sx={{
+                        width: "100%", height: "100%",
+                        display: "flex", justifyContent: "center", alignItems: "center",
+                        overflow: "auto",
+                        p: 2,
+                    }}
+                >
                     {lightbox.src && (
                         /\.(mp4|webm|ogg)$/i.test(lightbox.src) ? (
                             <Box
@@ -2337,7 +2680,17 @@ const Documentation = () => {
                                 sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }}
                             />
                         ) : (
-                            <Box component="img" src={lightbox.src} alt={lightbox.alt} sx={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 2, boxShadow: 4 }} />
+                            <Box
+                                component="img"
+                                src={lightbox.src}
+                                alt={lightbox.alt}
+                                sx={{
+                                    borderRadius: 2, boxShadow: 4,
+                                    ...(lightbox.lbMax
+                                        ? { maxWidth: lightbox.lbMax, width: "100%" }
+                                        : { maxWidth: "100%", maxHeight: "100%" }),
+                                }}
+                            />
                         )
                     )}
                 </Box>
