@@ -207,15 +207,30 @@ export const DesignPageLayoutMUI = ({
         setLeftPx(clampLeft(Math.floor(vw * defaultLeftFrac)));
     }, [defaultLeftFrac, clampLeft]);
 
-    // Stable move handler (no dragging in deps)
+    // ── Fast DOM-only resize during drag ──────────────────────────────
+    // Instead of calling setLeftPx (React state) on every mousemove,
+    // write gridTemplateColumns directly on the DOM.  This avoids
+    // React re-renders, MUI sx recalculations, ResizeObserver cascades
+    // in child components, and Mol* canvas resize — all per-frame costs
+    // that caused ~500ms perceived lag.  React state is committed once
+    // on mouseup.
+
+    const applyWidthToDOM = useCallback((px) => {
+        const el = containerRef.current;
+        if (!el) return;
+        el.style.gridTemplateColumns = `1fr ${handleWidth}px ${px}px`;
+    }, [handleWidth]);
+
+    // Stable move handler — direct DOM mutation, no setState
     const onMouseMove = useCallback((e) => {
         if (sidebarCollapsed) return;
         if (!draggingRef.current || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
-        // Right sidebar: width = distance from mouse to right edge
         const desired = rect.right - e.clientX;
-        setLeftPx(clampLeft(desired));
-    }, [clampLeft, containerRef, sidebarCollapsed]);
+        const clamped = clampLeft(desired);
+        leftPxRef.current = clamped;
+        applyWidthToDOM(clamped);
+    }, [clampLeft, containerRef, sidebarCollapsed, applyWidthToDOM]);
 
     const stopDrag = useCallback(() => {
         if (!draggingRef.current) return;
@@ -227,9 +242,16 @@ export const DesignPageLayoutMUI = ({
         window.removeEventListener('mouseup', stopDrag);
         window.removeEventListener('blur', stopDrag);
 
+        // Commit the final width to React state (single render) and
+        // clear the inline style so the sx-driven value takes over.
+        const finalPx = leftPxRef.current;
+        const el = containerRef.current;
+        if (el) el.style.gridTemplateColumns = '';
+        setLeftPx(finalPx);
+
         // Persist final sidebar width after drag.
         try {
-            window?.localStorage?.setItem(widthStorageKey, String(leftPxRef.current));
+            window?.localStorage?.setItem(widthStorageKey, String(finalPx));
         } catch {
             // ignore
         }
