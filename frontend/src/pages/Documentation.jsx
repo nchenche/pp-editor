@@ -2048,8 +2048,17 @@ const Documentation = () => {
                     <P>
                         <strong>Setting constraints per residue</strong><br />
                         Once <em>Secondary structure</em> mode is active, a constraint row appears below the chain track.
-                        Each position shows a clickable button that cycles through H → E → − → H.
+                        Each cell accepts one of three values: <strong>H</strong> (helix), <strong>E</strong> (strand),
+                        or <strong>−</strong> (coil). The input works like an OTP field — click a cell to
+                        focus it (the active cell is highlighted with a subtle ring) and start typing:
                     </P>
+                    <Ul>
+                        <Li>Type <strong>H</strong>, <strong>E</strong>, or <strong>-</strong> to set a value — focus automatically advances to the next cell.</Li>
+                        <Li>Use <strong>←</strong> / <strong>→</strong> arrows to navigate between cells (no text selection occurs).</Li>
+                        <Li>Use <strong>↑</strong> / <strong>↓</strong> arrows to cycle through H → E → − without moving.</Li>
+                        <Li><strong>Backspace</strong> resets the current cell and moves focus left; <strong>Delete</strong> resets in place.</Li>
+                        <Li>Paste a string of values (e.g. <code>HHE--E</code>) to fill multiple cells at once.</Li>
+                    </Ul>
 
                     <P>
                         <strong>Bulk operations</strong><br />

@@ -12,7 +12,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import UploadIcon from '@mui/icons-material/Upload';
 
 import { alpha } from "@mui/material/styles";
-import { useTheme } from '@mui/material/styles';
 import { useHoveredMonomer } from '../../../state/hoveredMonomerStore';
 import { CELL_WIDTH, CELL_HEIGHT, CELL_GAP, CELL_CSS_VARS } from './cellSizeTokens';
 
@@ -89,10 +88,9 @@ export const ChainSlots = ({
     }, [activeSeqIdx, effectiveRowMonomerLists]);
     const makeDeleteHandler = useCallback((idx) => () => handleDeleteSequence(idx), [handleDeleteSequence]);
 
-    const ALLOWED = ['H', 'E', 'C', 'T', 'B', 'I', '-'];
     const normSS = (s) => {
         const c = (s || '').toString().trim().slice(0, 1).toUpperCase();
-        return ALLOWED.includes(c) ? c : '-';
+        return DSSP_VALUES.includes(c) ? c : '-';
     };
 
     const gridGap = 0.5; // spacing between chips (theme spacing units)
@@ -179,6 +177,7 @@ export const ChainSlots = ({
 
                     const constraintsSlot = (
                         <Box
+                            data-dssp-container
                             sx={{
                                 display: 'flex',
                                 gap: GRID_GAP,
@@ -204,7 +203,7 @@ export const ChainSlots = ({
                             ) : (
                                 list.map((m, i) => {
                                     const raw = String(constraintsBySeq?.[seqIdx]?.[i] ?? '-').toUpperCase();
-                                    const v = ['H', 'E', 'C', '-'].includes(raw) ? raw : '-';
+                                    const v = DSSP_VALUES.includes(raw) ? raw : '-';
                                     return (
                                         <span key={`${seqIdx}-${i}`}>
                                             <ConstraintCell
@@ -358,72 +357,83 @@ export const ChainSlots = ({
     );
 };
 
-const ALLOWED = new Set(['H', 'E', 'C', 'T', 'G', 'I', 'B', '-']);
-const letterTint = (t, ch) => {
+/** The three allowed DSSP values, in cycling order. */
+const DSSP_VALUES = ['H', 'E', '-'];
+const DSSP_SET = new Set(DSSP_VALUES);
+
+const letterTint = (_t, ch) => {
     const map = {
-        H: { bg: alpha('#16a34a', 0.14), bd: alpha('#16a34a', 0.35), fg: '#064e3b' },    // green
-        E: { bg: alpha('#1d4ed8', 0.14), bd: alpha('#1d4ed8', 0.35), fg: '#0b3a9a' },    // blue
-        // T: { bg: alpha('#d97706', 0.14), bd: alpha('#d97706', 0.35), fg: '#7c2d12' },    // amber
-        C: { bg: alpha('#64748b', 0.14), bd: alpha('#64748b', 0.35), fg: '#1f2937' },    // gray
-        // G: { bg: alpha('#0d9488', 0.14), bd: alpha('#0d9488', 0.35), fg: '#064e3b' },    // teal
-        // I: { bg: alpha('#7c3aed', 0.14), bd: alpha('#7c3aed', 0.35), fg: '#3b0764' },    // purple
-        // B: { bg: alpha('#4338ca', 0.14), bd: alpha('#4338ca', 0.35), fg: '#1e1b4b' },    // indigo
-        '-': { bg: alpha('#94a3b8', 0.10), bd: alpha('#94a3b8', 0.28), fg: '#475569' },
+        H: { bg: alpha('#16a34a', 0.14), bd: alpha('#16a34a', 0.35), fg: '#064e3b' },    // green  – helix
+        E: { bg: alpha('#1d4ed8', 0.14), bd: alpha('#1d4ed8', 0.35), fg: '#0b3a9a' },    // blue   – strand
+        '-': { bg: alpha('#94a3b8', 0.10), bd: alpha('#94a3b8', 0.28), fg: '#475569' },   // gray   – coil / none
     };
     return map[ch] || map['-'];
 };
 
-// place near bottom of file
+/**
+ * OTP-style constraint cell.
+ *
+ * Behaviour:
+ *  - Only H, E, - are accepted (typed or pasted).
+ *  - Typing a valid value commits it and auto-advances focus to the next cell.
+ *  - Left / Right arrows navigate between cells.
+ *  - Up / Down arrows cycle through H → E → - → H (or reverse).
+ *  - Backspace / Delete reset the cell to '-' and move focus backward.
+ *  - The text caret is hidden for a clean OTP look.
+ *  - Paste is supported: valid chars are distributed across cells from the
+ *    current position onward.
+ */
 function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSize = CELL_HEIGHT }) {
     const ref = useRef(null);
-    const theme = useTheme();
 
+    // Walk up from the <input> to the nearest container that holds all cells,
+    // so querySelector can reach sibling inputs wrapped in their own <span>s.
     const moveFocus = (nextIdx) => {
-        const parent = ref.current?.parentElement;
-        const next = parent?.querySelector(`input[data-idx="${nextIdx}"]`);
-        next?.focus();
-        next?.select?.();
+        const container = ref.current?.closest('[data-dssp-container]');
+        const next = container?.querySelector(`input[data-idx="${nextIdx}"]`);
+        if (next) next.focus();
+    };
+
+    const cycleValue = (direction) => {
+        const cur = DSSP_VALUES.indexOf(value);
+        const len = DSSP_VALUES.length;
+        const next = (cur + direction + len) % len;
+        commitAt(index, DSSP_VALUES[next]);
     };
 
     const handleKeyDown = (e) => {
-        const selStart = ref.current?.selectionStart ?? 0;
-        const selEnd = ref.current?.selectionEnd ?? selStart;
-        const atStart = selStart === 0;
-        const atEnd = selEnd >= String(value ?? '').length; // single-char: 1 when filled
-
-        if (e.key === 'ArrowLeft') { e.preventDefault(); moveFocus(index - 1); return; }
+        // ── Arrow navigation ──
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); moveFocus(index - 1); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); moveFocus(index + 1); return; }
-        if (e.key === 'Enter') { e.preventDefault(); moveFocus(e.shiftKey ? index - 1 : index + 1); return; }
+        if (e.key === 'ArrowUp')    { e.preventDefault(); cycleValue(-1); return; }
+        if (e.key === 'ArrowDown')  { e.preventDefault(); cycleValue(+1); return; }
+        if (e.key === 'Enter')      { e.preventDefault(); moveFocus(e.shiftKey ? index - 1 : index + 1); return; }
+        if (e.key === 'Tab')        { /* let browser handle focus naturally */ return; }
 
+        // ── Backspace: reset current cell → move left ──
         if (e.key === 'Backspace') {
             e.preventDefault();
-            if (atStart) {
-                if (index > 0) { commitAt(index - 1, '-'); moveFocus(index - 1); }
-            } else {
-                commitAt(index, '-');
-            }
+            commitAt(index, '-');
+            moveFocus(index - 1);
             return;
         }
 
+        // ── Delete: reset current cell (stay put) ──
         if (e.key === 'Delete') {
             e.preventDefault();
-            // If caret at start, delete previous; if at end, delete next.
-            if (atStart) {
-                if (index > 0) { commitAt(index - 1, '-'); moveFocus(index - 1); }
-            } else if (atEnd) {
-                commitAt(index + 1, '-'); moveFocus(index + 1);
-            } else {
-                commitAt(index, '-');
-            }
+            commitAt(index, '-');
             return;
         }
+
+        // ── Character input ──
         if (e.key && e.key.length === 1) {
+            e.preventDefault();
             const ch = e.key.toUpperCase();
-            if (ALLOWED.has(ch)) {
-                e.preventDefault();
+            if (DSSP_SET.has(ch)) {
                 commitAt(index, ch);
                 moveFocus(index + 1);
             } else {
+                // Subtle shake animation for invalid key
                 ref.current?.animate(
                     [{ transform: 'translateX(0)' }, { transform: 'translateX(-2px)' }, { transform: 'translateX(2px)' }, { transform: 'translateX(0)' }],
                     { duration: 120 }
@@ -438,7 +448,7 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
         if (!text) return;
         let i = index;
         for (const raw of text) {
-            if (ALLOWED.has(raw)) {
+            if (DSSP_SET.has(raw)) {
                 commitAt(i, raw);
                 i += 1;
             }
@@ -446,18 +456,19 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
         moveFocus(i);
     };
 
-    const tint = letterTint(null, value); // your helper already returns colors
+    const tint = letterTint(null, value);
 
     return (
         <input
             ref={ref}
             data-idx={index}
             value={value}
-            onChange={() => { }}
+            readOnly          /* all mutations go through onKeyDown / onPaste */
+            onChange={() => {}}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            inputMode="text"
-            aria-label={`Constraint at ${index + 1}`}
+            inputMode="none"   /* suppress mobile virtual keyboard letter-mode */
+            aria-label={`Constraint at ${index + 1}: ${value}`}
             style={{
                 display: 'block',
                 width: `var(--pp-cell-w, ${chipWidth}px)`,
@@ -469,13 +480,27 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
                 outline: 'none',
                 fontSize: 11,
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontWeight: 600,
                 padding: 0,
                 boxSizing: 'border-box',
                 background: tint.bg,
                 color: tint.fg,
+                caretColor: 'transparent',   /* hide text cursor */
+                cursor: 'pointer',
+                userSelect: 'none',
             }}
-            onFocus={(e) => { e.currentTarget.style.outline = '1px solid var(--mui-palette-primary-main)'; }}
-            onBlur={(e) => { e.currentTarget.style.outline = 'none'; }}
+            onFocus={(e) => {
+                e.currentTarget.style.outline = '1.5px solid var(--mui-palette-primary-main)';
+                e.currentTarget.style.outlineOffset = '1px';
+                e.currentTarget.style.boxShadow = '0 0 0 2.5px rgba(25,118,210,0.18)';
+                // Collapse any browser text selection
+                window.getSelection()?.removeAllRanges();
+            }}
+            onBlur={(e) => {
+                e.currentTarget.style.outline = 'none';
+                e.currentTarget.style.outlineOffset = '';
+                e.currentTarget.style.boxShadow = 'none';
+            }}
             placeholder="-"
             maxLength={1}
         />

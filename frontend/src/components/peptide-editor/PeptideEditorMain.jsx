@@ -1401,11 +1401,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             editorHeightBeforeLinkModeRef.current = editorAreaHeight;
 
             // Collapse the 3D viewer to maximise the 2D sketch area.
-            collapsedViewerBeforeLinkModeRef.current = collapsedViewer; // save current state (null | '2d' | '3d')
+            // If coming from '2d'-collapsed, the toggle handler already set '3d'
+            // directly — avoid a redundant state update.
+            if (collapsedViewerBeforeLinkModeRef.current === undefined) {
+                collapsedViewerBeforeLinkModeRef.current = collapsedViewer;
+            }
             if (collapsedViewer !== '3d') setCollapsedViewer('3d');
 
             // Hide constraints (not needed while linking) to declutter chain slots.
-            constraintModeBeforeLinkRef.current = constraintMode;
+            // May already have been set by the toggle handler for the '2d'-collapsed fast path.
+            if (constraintModeBeforeLinkRef.current === null) {
+                constraintModeBeforeLinkRef.current = constraintMode;
+            }
             if (constraintMode !== 'none') setConstraintMode('none');
 
             // Compute the maximum feasible ratio while keeping the 3D panel at least ~200px wide.
@@ -1626,8 +1633,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         bondsMode={viewer2DModes.bondsMode}
                         onToggleLinkMode={() => {
                             if (collapsedViewer === '2d') {
-                                setCollapsedViewer(null);
-                                // Wait for Viewer2D to mount before toggling
+                                // Go directly to '3d' collapsed — skips the intermediate
+                                // "both visible" state and avoids a double Mol* resize.
+                                setCollapsedViewer('3d');
+                                // Pre-set constraint mode now (batched into same render)
+                                if (constraintMode !== 'none') {
+                                    constraintModeBeforeLinkRef.current = constraintMode;
+                                    setConstraintMode('none');
+                                }
                                 requestAnimationFrame(() => {
                                     viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
                                 });
@@ -1637,7 +1650,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         }}
                         onToggleCutMode={() => {
                             if (collapsedViewer === '2d') {
-                                setCollapsedViewer(null);
+                                setCollapsedViewer('3d');
+                                if (constraintMode !== 'none') {
+                                    constraintModeBeforeLinkRef.current = constraintMode;
+                                    setConstraintMode('none');
+                                }
                                 requestAnimationFrame(() => {
                                     viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
                                 });

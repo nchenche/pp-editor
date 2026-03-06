@@ -1846,6 +1846,9 @@ export default function BilnEditorInterface({
                                 Visible when the constraints mode is set to <strong>Secondary structure</strong>.
                                 A track appears below the sequence, aligned monomer-by-monomer, where you can
                                 assign a per-residue preference to guide 3D conformation generation.
+                                The input works like an OTP field &mdash; click any cell to focus it
+                                (highlighted with a subtle ring), then type a value and focus automatically
+                                advances to the next cell. No text selection is shown; navigation is purely visual.
                             </Typography>
 
                             <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Codes</Typography>
@@ -1930,6 +1933,35 @@ export default function BilnEditorInterface({
                                 <li>
                                     <Typography component="span">
                                         <strong>All random (-)</strong> &#8212; leaves every position unconstrained.
+                                    </Typography>
+                                </li>
+                            </ul>
+
+                            <Typography sx={{ mb: 0.75, fontWeight: 700 }}>Keyboard shortcuts</Typography>
+                            <ul>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>H / E / -</strong> &#8212; set the value and advance to the next cell.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>&#8592; / &#8594;</strong> &#8212; move focus left / right.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>&#8593; / &#8595;</strong> &#8212; cycle through H &#8594; E &#8594; - without moving.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Backspace</strong> &#8212; reset current cell and move left.
+                                    </Typography>
+                                </li>
+                                <li>
+                                    <Typography component="span">
+                                        <strong>Delete</strong> &#8212; reset current cell in place.
                                     </Typography>
                                 </li>
                             </ul>
