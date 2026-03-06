@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, forwardRef, useImperativeHandle, startTransition } from 'react';
 import './viewer2D.css'; // Assuming you have a CSS file for styles
 
 import IconButton from "@mui/material/IconButton";
@@ -252,28 +252,30 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     useImperativeHandle(ref, () => ({
         setLinkMode(next) {
             const v = Boolean(next);
-            // NOTE: keep state updaters free of side effects.
-            // Parent syncing happens via the useEffect below (onModesChange).
-            if (v) {
-                setIsShowBonds(false);
-            } else {
-                cancelLinking?.();
-            }
-            setIsShowRGroups(v);
+            // Wrap in startTransition so the button press paints immediately
+            // while the cascading layout changes are processed as non-urgent.
+            startTransition(() => {
+                if (v) {
+                    setIsShowBonds(false);
+                } else {
+                    cancelLinking?.();
+                }
+                setIsShowRGroups(v);
+            });
         },
         setBondsMode(next) {
-            // Guard: do nothing if requesting ON but there are no extra bonds
             const v = Boolean(next);
             if (v && !hasExtraBonds) {
                 setIsShowBonds(false);
                 return;
             }
-
-            if (v) {
-                setIsShowRGroups(false);
-                cancelLinking?.();
-            }
-            setIsShowBonds(v);
+            startTransition(() => {
+                if (v) {
+                    setIsShowRGroups(false);
+                    cancelLinking?.();
+                }
+                setIsShowBonds(v);
+            });
         },
         clearLinkSelection() {
             cancelLinking?.();

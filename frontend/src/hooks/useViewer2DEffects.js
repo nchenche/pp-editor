@@ -1,5 +1,5 @@
 // src/hooks/useViewer2DEffects.js
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { addClassName, removeClassName, createRect } from "../components/peptide-editor/Viewer2D/utils";
 
 
@@ -64,6 +64,45 @@ export function useViewer2DEffects({
     setIsShowBonds,
 }) {
 
+    // ── Phase 1: Create overlay rects (expensive – calls getBBox per group) ──
+    // Only runs when the SVG markup itself changes, NOT on mode toggles.
+    const overlayMapRef = useRef(new Map()); // group element → overlay rect
+
+    useEffect(() => {
+        if (!svgData || !svgContainer?.current) return;
+
+        const root = svgContainer.current;
+        const groups = root.querySelectorAll('svg g');
+        const map = new Map();
+
+        groups.forEach(group => {
+            // Reuse existing overlay if already present (avoids getBBox).
+            const existingOverlay = group.querySelector(':scope > rect[data-overlay="1"]');
+            const padding = 12;
+            const attr = { fill: "transparent" };
+            const rect = existingOverlay || createRect(group, attr, padding);
+            rect.setAttribute('data-overlay', '1');
+
+            if (!existingOverlay) {
+                group.insertBefore(rect, group.firstChild);
+            }
+            map.set(group, rect);
+        });
+
+        overlayMapRef.current = map;
+
+        return () => {
+            if (!svgContainer?.current) return;
+            // Remove overlays we injected (fixes StrictMode double-invoke)
+            svgContainer.current
+                .querySelectorAll('svg rect[data-overlay="1"]')
+                .forEach(node => node.remove());
+            overlayMapRef.current = new Map();
+        };
+    }, [svgData, svgContainer]);
+
+    // ── Phase 2: Classify groups + attach listeners (lightweight – no layout) ──
+    // Runs when cuttableBondPairs or event handlers change (i.e. mode toggles).
     useEffect(() => {
         if (!svgData || !svgContainer?.current) return;
 
@@ -75,25 +114,16 @@ export function useViewer2DEffects({
             const isCuttableBond = isCuttableBondGroup(groupClasses, cuttableBondPairs);
             group.classList.toggle("cuttable-bond", isCuttableBond);
 
-            // If we've already instrumented this group (direct child overlay), don't create another.
-            const existingOverlay = group.querySelector(':scope > rect[data-overlay="1"]');
-
-            const padding = 12;
-            const attr = { fill: "transparent" };
-
-            const rect = existingOverlay || createRect(group, attr, padding);
-
-            // Mark overlay so we can style and clean it up reliably
-            rect.setAttribute('data-overlay', '1');
+            const rect = overlayMapRef.current.get(group)
+                || group.querySelector(':scope > rect[data-overlay="1"]');
+            if (!rect) return;
 
             if (groupClasses.contains("r-group")) {
-                // mark rect so CSS can toggle it
                 rect.classList.add("r-group");
                 group.addEventListener("click", onRGroupClick);
                 group.removeEventListener("dblclick", onBondClick);
                 rect.classList.remove("extra-bond");
             } else if (isCuttableBond) {
-                // mark rect so CSS can toggle it
                 rect.classList.add("extra-bond");
                 rect.classList.toggle("extra-bond-peptide", groupClasses.contains("type-peptide"));
                 rect.classList.toggle("extra-bond-other", groupClasses.contains("type-other"));
@@ -107,29 +137,18 @@ export function useViewer2DEffects({
                 group.removeEventListener("dblclick", onBondClick);
             }
 
-            if (!existingOverlay) {
-                group.insertBefore(rect, group.firstChild);
-            }
             group.addEventListener("mouseenter", onMouseEnterGroup);
             group.addEventListener("mouseleave", onMouseLeaveGroup);
         });
 
         return () => {
             if (!svgContainer?.current) return;
-
-            // Clean up all groups and their event listeners
             svgContainer.current.querySelectorAll('svg g').forEach(group => {
                 group.removeEventListener("mouseenter", onMouseEnterGroup);
                 group.removeEventListener("mouseleave", onMouseLeaveGroup);
                 group.removeEventListener("click", onRGroupClick);
                 group.removeEventListener("dblclick", onBondClick);
             });
-
-            // Remove overlays we injected (fixes StrictMode double-invoke)
-            svgContainer.current
-                .querySelectorAll('svg rect[data-overlay="1"]')
-                .forEach(node => node.remove());
-
         };
     }, [svgData, svgContainer, cuttableBondPairs, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
 

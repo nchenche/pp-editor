@@ -279,7 +279,6 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 /* Bonds-on emphasis mode: dim everything */
 #svg-container.bonds-on svg :is(path, line, polyline, polygon, circle, ellipse, rect, text) {
     opacity: 0.33;
-    transition: opacity 50ms ease-in-out;
 }
 
 /* Keep cuttable bonds fully visible (reset opacity on all descendants) */
@@ -338,7 +337,6 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
 /* Emphasis mode: dim everything except R-groups */
 #svg-container.rgroups-emphasis svg :is(path, line, polyline, polygon, circle, ellipse, rect, text):not(g.r-group *):not(.r-group) {
     opacity: 0.33;
-    transition: opacity 50ms ease-in-out;
 }
 
 /* Keep R-groups fully visible */

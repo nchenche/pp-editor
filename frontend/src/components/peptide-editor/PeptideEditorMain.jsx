@@ -1406,8 +1406,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             splitRatioBeforeLinkModeRef.current = viewerSplitRatio;
             editorHeightBeforeLinkModeRef.current = editorAreaHeight;
 
+            // ── Batch all synchronous state updates together ──
+            // React 18 batches setState calls within the same synchronous block,
+            // so these will produce a single re-render.
+
             // Collapse the 3D viewer to maximise the 2D sketch area.
-            collapsedViewerBeforeLinkModeRef.current = collapsedViewer; // save current state (null | '2d' | '3d')
+            collapsedViewerBeforeLinkModeRef.current = collapsedViewer;
             if (collapsedViewer !== '3d') setCollapsedViewer('3d');
 
             // Hide constraints (not needed while linking) to declutter chain slots.
@@ -1421,29 +1425,23 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             const maxRatio = (Number.isFinite(totalW) && totalW > 0)
                 ? Math.max(0, Math.min(1, (totalW - minOtherPx) / totalW))
                 : 1;
-
-            // Nudge slightly below 1 to avoid precision/rounding issues with flexBasis.
             const target = Math.min(maxRatio, 0.98);
             setViewerSplitRatio(target);
 
-            // Wait one frame so the manual section collapse (in BilnEditorInterface) takes effect,
-            // then measure the compact editor height and shrink to fit ≤2 chain slots.
+            // Shrink editor to compact height synchronously.
+            // Use a single rAF (instead of nested) for measurement + update.
             requestAnimationFrame(() => {
                 const wrapper = editorWrapperRef.current;
                 if (!wrapper) return;
-                const paper = wrapper.querySelector(':scope > *'); // the Paper root
+                const paper = wrapper.querySelector(':scope > *');
                 if (!paper) return;
 
-                // The Paper's scrollHeight is its full content height (with manual section collapsed).
-                // Cap visible chain area to ~2 chain slots (≈ 2 × ~80px = 160px)
                 const chainsScroll = wrapper.querySelector('[data-chains-scroll]');
-                const MAX_VISIBLE_CHAINS_PX = 160; // ≈ 2 chain slots
+                const MAX_VISIBLE_CHAINS_PX = 160;
                 let compactH = paper.scrollHeight;
                 if (chainsScroll && chainsScroll.scrollHeight > MAX_VISIBLE_CHAINS_PX) {
-                    // Subtract the overflow beyond 2 chain slots
                     compactH -= (chainsScroll.scrollHeight - MAX_VISIBLE_CHAINS_PX);
                 }
-                // Clamp to minEditorHeight
                 const clamped = Math.max(160, compactH);
                 if (clamped < editorHeightBeforeLinkModeRef.current) {
                     setEditorAreaHeight(clamped);
