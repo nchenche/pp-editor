@@ -108,7 +108,13 @@ const NAV_TREE = [
                     { id: "editing-peptide", label: "Editing your peptide" },
                 ],
             },
-            { id: "linking", label: "Linking monomers" },
+            {
+                id: "linking", label: "Linking monomers",
+                children: [
+                    { id: "creating-links", label: "Creating bonds" },
+                    { id: "removing-links", label: "Removing bonds" },
+                ],
+            },
             {
                 id: "applying-constraints", label: "Applying structural constraints",
                 children: [
@@ -1947,29 +1953,62 @@ const Documentation = () => {
                     {/* ── Linking ── */}
                     <SectionTitle id="linking">Linking monomers</SectionTitle>
 
+                    <P>
+                        PEP-EDIT supports extra bonds beyond the backbone — disulfide bridges, side-chain
+                        cross-links, lipidation attachments, or head-to-tail cyclizations. These bonds
+                        are represented in BILN as <code>(bondId, rgroupId)</code> annotation pairs
+                        (see <MUILink href="#biln-notation">BILN notation</MUILink>).
+                    </P>
+
+                    <SubTitle id="creating-links">Creating bonds and removing bonds</SubTitle>
+
                     <Figure
-                        src="/assets/documentation/Linking-Unlinking.png"
-                        alt="Linking and unlinking chains using R-groups"
-                        caption="Linking and unlinking chains via R-groups. The 2D viewer supports interactive bond creation and removal."
+                        src="/assets/documentation/gifs/pepedit_linking.gif"
+                        alt="Using Link mode to cyclize a chain and add a disulfide bridge, then using Unlink mode to remove it."
+                        caption="Demonstration of Link and Unlink modes. First, the chain is cyclized via Link mode (the first and last R-groups are connected). Then a disulfide bridge is created between two chains. Finally, Unlink mode is used to remove the created bonds."
                         openLightbox={openLightbox}
-                        maxWidth="xs"
+                        maxWidth="md"
                     />
 
                     <P>
-                        PEP-EDIT supports extra bonds beyond the backbone (e.g. disulfides, side-chain linkers, lipidation attachments).
-                        You can create them in two ways:
+                        You can create extra bonds in two ways:
                     </P>
                     <Ul>
-                        <Li><strong>BILN connectivity</strong> - write explicit bond annotations in the BILN sequence, using <code>(bondId, RgroupId)</code> pairs.</Li>
-                        <Li><strong>Link mode</strong> - activate the Link tool (chain icon in the editor toolbar), then click two compatible R-groups in the 2D viewer to create a bond.</Li>
+                        <Li>
+                            <strong>BILN annotations</strong> — type matching <code>(bondId, rgroupId)</code> pairs
+                            directly in the BILN input. For instance, adding <code>(1,1)</code> to the first residue
+                            and <code>(1,2)</code> to the last residue creates a head-to-tail cyclic bond.
+                        </Li>
+                        <Li>
+                            <strong>Link mode</strong> — click the <Ic icon={DeviceHubIcon} label="Link" /> button
+                            in the editor toolbar. The 2D viewer dims the molecule structure and highlights every
+                            available R-group. Click a first R-group (it highlights with an animated dashed outline),
+                            then click a second R-group to create the bond. PEP-EDIT stays in Link mode after each bond,
+                            so you can chain multiple links without re-clicking the toolbar button.
+                            Press <strong>Esc</strong> to cancel an in-progress selection or exit Link mode entirely.
+                        </Li>
+                        <Li>
+                            <strong>Unlink mode</strong> — click the <Ic icon={LinkOffIcon} label="Unlink" /> button to enter <strong>Unlink mode</strong>.
+                            The viewer dims everything except the cuttable extra bonds, which appear in red with
+                            a marching-ants animation. Click any highlighted bond to remove it.
+                            Only extra bonds (non-backbone) can be cut; backbone connections are managed by
+                            editing the sequence itself. Only one of Link / Unlink can be active at a time.
+
+                        </Li>
                     </Ul>
-                    <P>
-                        To remove a bond, activate the <strong>Cut mode</strong> (scissors icon) and click a non-backbone bond in the 2D viewer.
-                    </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        Extra bonds are flexible by design - PEP-EDIT does not automatically validate whether a given link is
-                        chemically meaningful (that remains the user's responsibility).
+                        <Ul sx={{ mb: 0 }}>
+                            <Li>
+                                When Link or Unlink mode is active, the <em>Manual edition</em> section auto-collapses and
+                                the <em>Chains</em> panel auto-detaches into a floating overlay to maximize the 2D Sketch area.
+                                Both are restored when you leave the mode.
+                            </Li>
+                            <Li>
+                                Extra bonds are flexible by design — PEP-EDIT does not validate whether a given link is
+                                chemically meaningful (e.g. matching R-group chemistry). That remains the user's responsibility.
+                            </Li>
+                        </Ul>
                     </Alert>
 
                     <Divider sx={{ my: 4 }} />

@@ -737,7 +737,7 @@ export default function BilnEditorInterface({
                                     color="inherit"
                                     onClick={onToggleLinkMode}
                                     disabled={!canLink}
-                                    sx={modeBtnSx(linkMode)}
+                                    sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
                                     aria-label="link monomers"
                                 >
                                     <DeviceHubIcon fontSize="inherit" />
@@ -752,7 +752,7 @@ export default function BilnEditorInterface({
                                     color="inherit"
                                     onClick={onToggleCutMode}
                                     disabled={!canUnlink}
-                                    sx={modeBtnSx(bondsMode)}
+                                    sx={{ ...btnSx, minWidth: 34, px: 0.5 }}
                                     aria-label="cut bonds"
                                 >
                                     <LinkOffIcon fontSize="inherit" />

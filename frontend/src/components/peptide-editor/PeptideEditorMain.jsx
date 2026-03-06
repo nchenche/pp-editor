@@ -1370,13 +1370,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         initialViewerSplitRatio: 0.5,
     });
 
-    // While restoring layout after link/cut mode, suppress delta adjustments that
-    // BilnEditorInterface fires as side-effects (manual section re-expand, chains
-    // re-attach), because the absolute saved height is already being restored.
-    const suppressAdjustRef = useRef(false);
-
     const handleAdjustEditorHeight = useCallback((delta) => {
-        if (suppressAdjustRef.current) return;
         setEditorAreaHeight(prev => {
             const mainEl = mainAreaRef.current;
             const maxH = mainEl
@@ -1406,12 +1400,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             splitRatioBeforeLinkModeRef.current = viewerSplitRatio;
             editorHeightBeforeLinkModeRef.current = editorAreaHeight;
 
-            // ── Batch all synchronous state updates together ──
-            // React 18 batches setState calls within the same synchronous block,
-            // so these will produce a single re-render.
-
             // Collapse the 3D viewer to maximise the 2D sketch area.
-            collapsedViewerBeforeLinkModeRef.current = collapsedViewer;
+            collapsedViewerBeforeLinkModeRef.current = collapsedViewer; // save current state (null | '2d' | '3d')
             if (collapsedViewer !== '3d') setCollapsedViewer('3d');
 
             // Hide constraints (not needed while linking) to declutter chain slots.
@@ -1425,23 +1415,29 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             const maxRatio = (Number.isFinite(totalW) && totalW > 0)
                 ? Math.max(0, Math.min(1, (totalW - minOtherPx) / totalW))
                 : 1;
+
+            // Nudge slightly below 1 to avoid precision/rounding issues with flexBasis.
             const target = Math.min(maxRatio, 0.98);
             setViewerSplitRatio(target);
 
-            // Shrink editor to compact height synchronously.
-            // Use a single rAF (instead of nested) for measurement + update.
+            // Wait one frame so the manual section collapse (in BilnEditorInterface) takes effect,
+            // then measure the compact editor height and shrink to fit ≤2 chain slots.
             requestAnimationFrame(() => {
                 const wrapper = editorWrapperRef.current;
                 if (!wrapper) return;
-                const paper = wrapper.querySelector(':scope > *');
+                const paper = wrapper.querySelector(':scope > *'); // the Paper root
                 if (!paper) return;
 
+                // The Paper's scrollHeight is its full content height (with manual section collapsed).
+                // Cap visible chain area to ~2 chain slots (≈ 2 × ~80px = 160px)
                 const chainsScroll = wrapper.querySelector('[data-chains-scroll]');
-                const MAX_VISIBLE_CHAINS_PX = 160;
+                const MAX_VISIBLE_CHAINS_PX = 160; // ≈ 2 chain slots
                 let compactH = paper.scrollHeight;
                 if (chainsScroll && chainsScroll.scrollHeight > MAX_VISIBLE_CHAINS_PX) {
+                    // Subtract the overflow beyond 2 chain slots
                     compactH -= (chainsScroll.scrollHeight - MAX_VISIBLE_CHAINS_PX);
                 }
+                // Clamp to minEditorHeight
                 const clamped = Math.max(160, compactH);
                 if (clamped < editorHeightBeforeLinkModeRef.current) {
                     setEditorAreaHeight(clamped);
@@ -1452,12 +1448,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         if (!active && wasActive) {
             wasLinkModeActiveRef.current = false;
-
-            // Suppress delta-based height adjustments from BilnEditorInterface
-            // (manual section re-expand, chains re-attach) while we restore the
-            // absolute saved height.  The double-rAF matches the chain reattach
-            // delay so the flag stays active long enough.
-            suppressAdjustRef.current = true;
 
             // Restore previous viewer collapse state.
             const prevCollapse = collapsedViewerBeforeLinkModeRef.current;
@@ -1480,13 +1470,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 setEditorAreaHeight(prevHeight);
                 requestAnimationFrame(() => persistToStorage());
             }
-
-            // Clear suppression after the chain-reattach double-rAF window.
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    suppressAdjustRef.current = false;
-                });
-            });
         }
     }, [viewer2DModes.linkMode, viewer2DModes.bondsMode, viewerSplitRatio, setViewerSplitRatio, viewerRowRef]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1641,8 +1624,27 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         // Toolbar (link/cut) wiring
                         linkMode={viewer2DModes.linkMode}
                         bondsMode={viewer2DModes.bondsMode}
-                        onToggleLinkMode={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
-                        onToggleCutMode={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                        onToggleLinkMode={() => {
+                            if (collapsedViewer === '2d') {
+                                setCollapsedViewer(null);
+                                // Wait for Viewer2D to mount before toggling
+                                requestAnimationFrame(() => {
+                                    viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
+                                });
+                            } else {
+                                viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
+                            }
+                        }}
+                        onToggleCutMode={() => {
+                            if (collapsedViewer === '2d') {
+                                setCollapsedViewer(null);
+                                requestAnimationFrame(() => {
+                                    viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
+                                });
+                            } else {
+                                viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
+                            }
+                        }}
                         canLink={canLink}
                         canUnlink={canCut}
                         onAdjustEditorHeight={handleAdjustEditorHeight}
