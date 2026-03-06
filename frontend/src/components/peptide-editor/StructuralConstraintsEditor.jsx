@@ -221,7 +221,21 @@ function DsspOtpCell({ index, value, commitAt, size = 32 }) {
         commitAt(index, DSSP_VALUES[next]);
     };
 
+    const pasteFromClipboard = async () => {
+        try {
+            const text = (await navigator.clipboard.readText()).toUpperCase();
+            if (!text) return;
+            let i = index;
+            for (const ch of text) {
+                if (DSSP_SET.has(ch)) { commitAt(i, ch); i += 1; }
+            }
+            moveFocus(i);
+        } catch { /* clipboard access denied – ignore */ }
+    };
+
     const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); pasteFromClipboard(); return; }
+
         if (e.key === 'ArrowLeft')  { e.preventDefault(); moveFocus(index - 1); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); moveFocus(index + 1); return; }
         if (e.key === 'ArrowUp')    { e.preventDefault(); cycleValue(-1); return; }
@@ -256,20 +270,6 @@ function DsspOtpCell({ index, value, commitAt, size = 32 }) {
         }
     };
 
-    const handlePaste = (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData?.getData('text') || '').toUpperCase();
-        if (!text) return;
-        let i = index;
-        for (const raw of text) {
-            if (DSSP_SET.has(raw)) {
-                commitAt(i, raw);
-                i += 1;
-            }
-        }
-        moveFocus(i);
-    };
-
     const colors = {
         H:  { bg: 'rgba(22,163,74,0.14)', bd: 'rgba(22,163,74,0.35)', fg: '#064e3b' },
         E:  { bg: 'rgba(29,78,216,0.14)', bd: 'rgba(29,78,216,0.35)', fg: '#0b3a9a' },
@@ -285,7 +285,6 @@ function DsspOtpCell({ index, value, commitAt, size = 32 }) {
             readOnly
             onChange={() => {}}
             onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
             inputMode="none"
             aria-label={`Constraint at ${index + 1}: ${value}`}
             style={{

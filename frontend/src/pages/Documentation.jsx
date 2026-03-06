@@ -2038,11 +2038,11 @@ const Documentation = () => {
                     <SubTitle id="constraints-2d-howto">Secondary structure constraints</SubTitle>
 
                     <Figure
-                        src="/assets/documentation/SecondaryStructure.png"
+                        src="/assets/documentation/gifs/pepedit_dssp-constraints.gif"
                         alt="Secondary structure constraints on a peptide chain."
-                        caption="The constraint track with per-residue secondary structure assignments. Each residue can be set to H (helix), E (strand), or − (coil)."
+                        caption="Applying secondary structure constraints on a multi-chain peptide. Individual residues are assigned H (helix), E (strand), or − (coil) by clicking the constraint track buttons; the ⋮ menu provides bulk operations. After clicking Generate 3D, the conformer reflects the assigned fold."
                         openLightbox={openLightbox}
-                        maxWidth="xs"
+                        maxWidth="lg"
                     />
 
                     <P>
@@ -2056,7 +2056,7 @@ const Documentation = () => {
                         <Li>Type <strong>H</strong>, <strong>E</strong>, or <strong>-</strong> to set a value — focus automatically advances to the next cell.</Li>
                         <Li>Use <strong>←</strong> / <strong>→</strong> arrows to navigate between cells (no text selection occurs).</Li>
                         <Li>Use <strong>↑</strong> / <strong>↓</strong> arrows to cycle through H → E → − without moving.</Li>
-                        <Li><strong>Backspace</strong> resets the current cell and moves focus left; <strong>Delete</strong> resets in place.</Li>
+                        <Li><strong>Delete</strong> resets in place.</Li>
                         <Li>Paste a string of values (e.g. <code>HHE--E</code>) to fill multiple cells at once.</Li>
                     </Ul>
 

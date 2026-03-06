@@ -966,9 +966,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!committedBiln) return false;
         const { tokenCount } = analyzeBiln(committedBiln);
         if (tokenCount <= 0) return false;
-        if (constraintMode !== 'ss') return true;
-        return secstructString.length === tokenCount;
-    }, [committedBiln, secstructString, constraintMode]);
+        // SS mode: every residue defaults to '-' (no constraint), so generation
+        // is always valid — there are no "uncovered" residues.
+        return true;
+    }, [committedBiln]);
 
     // Debounced generate3D trigger and last sent guard
     const lastGenRef = useRef({
@@ -1113,6 +1114,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setConstraintsBySeq(prev => {
             const lists = rowMonomerLists; // capture current lengths
             const targetLen = lists[seqIdx]?.length ?? 0;
+
+            // Ignore writes beyond sequence length (e.g. paste overflow)
+            if (resIdx < 0 || resIdx >= targetLen) return prev;
 
             // Sanitize incoming value
             const val = (() => {
@@ -1275,7 +1279,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         : autoSync3D
             ? '3D view updates automatically while Sync is on.'
             : !canGenerate3D
-                ? 'Ensure constraints cover every residue before generating.'
+                ? 'Add monomers to generate a 3D structure.'
                 : structureLoading
                     ? 'Generation already in progress.'
                     : 'Generate updated 3D structure.';

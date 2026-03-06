@@ -401,7 +401,22 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
         commitAt(index, DSSP_VALUES[next]);
     };
 
+    const pasteFromClipboard = async () => {
+        try {
+            const text = (await navigator.clipboard.readText()).toUpperCase();
+            if (!text) return;
+            let i = index;
+            for (const ch of text) {
+                if (DSSP_SET.has(ch)) { commitAt(i, ch); i += 1; }
+            }
+            moveFocus(i);
+        } catch { /* clipboard access denied – ignore */ }
+    };
+
     const handleKeyDown = (e) => {
+        // ── Paste (Ctrl/Cmd+V) — readOnly blocks native paste event ──
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); pasteFromClipboard(); return; }
+
         // ── Arrow navigation ──
         if (e.key === 'ArrowLeft')  { e.preventDefault(); moveFocus(index - 1); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); moveFocus(index + 1); return; }
@@ -442,20 +457,6 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
         }
     };
 
-    const handlePaste = (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData?.getData('text') || '').toUpperCase();
-        if (!text) return;
-        let i = index;
-        for (const raw of text) {
-            if (DSSP_SET.has(raw)) {
-                commitAt(i, raw);
-                i += 1;
-            }
-        }
-        moveFocus(i);
-    };
-
     const tint = letterTint(null, value);
 
     return (
@@ -466,7 +467,6 @@ function ConstraintCell({ index, value, commitAt, chipWidth = CELL_WIDTH, cellSi
             readOnly          /* all mutations go through onKeyDown / onPaste */
             onChange={() => {}}
             onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
             inputMode="none"   /* suppress mobile virtual keyboard letter-mode */
             aria-label={`Constraint at ${index + 1}: ${value}`}
             style={{
