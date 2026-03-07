@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider } from '@mui/material';
+import React, { useState, useCallback } from 'react';
+import { Box, Typography, Tooltip, IconButton, Menu, MenuItem, Divider, ListItemIcon, ListItemText } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import { alpha } from '@mui/material/styles';
 
 export default function ChainContainer({
@@ -36,6 +37,10 @@ export default function ChainContainer({
 
     // Optional; currently not used but passed from parent
     onTemplateHelp = () => { },
+
+    // Chain focus in 3D
+    chainIdLabel = null,
+    onFocusChain3D,
 }) {
     const ROW_HEIGHT = 40;
     const [seqMenuEl, setSeqMenuEl] = useState(null);
@@ -48,6 +53,19 @@ export default function ChainContainer({
 
     // Template mapping configuration is edited in the 3D viewer "Template" panel.
 
+    const handleFocusChain3D = useCallback(() => {
+        if (!chainIdLabel) return;
+        window.dispatchEvent(new CustomEvent('pp-focus-chain', {
+            detail: { target: 'main', chainId: chainIdLabel },
+        }));
+        onFocusChain3D?.();
+    }, [chainIdLabel, onFocusChain3D]);
+
+    const handleChainHeaderContextMenu = useCallback((e) => {
+        if (!chainIdLabel) return;
+        e.preventDefault();
+        handleFocusChain3D();
+    }, [chainIdLabel, handleFocusChain3D]);
 
     const iconRowSx = {
         display: 'flex',
@@ -148,10 +166,15 @@ export default function ChainContainer({
 
                 {/* Row 1: Sequence */}
                 <Box sx={rowGridSx}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0, minHeight: ROW_HEIGHT }}>
-                        <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                            Sequence
-                        </Typography>
+                    <Box
+                        onContextMenu={handleChainHeaderContextMenu}
+                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 0, minHeight: ROW_HEIGHT }}
+                    >
+                        <Tooltip title={chainIdLabel ? 'Right-click to focus in 3D' : ''} arrow placement="left" enterDelay={500}>
+                            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                                Sequence
+                            </Typography>
+                        </Tooltip>
                         <Box sx={iconRowSx}>
                             <Tooltip title="Actions" arrow>
                                 <span>
@@ -300,6 +323,20 @@ export default function ChainContainer({
                     transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                     MenuListProps={{ 'aria-label': 'sequence actions menu' }}
                 >
+                    {chainIdLabel && (
+                        <MenuItem
+                            onClick={() => {
+                                handleFocusChain3D();
+                                closeSeqMenu();
+                            }}
+                        >
+                            <ListItemIcon>
+                                <CenterFocusStrongIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText>Focus in 3D</ListItemText>
+                        </MenuItem>
+                    )}
+                    {chainIdLabel && <Divider />}
                     <MenuItem
                         onClick={() => {
                             onSequenceClear?.();

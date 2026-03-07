@@ -120,6 +120,7 @@ export default function TemplateSequence({
     hasScaffoldTemplate = false,
     sequenceIndex = null,
     onEditMapping,
+    onOpenScaffoldDialog,
 }) {
     // Designed sequence is empty: keep a stable, non-collapsing placeholder.
     if (hasScaffoldTemplate && typeof maxResidueCount === 'number' && maxResidueCount <= 0) {
@@ -143,7 +144,20 @@ export default function TemplateSequence({
 
     if (!hasScaffoldTemplate) {
         return (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <Typography
+                variant="body2"
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenScaffoldDialog?.()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpenScaffoldDialog?.(); }}
+                sx={{
+                    color: 'text.secondary',
+                    cursor: onOpenScaffoldDialog ? 'pointer' : 'default',
+                    '&:hover': onOpenScaffoldDialog ? { color: 'primary.main', textDecoration: 'underline' } : {},
+                    transition: 'color 0.15s',
+                    userSelect: 'none',
+                }}
+            >
                 Upload a scaffold to enable mappings.
             </Typography>
         );

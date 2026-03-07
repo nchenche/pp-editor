@@ -934,6 +934,16 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         return () => window.removeEventListener('pp-focus-residue', handler);
     }, []);
 
+    // Focus/zoom a whole chain in 3D from the chain track UI
+    useEffect(() => {
+        const handler = (e) => {
+            const detail = e?.detail;
+            viewer3DRef.current?.focusChain?.(detail);
+        };
+        window.addEventListener('pp-focus-chain', handler);
+        return () => window.removeEventListener('pp-focus-chain', handler);
+    }, []);
+
     // Close on Escape when overlay is open
     useEffect(() => {
         if (!replaceSelect.open) return;

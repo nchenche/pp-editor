@@ -171,6 +171,7 @@ export const ChainSlots = ({
                                 hasScaffoldTemplate={!!scaffoldTemplate}
                                 sequenceIndex={seqIdx}
                                 onEditMapping={onEditScaffoldMapping}
+                                onOpenScaffoldDialog={onOpenScaffoldDialog}
                             />
                         </Box>
                     );
@@ -286,6 +287,7 @@ export const ChainSlots = ({
                                 // Template row menu should be disabled until a scaffold is uploaded.
                                 disableTemplateActions={!scaffoldTemplate}
                                 sequenceIsCircular={sequenceIsCircular}
+                                chainIdLabel={seqLabel(seqIdx)}
                                 onSequenceCircularize={() => onCircularizeSequence?.(seqIdx)}
                                 onSequenceUncircularize={() => onUncircularizeSequence?.(seqIdx)}
                                 onSequenceMirror={() => onMirrorSequence?.(seqIdx)}

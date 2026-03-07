@@ -183,6 +183,32 @@ const Viewer3DInner = ({
         orientAxes: () => pluginRef.current?.managers.camera.orientAxes(undefined, 0),
         resetAxes: () => pluginRef.current?.managers.camera.resetAxes(),
         resize: () => pluginRef.current?.canvas3d?.requestResize?.(),
+        focusChain: ({ target = 'main', chainId } = {}) => {
+            const plugin = pluginRef.current;
+            if (!plugin) return;
+
+            const chain = String(chainId ?? '').trim();
+            if (!chain) return;
+
+            const data = (target === 'template'
+                ? templateStructure?.cell?.obj?.data
+                : structure?.cell?.obj?.data);
+            if (!data) return;
+
+            try {
+                const sel = Script.getStructureSelection((Q) => Q.struct.generator.atomGroups({
+                    'chain-test': Q.core.rel.eq([
+                        Q.struct.atomProperty.macromolecular.label_asym_id(),
+                        chain,
+                    ]),
+                }), data);
+
+                const loci = StructureSelection.toLociWithSourceUnits(sel);
+                plugin.managers.camera.focusLoci(loci, { extraRadius: 1 });
+            } catch {
+                // ignore
+            }
+        },
         focusResidue: ({ target = 'main', chainId, seqId, debug } = {}) => {
             const plugin = pluginRef.current;
             if (!plugin) return;
