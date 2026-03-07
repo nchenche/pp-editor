@@ -703,6 +703,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
     // One-time nudge: when a template is newly loaded, open the Template panel
     // so the user immediately sees where to remove/manage it.
+    // Also collapse the 2D viewer so the 3D viewer with the template config
+    // panel becomes fully visible.
     useEffect(() => {
         const prev = prevScaffoldTemplateIdRef.current;
         prevScaffoldTemplateIdRef.current = scaffoldTemplateId;
@@ -710,8 +712,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!prev && scaffoldTemplateId) {
             setActive3DPanel('template');
             setConstraintMode('template');
+            // Collapse the 2D viewer so the 3D viewer (with the template panel) is fully apparent.
+            setCollapsedViewer('2d');
         }
-    }, [scaffoldTemplateId]);
+    }, [scaffoldTemplateId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Note: template guidance is a valid mode even without a scaffold.
     // When scaffold is removed, keep the current constraintMode and let the UI
@@ -2180,7 +2184,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     )}
 
                     {/* ── 3D viewer column ── */}
-                    {collapsedViewer === '3d' ? (
+                    {collapsedViewer === '3d' && (
                         /* Collapsed 3D strip */
                         <Paper
                             variant="outlined"
@@ -2231,17 +2235,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                 3D Viewer
                             </Box>
                         </Paper>
-                    ) : (
+                    )}
+                    {/* Always mount the 3D viewer to preserve Mol* plugin & representation state */}
                     <Box
                         sx={{
                             flex: 1,
                             ...(collapsedViewer === '2d'
                                 ? { minWidth: 0, maxWidth: '100%' }
-                                : { minWidth: 200 }),
-                            pl: 0.5,
+                                : collapsedViewer === '3d'
+                                    ? { position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }
+                                    : { minWidth: 200 }),
+                            pl: collapsedViewer === '3d' ? 0 : 0.5,
                             display: 'flex',
                             flexDirection: 'column',
-                            position: 'relative',
+                            position: collapsedViewer === '3d' ? 'absolute' : 'relative',
                         }}
                     >
                         {/* Dim overlay for 3D viewer during link/cut */}
@@ -3138,7 +3145,6 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                             </Box>
                         </Paper>
                     </Box>
-                    )}
 
                 </Box>
             </Box>
