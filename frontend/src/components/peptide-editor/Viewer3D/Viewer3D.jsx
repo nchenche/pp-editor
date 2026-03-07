@@ -409,6 +409,117 @@ const Viewer3DInner = ({
             .join('|');
     }, [templateMappings, templateVisible]);
 
+    // Signature of the active (enabled) template chain IDs, used to trigger the
+    // chain highlight effect without reacting to every mapping field change.
+    const templateActiveChainsSig = useMemo(() => {
+        const arr = Array.isArray(templateMappings) ? templateMappings : [];
+        if (!templateVisible || !arr.length) return '';
+        return arr
+            .filter((m) => m?.enabled)
+            .map((m) => String(m?.chainId ?? m?.chain_id ?? '').trim())
+            .filter(Boolean)
+            .sort()
+            .join(',');
+    }, [templateMappings, templateVisible]);
+
+    // Highlight the full PDB chains that have an enabled mapping.
+    // Uses a warm muted gold that harmonizes with the mapped-residue amber but
+    // is softer/more transparent, giving a subtle "halo" that makes the active
+    // chain(s) distinguishable from inactive ones in multi-chain templates.
+    useEffect(() => {
+        if (!pluginInitialized || !pluginRef.current) return;
+        if (!templateStructure) return;
+
+        const plugin = pluginRef.current;
+        const rootRef = templateStructure?.cell?.transform?.ref;
+        if (!rootRef) return;
+
+        const chainHighlightTag = 'template:active-chain';
+        const chainRepTagCartoon = 'template:active-chain-rep:cartoon';
+
+        const removeTagInTemplate = async (tag) => {
+            const sel = StateSelection.Generators.byRef(rootRef).subtree().withTag(tag);
+            const cells = StateSelection.select(sel, plugin.state.data);
+            if (!cells || cells.length === 0) return;
+            const builder = plugin.state.data.build();
+            for (let i = cells.length - 1; i >= 0; i--) {
+                const ref = cells[i]?.transform?.ref;
+                if (!ref) continue;
+                builder.delete(ref);
+            }
+            await builder.commit();
+        };
+
+        let cancelled = false;
+
+        const run = async () => {
+            const cameraSnapshot = plugin?.canvas3d?.camera?.getSnapshot?.() ?? null;
+
+            try {
+                // Always clean up previous chain highlights.
+                await removeTagInTemplate(chainRepTagCartoon);
+                if (cancelled) return;
+                await removeTagInTemplate(chainHighlightTag);
+                if (cancelled) return;
+
+                if (!templateVisible) return;
+
+                const mappings = Array.isArray(templateMappings) ? templateMappings : [];
+                const activeChainIds = [
+                    ...new Set(
+                        mappings
+                            .filter((m) => m?.enabled)
+                            .map((m) => String(m?.chainId ?? m?.chain_id ?? '').trim())
+                            .filter(Boolean),
+                    ),
+                ];
+                if (!activeChainIds.length) return;
+
+                // Build a chain-test that matches any of the active chains.
+                const chainTests = activeChainIds.map((id) =>
+                    MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_asym_id(), id]),
+                );
+                const chainTest = chainTests.length === 1 ? chainTests[0] : MS.core.logic.or(chainTests);
+
+                const expr = MS.struct.generator.atomGroups({
+                    'chain-test': chainTest,
+                });
+                const q = StructureSelectionQuery('Active Template Chains', expr, { tags: [chainHighlightTag] });
+
+                const comp = await plugin.builders.structure.tryCreateComponentFromSelection(
+                    templateStructure,
+                    q,
+                    'template-active-chain',
+                    { label: 'Active Chains', tags: [chainHighlightTag] },
+                );
+                if (cancelled) return;
+                if (!comp) return;
+
+                const base = Math.min(1, Math.max(0, Number(templateOpacity) || 0));
+                // Slightly above the base template opacity, below mapped-residue highlight.
+                const chainAlpha = Math.min(1, base + 0.15);
+                // Warm muted gold — softer than the mapped-residue amber (0xffb300).
+                const chainColorParams = { value: 0xc49a3c };
+
+                await plugin.builders.structure.representation.addRepresentation(
+                    comp,
+                    { type: 'cartoon', color: 'uniform', colorParams: chainColorParams, typeParams: { alpha: chainAlpha } },
+                    { tag: chainRepTagCartoon },
+                );
+            } finally {
+                if (cameraSnapshot && !cancelled) {
+                    try { plugin.managers.camera.setSnapshot(cameraSnapshot, 0); } catch { /* ignore */ }
+                }
+            }
+        };
+
+        run().catch((e) => {
+            if (!cancelled) console.warn('Mol* template active chain highlight failed:', e);
+        });
+
+        return () => { cancelled = true; };
+    }, [pluginInitialized, pluginRef, templateStructure, templateVisible, templateMappings, templateActiveChainsSig, templateOpacity]);
+
 
     // Add a slightly stronger representation for the mapped residues on the template.
     useEffect(() => {
@@ -436,11 +547,18 @@ const Viewer3DInner = ({
             await builder.commit();
         };
 
+        let cancelled = false;
+
         const run = async () => {
+            const _camSnap = plugin?.canvas3d?.camera?.getSnapshot?.() ?? null;
+            try {
             // Always remove previous mapped component/reps before re-applying.
             await removeTagInTemplate(mappedRepTagCartoon);
+            if (cancelled) return;
             await removeTagInTemplate(mappedRepTagLine);
+            if (cancelled) return;
             await removeTagInTemplate(mappedTag);
+            if (cancelled) return;
 
             // When the overlay is hidden, ensure no mapped-only reps remain.
             if (!templateVisible) return;
@@ -536,6 +654,7 @@ const Viewer3DInner = ({
                 'template-mapped',
                 { label: 'Mapped', tags: [mappedTag] },
             );
+            if (cancelled) return;
 
             if (!comp) return;
 
@@ -550,17 +669,25 @@ const Viewer3DInner = ({
                 { type: 'cartoon', color: 'uniform', colorParams: mappedColorParams, typeParams: { alpha: mappedAlpha } },
                 { tag: mappedRepTagCartoon },
             );
+            if (cancelled) return;
 
             await plugin.builders.structure.representation.addRepresentation(
                 comp,
                 { type: 'line', color: 'uniform', colorParams: mappedColorParams, typeParams: { alpha: Math.min(1, mappedAlpha * 0.85) } },
                 { tag: mappedRepTagLine },
             );
+            } finally {
+                if (_camSnap && !cancelled) {
+                    try { plugin.managers.camera.setSnapshot(_camSnap, 0); } catch { /* ignore */ }
+                }
+            }
         };
 
         run().catch((e) => {
-            console.warn('Mol* template mapped representation failed:', e);
+            if (!cancelled) console.warn('Mol* template mapped representation failed:', e);
         });
+
+        return () => { cancelled = true; };
     }, [pluginInitialized, pluginRef, templateStructure, templateVisible, templateMappings, templateMappedSig, templateOpacity]);
 
 
