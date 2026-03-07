@@ -119,7 +119,15 @@ const NAV_TREE = [
                 id: "applying-constraints", label: "Applying structural constraints",
                 children: [
                     { id: "constraints-2d-howto", label: "Secondary structure constraints" },
-                    { id: "constraints-3d-howto", label: "3D template constraints" },
+                    {
+                        id: "constraints-3d-howto", label: "3D template constraints",
+                        children: [
+                            { id: "loading-template", label: "Loading a template" },
+                            { id: "configuring-mapping", label: "Configuring the mapping" },
+                            { id: "masking-residues", label: "Masking residues" },
+                            { id: "template-multi-chain", label: "Multi-chain peptides" },
+                        ],
+                    },
                 ],
             },
             { id: "complex-topologies", label: "Complex topologies" },
@@ -1653,10 +1661,8 @@ const Documentation = () => {
                     <P>
                         Users can select which chain and residue range to map from the template, apply an offset for
                         leading unconstrained positions, and mask individual residues to exclude them from the constraint
-                        set.
-                    </P>
-                    <P>
-                        Please note that only a single chain can be used as a template to guide the embedding; yet multi-chain peptides are supported as long as only one chain is designated as the template source.
+                        set. Multi-chain peptides are fully supported — each designed chain can be mapped independently
+                        to a different template chain or residue range.
                     </P>
 
                     <P>
@@ -2084,43 +2090,209 @@ const Documentation = () => {
                         targets.
                     </P>
 
-                    {/* [MEDIA SUGGESTION: GIF ~6s — select SS mode → set residues → ⋮ All helix → Generate 3D. Crop: Chains + 3D viewer.] */}
 
                     <SubTitle id="constraints-3d-howto">3D template constraints</SubTitle>
 
-                    <Figure
-                        src="/assets/documentation/3DTemplateProcess.png"
-                        alt="3D template constraint workflow."
-                        caption="The template-guided workflow: upload or fetch a PDB structure, select chain and residue range, then generate the constrained conformer."
-                        openLightbox={openLightbox}
-                        maxWidth="xs"
-                    />
+                    <P>
+                        Template-guided constraints use backbone atom positions from an experimental or modeled PDB
+                        structure as spatial references during conformer embedding. The designed peptide's backbone
+                        atoms are mapped one-to-one onto the corresponding template atoms, so that constrained
+                        positions adopt the template fold while unmatched or masked positions are resolved{" "}
+                        <i>de novo</i>.
+                    </P>
+                    <P>
+                        This workflow involves three steps: loading a template structure, configuring how the designed
+                        peptide maps onto the template, and generating the conformer. Each step is described below.
+                    </P>
 
-                    <P><strong>Step-by-step workflow</strong></P>
-                    <Ol>
-                        <Li>Click <strong>Structural constraints…</strong> → select <strong>3D template</strong>. A template mapping row appears in the chain track.</Li>
-                        <Li>Click <strong>Upload Scaffold</strong> (or use the Template icon in the 3D viewer toolbar). Two options are available: enter a <strong>PDB identifier</strong> (fetched from the RCSB PDB) or upload a <strong>local PDB/mmCIF file</strong>.</Li>
-                        <Li>Select the <strong>chain</strong> to use from the template structure.</Li>
-                        <Li>Set the <strong>start</strong> and <strong>end residues</strong> to define which portion of the template chain serves as scaffold.</Li>
-                        <Li>Optionally set an <strong>offset</strong> — the number of leading peptide positions that remain unconstrained (useful when the peptide's N-terminus extends beyond the template).</Li>
-                        <Li>Fine-tune by <strong>masking</strong> individual residues. Masked residues are excluded from the constraint set and resolved <i>de novo</i> during embedding.</Li>
-                        <Li>Click <strong>▶ Generate 3D</strong> to launch the constrained conformer generation job.</Li>
-                    </Ol>
+                    {/* ── Loading a template ── */}
+                    <Sub2Title id="loading-template">Loading a template</Sub2Title>
 
                     <P>
-                        <strong>Multi-chain templates</strong><br />
-                        For multi-chain peptides, different PDB chains can be selected for each peptide chain. Repeat the
-                        template assignment for each chain as needed.
+                        To load a template, switch to <strong>3D template</strong> mode by clicking{" "}
+                        <strong>Structural constraints…</strong> in the Chains section header (or use
+                        the <Ic icon={LayersIcon} /> icon in the 3D viewer toolbar). A template mapping row appears
+                        below each chain in the chain track. If no template is loaded yet, an <strong>Upload</strong>{" "}
+                        button is shown in the template row.
+                    </P>
+                    <P>
+                        There are two ways to load a template structure:
+                    </P>
+                    <Ul>
+                        <Li>
+                            <strong>From a PDB identifier</strong> — in the upload dialog, select the{" "}
+                            <strong>PDB ID</strong> tab and enter a 4-character RCSB PDB code
+                            (e.g. <code>2MI1</code>). PEP-EDIT fetches and parses the structure from the RCSB PDB.
+                        </Li>
+                        <Li>
+                            <strong>From a local file</strong> — select the <strong>File</strong> tab and
+                            upload a PDB or mmCIF file from your computer. Accepted
+                            extensions: <code>.pdb</code>, <code>.ent</code>, <code>.cif</code>, <code>.mmcif</code>.
+                        </Li>
+                    </Ul>
+                    <P>
+                        When a template is loaded, three things happen automatically:
+                    </P>
+                    <Ol>
+                        <Li>The <strong>constraint mode</strong> switches to <em>3D template</em> (if not already active).</Li>
+                        <Li>The <strong>Template panel</strong> opens in the right side of the 3D viewer, showing the mapping configuration controls.</Li>
+                        <Li>The <strong>2D viewer collapses</strong> to give full visibility to the 3D viewer and template panel.</Li>
+                    </Ol>
+                    <P>
+                        The template is parsed server-side, which standardizes atom names and determines available
+                        chains and residues. If the PDB file contains warnings (e.g. non-standard residues, missing
+                        atoms), a brief toast notification appears. PEP-EDIT also persists the template across page
+                        navigation: if you leave and return, the template metadata is restored automatically.
+                    </P>
+
+                    {/* ── Configuring the mapping ── */}
+                    <Sub2Title id="configuring-mapping">Configuring the mapping</Sub2Title>
+
+                    {/*
+                        [MEDIA SUGGESTION: GIF ~10–12s — full workflow: Structural constraints → 3D template → Upload →
+                        enter PDB ID → template loads → adjust chain/start/end in the panel → click Generate 3D →
+                        conformer appears with template overlay visible. Crop: Editor interface + 3D viewer (full width).]
+                    */}
+
+                    <P>
+                        Once a template is loaded, the <strong>Template panel</strong> (opened via
+                        the <Ic icon={LayersIcon} /> icon in the 3D toolbar, or automatically on first load)
+                        provides the following controls:
+                    </P>
+
+                    <Sub3Title>Global controls (top of the panel)</Sub3Title>
+                    <Ul>
+                        <Li><strong>Template name</strong> — displays the name of the loaded template (filename or PDB code).</Li>
+                        <Li><strong>Remove template</strong> (trash icon) — deletes the template from the server and clears all mappings.</Li>
+                        <Li><strong>Template overlay</strong> toggle — shows or hides the template structure in the 3D viewer as a semi-transparent overlay (see below).</Li>
+                        <Li><strong>Opacity slider</strong> (5 %–60 %) — adjusts the overlay opacity.</Li>
+                        <Li><strong>Lock camera</strong> toggle — prevents the camera from resetting when structures are reloaded.</Li>
+                    </Ul>
+
+                    <Sub3Title>Per-chain mapping (one block per designed chain)</Sub3Title>
+                    <P>
+                        Each designed chain (Chain A, Chain B, etc.) has its own mapping configuration:
+                    </P>
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700, width: '28%' }}>Control</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell><strong>Enable toggle</strong></TableCell><TableCell>Turns template constraints on or off for this chain. Disabled chains are embedded <i>de novo</i>.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>PDB chain</strong></TableCell><TableCell>Dropdown to select which chain from the template PDB to map onto this designed chain.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Start residue</strong></TableCell><TableCell>First residue number (PDB numbering) in the template chain to use as the mapping source.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>End residue</strong></TableCell><TableCell>Last residue number. Together with Start, this defines the template window.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Offset</strong></TableCell><TableCell>Number of leading designed-peptide positions to skip before mapping begins. Useful when the N-terminus has extra residues or a cap not present in the template.</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <P>
+                        These controls are also reflected in the <strong>template mapping row</strong> in the chain
+                        track, where each designed monomer is aligned with the corresponding template residue. The
+                        template row shows three-letter amino-acid codes (e.g. ALA, THR) with PDB residue numbers
+                        below each cell.
+                    </P>
+
+                    <P>
+                        <strong>Automatic initialization</strong> — when a template is first loaded, PEP-EDIT
+                        auto-configures all designed chains by sequentially assigning template residues from the
+                        first template chain (Chain A gets the first N<sub>1</sub> residues, Chain B gets the
+                        next N<sub>2</sub>, and so on). Caps are excluded from the amino-acid count, and an
+                        N-terminal cap automatically sets the offset to 1.
+                    </P>
+                    <P>
+                        <strong>Repacking</strong> — when you edit the mapping for one designed chain, PEP-EDIT
+                        repacks all mappings on the same template chain to prevent overlaps. Chains are kept in
+                        design order and each starts after the previous one ends.
+                    </P>
+
+                    <Sub3Title>Template overlay</Sub3Title>
+                    <P>
+                        When the template overlay is enabled (toggle in the Template panel), the template PDB is
+                        displayed in the 3D viewer alongside the designed peptide's conformer. The overlay uses
+                        a semi-transparent cartoon + line representation in neutral gray, while active
+                        (mapped) chain segments are highlighted in gold and the specific mapped residue ranges
+                        appear in amber at increased opacity. Masked residues are excluded from the amber highlight.
+                    </P>
+                    <P>
+                        The overlay is an important visual aid for configuring the mapping: it lets you verify
+                        which part of the template structure is being used, and helps you choose the right chain,
+                        start/end residues, and offset. Hovering a residue in the 3D template overlay highlights
+                        the corresponding cell in the template mapping row of the chain track.
                     </P>
 
                     <Alert severity="warning" sx={{ mb: 2 }}>
                         Using a 3D template automatically disables <strong>Auto sync</strong>. You must click{" "}
-                        <strong>▶ Generate 3D</strong> manually to trigger conformer generation. This prevents accidental
-                        regeneration while you are still configuring the template mapping.
+                        <strong>▶ Generate 3D</strong> manually to trigger conformer generation. This prevents
+                        accidental regeneration while you are still configuring the template mapping.
                     </Alert>
 
-                    {/* [MEDIA SUGGESTION: Screenshot of template upload dialog showing chain selector, start/end, offset fields.] */}
-                    {/* [MEDIA SUGGESTION: GIF ~8s — Structural constraints → 3D template → Upload Scaffold → enter PDB ID → select chain → Generate 3D → conformer with overlay. Crop: Chains + 3D viewer.] */}
+                    {/* ── Masking residues ── */}
+                    <Sub2Title id="masking-residues">Masking residues</Sub2Title>
+
+                    <P>
+                        Masking allows you to exclude individual template residues from the constraint set. Masked
+                        residues are resolved <i>de novo</i> during embedding — their backbone atoms receive no
+                        spatial reference from the template.
+                    </P>
+
+                    <Sub3Title>When to mask</Sub3Title>
+                    <Ul>
+                        <Li>The template residue at a given position is chemically incompatible with the designed monomer (e.g. Proline in the template vs. Glycine in the design).</Li>
+                        <Li>Embedding fails because a specific position creates geometric conflicts — masking relaxes the constraint.</Li>
+                        <Li>You want part of the peptide to deviate from the template fold while keeping the rest constrained.</Li>
+                    </Ul>
+
+                    <Sub3Title>How to mask</Sub3Title>
+                    <Ul>
+                        <Li><strong>Individual masking</strong> — hover over any template residue cell in the chain track. A small eye icon appears above the cell — click it to toggle the mask. Masked residues are shown with a warning-colored (amber) border and a <code>−</code> placeholder.</Li>
+                        <Li><strong>Bulk masking</strong> — click the ⋮ menu on the template row and select <strong>Mask all</strong> or <strong>Unmask all</strong> to toggle all residues at once.</Li>
+                    </Ul>
+                    <P>
+                        Masks are automatically cleared when you change the chain, start, or end fields (since the
+                        residue window changes). In the 3D viewer, the template overlay reflects the masking state:
+                        only unmasked residues receive the amber highlight.
+                    </P>
+
+                    <Sub3Title>Troubleshooting failed embedding</Sub3Title>
+                    <P>
+                        Template-guided embedding can occasionally fail, especially when the designed peptide differs
+                        significantly from the template. PEP-EDIT's iterative embedding strategy already tries
+                        progressively relaxed subsets of the constraint set (100 % → 90 % → 80 % → 50 %,
+                        see <MUILink href="#embedding">Iterative embedding strategy</MUILink>). If all attempts fail,
+                        try the following:
+                    </P>
+                    <Ol>
+                        <Li><strong>Mask problematic residues</strong> — the most common fix. Start by masking residues near the ends of the mapped range or near non-natural amino acids.</Li>
+                        <Li><strong>Reduce the constraint window</strong> — shorten the mapped range by adjusting Start/End to exclude terminal residues.</Li>
+                        <Li><strong>Increase the offset</strong> — if the N-terminal portion doesn't correspond well to the template, increase the offset so those positions are unconstrained.</Li>
+                        <Li><strong>Disable constraints for specific chains</strong> — in multi-chain designs, disable template constraints for chains that are causing failures while keeping them for the chain(s) that need the template fold.</Li>
+                        <Li><strong>Check the template quality</strong> — poor-resolution PDB structures or heavily modeled regions can provide unreliable backbone coordinates. Consider a higher-quality template or a different chain.</Li>
+                    </Ol>
+
+                    {/* ── Multi-chain peptides ── */}
+                    <Sub2Title id="template-multi-chain">Multi-chain peptides</Sub2Title>
+
+                    <P>
+                        When the designed peptide has two or more chains, each chain gets its own independent mapping
+                        entry. This enables several workflows:
+                    </P>
+                    <Ul>
+                        <Li><strong>All chains from the same template chain</strong> — useful when the designed peptide is a segmented version of a single reference peptide. PEP-EDIT auto-allocates consecutive residue ranges and repacks automatically to prevent overlaps.</Li>
+                        <Li><strong>Different template chains</strong> — each designed chain can map to a different chain from the template PDB. For example, if the template is a dimeric structure, Chain A of the design can map to template chain A, and Chain B to template chain B.</Li>
+                        <Li><strong>Selective constraining</strong> — not all chains need to be enabled. You can constrain Chain A with a template and leave Chain B unconstrained (embedded <i>de novo</i>).</Li>
+                    </Ul>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        If two designed chains are mapped to overlapping residue ranges on the same template chain,
+                        PEP-EDIT blocks the generation and displays a warning. You must resolve the overlap (adjust
+                        start/end or switch one chain to a different template chain) before proceeding.
+                    </Alert>
 
                     <P>
                         <strong>Choosing between constraint types</strong><br />
