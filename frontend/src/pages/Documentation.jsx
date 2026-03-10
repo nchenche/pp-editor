@@ -570,7 +570,7 @@ const Documentation = () => {
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
                         <Chip component="a" href="#quick-start" label="Quick start →" clickable size="small" color="primary" variant="outlined" />
                         <Chip component="a" href="#building-peptide" label="Build a peptide →" clickable size="small" color="primary" variant="outlined" />
-                        <Chip component="a" href="#conformer-generation" label="Apply constraints →" clickable size="small" color="primary" variant="outlined" />
+                        <Chip component="a" href="#applying-constraints" label="Apply constraints →" clickable size="small" color="primary" variant="outlined" />
                     </Box>
 
                     <Divider sx={{ mb: 4 }} />
@@ -2154,6 +2154,14 @@ const Documentation = () => {
                         conformer appears with template overlay visible. Crop: Editor interface + 3D viewer (full width).]
                     */}
 
+
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_constraints-3d.gif"
+                        alt="Applying 3D template constraints on a single-chain peptide."
+                        caption="Loading PDB structure 1CRN (crambin) as a 3D template and mapping chain A residues 9–18 onto the designed peptide. Clicking Generate 3D produces a conformer constrained to the template fold over the mapped region."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
                     <P>
                         Once a template is loaded, the <strong>Template panel</strong> (opened via
                         the <Ic icon={LayersIcon} /> icon in the 3D toolbar, or automatically on first load)
