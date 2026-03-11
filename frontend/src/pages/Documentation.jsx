@@ -132,7 +132,7 @@ const NAV_TREE = [
             },
             { id: "complex-topologies", label: "Complex topologies" },
             { id: "adding-monomers", label: "Adding monomers to the library" },
-            { id: "exporting", label: "Exporting results" },
+            // { id: "exporting", label: "Exporting results" },
         ],
     },
     {
@@ -2110,11 +2110,19 @@ const Documentation = () => {
 
                     <P>
                         To load a template, switch to <strong>3D template</strong> mode by clicking{" "}
-                        <strong>Structural constraints…</strong> in the Chains section header (or use
-                        the <Ic icon={LayersIcon} /> icon in the 3D viewer toolbar). A template mapping row appears
+                        <strong>Structural constraints…</strong> in the Chains section header. A template mapping row appears
                         below each chain in the chain track. If no template is loaded yet, an <strong>Upload</strong>{" "}
                         button is shown in the template row.
                     </P>
+
+                    <Figure 
+                        src="/assets/documentation/pepedit_constraints_menu.png"
+                        alt="Structural constraints dropdown menu showing None, Secondary structure, and 3D template options."
+                        caption="Select Structural constraints → 3D template to load a PDB structure as a constraint scaffold."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
                     <P>
                         There are two ways to load a template structure:
                     </P>
@@ -2130,6 +2138,15 @@ const Documentation = () => {
                             extensions: <code>.pdb</code>, <code>.ent</code>, <code>.cif</code>, <code>.mmcif</code>.
                         </Li>
                     </Ul>
+
+                    <Figure
+                        src="/assets/documentation/pepedit_select-scaffold-source.png"
+                        alt="Upload dialog showing PDB ID and File tabs for selecting a template source."
+                        caption="Select a template source: PDB ID or local file."
+                        openLightbox={openLightbox}
+                        maxWidth="sm"
+                    />
+
                     <P>
                         When a template is loaded, three things happen automatically:
                     </P>
@@ -2147,12 +2164,6 @@ const Documentation = () => {
 
                     {/* ── Configuring the mapping ── */}
                     <Sub2Title id="configuring-mapping">Configuring the mapping</Sub2Title>
-
-                    {/*
-                        [MEDIA SUGGESTION: GIF ~10–12s — full workflow: Structural constraints → 3D template → Upload →
-                        enter PDB ID → template loads → adjust chain/start/end in the panel → click Generate 3D →
-                        conformer appears with template overlay visible. Crop: Editor interface + 3D viewer (full width).]
-                    */}
 
 
                     <Figure
@@ -2174,7 +2185,7 @@ const Documentation = () => {
                         <Li><strong>Remove template</strong> (trash icon) — deletes the template from the server and clears all mappings.</Li>
                         <Li><strong>Template overlay</strong> toggle — shows or hides the template structure in the 3D viewer as a semi-transparent overlay (see below).</Li>
                         <Li><strong>Opacity slider</strong> (5 %–60 %) — adjusts the overlay opacity.</Li>
-                        <Li><strong>Lock camera</strong> toggle — prevents the camera from resetting when structures are reloaded.</Li>
+                        <Li><strong>Lock camera</strong> toggle — prevents the camera from resetting when conformers are generated.</Li>
                     </Ul>
 
                     <Sub3Title>Per-chain mapping (one block per designed chain)</Sub3Title>
@@ -2234,6 +2245,14 @@ const Documentation = () => {
                         the corresponding cell in the template mapping row of the chain track.
                     </P>
 
+                    <Figure
+                        src="/assets/documentation/pepedit_constraints-3d_overlay-1crn.png"
+                        alt="3D viewer showing the template overlay for PDB structure 1CRN (crambin). The mapped region is highlighted in amber, while the rest of the template is shown in semi-transparent gray."
+                        caption="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9–18). The mapped region is highlighted in amber, while the generated conformer (lines, colored by element) adopts a backbone conformation matching the constrained residues."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
                     <Alert severity="warning" sx={{ mb: 2 }}>
                         Using a 3D template automatically disables <strong>Auto sync</strong>. You must click{" "}
                         <strong>▶ Generate 3D</strong> manually to trigger conformer generation. This prevents
@@ -2261,6 +2280,15 @@ const Documentation = () => {
                         <Li><strong>Individual masking</strong> — hover over any template residue cell in the chain track. A small eye icon appears above the cell — click it to toggle the mask. Masked residues are shown with a warning-colored (amber) border and a <code>−</code> placeholder.</Li>
                         <Li><strong>Bulk masking</strong> — click the ⋮ menu on the template row and select <strong>Mask all</strong> or <strong>Unmask all</strong> to toggle all residues at once.</Li>
                     </Ul>
+
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_constraints-3d_masking-residues.gif"
+                        alt="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9–18) with masked residues. Masked residues are highlighted in amber, while the rest of the template is shown in semi-transparent gray."
+                        caption="Masking terminal residues to resolve a failed embedding. A cyclic peptide mapped onto a linear template backbone (1CRN, chain A) initially fails due to topological incompatibility at the termini. After masking both terminal residues, conformer generation succeeds and the backbone aligns with the unmasked template positions."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
                     <P>
                         Masks are automatically cleared when you change the chain, start, or end fields (since the
                         residue window changes). In the 3D viewer, the template overlay reflects the masking state:
