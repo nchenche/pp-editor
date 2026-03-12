@@ -2115,7 +2115,7 @@ const Documentation = () => {
                         button is shown in the template row.
                     </P>
 
-                    <Figure 
+                    <Figure
                         src="/assets/documentation/pepedit_constraints_menu.png"
                         alt="Structural constraints dropdown menu showing None, Secondary structure, and 3D template options."
                         caption="Select Structural constraints → 3D template to load a PDB structure as a constraint scaffold."
@@ -2531,34 +2531,56 @@ const Documentation = () => {
                     {/* Microcin J25 */}
                     <SectionTitle id="example-microcin">Microcin J25 (lasso peptide)</SectionTitle>
 
-                    <Figure
-                        src="/assets/documentation/mccJ25templateUsage.png"
-                        alt="Microcin J25 template usage"
-                        caption="Using a PDB template (PDB ID: 1Q71) to preserve the lasso topology of Microcin J25. Left: without constraints. Right: with template constraints."
-                        openLightbox={openLightbox}
-                    />
-
                     <P>
                         Microcin J25 (MccJ25) is a lasso peptide produced by <em>Escherichia coli</em>, with the sequence:
                     </P>
                     <CodeBlock>GGAGHVPEYFVGIGTPISFYG</CodeBlock>
-
                     <P>
                         MccJ25 adopts a characteristic lasso topology, in which the C-terminal tail is threaded through a
-                        macrolactam ring. This ring is formed by a bond between Glu8's side chain and the backbone amine of
-                        the N-terminal Gly.
+                        macrolactam ring. This ring is formed by a side-chain-to-backbone bond between the Glu-8 side chain
+                        and the backbone amine of the N-terminal Gly.
                     </P>
                     <P>
-                        Here, we generate the 3D structure of a variant where Phe19 is substituted with 3-chloro-L-phenylalanine
-                        (<code>Phe_3Cl</code>). From the primary sequence, it is straightforward to generate the corresponding BILN
-                        using <strong>Upload sequence</strong>, substitute residue 19, and define the side-chain-to-backbone cyclization.
-                        However, a generic 3D builder cannot spontaneously recover the lasso topology.
-                    </P>
-                    <P>
-                        This limitation is resolved by using the <strong>3D template</strong> facility. Providing the experimental
-                        structure (PDB ID: <code>1Q71</code>) as a template enforces the correct backbone topology.
+                        Here, we generate the 3D structure of a variant where Phe-19 is substituted with 3-chloro-L-phenylalanine
+                        (<code>Phe_3Cl</code>). The first step is to build the BILN representation: the sequence is imported
+                        via <strong>Upload sequence</strong>, the macrolactam bond is defined, and residue 19 is substituted
+                        using the monomer library.
                     </P>
 
+                    {/*
+    [MEDIA SUGGESTION: GIF ~10–15s — importing the FASTA sequence via Upload sequence →
+    defining the Glu-8-to-N-terminus side-chain-to-backbone cyclization bond in the 2D viewer →
+    opening the monomer library and substituting Phe-19 with Phe_3Cl.
+    Crop: Manual edition + 2D viewer, full width.]
+*/}
+                    <Figure
+                        src="/assets/documentation/gifs/mccJ25_biln-setup.gif"
+                        alt="Building the MccJ25 BILN representation"
+                        caption="Importing the MccJ25 sequence, defining the side-chain-to-backbone macrolactam bond between Glu-8 and the N-terminal Gly, and substituting Phe-19 with 3-chloro-L-phenylalanine (Phe_3Cl) via the monomer library."
+                        openLightbox={openLightbox}
+                    />
+
+                    <P>
+                        The RDKit-based conformer generation process described above is unlikely to recover the lasso
+                        topology spontaneously from the primary sequence alone. To enforce the correct threaded
+                        backbone arrangement, we therefore uses the <strong>3D template</strong> facility of PEP-EDIT.
+                        Providing the experimental structure (PDB ID: <code>1Q71</code>) as a template supplies the
+                        required topological reference. Because the designed sequence matches the template length, the
+                        mapping is pre-filled automatically and no further configuration is required.
+                    </P>
+
+                    {/*
+    [MEDIA SUGGESTION: GIF ~8–10s — clicking Structural constraints → 3D template → entering PDB ID
+    1Q71 → template loads with mapping pre-filled → clicking Generate 3D → conformer appears with
+    lasso topology visible in the 3D viewer, template overlay shown.
+    Crop: Chains section + 3D viewer + Template panel, full width.]
+*/}
+                    <Figure
+                        src="/assets/documentation/gifs/mccJ25_template-conformer.gif"
+                        alt="3D template-guided conformer generation for MccJ25"
+                        caption="Loading PDB structure 1Q71 as a 3D template for MccJ25. The mapping is pre-filled automatically. Clicking Generate 3D produces a conformer that recovers the lasso topology, with the backbone aligned to the template."
+                        openLightbox={openLightbox}
+                    />
                     <Divider sx={{ my: 3 }} />
 
                     {/* Semaglutide */}
