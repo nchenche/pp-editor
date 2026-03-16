@@ -2595,7 +2595,7 @@ const Documentation = () => {
                     <P>
                         The lipid moiety (<code>SemaB</code>) can be linked to Lys20's side chain:
                     </P>
-                    <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,2)</CodeBlock>
+                    <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,3)</CodeBlock>
 
                     <Figure
                         src="/assets/documentation/Semaglutide.png"
