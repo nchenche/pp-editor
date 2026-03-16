@@ -1,0 +1,6 @@
+# PEP-EDIT — allow all search-engine crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://pep-edit.rpbs.univ-paris-diderot.fr/sitemap.xml

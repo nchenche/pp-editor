@@ -1,5 +1,10 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import vitePrerender from 'vite-plugin-prerender'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -8,7 +13,27 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/',
-    plugins: [react()],
+    plugins: [
+      react(),
+      // Pre-render key routes at build time so search-engine crawlers
+      // receive real HTML content instead of an empty <div id="root">.
+      vitePrerender({
+        staticDir: path.join(__dirname, 'dist'),
+        routes: ['/', '/documentation'],
+        renderer: new vitePrerender.PuppeteerRenderer({
+          // Wait until the React app has rendered meaningful content.
+          renderAfterDocumentEvent: 'prerender-ready',
+          // Fallback timeout in case the event is never fired.
+          renderAfterTime: 5000,
+          headless: true,
+        }),
+        postProcess(renderedRoute) {
+          // Preserve original route to avoid redirect artefacts.
+          renderedRoute.route = renderedRoute.originalRoute;
+          return renderedRoute;
+        },
+      }),
+    ],
     build: {
       rollupOptions: {
         output: {

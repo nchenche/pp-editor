@@ -17,14 +17,16 @@
     <meta property="og:title" content="PEP-EDIT - Interactive Peptide Editor & Conformer Generator" />
     <meta property="og:description" content="Build, edit and export peptide representations in 1D/2D/3D. Supports non-standard monomers, cyclic &amp; branched architectures, and conformer generation." />
     <meta property="og:url" content="https://pep-edit.rpbs.univ-paris-diderot.fr/" />
-    <meta property="og:image" content="/pepedit_logo_28x32.png" />
+    <meta property="og:image" content="https://pep-edit.rpbs.univ-paris-diderot.fr/pepedit_logo.png" />
+    <meta property="og:image:width" content="200" />
+    <meta property="og:image:height" content="200" />
     <meta property="og:site_name" content="PEP-EDIT" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="PEP-EDIT - Interactive Peptide Editor & Conformer Generator" />
     <meta name="twitter:description" content="Free web app for building, editing and exporting peptide representations in 1D/2D/3D with conformer generation." />
-    <meta name="twitter:image" content="/pepedit_logo_28x32.png" />
+    <meta name="twitter:image" content="https://pep-edit.rpbs.univ-paris-diderot.fr/pepedit_logo.png" />
 
     <!-- Schema.org structured data -->
     <script type="application/ld+json">
@@ -48,11 +50,53 @@
     }
     </script>
 
+    <!-- Citation metadata (Google Scholar / Europe PMC) -->
+    <meta name="citation_title" content="PEP-EDIT: an interactive web interface for peptide editing, with conformer generation" />
+    <meta name="citation_author" content="Chevrollier, Nicolas" />
+    <meta name="citation_author" content="Dougha, Amine" />
+    <meta name="citation_author" content="Ye, Chunxiao" />
+    <meta name="citation_author" content="Stratmann, Dirk" />
+    <meta name="citation_author" content="Moroy, Gautier" />
+    <meta name="citation_author" content="Rey, Julien" />
+    <meta name="citation_author" content="Murail, Samuel" />
+    <meta name="citation_author" content="Tufféry, Pierre" />
+    <meta name="citation_language" content="en" />
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/pepedit_logo_28x32.png" />
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Crawlable fallback: visible only when JavaScript is disabled.
+         Ensures search engines always see meaningful content. -->
+    <noscript>
+      <div style="max-width:800px;margin:2rem auto;font-family:system-ui,sans-serif;padding:0 1rem">
+        <h1>PEP-EDIT &mdash; Interactive Peptide Editor &amp; Conformer Generator</h1>
+        <p>
+          PEP-EDIT is a free web application for building, editing and exporting peptide
+          representations in 1D (BILN, HELM, SMILES, InChI), 2D (SDF) and 3D (PDB, mmCIF, MOL2, XYZ).
+        </p>
+        <h2>Key features</h2>
+        <ul>
+          <li>Build peptides from a BILN sequence, FASTA upload, or the interactive monomer library.</li>
+          <li>Support for non-standard monomers: D-amino acids, N-methylated residues, peptidomimetics, capping groups and more.</li>
+          <li>Linear, cyclic (head-to-tail, disulfide), branched and multi-chain architectures.</li>
+          <li>Conformational constraints &mdash; secondary-structure presets or 3D template from PDB/mmCIF.</li>
+          <li>Conformer generation with adjustable protonation (pH&nbsp;7.4 default).</li>
+          <li>Export to 12+ formats: BILN, HELM, SMILES, InChI, SDF, PDB, mmCIF, XYZ, MOL2, PDBQT.</li>
+          <li>Personal and public monomer libraries with moderated contribution.</li>
+        </ul>
+        <p>
+          <a href="/documentation">Read the full documentation</a>
+        </p>
+        <p style="font-size:0.85rem;color:#666">
+          Developed by the <strong>RPBS facility &mdash; Universit&eacute; Paris Cit&eacute; / Inserm</strong>.<br/>
+          Chevrollier&nbsp;N, Dougha&nbsp;A, Ye&nbsp;C, Stratmann&nbsp;D, Moroy&nbsp;G, Rey&nbsp;J, Murail&nbsp;S &amp; Tuff&eacute;ry&nbsp;P.
+        </p>
+      </div>
+    </noscript>
+
     <!-- <script src="/leader-line.min.js"></script> -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
