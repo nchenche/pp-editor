@@ -2340,7 +2340,7 @@ const Documentation = () => {
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* ── Complex topologies ── */}
+                    {/* ── Complex topologies ──
                     <SectionTitle id="complex-topologies">Complex topologies</SectionTitle>
 
                     <P>
@@ -2379,7 +2379,7 @@ const Documentation = () => {
                         for all natural amino acids in the chain (e.g. Ala ↔ dAla).
                     </P>
 
-                    <Divider sx={{ my: 4 }} />
+                    <Divider sx={{ my: 4 }} /> */}
 
                     {/* ── Adding monomers ── */}
                     <SectionTitle id="adding-monomers">Adding monomers to the library</SectionTitle>
