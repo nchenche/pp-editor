@@ -63,7 +63,7 @@ import { useSessionId } from '../../../src/hooks/useSessionId';
 
 import { API_BASE_URL } from '../../../src/config';
 
-const initBiln = 'P-E-P-T-C(1,3)-I-D-E.A-G-V-I-C(1,3)';  //  A-C-K-A-C
+const initBiln = '';
 const MAX_MONOMERS = 40;
 const MOLSTAR_BG_STORAGE_KEY = 'pp-editor:molstar-background:v1';
 const MOLSTAR_REP_STORAGE_KEY = 'pp-editor:molstar-representations:v1';

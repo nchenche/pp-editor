@@ -65,6 +65,7 @@ export function SequenceInput({
   return (
     <TextField
       label="Enter BILN sequence"
+      placeholder="e.g. P-E-P-E-D-I-T"
       value={value}
       onChange={(e) => onChangeValue(normalizeBilnInput(e.target.value))}
       variant="outlined"
