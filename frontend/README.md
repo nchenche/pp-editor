@@ -17,3 +17,15 @@ Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## How to switch databases
+Option 1 — Environment variable (recommended for dev/CI):
+
+```
+VITE_DB_NAME=test_db npm run dev
+```
+
+Option 2 — Edit the constant in config.js:12:
+```
+const DB_NAME = import.meta.env.VITE_DB_NAME || 'test_db';
+```

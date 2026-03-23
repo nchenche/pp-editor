@@ -36,7 +36,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, DB_NAME } from '../../config';
 import { useSessionId } from '../../hooks/useSessionId';
 import { useConformerJobsList } from '../../hooks/useConformerJobsList';
 import { getLocalSessionMeta, formatSessionIdShort, SESSION_META_CHANGED_EVENT } from '../../utils/sessionApi';
@@ -206,7 +206,7 @@ function saveShowDescriptions(value) {
     } catch { /* ignore */ }
 }
 
-export function ConformerJobsPanel({ dbName = 'pepedit' }) {
+export function ConformerJobsPanel({ dbName = DB_NAME }) {
     const sessionId = useSessionId();
     const { items, loading, error, refresh, updateItem } = useConformerJobsList(sessionId, { dbName, limit: 50 });
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DB_NAME } from '../config';
 
 import {
   startConformerJob,
@@ -72,7 +73,7 @@ const GLOBAL_STATUS_IN_FLIGHT = new Map();
 function getGlobalStatusKey({ jobId, statusUrl, dbName, baseUrlOverride }) {
   const base = baseUrlOverride ?? '';
   const status = statusUrl ? String(statusUrl) : '';
-  return `${String(dbName || 'pepedit')}::${String(base)}::${String(jobId || '')}::${status}`;
+  return `${String(dbName || DB_NAME)}::${String(base)}::${String(jobId || '')}::${status}`;
 }
 
 async function fetchConformerJobStatusShared({ jobId, sessionId, statusUrl, dbName, baseUrlOverride, minIntervalMs, force } = {}) {
@@ -137,7 +138,7 @@ async function fetchConformerJobStatusShared({ jobId, sessionId, statusUrl, dbNa
  *
  * @param {{dbName?: string, sessionId?: (string|null), ownerId?: (string|null), baseUrlOverride?: (string|undefined)}} params
  */
-export function useConformerJob({ dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+export function useConformerJob({ dbName = DB_NAME, sessionId = null, ownerId = null, baseUrlOverride } = {}) {
   // Prefer sessionId; fall back to ownerId for backwards compatibility
   // Convention: session_id == owner_id
   const effectiveSessionId = sessionId || ownerId || getSessionId();

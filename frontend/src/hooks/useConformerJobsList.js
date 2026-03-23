@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { listConformerJobs, listSessionConformerJobs } from '../utils/conformerJobsApi';
+import { DB_NAME } from '../config';
 import { CONFORMER_JOB_CHANGED_EVENT, CONFORMER_JOB_TERMINAL_EVENT } from '../utils/conformerJobStorage';
 import { getSessionId } from '../utils/sessionApi';
 
@@ -21,7 +22,7 @@ function toErrorMessage(value) {
  * @param {(string|null)} sessionId - The session ID to filter by (preferred over ownerId)
  * @param {{dbName?: string, limit?: number, baseUrlOverride?: string, ownerId?: string}} options
  */
-export function useConformerJobsList(sessionId, { dbName = 'pepedit', limit = 50, baseUrlOverride, ownerId } = {}) {
+export function useConformerJobsList(sessionId, { dbName = DB_NAME, limit = 50, baseUrlOverride, ownerId } = {}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

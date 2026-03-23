@@ -6,7 +6,7 @@ import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useGetData } from '../../hooks/Fetchers'
 import { Toggle } from '../../components/ui/Switch'
 import { RangeSlider } from '../../components/ui/Slider';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, DB_NAME } from '../../config';
 
 import { log, initializeRangeFilter } from '../../utils/dev'
 import './styles.css'
@@ -156,7 +156,7 @@ const ListMonomerLibrary = ({ monomers }) => {
 
 
 export const MonomerLibraryContainer = () => {
-    const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers?include_images=true`);
+    const { data, isLoading, error } = useGetData(`${API_BASE_URL}/api/db/monomers?db_name=${encodeURIComponent(DB_NAME)}&include_images=true`);
     const dataRef = useRef(null);
 
     const limitRangeMolWeight = useMemo(() => ({}), []);

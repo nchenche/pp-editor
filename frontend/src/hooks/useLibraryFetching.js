@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, DB_NAME } from '../config';
 import { apiFetch } from '../utils/api';
 import { useSessionId } from './useSessionId';
 
@@ -75,7 +75,7 @@ export function useLibraryFetching({ search = '', caps = false, natural = false,
 
   // Use unified monomers endpoint; server returns images as JSON-safe base64 when include_images=true.
   // Keep apiFetch() so owner_id/user_id is still injected and public+personal behavior stays unchanged.
-  const baseUrl = `${API_BASE_URL}/api/db/monomers?include_images=true&efields=m_id,sdf,smiles`;
+  const baseUrl = `${API_BASE_URL}/api/db/monomers?db_name=${encodeURIComponent(DB_NAME)}&include_images=true&efields=m_id,sdf,smiles`;
   const requestUrl = useMemo(
     () => makeRequestUrl(baseUrl, { search, caps, natural, nonNatural }),
     [baseUrl, search, caps, natural, nonNatural]

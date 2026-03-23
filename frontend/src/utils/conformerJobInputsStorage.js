@@ -7,6 +7,7 @@
  */
 
 import { getSessionId } from './sessionApi';
+import { DB_NAME } from '../config';
 
 function normalizeBackendScope(baseUrlOverride) {
     const raw = String(baseUrlOverride ?? '').trim();
@@ -39,24 +40,24 @@ function getScopeId({ sessionId = null, ownerId = null } = {}) {
 
 // v2 key: intentionally does NOT include backend scope.
 // This avoids drift between dev setups (Vite proxy "" vs absolute backend URL).
-function getInputsStorageKeyV2({ jobId, dbName = 'pepedit', sessionId = null, ownerId = null } = {}) {
+function getInputsStorageKeyV2({ jobId, dbName = DB_NAME, sessionId = null, ownerId = null } = {}) {
     const id = normalizeJobId(jobId);
     if (!id) return null;
     const scope = getScopeId({ sessionId, ownerId });
-    return `pp-conformer-job-inputs:v2:${String(dbName || 'pepedit')}:${scope}:${id}`;
+    return `pp-conformer-job-inputs:v2:${String(dbName || DB_NAME)}:${scope}:${id}`;
 }
 
-function getInputsStorageKey({ jobId, dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+function getInputsStorageKey({ jobId, dbName = DB_NAME, sessionId = null, ownerId = null, baseUrlOverride } = {}) {
     const id = normalizeJobId(jobId);
     if (!id) return null;
 
     const scope = getScopeId({ sessionId, ownerId });
     const backend = normalizeBackendScope(baseUrlOverride);
 
-    return `pp-conformer-job-inputs:v1:${String(dbName || 'pepedit')}:${scope}:${backend}:${id}`;
+    return `pp-conformer-job-inputs:v1:${String(dbName || DB_NAME)}:${scope}:${backend}:${id}`;
 }
 
-export function setConformerJobInputsInStorage(jobId, inputs, { dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+export function setConformerJobInputsInStorage(jobId, inputs, { dbName = DB_NAME, sessionId = null, ownerId = null, baseUrlOverride } = {}) {
     const keyV2 = getInputsStorageKeyV2({ jobId, dbName, sessionId, ownerId });
     const keyV1 = getInputsStorageKey({ jobId, dbName, sessionId, ownerId, baseUrlOverride });
     if (!keyV2 && !keyV1) return false;
@@ -85,7 +86,7 @@ export function setConformerJobInputsInStorage(jobId, inputs, { dbName = 'pepedi
     return ok;
 }
 
-export function getConformerJobInputsFromStorage(jobId, { dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+export function getConformerJobInputsFromStorage(jobId, { dbName = DB_NAME, sessionId = null, ownerId = null, baseUrlOverride } = {}) {
     const keyV2 = getInputsStorageKeyV2({ jobId, dbName, sessionId, ownerId });
     const keyV1 = getInputsStorageKey({ jobId, dbName, sessionId, ownerId, baseUrlOverride });
 
@@ -114,7 +115,7 @@ export function getConformerJobInputsFromStorage(jobId, { dbName = 'pepedit', se
         if (!id) return null;
 
         const scope = getScopeId({ sessionId, ownerId });
-        const prefix = `pp-conformer-job-inputs:v1:${String(dbName || 'pepedit')}:${scope}:`;
+        const prefix = `pp-conformer-job-inputs:v1:${String(dbName || DB_NAME)}:${scope}:`;
         const suffix = `:${id}`;
 
         const ls = window?.localStorage;
@@ -137,7 +138,7 @@ export function getConformerJobInputsFromStorage(jobId, { dbName = 'pepedit', se
     }
 }
 
-export function clearConformerJobInputsFromStorage(jobId, { dbName = 'pepedit', sessionId = null, ownerId = null, baseUrlOverride } = {}) {
+export function clearConformerJobInputsFromStorage(jobId, { dbName = DB_NAME, sessionId = null, ownerId = null, baseUrlOverride } = {}) {
     const keyV2 = getInputsStorageKeyV2({ jobId, dbName, sessionId, ownerId });
     const keyV1 = getInputsStorageKey({ jobId, dbName, sessionId, ownerId, baseUrlOverride });
     if (!keyV2 && !keyV1) return;

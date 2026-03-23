@@ -1,6 +1,6 @@
 // src/hooks/useFetchDepiction.js
 import { useState, useCallback } from 'react';
-import { DEPICT_2D_URL } from '../config';
+import { DEPICT_2D_URL, DB_NAME } from '../config';
 import { apiFetch } from '../utils/api';
 
 
@@ -18,6 +18,7 @@ export function useFetchDepiction() {
         // Build URL safely (supports DEPICT_2D_URL already having query params).
         // Owner scoping: apiFetch() will append owner_id/user_id automatically when connected.
         const url = new URL(DEPICT_2D_URL, window.location.origin);
+        url.searchParams.set('db_name', DB_NAME);
         if (params) {
             for (const [k, v] of Object.entries(params)) {
                 if (v == null) continue;

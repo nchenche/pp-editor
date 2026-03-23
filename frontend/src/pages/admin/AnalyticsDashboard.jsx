@@ -54,7 +54,7 @@ import {
   Legend,
 } from 'recharts';
 
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, DB_NAME } from '../../config';
 
 // ── Admin token storage ────────────────────────────────────────────────────
 
@@ -118,6 +118,7 @@ const EVENT_COLORS = {
 
 async function fetchSummary(scope = 'recent', options = {}, adminToken = null) {
   const params = new URLSearchParams();
+  params.set('db_name', DB_NAME);
   params.set('scope', scope);
   if (options.from) params.set('from', options.from);
   if (options.to) params.set('to', options.to);

@@ -1,4 +1,4 @@
-import { API_URL } from '../config';
+import { API_URL, DB_NAME } from '../config';
 import { apiFetch } from './api';
 
 
@@ -180,7 +180,7 @@ export async function convertHelmToBiln(helmString) {
     const resp = await apiFetch(`${API_URL}/core/conversions/helm-to-biln`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: helmString }),
+        body: JSON.stringify({ sequence: helmString, db_name: DB_NAME }),
     });
 
     if (!resp.ok) {

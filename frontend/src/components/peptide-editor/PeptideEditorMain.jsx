@@ -61,7 +61,7 @@ import { CONFORMER_JOB_RESUME_EVENT } from '../output/ConformerJobsPanel';
 import { clearConformerJobIdFromStorage, setConformerJobIdInStorage } from '../../../src/utils/conformerJobStorage';
 import { useSessionId } from '../../../src/hooks/useSessionId';
 
-import { API_BASE_URL } from '../../../src/config';
+import { API_BASE_URL, DB_NAME } from '../../../src/config';
 
 const initBiln = '';
 const MAX_MONOMERS = 40;
@@ -842,10 +842,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 // Re-trigger job polling to ensure the job hook picks up the resumed job
                 if (jobId) {
-                    clearConformerJobIdFromStorage({ dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
+                    clearConformerJobIdFromStorage({ dbName: DB_NAME, sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
                     // Small delay to ensure storage event fires
                     setTimeout(() => {
-                        setConformerJobIdInStorage(jobId, { dbName: 'pepedit', sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
+                        setConformerJobIdInStorage(jobId, { dbName: DB_NAME, sessionId: sessionId ?? null, baseUrlOverride: API_BASE_URL });
                     }, 50);
                 }
             });

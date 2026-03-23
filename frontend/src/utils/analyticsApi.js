@@ -14,7 +14,7 @@
 // are recorded server-side automatically.
 // ---------------------------------------------------------------------------
 
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, DB_NAME } from '../config';
 
 // ── Session ID (per-tab, persisted in sessionStorage) ──────────────────────
 
@@ -54,7 +54,7 @@ export function trackEvent(type, metadata, path) {
   if (!type) return;
 
   const url = `${API_BASE_URL}/api/usage/event`;
-  const body = { type, session_id: getSessionId() };
+  const body = { type, session_id: getSessionId(), db_name: DB_NAME };
 
   if (path !== undefined) body.path = path;
   if (metadata !== undefined && metadata !== null) body.metadata = metadata;

@@ -4,7 +4,7 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { log } from '../../utils/dev'
-import { API_DB_URL } from '../../config';
+import { API_DB_URL, DB_NAME } from '../../config';
 import { apiFetch } from '../../utils/api';
 
 import FormWizard from "react-form-wizard-component";
@@ -77,7 +77,7 @@ const UIAddMonomers = memo(() => {
     if (!symbol) return { exists: false };
 
     const params = new URLSearchParams();
-    params.set('db_name', 'pepedit');
+    params.set('db_name', DB_NAME);
     params.set('symbol', symbol);
 
     const res = await apiFetch(`${API_DB_URL}/monomers/exists?${params.toString()}`, { method: 'GET' });

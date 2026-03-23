@@ -46,7 +46,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SendIcon from '@mui/icons-material/Send';
 import Alert from '@mui/material/Alert';
 
-import { API_DB_URL, API_MAIL_URL, API_URL } from '../../config';
+import { API_DB_URL, API_MAIL_URL, API_URL, DB_NAME } from '../../config';
 import { apiFetch } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
@@ -560,7 +560,7 @@ export default function PersonalMonomers() {
     if (!symbol) return { exists: false };
 
     const params = new URLSearchParams();
-    params.set('db_name', 'pepedit');
+    params.set('db_name', DB_NAME);
     params.set('symbol', symbol);
 
     const res = await apiFetch(`${API_DB_URL}/monomers/exists?${params.toString()}`, { method: 'GET' });
@@ -738,7 +738,7 @@ export default function PersonalMonomers() {
     setError('');
     setIsLoading(true);
     try {
-      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=pepedit`, { method: 'GET' });
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=${encodeURIComponent(DB_NAME)}`, { method: 'GET' });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         const msg = json?.message || json?.error || `Failed to load personal monomers (status ${res.status})`;
@@ -791,7 +791,7 @@ export default function PersonalMonomers() {
         return;
       }
 
-      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=pepedit`, {
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=${encodeURIComponent(DB_NAME)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: sdfText,
@@ -987,7 +987,7 @@ export default function PersonalMonomers() {
     setIsLoading(true);
     try {
       const payload = {
-        db_name: 'pepedit',
+        db_name: DB_NAME,
         targets: originalSymbol,
         set_fields: {
           m_name: String(editForm.name || '').trim(),
@@ -1043,7 +1043,7 @@ export default function PersonalMonomers() {
       const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ db_name: 'pepedit', symbols: [symbol] }),
+        body: JSON.stringify({ db_name: DB_NAME, symbols: [symbol] }),
       });
       const json = await res.json().catch(() => null);
 
@@ -1184,7 +1184,7 @@ export default function PersonalMonomers() {
       const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ db_name: 'pepedit', symbols: [symbol] }),
+        body: JSON.stringify({ db_name: DB_NAME, symbols: [symbol] }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
@@ -1199,7 +1199,7 @@ export default function PersonalMonomers() {
       const res = await apiFetch(`${API_DB_URL}/monomers/personal`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ db_name: 'pepedit', symbols }),
+        body: JSON.stringify({ db_name: DB_NAME, symbols }),
       });
       const json = await res.json().catch(() => null);
 
@@ -1401,7 +1401,7 @@ export default function PersonalMonomers() {
         return;
       }
 
-      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=pepedit`, {
+      const res = await apiFetch(`${API_DB_URL}/monomers/personal?db_name=${encodeURIComponent(DB_NAME)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
         body: sdfText,

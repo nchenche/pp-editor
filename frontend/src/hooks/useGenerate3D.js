@@ -1,6 +1,6 @@
 // src/hooks/useGenerate3D.js
 import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, DB_NAME } from '../config';
 import { apiFetch } from '../utils/api';
 import { useSessionId } from './useSessionId';
 import { useConformerJob } from './useConformerJob';
@@ -39,7 +39,7 @@ export function useGenerate3D(baseUrlOverride) {
 
     // Use sessionId for job scoping (convention: session_id == owner_id)
     const sessionId = useSessionId();
-    const dbName = 'pepedit';
+    const dbName = DB_NAME;
     const {
         jobId,
         state: jobState,

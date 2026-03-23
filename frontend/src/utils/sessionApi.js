@@ -5,7 +5,7 @@
  * The session_id is the share token and is also used as owner_id for monomer endpoints.
  */
 
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, DB_NAME } from '../config';
 
 export const SESSION_ID_STORAGE_KEY = 'pp-editor:session-id:v1';
 export const SESSION_ID_CHANGED_EVENT = 'pp-session-id-changed';
@@ -142,7 +142,7 @@ export function getSessionId() {
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, sessionId?: string, error?: string}>}
  */
-export async function createSession({ dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function createSession({ dbName = DB_NAME, baseUrlOverride } = {}) {
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
 
   try {
@@ -180,7 +180,7 @@ export async function createSession({ dbName = 'pepedit', baseUrlOverride } = {}
  * @param {{dbName?: string, touch?: boolean, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, session?: object, error?: string}>}
  */
-export async function getSession(sessionId, { dbName = 'pepedit', touch = true, baseUrlOverride } = {}) {
+export async function getSession(sessionId, { dbName = DB_NAME, touch = true, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -214,7 +214,7 @@ export async function getSession(sessionId, { dbName = 'pepedit', touch = true, 
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, session?: object, error?: string}>}
  */
-export async function patchSession(sessionId, updates, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function patchSession(sessionId, updates, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -342,7 +342,7 @@ export function normalizeEmail(email) {
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, data?: object, error?: string}>}
  */
-export async function getEmailStatus(sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function getEmailStatus(sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -374,7 +374,7 @@ export async function getEmailStatus(sessionId, { dbName = 'pepedit', baseUrlOve
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, status?: string, error?: string, errorCode?: string}>}
  */
-export async function requestEmailAttach(sessionId, email, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function requestEmailAttach(sessionId, email, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return { ok: false, error: 'Email is required' };
@@ -420,7 +420,7 @@ export async function requestEmailAttach(sessionId, email, { dbName = 'pepedit',
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, status?: string, error?: string, errorCode?: string}>}
  */
-export async function requestEmailChange(sessionId, newEmail, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function requestEmailChange(sessionId, newEmail, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
   const normalizedEmail = normalizeEmail(newEmail);
   if (!normalizedEmail) return { ok: false, error: 'New email is required' };
@@ -465,7 +465,7 @@ export async function requestEmailChange(sessionId, newEmail, { dbName = 'pepedi
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, error?: string, errorCode?: string}>}
  */
-export async function resendEmailAttach(sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function resendEmailAttach(sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -507,7 +507,7 @@ export async function resendEmailAttach(sessionId, { dbName = 'pepedit', baseUrl
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, error?: string, errorCode?: string}>}
  */
-export async function resendEmailChange(sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function resendEmailChange(sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -549,7 +549,7 @@ export async function resendEmailChange(sessionId, { dbName = 'pepedit', baseUrl
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, error?: string}>}
  */
-export async function cancelEmailVerification(sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function cancelEmailVerification(sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';
@@ -584,7 +584,7 @@ export async function cancelEmailVerification(sessionId, { dbName = 'pepedit', b
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, message?: string, error?: string}>}
  */
-export async function shareSessionByEmail(recipientEmail, sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function shareSessionByEmail(recipientEmail, sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   const normalizedEmail = normalizeEmail(recipientEmail);
   if (!normalizedEmail) return { ok: false, error: 'Recipient email is required' };
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
@@ -621,7 +621,7 @@ export async function shareSessionByEmail(recipientEmail, sessionId, { dbName = 
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, message?: string, error?: string}>}
  */
-export async function recoverSessionsByEmail(email, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function recoverSessionsByEmail(email, { dbName = DB_NAME, baseUrlOverride } = {}) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return { ok: false, error: 'Email is required' };
 
@@ -671,7 +671,7 @@ export function generateLocalSessionId() {
  * @param {{dbName?: string, baseUrlOverride?: string}} options
  * @returns {Promise<{ok: boolean, sessionId?: string, error?: string}>}
  */
-export async function createSessionWithId(sessionId, { dbName = 'pepedit', baseUrlOverride } = {}) {
+export async function createSessionWithId(sessionId, { dbName = DB_NAME, baseUrlOverride } = {}) {
   if (!sessionId) return { ok: false, error: 'Session ID is required' };
 
   const base = baseUrlOverride ?? API_BASE_URL ?? '';

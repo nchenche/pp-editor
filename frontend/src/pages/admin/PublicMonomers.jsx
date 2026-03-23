@@ -42,7 +42,7 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import DownloadIcon from '@mui/icons-material/DownloadOutlined';
 
-import { API_DB_URL, API_URL } from '../../config';
+import { API_DB_URL, API_URL, DB_NAME } from '../../config';
 import { apiFetch, apiFetchNoOwner } from '../../utils/api';
 import { invalidateLibraryFetching } from '../../hooks/useLibraryFetching';
 
@@ -1072,7 +1072,7 @@ export default function PublicMonomers() {
         [adminToken]
     );
 
-    const [dbName, setDbName] = useState('pepedit');
+    const [dbName, setDbName] = useState(DB_NAME);
     const [monomers, setMonomers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');

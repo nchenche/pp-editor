@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, DB_NAME } from '../config';
 import { apiFetch, apiFetchNoOwner } from './api';
 import { getSessionId } from './sessionApi';
 
@@ -59,7 +59,7 @@ function buildApiUrlFromServerUrl(serverUrl, { baseUrlOverride, query } = {}) {
 export async function startAsyncJob({
   endpoint,
   body,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   sessionId,
   requestParams,
   baseUrlOverride,
@@ -93,7 +93,7 @@ export async function startConformerJob({
   embedParams,
   ownerId,
   sessionId,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   requestParams,
   baseUrlOverride,
   signal,
@@ -120,7 +120,7 @@ export async function startConformerJob({
   });
 }
 
-export async function getConformerJob({ jobId, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function getConformerJob({ jobId, sessionId, dbName = DB_NAME, baseUrlOverride, signal } = {}) {
   // Use provided sessionId or fall back to current session
   const effectiveSessionId = sessionId ?? getSessionId();
 
@@ -135,7 +135,7 @@ export async function getConformerJob({ jobId, sessionId, dbName = 'pepedit', ba
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
 
-export async function getConformerJobByUrl({ statusUrl, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function getConformerJobByUrl({ statusUrl, sessionId, dbName = DB_NAME, baseUrlOverride, signal } = {}) {
   if (!statusUrl) throw new Error('Missing statusUrl');
 
   // Use provided sessionId or fall back to current session
@@ -152,7 +152,7 @@ export async function getConformerJobByUrl({ statusUrl, sessionId, dbName = 'pep
   return apiFetchNoOwner(url, { method: 'GET', signal });
 }
 
-export async function cancelConformerJob({ jobId, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function cancelConformerJob({ jobId, sessionId, dbName = DB_NAME, baseUrlOverride, signal } = {}) {
   // Use provided sessionId or fall back to current session
   const effectiveSessionId = sessionId ?? getSessionId();
 
@@ -166,7 +166,7 @@ export async function cancelConformerJob({ jobId, sessionId, dbName = 'pepedit',
   return apiFetchNoOwner(url, { method: 'POST', signal });
 }
 
-export async function cancelConformerJobByUrl({ cancelUrl, sessionId, dbName = 'pepedit', baseUrlOverride, signal } = {}) {
+export async function cancelConformerJobByUrl({ cancelUrl, sessionId, dbName = DB_NAME, baseUrlOverride, signal } = {}) {
   if (!cancelUrl) throw new Error('Missing cancelUrl');
 
   // Use provided sessionId or fall back to current session
@@ -183,7 +183,7 @@ export async function cancelConformerJobByUrl({ cancelUrl, sessionId, dbName = '
 }
 
 export async function listConformerJobs({
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   sessionId,
   ownerId,
   scope,
@@ -227,7 +227,7 @@ export async function listConformerJobs({
 
 export async function listSessionConformerJobs({
   sessionId,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   limit = 50,
   before,
   baseUrlOverride,
@@ -269,7 +269,7 @@ export async function patchConformerJob({
   name,
   description,
   sessionId,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   baseUrlOverride,
   signal,
 } = {}) {
@@ -305,7 +305,7 @@ export async function patchConformerJob({
 export async function deleteConformerJob({
   jobId,
   sessionId,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   baseUrlOverride,
   signal,
 } = {}) {
@@ -331,7 +331,7 @@ export async function deleteConformerJob({
 export async function bulkDeleteConformerJobs({
   jobIds,
   sessionId,
-  dbName = 'pepedit',
+  dbName = DB_NAME,
   baseUrlOverride,
   signal,
 } = {}) {
