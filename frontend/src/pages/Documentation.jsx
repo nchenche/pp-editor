@@ -130,7 +130,6 @@ const NAV_TREE = [
                     },
                 ],
             },
-            { id: "complex-topologies", label: "Complex topologies" },
             { id: "adding-monomers", label: "Adding monomers to the library" },
             // { id: "exporting", label: "Exporting results" },
         ],
@@ -140,7 +139,15 @@ const NAV_TREE = [
         children: [
             { id: "example-microcin", label: "Microcin J25 (lasso peptide)" },
             { id: "example-semaglutide", label: "Semaglutide" },
-            { id: "example-cyclic", label: "Cyclic peptides (L/D)" },
+            {
+                id: "example-topologies", label: "Complex topologies",
+                children: [
+                    { id: "topo-cyclic", label: "Head-to-tail cyclization" },
+                    { id: "topo-disulfide", label: "Disulfide bridges" },
+                    { id: "topo-branched", label: "Branched peptides" },
+                    { id: "topo-multi-chain", label: "Multi-chain & inter-chain bonds" },
+                ],
+            },
             { id: "example-orca", label: "Conformer search with ORCA" },
             { id: "example-alphafold", label: "Protein\u2013peptide prediction" },
             { id: "example-st", label: "Simulated tempering" },
@@ -306,6 +313,12 @@ function flatIds(items) {
 /* ─────────────────────────────────────────────
    Reusable section components
    ───────────────────────────────────────────── */
+const GroupTitle = ({ children, ...rest }) => (
+    <Typography variant="h2" sx={{ fontWeight: 800, scrollMarginTop: 24, mt: 6, mb: 0.5, fontSize: "1.65rem", letterSpacing: "-0.01em", color: "text.secondary", ...rest.sx }} {...rest}>
+        {children}
+    </Typography>
+);
+
 const SectionTitle = ({ children, id, variant = "h5", ...rest }) => (
     <Typography id={id} variant={variant} sx={{ fontWeight: 700, scrollMarginTop: 24, mt: 5, mb: 1.5, ...rest.sx }} {...rest}>
         {children}
@@ -579,6 +592,8 @@ const Documentation = () => {
                         1 · GETTING STARTED
                        ════════════════════════════════════════════ */}
 
+                    <GroupTitle>Getting started</GroupTitle>
+
                     {/* ── Introduction ── */}
                     <SectionTitle id="introduction">Introduction</SectionTitle>
 
@@ -802,7 +817,7 @@ const Documentation = () => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><strong>pH slider</strong></TableCell>
-                                    <TableCell>Adjusts the target pH for protonation (range 0–14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately. Protonation states also reflect in the 3D structure.</TableCell>
+                                    <TableCell>Adjusts the target pH for protonation (range 0-14, default 7.4). Changes update protonation states and SMILES/InChI outputs immediately. Protonation states also reflect in the 3D structure.</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={UndoIcon} /> <strong>Undo</strong> / <Ic icon={RedoIcon} /> <strong>Redo</strong></TableCell>
@@ -932,7 +947,7 @@ const Documentation = () => {
                     <Ul>
                         <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
                         <Li><strong>Cyclize / Uncyclize</strong> — create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
-                        <Li><strong>Mirror</strong> — swap all L-amino acids ↔ D-amino acids in the chain.</Li>
+                        <Li><strong>Mirror</strong> — swap L- ↔ D-amino acids in the chain (standard amino acids only; non-natural residues are left unchanged).</Li>
                         <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
                     </Ul>
 
@@ -1393,7 +1408,7 @@ const Documentation = () => {
                                     <TableCell><code>C(1,1)-Y-C-L-I-C(1,2)</code></TableCell>
                                 </TableRow>
                                 <TableRow>
-                                    <TableCell>Same peptide, C–C disulfide instead</TableCell>
+                                    <TableCell>Same peptide, C-C disulfide instead</TableCell>
                                     <TableCell><code>C(1,3)-Y-C-L-I-C(1,3)</code></TableCell>
                                 </TableRow>
                                 <TableRow>
@@ -1568,9 +1583,9 @@ const Documentation = () => {
                         are specified:
                     </P>
                     <Ul>
-                        <Li><strong><i>De novo</i></strong> — no spatial constraints; the conformer geometry is determined by molecular topology and ETKDGv3's built-in knowledge terms.</Li>
-                        <Li><strong>Secondary-structure–guided</strong> — per-residue backbone dihedral angles are preset to canonical Ramachandran values before embedding.</Li>
-                        <Li><strong>Template-guided</strong> — backbone atom positions are extracted from an experimental or modeled PDB structure and used as spatial reference during embedding.</Li>
+                        <Li><strong><i>De novo</i></strong> no spatial constraints; the conformer geometry is determined by molecular topology and ETKDGv3's built-in knowledge terms.</Li>
+                        <Li><strong>Secondary-structure-guided</strong> per-residue backbone dihedral angles are preset to canonical Ramachandran values before embedding.</Li>
+                        <Li><strong>Template-guided</strong> backbone atom positions are extracted from an experimental or modeled PDB structure and used as spatial reference during embedding.</Li>
                     </Ul>
                     <P>
                         In the constrained modes, a coordinate mapping step translates the user-specified constraints into
@@ -1617,7 +1632,7 @@ const Documentation = () => {
                     </P>
 
                     <P>
-                        <strong>Secondary-structure–guided mode</strong><br />
+                        <strong>Secondary-structure-guided mode</strong><br />
                         In this mode, backbone dihedral angles (φ, ψ, and ω) are preset to canonical Ramachandran values
                         for each residue according to its assigned code. For D-amino acids, angles are automatically
                         mirrored in Ramachandran space.
@@ -1675,6 +1690,8 @@ const Documentation = () => {
                     {/* ════════════════════════════════════════════
                         2 · HOW-TO GUIDES
                        ════════════════════════════════════════════ */}
+
+                    <GroupTitle>How-to guides</GroupTitle>
 
                     {/* ── Building a peptide ── */}
                     <SectionTitle id="building-peptide">Building a peptide</SectionTitle>
@@ -1925,7 +1942,7 @@ const Documentation = () => {
                     </P>
                     <Ul>
                         <Li><strong>Cyclize</strong> — create a head-to-tail bond (R1 of first residue ↔ R2 of last residue), converting a linear chain to a cyclic peptide.</Li>
-                        <Li><strong>Mirror</strong> — swap all L-amino acids to their D equivalents (and vice versa) across the entire chain.</Li>
+                        <Li><strong>Mirror</strong> — swap L-amino acids to their D equivalents (and vice versa) across the entire chain. This only affects the 20 standard amino acids (e.g. A ↔ dA); non-natural or modified residues are left unchanged.</Li>
                         <Li><strong>Delete chain</strong> — remove the chain entirely.</Li>
                     </Ul>
 
@@ -1992,6 +2009,11 @@ const Documentation = () => {
                             then click a second R-group to create the bond. PEP-EDIT stays in Link mode after each bond,
                             so you can chain multiple links without re-clicking the toolbar button.
                             Press <strong>Esc</strong> to cancel an in-progress selection or exit Link mode entirely.
+                        </Li>
+                        <Li>
+                            <strong>Cyclize shortcut</strong> — for head-to-tail cyclization specifically, the ⋮ menu
+                            on a chain's Sequence row offers a one-click <strong>Cyclize</strong> action (R1 of first
+                            residue ↔ R2 of last residue) without needing to enter Link mode.
                         </Li>
                         <Li>
                             <strong>Unlink mode</strong> — click the <Ic icon={LinkOffIcon} label="Unlink" /> button to enter <strong>Unlink mode</strong>.
@@ -2169,7 +2191,7 @@ const Documentation = () => {
                     <Figure
                         src="/assets/documentation/gifs/pepedit_constraints-3d.gif"
                         alt="Applying 3D template constraints on a single-chain peptide."
-                        caption="Loading PDB structure 1CRN (crambin) as a 3D template and mapping chain A residues 9–18 onto the designed peptide. Clicking Generate 3D produces a conformer constrained to the template fold over the mapped region."
+                        caption="Loading PDB structure 1CRN (crambin) as a 3D template and mapping chain A residues 9-18 onto the designed peptide. Clicking Generate 3D produces a conformer constrained to the template fold over the mapped region."
                         openLightbox={openLightbox}
                         maxWidth="lg"
                     />
@@ -2181,11 +2203,11 @@ const Documentation = () => {
 
                     <Sub3Title>Global controls (top of the panel)</Sub3Title>
                     <Ul>
-                        <Li><strong>Template name</strong> — displays the name of the loaded template (filename or PDB code).</Li>
+                        <Li><strong>Template name</strong> displays the name of the loaded template (filename or PDB code).</Li>
                         <Li><strong>Remove template</strong> (trash icon) — deletes the template from the server and clears all mappings.</Li>
                         <Li><strong>Template overlay</strong> toggle — shows or hides the template structure in the 3D viewer as a semi-transparent overlay (see below).</Li>
-                        <Li><strong>Opacity slider</strong> (5 %–60 %) — adjusts the overlay opacity.</Li>
-                        <Li><strong>Lock camera</strong> toggle — prevents the camera from resetting when conformers are generated.</Li>
+                        <Li><strong>Opacity slider</strong> (5 %-60 %) — adjusts the overlay opacity.</Li>
+                        <Li><strong>Lock camera</strong> toggle prevents the camera from resetting when conformers are generated.</Li>
                     </Ul>
 
                     <Sub3Title>Per-chain mapping (one block per designed chain)</Sub3Title>
@@ -2248,7 +2270,7 @@ const Documentation = () => {
                     <Figure
                         src="/assets/documentation/pepedit_constraints-3d_overlay-1crn.png"
                         alt="3D viewer showing the template overlay for PDB structure 1CRN (crambin). The mapped region is highlighted in amber, while the rest of the template is shown in semi-transparent gray."
-                        caption="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9–18). The mapped region is highlighted in amber, while the generated conformer (lines, colored by element) adopts a backbone conformation matching the constrained residues."
+                        caption="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9-18). The mapped region is highlighted in amber, while the generated conformer (lines, colored by element) adopts a backbone conformation matching the constrained residues."
                         openLightbox={openLightbox}
                         maxWidth="lg"
                     />
@@ -2283,7 +2305,7 @@ const Documentation = () => {
 
                     <Figure
                         src="/assets/documentation/gifs/pepedit_constraints-3d_masking-residues.gif"
-                        alt="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9–18) with masked residues. Masked residues are highlighted in amber, while the rest of the template is shown in semi-transparent gray."
+                        alt="3D viewer showing the template overlay for 1CRN (crambin, chain A, residues 9-18) with masked residues. Masked residues are highlighted in amber, while the rest of the template is shown in semi-transparent gray."
                         caption="Masking terminal residues to resolve a failed embedding. A cyclic peptide mapped onto a linear template backbone (1CRN, chain A) initially fails due to topological incompatibility at the termini. After masking both terminal residues, conformer generation succeeds and the backbone aligns with the unmasked template positions."
                         openLightbox={openLightbox}
                         maxWidth="lg"
@@ -2340,46 +2362,7 @@ const Documentation = () => {
 
                     <Divider sx={{ my: 4 }} />
 
-                    {/* ── Complex topologies ──
-                    <SectionTitle id="complex-topologies">Complex topologies</SectionTitle>
-
-                    <P>
-                        PEP-EDIT supports several non-linear peptide architectures through explicit BILN connectivity
-                        and the graphical chain tools:
-                    </P>
-
-                    <Sub2Title>Cyclic peptides (head-to-tail)</Sub2Title>
-                    <P>
-                        Use the <strong>Cyclize</strong> action in the ⋮ menu on a chain row, or write explicit BILN connectivity
-                        connecting R1 of the first residue to R2 of the last, e.g.: <code>C(1,1)-Y-C-L-I-C(1,2)</code>.
-                    </P>
-
-                    <Sub2Title>Disulfide bridges</Sub2Title>
-                    <P>
-                        Connect two cysteines via their R3 (side-chain) attachment points:{" "}
-                        <code>A-C(1,3)-G-A-G-C(1,3)-D</code>. Bond 1 connects the R3 groups of the two Cys residues.
-                    </P>
-
-                    <Sub2Title>Branched peptides</Sub2Title>
-                    <P>
-                        Use <code>.</code> to separate the main chain from the branch, then connect via bond annotations:{" "}
-                        <code>A-G-K(1,3)-G-A-D.E-H-I-A(1,2)</code>. Here bond 1 links R3 of Lys to R2 of Ala in the branch.
-                    </P>
-
-                    <Sub2Title>Multi-chain designs</Sub2Title>
-                    <P>
-                        Each chain is an independent peptide sequence. Create multiple chains using the <strong>+</strong> button
-                        in the chains toolbar, then link them as needed. This is useful for building peptides that require
-                        inter-chain bonds (e.g. two chains connected by a disulfide).
-                    </P>
-
-                    <Sub2Title>Mirror (L/D amino acids)</Sub2Title>
-                    <P>
-                        The ⋮ menu on a chain row includes a <strong>Mirror</strong> action that swaps L- and D-amino acid forms
-                        for all natural amino acids in the chain (e.g. Ala ↔ dAla).
-                    </P>
-
-                    <Divider sx={{ my: 4 }} /> */}
+                    {/* Complex topologies section moved to Examples & use cases */}
 
                     {/* ── Adding monomers ── */}
                     <SectionTitle id="adding-monomers">Adding monomers to the library</SectionTitle>
@@ -2421,7 +2404,7 @@ const Documentation = () => {
 
                     <P>
                         The wizard transforms a SMILES string into a validated SDF monomer record containing a molecular core, explicit
-                        attachment points (R1–R4), leaving groups, stereochemistry assignments, and the metadata required for BILN integration.
+                        attachment points (R1-R4), leaving groups, stereochemistry assignments, and the metadata required for BILN integration.
                     </P>
 
                     {/* Step 1 */}
@@ -2471,11 +2454,11 @@ const Documentation = () => {
                             <TableBody>
                                 <TableRow><TableCell><strong>Name</strong></TableCell><TableCell>Human-readable name (e.g. <em>Alanine</em>)</TableCell><TableCell>Free text.</TableCell></TableRow>
                                 <TableRow><TableCell><strong>Symbol</strong></TableCell><TableCell>Short BILN identifier (e.g. <em>Ala</em>)</TableCell><TableCell>Must be unique.</TableCell></TableRow>
-                                <TableRow><TableCell><strong>Natural analog</strong></TableCell><TableCell>Single-letter code of closest natural AA</TableCell><TableCell>A–Y or X (no analog).</TableCell></TableRow>
+                                <TableRow><TableCell><strong>Natural analog</strong></TableCell><TableCell>Single-letter code of closest natural AA</TableCell><TableCell>A-Y or X (no analog).</TableCell></TableRow>
                                 <TableRow><TableCell><strong>PDB</strong></TableCell><TableCell>3-letter PDB residue code</TableCell><TableCell>Exactly 3 uppercase letters.</TableCell></TableRow>
                                 <TableRow><TableCell><strong>Type</strong></TableCell><TableCell>Monomer category</TableCell><TableCell>Amino acid, Cap, or Other.</TableCell></TableRow>
                                 <TableRow><TableCell><strong>Subtype</strong></TableCell><TableCell>Refinement of type</TableCell><TableCell>Natural / Non-natural / Cap.</TableCell></TableRow>
-                                <TableRow><TableCell><strong>R-group label</strong></TableCell><TableCell>R-group number (R1–R4)</TableCell><TableCell>Must be unique per attachment point.</TableCell></TableRow>
+                                <TableRow><TableCell><strong>R-group label</strong></TableCell><TableCell>R-group number (R1-R4)</TableCell><TableCell>Must be unique per attachment point.</TableCell></TableRow>
                                 <TableRow><TableCell><strong>Leaving group</strong></TableCell><TableCell>Atom at unconnected attachment point</TableCell><TableCell>H or OH only.</TableCell></TableRow>
                             </TableBody>
                         </Table>
@@ -2528,6 +2511,8 @@ const Documentation = () => {
                         3 · EXAMPLES & USE CASES
                        ════════════════════════════════════════════ */}
 
+                    <GroupTitle>Examples & use cases</GroupTitle>
+
                     {/* Microcin J25 */}
                     <SectionTitle id="example-microcin">Microcin J25 (lasso peptide)</SectionTitle>
 
@@ -2548,7 +2533,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION: GIF ~10–15s — importing the FASTA sequence via Upload sequence →
+    [MEDIA SUGGESTION: GIF ~10-15s — importing the FASTA sequence via Upload sequence →
     defining the Glu-8-to-N-terminus side-chain-to-backbone cyclization bond in the 2D viewer →
     opening the monomer library and substituting Phe-19 with Phe_3Cl.
     Crop: Manual edition + 2D viewer, full width.]
@@ -2570,7 +2555,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION: GIF ~8–10s — clicking Structural constraints → 3D template → entering PDB ID
+    [MEDIA SUGGESTION: GIF ~8-10s — clicking Structural constraints → 3D template → entering PDB ID
     1Q71 → template loads with mapping pre-filled → clicking Generate 3D → conformer appears with
     lasso topology visible in the 3D viewer, template overlay shown.
     Crop: Chains section + 3D viewer + Template panel, full width.]
@@ -2587,76 +2572,225 @@ const Documentation = () => {
                     <SectionTitle id="example-semaglutide" variant="h6">Semaglutide</SectionTitle>
 
                     <P>
-                        Semaglutide is a therapeutic peptide with a linear backbone and a fatty diacid chain attached via
-                        a lysine side chain. The backbone in BILN:
-                    </P>
-                    <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K-E-F-I-A-W-L-V-R-G-R-G</CodeBlock>
-
-                    <P>
-                        The lipid moiety (<code>SemaB</code>) can be linked to Lys20's side chain:
+                        Semaglutide is a GLP-1 analogue therapeutic peptide featuring a linear backbone and a fatty diacid side chain. Its sequence incorporates
+                        the non-natural amino acid Aib (alpha-aminoisobutyric acid) and a lipid moiety (SemaB) conjugated to the Lys20 side chain:
                     </P>
                     <CodeBlock>H-Aib-E-G-T-F-T-S-D-V-S-S-Y-L-E-G-Q-A-A-K(1,3)-E-F-I-A-W-L-V-R-G-R-G.SemaB(1,3)</CodeBlock>
 
                     <Figure
-                        src="/assets/documentation/Semaglutide.png"
-                        alt="Semaglutide 3D structure"
-                        caption="Generation of semaglutide without structural constraints."
+                        src="/assets/documentation/semaglutide_1d-2d.png"
+                        alt="Semaglutide sequence and 2D structure"
+                        caption="Sequence and 2D structure of semaglutide. The lipid moiety (SemaB) is attached to the Lys20 side chain "
                         openLightbox={openLightbox}
+                        maxWidth="md"
                     />
 
                     <P>
-                        While PEP-EDIT can generate a valid initial conformation, a more realistic backbone conformation for
-                        residues 3–31 can be obtained using an external tool (e.g. PEP-FOLD4) and then used as a
-                        <strong> 3D template</strong> within PEP-EDIT (with an offset of 2) to build the full lipidated structure.
+                        While PEP-EDIT can generate a valid de novo conformation, a more realistic backbone fold can be obtained
+                        by using an external prediction model as a 3D template. Here, a PEP-FOLD 4 model of the 31-residue GLP-1 analogue
+                        sequence (without the lipid branch) was used as scaffold. Since PEP-FOLD 4 does not handle non-canonical
+                        residues, the template begins at the third residue (Glu); an offset of 2 was therefore applied in PEP-EDIT
+                        so that the first two positions (H-Aib) remain unconstrained while residues 3-31 are mapped onto the template
+                        backbone. The lipid branch (SemaB) is resolved de novo during embedding -
+                        it is the only region of the generated conformer that does not overlap with the template.
                     </P>
 
                     <Figure
-                        src="/assets/documentation/SemaglutideFromTemplate.png"
+                        src="/assets/documentation/semaglutide_structure-from-pepfold-template.png"
                         alt="Semaglutide with template"
-                        caption="Generation of semaglutide including structural constraints for region 3–31."
+                        caption="Template-guided generation of semaglutide. Left: 2D Sketch of the full 
+                        lipidated peptide (backbone + SemaB branch). Right: 3D conformer (gray lines) 
+                        overlaid on the PEP-FOLD 4 template (amber cartoon). The Template panel shows 
+                        the mapping settings: chain A, residues 1-29, offset 2. The lipid moiety, visible 
+                        as the protruding region with no template overlap, was generated de novo."
                         openLightbox={openLightbox}
+                        maxWidth="lg"
                     />
 
                     <Divider sx={{ my: 3 }} />
 
-                    {/* Cyclic peptides */}
-                    <SectionTitle id="example-cyclic" variant="h6">Cyclic peptides with L- and D-amino acids</SectionTitle>
+                    {/* Complex topologies */}
+                    <SectionTitle id="example-topologies" variant="h6">Complex topologies</SectionTitle>
 
                     <P>
-                        PEP-EDIT supports head-to-tail cyclic peptides, including sequences with mixtures of L- and D-amino acids:
+                        Beyond simple linear chains, PEP-EDIT supports cyclic, disulfide-bridged, branched, and
+                        multi-chain peptide architectures. All of these topologies are expressed through BILN bond
+                        annotations (see <MUILink href="#biln-notation">BILN notation</MUILink>) and can be created
+                        either by typing BILN directly or by using the graphical
+                        tools (<MUILink href="#linking">Link mode</MUILink>, chain-level menus).
                     </P>
 
-                    <Ul>
+                    {/* ── Head-to-tail cyclization ── */}
+                    <SubTitle id="topo-cyclic">Head-to-tail cyclization</SubTitle>
+
+                    <P>
+                        A head-to-tail cyclic peptide is formed by connecting R1 of the first residue to R2 of
+                        the last. There are three equivalent ways to create one:
+                    </P>
+                    <Ol>
                         <Li>
-                            Head-to-tail octapeptide with standard L-amino acids:
-                            <CodeBlock>G(1,1)-T-V-A-V-Q-F-L(1,2)</CodeBlock>
+                            <strong>⋮ menu → Cyclize</strong> — click the ⋮ menu on a chain's Sequence row
+                            and select <strong>Cyclize</strong>. This is the fastest route for a simple
+                            head-to-tail ring.
                         </Li>
-                    </Ul>
+                        <Li>
+                            <strong>Link mode</strong> — activate <Ic icon={DeviceHubIcon} label="Link" />,
+                            click R1 on the first monomer, then R2 on the last.
+                        </Li>
+                        <Li>
+                            <strong>BILN annotation</strong> — add matching bond IDs manually,
+                            e.g. <code>G(1,1)-T-V-A-V-Q-F-L(1,2)</code>.
+                        </Li>
+                    </Ol>
+
+                    {/*
+    [MEDIA SUGGESTION — GIF ~8s: start with a linear octapeptide, click ⋮ → Cyclize,
+    show the ring forming in the 2D viewer. Then show the same result via Link mode
+    (click R1 on first residue, click R2 on last). Crop: chain track + 2D viewer.]
+                    */}
 
                     <Figure
-                        src="/assets/documentation/OctaL.png"
-                        alt="Cyclic octapeptide (L)"
-                        caption="Octapeptide (L-amino acids) with head-to-tail cyclization."
+                        src="/assets/documentation/gifs/pepedit_cyclization-link-mode.gif"
+                        alt="Creating a head-to-tail cyclic peptide via Link mode"
+                        caption="Two ways to cyclize a linear octapeptide. 
+                        First, using Link mode: click R1 on the first residue, then R2 on the last, a head-to-tail bond forms, 
+                        creating a cyclic structure visible in the 2D Sketch. 
+                        Alternatively, clicking ⋮ menu → Cyclize shortcut creates a head-to-tail 
+                        bond in one click. Both approaches produce the same cyclic structure, 
+                        visible in the 2D Sketch."
                         openLightbox={openLightbox}
+                        maxWidth="lg"
                     />
 
-                    <Ul>
-                        <Li>
-                            With three D-amino acids:
-                            <CodeBlock>D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)</CodeBlock>
-                        </Li>
-                        <Li>
-                            With four D-amino acids:
-                            <CodeBlock>dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)</CodeBlock>
-                        </Li>
-                    </Ul>
+
+                    <P>
+                        Cyclic peptides can freely mix L- and D-amino acids. Use the <strong>Mirror</strong> action
+                        (⋮ menu) to swap L-forms to their D equivalents across an entire chain
+                        (e.g. A ↔ dA). Mirror only affects the 20 standard amino acids — non-natural
+                        residues are left unchanged. For those, replace individual residues manually
+                        via the monomer library.
+                    </P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Example</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>BILN</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow><TableCell>Cyclic octapeptide (all-L)</TableCell><TableCell><code>G(1,1)-T-V-A-V-Q-F-L(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>3 D-amino acids</TableCell><TableCell><code>D(1,1)-D-P-T-dP-dR-Q-dQ(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>4 D-amino acids</TableCell><TableCell><code>dR(1,1)-Q-dP-dQ-R-dE-P-Q(1,2)</code></TableCell></TableRow>
+                                <TableRow><TableCell>Cilengitide (cyclic RGD)</TableCell><TableCell><code>R(1,1)-G-D-dF-meV(1,2)</code></TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    {/*
+    [MEDIA SUGGESTION — Screenshot: side-by-side 2D sketches of the all-L and mixed
+    L/D octapeptides, showing the different ring shapes. Reuse existing OctaL.png and
+    OctaD4L.png assets if appropriate, or a single composite figure.]
+                    */}
 
                     <Figure
-                        src="/assets/documentation/OctaD4L.png"
-                        alt="Cyclic octapeptide (4 D-AAs)"
-                        caption="Octapeptide (4 D-amino acids) with head-to-tail cyclization."
+                        src="/assets/documentation/pepedit_mirror-comparison.png"
+                        alt="Side-by-side comparison of an all-L octapeptide helix (left) and its all-D mirror (right), both with all-H secondary structure constraints. The cartoon representation, colored blue (N-terminus) to red (C-terminus), shows the opposite helix handedness."
+                        caption="Effect of the Mirror operation on helix handedness. Left: the all-L peptide (G-T-V-A-V-Q-F-L) forms a right-handed α-helix. Right: after mirroring to all-D (G-dT-dV-dA-dV-dQ-dF-dL), the same all-H constraint produces a left-handed helix. Both conformers are shown as cartoon colored from blue (N-terminus) to red (C-terminus)."
                         openLightbox={openLightbox}
+                        maxWidth="lg"
                     />
+                    {/* ── Disulfide bridges ── */}
+                    <SubTitle id="topo-disulfide">Disulfide bridges</SubTitle>
+
+                    <P>
+                        A disulfide bridge connects the side-chain thiol groups (R3) of two cysteine residues.
+                        In BILN, both cysteines carry the same bond ID on R3:
+                    </P>
+                    <CodeBlock>A-C(1,3)-G-A-G-C(1,3)-D</CodeBlock>
+                    <P>
+                        This creates bond 1 between the R3 attachment points of the two Cys residues. The same
+                        approach works with <strong>Link mode</strong>: click R3 on the first Cys, then R3 on the
+                        second.
+                    </P>
+                    <P>
+                        Multiple disulfide bridges use distinct bond IDs
+                        (e.g. <code>C(1,3)-G-C(2,3)-G-C(1,3)-G-C(2,3)</code> for two bridges). This pattern
+                        extends naturally to peptides with any number of disulfide pairs.
+                    </P>
+
+                    {/*
+    [MEDIA SUGGESTION — GIF ~8s: start from a linear peptide with two Cys,
+    enter Link mode, click R3 on first Cys → R3 on second Cys → disulfide bridge
+    appears in 2D viewer as a cross-link. Crop: chain track + 2D viewer.]
+                    */}
+
+                    {/* ── Branched peptides ── */}
+                    <SubTitle id="topo-branched">Branched peptides</SubTitle>
+
+                    <P>
+                        Branching requires a monomer with three or more R-groups — most commonly
+                        Lysine (R1 backbone N, R2 backbone C, R3 side-chain Nε). The branch is written
+                        as a second chain separated by <code>.</code>, connected via bond annotations:
+                    </P>
+                    <CodeBlock>A-G-K(1,3)-G-A-D.E-H-I-A(1,2)</CodeBlock>
+                    <P>
+                        Here, bond 1 connects R3 of Lys (main chain) to R2 of Ala (branch terminus),
+                        effectively grafting the E-H-I-A branch onto the Lys side chain. This is the same
+                        mechanism used in semaglutide to attach a lipid moiety to Lys20
+                        (see <MUILink href="#example-semaglutide">Semaglutide example</MUILink>).
+                    </P>
+                    <P>
+                        Any monomer with a free R3 (or higher) can serve as a branching point — not just Lysine.
+                        Check the <MUILink href="#monomer-library-ref">Monomer library reference</MUILink> to see
+                        available R-groups for each building block.
+                    </P>
+
+                    {/*
+    [MEDIA SUGGESTION — Screenshot or GIF ~6s: building a Lys-branched peptide.
+    Show the branch appearing in the 2D viewer as a side arm off the main chain.
+    Crop: 2D viewer showing the branched topology.]
+                    */}
+
+                    {/* ── Multi-chain & inter-chain bonds ── */}
+                    <SubTitle id="topo-multi-chain">Multi-chain & inter-chain bonds</SubTitle>
+
+                    <P>
+                        Multi-chain designs are created by adding chains with the <strong>+</strong> button
+                        in the Chains section header. In BILN, chains are separated by
+                        dots: <code>A-C-G-K.E-H-C-I</code> represents two independent chains.
+                    </P>
+                    <P>
+                        Chains can be connected by inter-chain bonds using the same bond-annotation mechanism.
+                        A common pattern is an inter-chain disulfide bridge:
+                    </P>
+                    <CodeBlock>A-C(1,3)-G-A-G.E-H-C(1,3)-I</CodeBlock>
+                    <P>
+                        Bond 1 links R3 of Cys in the first chain to R3 of Cys in the second chain, forming
+                        a covalent cross-link between the two peptides. This can be combined with any other
+                        topology, for example, a cyclic chain connected to a linear chain via a disulfide.
+                    </P>
+
+                    {/*
+    [MEDIA SUGGESTION — GIF ~10s: add a second chain via the + button, enter Link mode,
+    create an inter-chain disulfide by clicking R3 on a Cys in chain A then R3 on a Cys
+    in chain B. Show the cross-link appearing in the 2D viewer. Crop: chain track + 2D viewer.]
+                    */}
+
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_interchain-disulfide-bond.gif"
+                        alt="Creating a multi-chain peptide with an inter-chain disulfide bond: a second chain is added via the + button, monomers are appended from the library, and Link mode connects the two cysteine residues across chains."
+                        caption="Building a multi-chain peptide with an inter-chain disulfide bridge. A second chain is added with the + button, then monomers are appended from the library. Link mode is used to connect R3 of the cysteine in chain 1 to R3 of the cysteine in chain 2, forming the cross-link visible in the 2D Sketch."
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        All topologies can be combined freely: a multi-chain design can include cyclic chains,
+                        disulfide bridges, and branches simultaneously. The only constraints are R-group
+                        availability - each R-group can participate in at most one extra bond.
+                    </Alert>
 
                     <Divider sx={{ my: 3 }} />
 
@@ -2691,21 +2825,37 @@ const Documentation = () => {
                     <SectionTitle id="example-alphafold" variant="h6">Protein-peptide structure prediction</SectionTitle>
 
                     <P>
-                        SMILES generated by PEP-EDIT can be used as input to Chai-1 (or AlphaFold 3, Boltz) together with a protein
-                        sequence to predict protein–peptide complexes involving modified peptides.
-                        The peptide drug Degarelix (<code>ac-D_2Nal-D_Phe_4Cl-D_3Pal-S-Phe_4Sdihydroorotamido-D_Phe_4ureido-L-G-Lys_iPr-dA-am</code>),
-                        was predicted in complex with its target, the GnRH receptor, using the Chai-1 webserver.
+                        SMILES exported by PEP-EDIT can be passed to structure-prediction tools such
+                        as <MUILink href="https://www.chaidiscovery.com/" target="_blank" rel="noreferrer">Chai-1</MUILink>,{" "}
+                        <MUILink href="https://alphafoldserver.com/" target="_blank" rel="noreferrer">AlphaFold 3</MUILink>,{" "}
+                        or <MUILink href="https://boltz.bio/boltz2" target="_blank" rel="noreferrer">Boltz</MUILink> — together with a protein sequence — to predict
+                        protein-peptide complexes involving modified peptides.
+                    </P>
+                    <P>
+                        As an example, the peptide drug Degarelix was built in PEP-EDIT from the
+                        following BILN:
+                    </P>
+                    <CodeBlock>ac-D_2Nal-D_Phe_4Cl-D_3Pal-S-Phe_4Sdihydroorotamido-D_Phe_4ureido-L-G-Lys_iPr-dA-am</CodeBlock>
+                    <P>
+                        PEP-EDIT generates the corresponding SMILES:
+                    </P>
+                    <CodeBlock>CC(=O)N[C@H](Cc1ccc2ccccc2c1)C(=O)N[C@H](Cc1ccc(Cl)cc1)C(=O)N[C@H](Cc1cccnc1)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccc(NC(=O)[C@@H]2CC(=O)NC(=O)N2)cc1)C(=O)N[C@H](Cc1ccc(NC(N)=O)cc1)C(=O)N[C@@H](CC(C)C)C(=O)NCC(=O)N[C@@H](CCCC[NH2+]C(C)C)C(=O)N[C@H](C)C(N)=O</CodeBlock>
+                    <P>
+                        This SMILES was submitted to the Chai-1 webserver together with the GnRH
+                        receptor sequence to predict the Degarelix-GnRH receptor complex:
                     </P>
 
                     <Figure
                         src="/assets/documentation/degarelix_gnrhr_chai.png"
-                        alt="Chai-1 predictions"
-                        caption="Degarelix-GnRH receptor complex predicted with Chai-1 webserver using PEP-EDIT SMILES."
+                        alt="Degarelix-GnRH receptor complex predicted by Chai-1"
+                        caption="Degarelix-GnRH receptor complex predicted with the Chai-1 webserver using a SMILES exported from PEP-EDIT."
                         openLightbox={openLightbox}
+                        maxWidth="sm"
                     />
 
                     <P>
-                        Scripts for preparing AlphaFold 3, Chai-1 and Boltz inputs from SMILES are available{" "}
+                        Scripts for preparing AlphaFold 3, Chai-1, and Boltz inputs from SMILES are
+                        available{" "}
                         <MUILink href="https://github.com/alexisdougha/smiles-fold-input-builder" target="_blank" rel="noreferrer">here</MUILink>.
                     </P>
 
@@ -2715,19 +2865,42 @@ const Documentation = () => {
                     <SectionTitle id="example-st" variant="h6">Simulated tempering</SectionTitle>
 
                     <P>
-                        PEP-EDIT's SMILES and PDB outputs can be used directly with OpenMM for molecular dynamics.
-                        For cilengitide (<code>R(1,1)-G-D-dF-meV(1,2)</code>), a simulated tempering run explores conformational space:
+                        PEP-EDIT's outputs can be fed directly
+                        into <MUILink href="https://openmm.org/" target="_blank" rel="noreferrer">OpenMM</MUILink>{" "}
+                        for molecular dynamics simulations. For peptides containing non-natural
+                        residues which are not covered by standard protein force-field residue
+                        templates, two complementary exports are needed:
+                    </P>
+                    <Ul>
+                        <Li><strong>SMILES</strong> which provides the complete molecular graph (bond orders, formal charges, stereochemistry), required for force-field parameterization.</Li>
+                        <Li><strong>PDB</strong> which provides the 3D atomic coordinates as the starting conformation.</Li>
+                    </Ul>
+                    <P>
+                        Neither format alone is sufficient for non-standard building blocks: PDB files do not reliably
+                        encode bond orders or formal charges beyond canonical residues, while SMILES carry no spatial
+                        information.
+                    </P>
+                    <P>
+                        As an example, cilengitide — a cyclic RGD pentapeptide — was built in PEP-EDIT
+                        from the following BILN:
+                    </P>
+                    <CodeBlock>R(1,1)-G-D-dF-meV(1,2)</CodeBlock>
+                    <P>
+                        The exported SMILES and PDB were used to set up a simulated tempering (ST) run,
+                        which samples conformational space across a range of temperatures. The simulation
+                        recovered the experimental conformation (PDB: <code>1L5G</code>) with an RMSD of ~0.7 Å:
                     </P>
 
                     <Figure
                         src="/assets/documentation/ST-cilengitide.png"
-                        alt="Simulated tempering for cilengitide"
+                        alt="Simulated tempering conformational sampling for cilengitide"
                         caption="Cilengitide conformational space sampled via simulated tempering with OpenMM. Left: RMSD to experimental conformation (~1 Å). Center: sampling includes experimental conformation (black dot). Right: closest conformer at 0.7 Å from experiment."
                         openLightbox={openLightbox}
                     />
 
                     <P>
-                        Scripts for ST simulations are available{" "}
+                        Scripts for setting up simulated tempering simulations from PEP-EDIT outputs
+                        are available{" "}
                         <MUILink href="https://github.com/samuelmurail/Pep-Edit_ST" target="_blank" rel="noreferrer">here</MUILink>.
                     </P>
 
@@ -2737,28 +2910,43 @@ const Documentation = () => {
                     <SectionTitle id="example-docking" variant="h6">Peptide docking</SectionTitle>
 
                     <P>
-                        The BAD peptide (25 residues, BH3 domain) was generated from its primary sequence with alpha-helix
-                        secondary-structure constraints:
+                        PEP-EDIT's PDB output can serve as input for peptide-protein docking. 
+                        Here, we illustrate this with the BH3 domain of the pro-apoptotic BAD protein, 
+                        a 25-residue helical motif that binds anti-apoptotic Bcl-xL. 
+                        The peptide was built from its BILN sequence:
+                    </P>
+                    <CodeBlock>N-L-W-A-A-Q-R-Y-G-R-E-L-R-R-M-S-D-E-F-V-D-S-F-K-K</CodeBlock>
+                    <P>
+                        An all alpha-helix secondary-structure constraint was applied to the entire chain, 
+                        consistent with the known helical fold of BH3 domains:
                     </P>
 
                     <Figure
-                        src="/assets/documentation/PEP-EDIT-BadPepetideAsHelix.png"
-                        alt="BAD peptide as helix"
+                        src="/assets/documentation/pepedit_peptide-bad-helical.png"
+                        alt="BAD peptide generated as an all-helical conformer"
                         caption="All-helical conformation of the 25-residue BAD peptide generated with secondary-structure constraints."
                         openLightbox={openLightbox}
+                        maxWidth="lg"
                     />
 
                     <P>
-                        The PDB output was used for redocking in the Bcl-xL protein structure (PDB: <code>1G5J</code>) using
-                        AutoDock CrankPep (ADCP). The best energy model (ΔG = −41.4 kcal/mol) closely matches the experimental
-                        peptide position with RMSD &lt; 1 Å for central residues.
+                        The exported PDB was then docked into the Bcl-xL protein
+                        structure (PDB: <code>1G5J</code>)
+                        using{" "}
+                        <MUILink href="https://ccsb.scripps.edu/adcp/" target="_blank" rel="noreferrer">
+                            AutoDock CrankPep (ADCP)
+                        </MUILink>.
+                        The best-scoring model (ΔG = −41.4 kcal/mol) closely reproduces the
+                        experimental peptide position, with an RMSD &lt; 1 Å for the central
+                        residues:
                     </P>
 
                     <Figure
                         src="/assets/documentation/BAD_docking_2.png"
-                        alt="BAD peptide docking"
+                        alt="BAD peptide docked into Bcl-xL"
                         caption="Bcl-xL (cyan) with experimental BH3 peptide (magenta) and docked BH3 peptide (green)."
                         openLightbox={openLightbox}
+                        maxWidth="sm"
                     />
 
                     <Divider sx={{ my: 4 }} />
@@ -2766,6 +2954,8 @@ const Documentation = () => {
                     {/* ════════════════════════════════════════════
                         4 · REFERENCE
                        ════════════════════════════════════════════ */}
+
+                    <GroupTitle>Reference</GroupTitle>
 
                     <SectionTitle id="output-formats">Output & export formats</SectionTitle>
 
@@ -2897,6 +3087,8 @@ const Documentation = () => {
                     {/* ════════════════════════════════════════════
                         5 · TROUBLESHOOTING & POLICIES
                        ════════════════════════════════════════════ */}
+
+                    <GroupTitle>Troubleshooting & policies</GroupTitle>
 
                     <SectionTitle id="limitations">Limitations & tips</SectionTitle>
 
