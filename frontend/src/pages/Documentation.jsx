@@ -577,7 +577,7 @@ const Documentation = () => {
                         PEP-EDIT
                     </Typography>
                     <Typography variant="h6" sx={{ color: "text.secondary", fontWeight: 400, mb: 3, lineHeight: 1.5 }}>
-                        Interactive web application for peptide design, editing and 3D conformer generation - supporting standard, non-standard, cyclic and branched peptides.
+                        Interactive web application for peptide design, editing and 3D conformer generation, supporting standard, non-standard, cyclic and branched peptides.
                     </Typography>
 
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 4 }}>
@@ -603,7 +603,7 @@ const Documentation = () => {
                         Unlike <MUILink href="https://doi.org/10.1093/nar/gkad376" target="_blank" rel="noreferrer">PEP-FOLD</MUILink> or
                         other tools that predict peptide 3D structure from sequence alone, PEP-EDIT focuses on
                         <strong> building, editing and exporting</strong> peptide representations - including non-standard
-                        monomers, cyclic and branched architectures - and provides conformer generation as a preparation utility,
+                        monomers, cyclic and branched architectures, and provides conformer generation as a preparation utility,
                         not as a structure prediction method.
                     </P>
 
@@ -681,7 +681,7 @@ const Documentation = () => {
                         <Li><strong>Web interface:</strong> PEP-EDIT provides a web access to complex peptide modeling using an enhanced interface to pyPept.</Li>
                         <Li><strong>Monomer storage:</strong> monomer metadata is stored in a MongoDB database (instead of CSV files) to enable richer querying, editing and moderation workflows. This supports both public and user-specific monomer libraries, as well as facilities to migrate monomers to the public library in a moderated mode.</Li>
                         <Li><strong>Monomer naming:</strong> monomers containing the hyphen character (<code>-</code>) are renamed using underscores (<code>_</code>) to avoid conflicts with BILN's hyphen shorthand for backbone connections.</Li>
-                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure with dihedral angle presets or PDB template constraints. In multi-chain peptides, constraints can be set independently per chain — a capability not available in pyPept, which only supports secondary-structure constraints (distance-based, from bound matrix settings) on single-chain peptides.</Li>
+                        <Li><strong>Conformer generation with structural constraints:</strong> PEP-EDIT can generate 3D conformers from secondary-structure with dihedral angle presets or PDB template constraints. In multi-chain peptides, constraints can be set independently per chain, a capability not available in pyPept, which only supports secondary-structure constraints (distance-based, from bound matrix settings) on single-chain peptides.</Li>
                         <Li><strong>PDB atom naming fixes:</strong> atom names were corrected for some amino acids to improve downstream compatibility (visualization, tooling, MD pipelines).</Li>
                         <Li><strong>Interactive 2D SVG:</strong> the RDKit 2D sketch SVG is post-processed to expose interactive elements (monomers, R-groups, extra bonds) so the UI can attach JS-driven interactions.</Li>
                         <Li><strong>pH-aware protonation:</strong> final molecules include protonation predicted from the peptide-derived SMILES using Dimorphite-DL (default pH 7.4).</Li>
@@ -693,7 +693,7 @@ const Documentation = () => {
                     <SectionTitle id="quick-start">Quick start: your first peptide in 20 seconds</SectionTitle>
 
                     <P>
-                        Watch the full workflow - from an empty editor to a downloadable 3D conformer:
+                        Watch the full workflow, from an empty editor to a downloadable 3D conformer:
                     </P>
 
                     <Figure
@@ -735,14 +735,14 @@ const Documentation = () => {
 
                     <P>
                         PEP-EDIT's interface is organized into four main areas, each serving a distinct role in the
-                        peptide design workflow. The annotated screenshot below shows them at a glance — detailed
+                        peptide design workflow. The annotated screenshot below shows them at a glance. Detailed
                         descriptions follow in the subsections below.
                     </P>
 
                     <Figure
                         src="/assets/documentation/pepedit_interface-overview_labeled.png"
                         alt="Annotated overview of the PEP-EDIT interface. Four numbered zones: (1) Editor interface at top-left, (2) 2D Sketch at bottom-left, (3) 3D viewer at bottom-right, (4) Resource panel on the right side."
-                        caption="The four main areas of PEP-EDIT: (1) Editor interface — BILN input, chain track & constraints; (2) 2D Sketch — interactive molecular depiction; (3) 3D viewer — Mol*-powered conformer visualization; (4) Resource panel — monomer library, outputs & job history."
+                        caption="The four main areas of PEP-EDIT: (1) Editor interface - BILN input, chain track & constraints; (2) 2D Sketch - interactive molecular depiction; (3) 3D viewer - Mol*-powered conformer visualization; (4) Resource panel - monomer library, outputs & job history."
                         openLightbox={openLightbox}
                     />
 
@@ -809,7 +809,7 @@ const Documentation = () => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={DeviceHubIcon} /> <strong>Link mode</strong></TableCell>
-                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers — Select a second R-group to create the link." While active, Manual edition auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
+                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers - Select a second R-group to create the link." While active, Manual edition auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={LinkOffIcon} /> <strong>Cut mode</strong></TableCell>
@@ -821,7 +821,7 @@ const Documentation = () => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={UndoIcon} /> <strong>Undo</strong> / <Ic icon={RedoIcon} /> <strong>Redo</strong></TableCell>
-                                    <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo) — use the toolbar buttons for chain track operations.</TableCell>
+                                    <TableCell>Undo or redo the last editor action (up to 20 steps). Covers all editor operations (add, delete, reorder, link, constraint changes). Note: Ctrl+Z only works inside the BILN text field (native browser undo); use the toolbar buttons for chain track operations.</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={UploadIcon} /> <strong>Upload sequence</strong></TableCell>
@@ -831,7 +831,7 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
-                    {/* [GIF: swap sections animation — clicking the swap icon to move Chains above Manual edition and back] */}
+                    {/* [GIF: swap sections animation - clicking the swap icon to move Chains above Manual edition and back] */}
                     {/* <Figure
                         src="/assets/documentation/pepedit_swap-sections.gif"
                         alt="Animated demonstration of the swap sections button toggling Manual edition and Chains order"
@@ -845,7 +845,7 @@ const Documentation = () => {
                     <P>
                         The Manual edition section contains the BILN text input field.
                         It can be collapsed by clicking its header. A <Ic icon={QuestionMarkSharpIcon} /> help icon next to the header
-                        opens the <em>"Manual edit (BILN) help"</em> dialog — a comprehensive quick-reference covering
+                        opens the <em>"Manual edit (BILN) help"</em> dialog, a comprehensive quick-reference covering
                         BILN syntax, R-group rules, and common sequence examples.
                     </P>
 
@@ -853,7 +853,7 @@ const Documentation = () => {
 
                     <P>
                         A live text field for typing or pasting BILN sequences directly. Changes are applied on every
-                        keystroke — no Enter or Apply button is needed. The 2D Sketch and 1D outputs (SMILES, HELM…)
+                        keystroke: no Enter or Apply button is needed. The 2D Sketch and 1D outputs (SMILES, HELM…)
                         update as soon as the BILN is syntactically complete (no trailing hyphen, unbalanced parentheses,
                         or unrecognized symbol). Incomplete intermediate states are held silently until the input becomes valid.
                     </P>
@@ -866,13 +866,13 @@ const Documentation = () => {
                     <Alert severity="info" sx={{ mb: 2 }}>
                         <P sx={{ mb: 1 }}><strong>Validation feedback</strong></P>
                         <Ul>
-                            <Li><strong>Unrecognized monomer</strong> — a red error message appears next to the monomer counter below the BILN input field.</Li>
-                            <Li><strong>Exceeds 40 monomers</strong> — a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
-                            <Li><strong>Incomplete syntax</strong> (mid-typing) — no error; views remain at the last valid state.</Li>
+                            <Li><strong>Unrecognized monomer</strong> - a red error message appears next to the monomer counter below the BILN input field.</Li>
+                            <Li><strong>Exceeds 40 monomers</strong> - a red border on the input field with a "Maximum length reached" caption and a confirmation dialog.</Li>
+                            <Li><strong>Incomplete syntax</strong> (mid-typing) - no error; views remain at the last valid state.</Li>
                         </Ul>
                     </Alert>
 
-                    {/* [GIF: Interactive edition animation with error message — BILN edition updates 2D sketch and validation feedback is illustrated from incorrect monomer input] */}
+                    {/* [GIF: Interactive edition animation with error message - BILN edition updates 2D sketch and validation feedback is illustrated from incorrect monomer input] */}
                     <Figure
                         src="/assets/documentation/gifs/pepedit_manual-edition_error_cropped.gif"
                         alt="Animated demonstration of BILN manual edition with validation feedback: typing an invalid monomer triggers an error message"
@@ -888,8 +888,8 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li><strong>FASTA mode</strong> (default) — paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
-                        <Li><strong>HELM mode</strong> — paste a HELM string. Conversion to BILN is handled server-side.</Li>
+                        <Li><strong>FASTA mode</strong> (default) - paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
+                        <Li><strong>HELM mode</strong> - paste a HELM string. Conversion to BILN is handled server-side.</Li>
                     </Ul>
 
                     <P>
@@ -897,7 +897,7 @@ const Documentation = () => {
                         then click <strong>Apply</strong>. An error message is displayed inline if the input is invalid.
                     </P>
 
-                    {/* [GIF: upload sequence dialog — switching between FASTA and HELM modes and applying a FASTA sequence] */}
+                    {/* [GIF: upload sequence dialog - switching between FASTA and HELM modes and applying a FASTA sequence] */}
                     {/* <Figure
                         src="/assets/documentation/gifs/pepedit_upload-sequence.gif"
                         alt="Animated demonstration of the Upload Sequence dialog: selecting FASTA mode, pasting a sequence, and clicking Apply. Same process for HELM mode."
@@ -911,7 +911,7 @@ const Documentation = () => {
                     <P>
                         The Chains section displays a visual representation of each chain in your peptide.
                         It can be collapsed by clicking its header. A <Ic icon={QuestionMarkSharpIcon} /> help icon next to the header
-                        opens the <em>"Working with chains"</em> dialog — a reference covering chain management,
+                        opens the <em>"Working with chains"</em> dialog, a reference covering chain management,
                         constraint modes, sequence track interactions, and color coding.
                     </P>
 
@@ -924,31 +924,31 @@ const Documentation = () => {
                     />
 
                     <P>
-                        Each chain is displayed as a Sequence row — a horizontal strip of colored monomer pills.
+                        Each chain is displayed as a Sequence row, a horizontal strip of colored monomer pills.
                         Each pill shows the monomer symbol and its position number in the chain.
                     </P>
 
                     <Sub3Title>Color coding</Sub3Title>
                     <Ul>
-                        <Li><strong>Green</strong> — natural amino acids.</Li>
-                        <Li><strong>Orange</strong> — non-natural / modified monomers.</Li>
-                        <Li><strong>Gray</strong> — capping groups.</Li>
+                        <Li><strong>Green</strong> - natural amino acids.</Li>
+                        <Li><strong>Orange</strong> - non-natural / modified monomers.</Li>
+                        <Li><strong>Gray</strong> - capping groups.</Li>
                     </Ul>
 
                     <Sub3Title>Interactions</Sub3Title>
                     <Ul>
-                        <Li><strong>Hover</strong> over a pill — reveals Replace, Info, and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
-                        <Li><strong>Drag-and-drop</strong> — reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog. Capping groups cannot be dragged.</Li>
-                        <Li><strong>Bond indicators</strong> — colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
+                        <Li><strong>Hover</strong> over a pill - reveals Replace, Info, and Delete action icons, and synchronizes highlighting with the 2D Sketch and 3D viewer.</Li>
+                        <Li><strong>Drag-and-drop</strong> - reorder monomers within or across chains. Invalid moves (R-group conflicts, cap placement violations) are rejected with an explanatory dialog. Capping groups cannot be dragged.</Li>
+                        <Li><strong>Bond indicators</strong> - colored dots on pills indicate non-backbone bonds (e.g. disulfide bridges, side-chain links).</Li>
                     </Ul>
 
                     <Sub3Title>Chain-level actions (⋮ menu)</Sub3Title>
                     <P>Each Sequence row has a ⋮ menu on the left side with:</P>
                     <Ul>
-                        <Li><strong>Clear</strong> — remove all monomers from the chain.</Li>
-                        <Li><strong>Cyclize / Uncyclize</strong> — create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
-                        <Li><strong>Mirror</strong> — swap L- ↔ D-amino acids in the chain (standard amino acids only; non-natural residues are left unchanged).</Li>
-                        <Li><strong>Delete chain</strong> — remove the entire chain.</Li>
+                        <Li><strong>Clear</strong> - remove all monomers from the chain.</Li>
+                        <Li><strong>Cyclize / Uncyclize</strong> - create or remove a head-to-tail bond (R1 of first residue ↔ R2 of last residue).</Li>
+                        <Li><strong>Mirror</strong> - swap L- ↔ D-amino acids in the chain (standard amino acids only; non-natural residues are left unchanged).</Li>
+                        <Li><strong>Delete chain</strong> - remove the entire chain.</Li>
                     </Ul>
 
                     <Sub3Title>Constraint track</Sub3Title>
@@ -967,14 +967,14 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li><strong>None</strong> — no constraints. Only the Sequence row is visible.</Li>
-                        <Li><strong>Secondary structure</strong> — a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Use the ⋮ menu for bulk operations (All alpha, All beta, All random, Clear).</Li>
-                        <Li><strong>3D template</strong> — a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
+                        <Li><strong>None</strong> - no constraints. Only the Sequence row is visible.</Li>
+                        <Li><strong>Secondary structure</strong> - a per-residue row of buttons: <strong>H</strong> (helix), <strong>E</strong> (strand), or <strong>−</strong> (coil). Use the ⋮ menu for bulk operations (All alpha, All beta, All random, Clear).</Li>
+                        <Li><strong>3D template</strong> - a template mapping row showing the scaffold residues loaded from a PDB/mmCIF file. Each residue maps to a position in the Sequence row above it.</Li>
                     </Ul>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
                         In multi-chain peptides, each chain has its own independent constraint row. You can assign different
-                        constraint types and values per chain — for example, helix on chain A and strand on chain B.
+                        constraint types and values per chain, for example helix on chain A and strand on chain B.
                     </Alert>
 
                     <Sub3Title>Adding chains</Sub3Title>
@@ -986,7 +986,7 @@ const Documentation = () => {
 
                     <Sub3Title>Detach mode</Sub3Title>
 
-                    {/* [GIF: detach mode — clicking detach, dragging the floating panel, then reattaching] */}
+                    {/* [GIF: detach mode - clicking detach, dragging the floating panel, then reattaching] */}
                     <Figure
                         src="/assets/documentation/gifs/pepedit_chains-detach.gif"
                         alt="Animated demonstration of the Chains detach mode: detaching, dragging the floating panel around, and reattaching"
@@ -1001,15 +1001,15 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li>Is <strong>draggable</strong> — grab its title bar to move it anywhere on screen.</Li>
-                        <Li>Is <strong>resizable</strong> — drag the bottom-right corner to adjust its dimensions.</Li>
-                        <Li>Is <strong>non-blocking</strong> — you can still interact with the editor, 2D Sketch, and other panels behind it.</Li>
+                        <Li>Is <strong>draggable</strong> - grab its title bar to move it anywhere on screen.</Li>
+                        <Li>Is <strong>resizable</strong> - drag the bottom-right corner to adjust its dimensions.</Li>
+                        <Li>Is <strong>non-blocking</strong> - you can still interact with the editor, 2D Sketch, and other panels behind it.</Li>
                         <Li>Shows <strong>"Chains (detached)"</strong> in the title bar with a <Ic icon={VerticalAlignBottomIcon} /> <strong>reattach</strong> button to snap it back inline.</Li>
                     </Ul>
 
                     <P>
                         While detached, the inline area shows a placeholder message:
-                        <em>"Chains detached — click <Ic icon={VerticalAlignBottomIcon} /> to reattach."</em>
+                        <em>"Chains detached - click <Ic icon={VerticalAlignBottomIcon} /> to reattach."</em>
                     </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -1050,12 +1050,12 @@ const Documentation = () => {
                                 <TableRow>
                                     <TableCell><Ic icon={DeviceHubIcon} /></TableCell>
                                     <TableCell>Link</TableCell>
-                                    <TableCell>Toggle link mode — click R-groups on monomers to create a bond.</TableCell>
+                                    <TableCell>Toggle link mode - click R-groups on monomers to create a bond.</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={LinkOffIcon} /></TableCell>
                                     <TableCell>Unlink</TableCell>
-                                    <TableCell>Toggle cut mode — double-click an existing bond to remove it.</TableCell>
+                                    <TableCell>Toggle cut mode - double-click an existing bond to remove it.</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={RestartAltIcon} /></TableCell>
@@ -1073,15 +1073,15 @@ const Documentation = () => {
 
                     <Sub3Title>Navigation</Sub3Title>
                     <Ul>
-                        <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
-                        <Li><strong>Click + drag</strong> — pan the view.</Li>
-                        <Li><strong>Double-click</strong> (or Reset View button) — reset to the default fitted view.</Li>
+                        <Li><strong>Scroll wheel</strong> - zoom in/out.</Li>
+                        <Li><strong>Click + drag</strong> - pan the view.</Li>
+                        <Li><strong>Double-click</strong> (or Reset View button) - reset to the default fitted view.</Li>
                     </Ul>
 
                     <Sub3Title>Hover synchronization</Sub3Title>
                     <P>
                         Mousing over a monomer in the 2D Sketch highlights it simultaneously in the chain track
-                        and the 3D viewer. A tooltip in the bottom-right corner shows monomer details — for
+                        and the 3D viewer. A tooltip in the bottom-right corner shows monomer details: for
                         example: "A DIJ 5 / dI / D-Isoleucine" (chain letter, PDB code, position, BILN symbol, full name).
                     </P>
                     <P>
@@ -1113,8 +1113,8 @@ const Documentation = () => {
 
                     <Sub3Title>Main controls (top-left of the 3D viewer)</Sub3Title>
                     <Ul>
-                        <Li><strong>▶ Generate 3D</strong> — submit a conformer generation job manually.</Li>
-                        <Li><strong>Auto sync</strong> — toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active.</Li>
+                        <Li><strong>▶ Generate 3D</strong> - submit a conformer generation job manually.</Li>
+                        <Li><strong>Auto sync</strong> - toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active.</Li>
                     </Ul>
 
                     <Sub3Title>Icon toolbar (top-right)</Sub3Title>
@@ -1143,9 +1143,9 @@ const Documentation = () => {
 
                     <Sub3Title>3D navigation</Sub3Title>
                     <Ul>
-                        <Li><strong>Left-click + drag</strong> — rotate the structure.</Li>
-                        <Li><strong>Scroll wheel</strong> — zoom in/out.</Li>
-                        <Li><strong>Right-click + drag</strong> (or middle-click) — pan.</Li>
+                        <Li><strong>Left-click + drag</strong> - rotate the structure.</Li>
+                        <Li><strong>Scroll wheel</strong> - zoom in/out.</Li>
+                        <Li><strong>Right-click + drag</strong> (or middle-click) - pan.</Li>
                     </Ul>
 
 
@@ -1178,13 +1178,13 @@ const Documentation = () => {
 
                     <Sub3Title>Linking process mode (top of the panel)</Sub3Title>
                     <Ul>
-                        <Li><strong>Mode</strong> — <em>Append</em> (add to the end of the chain), <em>Prepend</em> (add to the start), or <em>New chain</em> (creates a separate chain).</Li>
-                        <Li><strong>Chain</strong> — selects which chain to add to (relevant for multi-chain peptides).</Li>
+                        <Li><strong>Mode</strong> - <em>Append</em> (add to the end of the chain), <em>Prepend</em> (add to the start), or <em>New chain</em> (creates a separate chain).</Li>
+                        <Li><strong>Chain</strong> - selects which chain to add to (relevant for multi-chain peptides).</Li>
                     </Ul>
 
                     <Sub3Title>Display options (panel header)</Sub3Title>
                     <Ul>
-                        <Li><strong>Small / Large</strong> — toggles monomer card size.</Li>
+                        <Li><strong>Small / Large</strong> - toggles monomer card size.</Li>
                     </Ul>
 
                     {/* ── Outputs ── */}
@@ -1195,9 +1195,9 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li><strong>1D — Sequences & Notations</strong> (5 formats): BILN, HELM, SMILES, InChI, InChIKey.</Li>
-                        <Li><strong>2D — Depiction & Coordinates</strong> (1 format): SDF 2D + Export depiction (SVG, PNG).</Li>
-                        <Li><strong>3D — Structures</strong> (6 formats): PDB, MMCIF, XYZ, SDF 3D, MOL2 Tripos, PDBQT + Export snapshot (PNG).</Li>
+                        <Li><strong>1D - Sequences & Notations</strong> (5 formats): BILN, HELM, SMILES, InChI, InChIKey.</Li>
+                        <Li><strong>2D - Depiction & Coordinates</strong> (1 format): SDF 2D + Export depiction (SVG, PNG).</Li>
+                        <Li><strong>3D - Structures</strong> (6 formats): PDB, MMCIF, XYZ, SDF 3D, MOL2 Tripos, PDBQT + Export snapshot (PNG).</Li>
                     </Ul>
 
                     <P>
@@ -1207,9 +1207,9 @@ const Documentation = () => {
 
                     <Sub3Title>Panel controls (header bar)</Sub3Title>
                     <Ul>
-                        <Li><strong>Wrap</strong> — wraps long text (e.g. SMILES, InChI) for readability instead of horizontal scrolling.</Li>
-                        <Li><strong>Expand</strong> — opens all accordion sections at once so every format is visible.</Li>
-                        <Li><Ic icon={DownloadIcon} /> <strong>Download all</strong> — exports all available formats in a single action.</Li>
+                        <Li><strong>Wrap</strong> - wraps long text (e.g. SMILES, InChI) for readability instead of horizontal scrolling.</Li>
+                        <Li><strong>Expand</strong> - opens all accordion sections at once so every format is visible.</Li>
+                        <Li><Ic icon={DownloadIcon} /> <strong>Download all</strong> - exports all available formats in a single action.</Li>
                     </Ul>
 
                     {/* ── Jobs ── */}
@@ -1223,28 +1223,28 @@ const Documentation = () => {
                     <Sub3Title>Table columns</Sub3Title>
                     <P>Name and Action are always visible; others can be toggled via <strong>Columns & view</strong>:</P>
                     <Ul>
-                        <Li><strong>Name</strong> — defaults to "Untitled job". Click to edit inline, or use ⋮ → Edit details for a full dialog (name up to 200 characters, description up to 2 000 characters, plus read-only Job ID and timestamps).</Li>
-                        <Li><strong>BILN</strong> — the BILN string used for the job. Shows "—" for failed jobs.</Li>
-                        <Li><strong>Date</strong> — creation timestamp.</Li>
-                        <Li><strong>State</strong> — green "success" chip or red "failed" chip.</Li>
+                        <Li><strong>Name</strong> - defaults to "Untitled job". Click to edit inline, or use ⋮ → Edit details for a full dialog (name up to 200 characters, description up to 2 000 characters, plus read-only Job ID and timestamps).</Li>
+                        <Li><strong>BILN</strong> - the BILN string used for the job. Shows "—" for failed jobs.</Li>
+                        <Li><strong>Date</strong> - creation timestamp.</Li>
+                        <Li><strong>State</strong> - green "success" chip or red "failed" chip.</Li>
                     </Ul>
 
                     <Sub3Title>Actions</Sub3Title>
                     <Ul>
-                        <Li><strong>Resume</strong> — restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
+                        <Li><strong>Resume</strong> - restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
                         <Li><strong>⋮ menu</strong> per job:</Li>
                     </Ul>
                     <Ol>
-                        <Li><strong>Edit details</strong> — opens a dialog to set name and description.</Li>
-                        <Li><strong>Copy BILN</strong> — copies the job's BILN string to the clipboard.</Li>
-                        <Li><strong>Delete job</strong> — permanently deletes the individual job (immediate, no undo).</Li>
+                        <Li><strong>Edit details</strong> - opens a dialog to set name and description.</Li>
+                        <Li><strong>Copy BILN</strong> - copies the job's BILN string to the clipboard.</Li>
+                        <Li><strong>Delete job</strong> - permanently deletes the individual job (immediate, no undo).</Li>
                     </Ol>
 
                     <Sub3Title>Bulk actions (header bar)</Sub3Title>
                     <Ul>
-                        <Li><strong>Delete all jobs</strong> — removes every job in the current session. A confirmation dialog shows the job count and warns that the action cannot be undone.</Li>
-                        <Li><strong>Refresh</strong> — re-fetches the job list from the server.</Li>
-                        <Li><strong>Columns & view</strong> — toggles optional columns (BILN, Date, State) and the "Show descriptions" option.</Li>
+                        <Li><strong>Delete all jobs</strong> - removes every job in the current session. A confirmation dialog shows the job count and warns that the action cannot be undone.</Li>
+                        <Li><strong>Refresh</strong> - re-fetches the job list from the server.</Li>
+                        <Li><strong>Columns & view</strong> - toggles optional columns (BILN, Date, State) and the "Show descriptions" option.</Li>
                     </Ul>
 
 
@@ -1257,7 +1257,7 @@ const Documentation = () => {
 
                     <P>
                         A <strong>Session ID</strong> ties together your personal monomers, conformer jobs, and editor state.
-                        No account or login is required — the session is anonymous and identified only by its unique ID.
+                        No account or login is required: the session is anonymous and identified only by its unique ID.
                     </P>
 
                     <Sub2Title>How a session is created</Sub2Title>
@@ -1270,8 +1270,8 @@ const Documentation = () => {
 
                     <Sub2Title>What a session contains</Sub2Title>
                     <Ul>
-                        <Li><strong>Personal monomers</strong> — custom monomers you created or uploaded in <em>My monomers</em>.</Li>
-                        <Li><strong>Conformer generation jobs</strong> — every 3D job submitted under this session, accessible from the Jobs tab.</Li>
+                        <Li><strong>Personal monomers</strong> - custom monomers you created or uploaded in <em>My monomers</em>.</Li>
+                        <Li><strong>Conformer generation jobs</strong> - every 3D job submitted under this session, accessible from the Jobs tab.</Li>
                     </Ul>
 
                     <Sub2Title>Naming a session</Sub2Title>
@@ -1298,7 +1298,7 @@ const Documentation = () => {
                     </Ul>
                     <Figure
                         src="/assets/documentation/pepedit_session-share.png"
-                        alt="Session dialog — Share tab showing email input and session ID selection"
+                        alt="Session dialog - Share tab showing email input and session ID selection"
                         caption="The Share tab: send a Session ID to a collaborator by email."
                         openLightbox={openLightbox}
                         maxWidth="sm"
@@ -1309,13 +1309,13 @@ const Documentation = () => {
                         Get back into a session you no longer have in your browser:
                     </P>
                     <Ol>
-                        <Li><strong>Load by ID</strong> — paste a Session ID and click Load Session.</Li>
-                        <Li><strong>Email this session ID</strong> — sends the current ID to your verified email.</Li>
-                        <Li><strong>Email all session IDs</strong> — sends every Session ID linked to your email.</Li>
+                        <Li><strong>Load by ID</strong> - paste a Session ID and click Load Session.</Li>
+                        <Li><strong>Email this session ID</strong> - sends the current ID to your verified email.</Li>
+                        <Li><strong>Email all session IDs</strong> - sends every Session ID linked to your email.</Li>
                     </Ol>
                     <Figure
                         src="/assets/documentation/pepedit_session-recover.png"
-                        alt="Session dialog — Recover tab showing Load by ID field and email recovery options"
+                        alt="Session dialog - Recover tab showing Load by ID field and email recovery options"
                         caption="The Recover tab: load an existing session by ID or request it via email."
                         openLightbox={openLightbox}
                         maxWidth="sm"
@@ -1332,7 +1332,7 @@ const Documentation = () => {
                     </Ul>
                     <Figure
                         src="/assets/documentation/pepedit_session-email.png"
-                        alt="Session dialog — Email tab showing email linking and session notes fields"
+                        alt="Session dialog - Email tab showing email linking and session notes fields"
                         caption="The Email tab: link an email for recovery, and set session name and description."
                         openLightbox={openLightbox}
                         maxWidth="sm"
@@ -1359,7 +1359,7 @@ const Documentation = () => {
                         </MUILink>
                         ). It represents a peptide as an ordered list of monomers connected through numbered attachment
                         points (R-groups). Together with a monomer library that maps each abbreviation to its chemical
-                        structure, a BILN string unambiguously defines the atomistic structure of any peptide — including
+                        structure, a BILN string unambiguously defines the atomistic structure of any peptide, including
                         cyclic, branched, and multi-chain architectures with non-natural building blocks.
                     </P>
 
@@ -1377,8 +1377,8 @@ const Documentation = () => {
                             concatenated: <code>A(1,2).G(1,1)(2,2).C(2,1)</code>
                         </Li>
                         <Li>
-                            When a connection goes from R2 of one monomer to R1 of the next — the standard backbone
-                            peptide bond — the explicit notation can be replaced by a simple
+                            When a connection goes from R2 of one monomer to R1 of the next (the standard backbone
+                            peptide bond), the explicit notation can be replaced by a simple
                             hyphen: <code>A-G-C</code>. Combined with the convention that R1 sits on the backbone
                             nitrogen and R2 on the backbone carbonyl carbon, this gives a natural N→C reading order.
                         </Li>
@@ -1457,31 +1457,31 @@ const Documentation = () => {
                     />
 
                     <P>
-                        A monomer is the basic building block in PEP-EDIT — an amino acid, capping group, or arbitrary
+                        A monomer is the basic building block in PEP-EDIT: an amino acid, capping group, or arbitrary
                         chemical moiety. Each monomer is defined by four properties:
                     </P>
 
                     <Ul>
-                        <Li><strong>Structure</strong> — the chemical structure, stored as an SDF MolBlock in PEP-EDIT.</Li>
-                        <Li><strong>Abbreviation (symbol)</strong> — a unique identifier used in the BILN string (e.g. "A" for alanine, "am" for C-terminal amine
+                        <Li><strong>Structure</strong> - the chemical structure, stored as an SDF MolBlock in PEP-EDIT.</Li>
+                        <Li><strong>Abbreviation (symbol)</strong> - a unique identifier used in the BILN string (e.g. "A" for alanine, "am" for C-terminal amine
 
                             ).</Li>
-                        <Li><strong>Attachment points (R-groups)</strong> — numbered positions (R1, R2, R3…) where the monomer can form bonds with other monomers.</Li>
-                        <Li><strong>Leaving groups</strong> — the atoms (H or OH) that cap an R-group when it is not involved in a bond.</Li>
+                        <Li><strong>Attachment points (R-groups)</strong> - numbered positions (R1, R2, R3…) where the monomer can form bonds with other monomers.</Li>
+                        <Li><strong>Leaving groups</strong> - the atoms (H or OH) that cap an R-group when it is not involved in a bond.</Li>
                     </Ul>
 
                     <Sub2Title>R-group conventions</Sub2Title>
                     <P>By convention:</P>
                     <Ul>
-                        <Li><strong>R1</strong> — backbone nitrogen (N-terminus side).</Li>
-                        <Li><strong>R2</strong> — backbone carbonyl carbon (C-terminus side).</Li>
-                        <Li><strong>R3, R4…</strong> — side chains, branching points, or chemical modifications.</Li>
+                        <Li><strong>R1</strong> - backbone nitrogen (N-terminus side).</Li>
+                        <Li><strong>R2</strong> - backbone carbonyl carbon (C-terminus side).</Li>
+                        <Li><strong>R3, R4…</strong> - side chains, branching points, or chemical modifications.</Li>
                     </Ul>
 
                     <P>
                         The number of R-groups determines the monomer's role. A monomer with a single R-group acts as a
                         capping group (e.g. acetyl caps via R2, amide caps via R1). Two R-groups make a standard backbone
-                        unit. Three or more R-groups open up branching or cyclization — for instance, lysine carries R1
+                        unit. Three or more R-groups open up branching or cyclization. For instance, lysine carries R1
                         and R2 on the backbone and R3 on the side-chain amine, allowing a modification at Nε while
                         remaining part of the main chain.
                     </P>
@@ -1527,7 +1527,7 @@ const Documentation = () => {
                     <P>
                         PEP-EDIT ships with a public library of 324 monomers covering all 20 canonical amino acids and
                         common non-natural residues. Users can create additional monomers through the guided wizard on
-                        the <em>My monomers</em> page — see{" "}
+                        the <em>My monomers</em> page, see{" "}
                         <MUILink href="#adding-monomers">Adding monomers to the library</MUILink>.
                     </P>
 
@@ -1542,12 +1542,12 @@ const Documentation = () => {
                             Dimorphite-DL
                         </MUILink>{" "}
                         at a user-specified pH (default 7.4). Selected SMARTS pKa definitions were adjusted to better
-                        match known amino-acid behaviour at physiological pH — for instance, phenol, imide and amide
+                        match known amino-acid behaviour at physiological pH. For instance, phenol, imide and amide
                         groups are kept neutral.
                     </P>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        <strong>Modified pKa rules</strong> — The following SMARTS pKa adjustments were applied to the
+                        <strong>Modified pKa rules</strong> - The following SMARTS pKa adjustments were applied to the
                         original Dimorphite-DL definitions:
                         <Ul sx={{ mb: 0 }}>
                             <Li><strong>Phenols</strong> (e.g. Tyrosine): pKa raised from ~7.1 to 10.0 so they stay neutral at pH 7.4. A separate rule keeps a lower pKa (6.8) for heavily substituted, electron-withdrawing phenols.</Li>
@@ -1615,7 +1615,7 @@ const Documentation = () => {
                     <P>
                         The first successful embedding terminates the procedure. This schedule addresses geometric
                         conflicts that can arise when external coordinate constraints cannot be perfectly reconciled with
-                        the molecule's bonding geometry — a common situation for complex or multi-fragment peptides. Even
+                        the molecule's bonding geometry, a common situation for complex or multi-fragment peptides. Even
                         at 50 % constraint retention, the global backbone fold is generally preserved while giving RDKit
                         enough freedom to resolve local clashes.
                     </P>
@@ -1650,18 +1650,18 @@ const Documentation = () => {
                             <TableBody>
                                 <TableRow><TableCell><code><strong>H</strong></code></TableCell><TableCell>Alpha helix</TableCell><TableCell>Constrained to helical conformation.</TableCell></TableRow>
                                 <TableRow><TableCell><code><strong>E</strong></code></TableCell><TableCell>Beta strand</TableCell><TableCell>Constrained to extended strand conformation.</TableCell></TableRow>
-                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference — free to adopt any conformation.</TableCell></TableRow>
+                                <TableRow><TableCell><code><strong>-</strong></code></TableCell><TableCell>Random / coil</TableCell><TableCell>No structural preference - free to adopt any conformation.</TableCell></TableRow>
                             </TableBody>
                         </Table>
                     </TableContainer>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        Reference angles — α-helix (<strong>H</strong>): φ = −57°, ψ = −47°; β-strand (<strong>E</strong>): φ = −120°, ψ = 120°.
+                        Reference angles - α-helix (<strong>H</strong>): φ = −57°, ψ = −47°; β-strand (<strong>E</strong>): φ = −120°, ψ = 120°.
                         These are standard Ramachandran values for L-amino acids; D-amino acid values are sign-mirrored.
                     </Alert>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
-                        PEP-EDIT supports secondary-structure constraints on <strong>multi-chain peptides</strong> — each chain
+                        PEP-EDIT supports secondary-structure constraints on <strong>multi-chain peptides</strong> - each chain
                         can have its own independent H/E/− assignments. This extends pyPept's underlying constraint engine,
                         which only supports distance-based bound-matrix constraints on single-chain peptides.
                     </Alert>
@@ -1676,7 +1676,7 @@ const Documentation = () => {
                     <P>
                         Users can select which chain and residue range to map from the template, apply an offset for
                         leading unconstrained positions, and mask individual residues to exclude them from the constraint
-                        set. Multi-chain peptides are fully supported — each designed chain can be mapped independently
+                        set. Multi-chain peptides are fully supported: each designed chain can be mapped independently
                         to a different template chain or residue range.
                     </P>
 
@@ -1700,10 +1700,10 @@ const Documentation = () => {
                         There are several ways to start building a peptide in PEP-EDIT, depending on your starting point:
                     </P>
                     <Ul>
-                        <Li><MUILink href="#from-biln">From a BILN sequence</MUILink> — type or paste a sequence directly if you know the monomer symbols.</Li>
-                        <Li><MUILink href="#from-library">From the monomer library</MUILink> — browse, search, and add monomers interactively.</Li>
-                        <Li><MUILink href="#from-example">From a pre-built example</MUILink> — load one of the 15 pre-built peptides as a starting point.</Li>
-                        <Li><MUILink href="#from-import">From FASTA or HELM</MUILink> — import an existing sequence from another format.</Li>
+                        <Li><MUILink href="#from-biln">From a BILN sequence</MUILink> - type or paste a sequence directly if you know the monomer symbols.</Li>
+                        <Li><MUILink href="#from-library">From the monomer library</MUILink> - browse, search, and add monomers interactively.</Li>
+                        <Li><MUILink href="#from-example">From a pre-built example</MUILink> - load one of the 15 pre-built peptides as a starting point.</Li>
+                        <Li><MUILink href="#from-import">From FASTA or HELM</MUILink> - import an existing sequence from another format.</Li>
                     </Ul>
                     <P>
                         Once your peptide is in the editor, see{" "}
@@ -1714,13 +1714,13 @@ const Documentation = () => {
 
                     <P>
                         If you already know the sequence you want, type or paste it directly into the BILN input field
-                        (Manual edition section). The input is live — the 2D Sketch updates on every valid
+                        (Manual edition section). The input is live: the 2D Sketch updates on every valid
                         keystroke, with no need to press Enter or click Apply.
                     </P>
                     <P>
                         A simple linear peptide is just monomers separated by hyphens
                         (e.g. <code>P-E-P-T-I-D-E</code>). For cyclic, branched, or multi-chain peptides, BILN uses
-                        explicit bond annotations and dot separators — see the{" "}
+                        explicit bond annotations and dot separators (see the{" "}
                         <MUILink href="#biln-notation">BILN notation</MUILink> section for syntax details.
                     </P>
                     <P>
@@ -1747,7 +1747,7 @@ const Documentation = () => {
                     <SubTitle id="from-library">From the monomer library</SubTitle>
 
                     <P>
-                        If you prefer to build interactively — or if you need to explore what monomers are available —
+                        If you prefer to build interactively, or if you need to explore what monomers are available,
                         open the <strong>Monomer Library</strong> tab in the right panel.
                     </P>
 
@@ -1757,8 +1757,8 @@ const Documentation = () => {
                         session. Two ways to find what you need:
                     </P>
                     <Ul>
-                        <Li><strong>Quick filters</strong> — click ALL, CAPS, NATURAL, or NON-NATURAL to filter by monomer category.</Li>
-                        <Li><strong>Search field</strong> — type any text to filter across multiple attributes simultaneously: name, symbol, PDB code, analog, SMILES, and more. For example, typing "phe" will match Phenylalanine, D-Phenylalanine, chloro-Phenylalanine variants, etc.</Li>
+                        <Li><strong>Quick filters</strong> - click ALL, CAPS, NATURAL, or NON-NATURAL to filter by monomer category.</Li>
+                        <Li><strong>Search field</strong> - type any text to filter across multiple attributes simultaneously: name, symbol, PDB code, analog, SMILES, and more. For example, typing "phe" will match Phenylalanine, D-Phenylalanine, chloro-Phenylalanine variants, etc.</Li>
                     </Ul>
                     <P>
                         Card size can be toggled between <strong>Small</strong> (compact grid, more visible at once) and{" "}
@@ -1809,9 +1809,9 @@ const Documentation = () => {
 
                     <P><strong>Placement mode:</strong></P>
                     <Ul>
-                        <Li><strong>Append</strong> — adds the monomer at the C-terminus (end) of the selected chain. This is the default and most common mode.</Li>
-                        <Li><strong>Prepend</strong> — inserts the monomer at the N-terminus (beginning) of the selected chain.</Li>
-                        <Li><strong>New chain</strong> — starts a new chain. This is the default when the editor is empty.</Li>
+                        <Li><strong>Append</strong> - adds the monomer at the C-terminus (end) of the selected chain. This is the default and most common mode.</Li>
+                        <Li><strong>Prepend</strong> - inserts the monomer at the N-terminus (beginning) of the selected chain.</Li>
+                        <Li><strong>New chain</strong> - starts a new chain. This is the default when the editor is empty.</Li>
                     </Ul>
 
                     <P><strong>Chain selector:</strong></P>
@@ -1856,12 +1856,12 @@ const Documentation = () => {
                         as a starting point for your own designs.
                     </P>
                     <Ul>
-                        <Li><strong>Linear peptides</strong> — simple backbone-connected sequences</Li>
-                        <Li><strong>Cyclic peptides</strong> — head-to-tail cyclization with L and/or D amino acids</Li>
-                        <Li><strong>Capped peptides</strong> — N-terminal acetyl, C-terminal amide, both caps, side-chain capping</Li>
-                        <Li><strong>Non-natural amino acids</strong> — semaglutide variants, cyclic with D-amino acids</Li>
-                        <Li><strong>Secondary structure constraints</strong> — full helix, helix-loop-helix, beta strand, mixed</Li>
-                        <Li><strong>3D template constraints</strong> — somatostatin with PDB template (auto-fetched)</Li>
+                        <Li><strong>Linear peptides</strong> - simple backbone-connected sequences</Li>
+                        <Li><strong>Cyclic peptides</strong> - head-to-tail cyclization with L and/or D amino acids</Li>
+                        <Li><strong>Capped peptides</strong> - N-terminal acetyl, C-terminal amide, both caps, side-chain capping</Li>
+                        <Li><strong>Non-natural amino acids</strong> - semaglutide variants, cyclic with D-amino acids</Li>
+                        <Li><strong>Secondary structure constraints</strong> - full helix, helix-loop-helix, beta strand, mixed</Li>
+                        <Li><strong>3D template constraints</strong> - somatostatin with PDB template (auto-fetched)</Li>
                     </Ul>
                     <P>
                         Click <strong>▶ Load</strong> on any example to populate the editor with its BILN sequence and,
@@ -1877,8 +1877,8 @@ const Documentation = () => {
                     </P>
 
                     <Ul>
-                        <Li><strong>FASTA mode</strong> (default) — paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
-                        <Li><strong>HELM mode</strong> — paste a HELM string. Conversion to BILN is handled server-side.</Li>
+                        <Li><strong>FASTA mode</strong> (default) - paste one sequence per line (up to 10 lines). Only the standard 20 one-letter amino acid codes are accepted (A, R, N, D, C, Q, E, G, H, I, L, K, M, F, P, S, T, W, Y, V). Each valid line becomes a separate chain, joined by "." in the resulting BILN.</Li>
+                        <Li><strong>HELM mode</strong> - paste a HELM string. Conversion to BILN is handled server-side.</Li>
                     </Ul>
 
                     <P>
@@ -1886,7 +1886,7 @@ const Documentation = () => {
                         then click <strong>Apply</strong>. An error message is displayed inline if the input is invalid.
                     </P>
 
-                    {/* [GIF: upload sequence dialog — switching between FASTA and HELM modes and applying a FASTA sequence] */}
+                    {/* [GIF: upload sequence dialog - switching between FASTA and HELM modes and applying a FASTA sequence] */}
                     <Figure
                         src="/assets/documentation/gifs/pepedit_upload-sequence.gif"
                         alt="Animated demonstration of the Upload Sequence dialog: selecting FASTA mode, pasting a sequence, and clicking Apply. Same process for HELM mode."
@@ -1916,7 +1916,7 @@ const Documentation = () => {
 
                     <P>
                         <strong>Replacing a monomer</strong><br />
-                        Hover over any monomer pill in the chain track — a Replace icon appears. Click it, then select
+                        Hover over any monomer pill in the chain track. A Replace icon appears. Click it, then select
                         the replacement monomer from the library panel (which opens automatically). The swap preserves
                         existing connections where the R-group configuration is compatible.
                     </P>
@@ -1926,7 +1926,7 @@ const Documentation = () => {
                         breaking the relevant bonds.
                     </P>
 
-                    {/* GIF ~5s — Swap monomers → Delete one monomer → Click on replace -> library opens → pick replacement Crop: chain track + library panel.] */}
+                    {/* GIF ~5s - Swap monomers → Delete one monomer → Click on replace -> library opens → pick replacement Crop: chain track + library panel.] */}
                     <Figure
                         src="/assets/documentation/gifs/pepedit_editing-peptide-from-chain.gif"
                         alt="Editing a peptide: replacing a monomer, deleting a monomer, and adding a new one from the library."
@@ -1941,9 +1941,9 @@ const Documentation = () => {
                         Click the ⋮ menu on a chain's Sequence row for bulk operations:
                     </P>
                     <Ul>
-                        <Li><strong>Cyclize</strong> — create a head-to-tail bond (R1 of first residue ↔ R2 of last residue), converting a linear chain to a cyclic peptide.</Li>
-                        <Li><strong>Mirror</strong> — swap L-amino acids to their D equivalents (and vice versa) across the entire chain. This only affects the 20 standard amino acids (e.g. A ↔ dA); non-natural or modified residues are left unchanged.</Li>
-                        <Li><strong>Delete chain</strong> — remove the chain entirely.</Li>
+                        <Li><strong>Cyclize</strong> - create a head-to-tail bond (R1 of first residue ↔ R2 of last residue), converting a linear chain to a cyclic peptide.</Li>
+                        <Li><strong>Mirror</strong> - swap L-amino acids to their D equivalents (and vice versa) across the entire chain. This only affects the 20 standard amino acids (e.g. A ↔ dA); non-natural or modified residues are left unchanged.</Li>
+                        <Li><strong>Delete chain</strong> - remove the chain entirely.</Li>
                     </Ul>
 
                     <P>
@@ -1959,7 +1959,7 @@ const Documentation = () => {
                         The editor toolbar provides <Ic icon={UndoIcon} label="Undo" /> and <Ic icon={RedoIcon} label="Redo" />{" "}
                         buttons covering all operations: adding, deleting, reordering, replacing, linking, and constraint
                         changes (up to 20 steps). Note that Ctrl+Z / Ctrl+Y only work inside the BILN text field (native
-                        browser undo) — use the toolbar buttons for chain track operations.
+                        browser undo); use the toolbar buttons for chain track operations.
                     </P>
 
                     {/* GIF showing click on menu -> mirror -> cyclize -> add chain -> swap monomer -> remove chain -> undo */}
@@ -1977,7 +1977,7 @@ const Documentation = () => {
                     <SectionTitle id="linking">Linking monomers</SectionTitle>
 
                     <P>
-                        PEP-EDIT supports extra bonds beyond the backbone — disulfide bridges, side-chain
+                        PEP-EDIT supports extra bonds beyond the backbone: disulfide bridges, side-chain
                         cross-links, lipidation attachments, or head-to-tail cyclizations. These bonds
                         are represented in BILN as <code>(bondId, rgroupId)</code> annotation pairs
                         (see <MUILink href="#biln-notation">BILN notation</MUILink>).
@@ -1998,12 +1998,12 @@ const Documentation = () => {
                     </P>
                     <Ul>
                         <Li>
-                            <strong>BILN annotations</strong> — type matching <code>(bondId, rgroupId)</code> pairs
+                            <strong>BILN annotations</strong> - type matching <code>(bondId, rgroupId)</code> pairs
                             directly in the BILN input. For instance, adding <code>(1,1)</code> to the first residue
                             and <code>(1,2)</code> to the last residue creates a head-to-tail cyclic bond.
                         </Li>
                         <Li>
-                            <strong>Link mode</strong> — click the <Ic icon={DeviceHubIcon} label="Link" /> button
+                            <strong>Link mode</strong> - click the <Ic icon={DeviceHubIcon} label="Link" /> button
                             in the editor toolbar. The 2D viewer dims the molecule structure and highlights every
                             available R-group. Click a first R-group (it highlights with an animated dashed outline),
                             then click a second R-group to create the bond. PEP-EDIT stays in Link mode after each bond,
@@ -2011,12 +2011,12 @@ const Documentation = () => {
                             Press <strong>Esc</strong> to cancel an in-progress selection or exit Link mode entirely.
                         </Li>
                         <Li>
-                            <strong>Cyclize shortcut</strong> — for head-to-tail cyclization specifically, the ⋮ menu
+                            <strong>Cyclize shortcut</strong> - for head-to-tail cyclization specifically, the ⋮ menu
                             on a chain's Sequence row offers a one-click <strong>Cyclize</strong> action (R1 of first
                             residue ↔ R2 of last residue) without needing to enter Link mode.
                         </Li>
                         <Li>
-                            <strong>Unlink mode</strong> — click the <Ic icon={LinkOffIcon} label="Unlink" /> button to enter <strong>Unlink mode</strong>.
+                            <strong>Unlink mode</strong> - click the <Ic icon={LinkOffIcon} label="Unlink" /> button to enter <strong>Unlink mode</strong>.
                             The viewer dims everything except the cuttable extra bonds, which appear in red with
                             a marching-ants animation. Click any highlighted bond to remove it.
                             Only extra bonds (non-backbone) can be cut; backbone connections are managed by
@@ -2033,7 +2033,7 @@ const Documentation = () => {
                                 Both are restored when you leave the mode.
                             </Li>
                             <Li>
-                                Extra bonds are flexible by design — PEP-EDIT does not validate whether a given link is
+                                Extra bonds are flexible by design: PEP-EDIT does not validate whether a given link is
                                 chemically meaningful (e.g. matching R-group chemistry). That remains the user's responsibility.
                             </Li>
                         </Ul>
@@ -2057,11 +2057,11 @@ const Documentation = () => {
                         Three options are available:
                     </P>
                     <Ul>
-                        <Li><strong>None</strong> — no constraints (default). Only the Sequence row is visible.</Li>
-                        <Li><strong>Secondary structure</strong> — adds a constraint row with per-residue H/E/- buttons.</Li>
-                        <Li><strong>3D template</strong> — adds a template mapping row and opens the scaffold upload workflow.</Li>
+                        <Li><strong>None</strong> - no constraints (default). Only the Sequence row is visible.</Li>
+                        <Li><strong>Secondary structure</strong> - adds a constraint row with per-residue H/E/- buttons.</Li>
+                        <Li><strong>3D template</strong> - adds a template mapping row and opens the scaffold upload workflow.</Li>
                     </Ul>
-                    <P>The two constraint modes are mutually exclusive — selecting one replaces the other.</P>
+                    <P>The two constraint modes are mutually exclusive: selecting one replaces the other.</P>
 
                     <SubTitle id="constraints-2d-howto">Secondary structure constraints</SubTitle>
 
@@ -2077,11 +2077,11 @@ const Documentation = () => {
                         <strong>Setting constraints per residue</strong><br />
                         Once <em>Secondary structure</em> mode is active, a constraint row appears below the chain track.
                         Each cell accepts one of three values: <strong>H</strong> (helix), <strong>E</strong> (strand),
-                        or <strong>−</strong> (coil). The input works like an OTP field — click a cell to
+                        or <strong>−</strong> (coil). The input works like an OTP field - click a cell to
                         focus it (the active cell is highlighted with a subtle ring) and start typing:
                     </P>
                     <Ul>
-                        <Li>Type <strong>H</strong>, <strong>E</strong>, or <strong>-</strong> to set a value — focus automatically advances to the next cell.</Li>
+                        <Li>Type <strong>H</strong>, <strong>E</strong>, or <strong>-</strong> to set a value - focus automatically advances to the next cell.</Li>
                         <Li>Use <strong>←</strong> / <strong>→</strong> arrows to navigate between cells (no text selection occurs).</Li>
                         <Li>Use <strong>↑</strong> / <strong>↓</strong> arrows to cycle through H → E → − without moving.</Li>
                         <Li><strong>Delete</strong> resets in place.</Li>
@@ -2093,10 +2093,10 @@ const Documentation = () => {
                         Click the ⋮ menu on the constraint row for quick bulk assignments:
                     </P>
                     <Ul>
-                        <Li><strong>All helix</strong> — sets every residue to H.</Li>
-                        <Li><strong>All strand</strong> — sets every residue to E.</Li>
-                        <Li><strong>All coil</strong> — sets every residue to −.</Li>
-                        <Li><strong>Clear</strong> — removes all assignments (equivalent to all coil).</Li>
+                        <Li><strong>All helix</strong> - sets every residue to H.</Li>
+                        <Li><strong>All strand</strong> - sets every residue to E.</Li>
+                        <Li><strong>All coil</strong> - sets every residue to −.</Li>
+                        <Li><strong>Clear</strong> - removes all assignments (equivalent to all coil).</Li>
                     </Ul>
 
                     <P>
@@ -2150,12 +2150,12 @@ const Documentation = () => {
                     </P>
                     <Ul>
                         <Li>
-                            <strong>From a PDB identifier</strong> — in the upload dialog, select the{" "}
+                            <strong>From a PDB identifier</strong> - in the upload dialog, select the{" "}
                             <strong>PDB ID</strong> tab and enter a 4-character RCSB PDB code
                             (e.g. <code>2MI1</code>). PEP-EDIT fetches and parses the structure from the RCSB PDB.
                         </Li>
                         <Li>
-                            <strong>From a local file</strong> — select the <strong>File</strong> tab and
+                            <strong>From a local file</strong> - select the <strong>File</strong> tab and
                             upload a PDB or mmCIF file from your computer. Accepted
                             extensions: <code>.pdb</code>, <code>.ent</code>, <code>.cif</code>, <code>.mmcif</code>.
                         </Li>
@@ -2204,9 +2204,9 @@ const Documentation = () => {
                     <Sub3Title>Global controls (top of the panel)</Sub3Title>
                     <Ul>
                         <Li><strong>Template name</strong> displays the name of the loaded template (filename or PDB code).</Li>
-                        <Li><strong>Remove template</strong> (trash icon) — deletes the template from the server and clears all mappings.</Li>
-                        <Li><strong>Template overlay</strong> toggle — shows or hides the template structure in the 3D viewer as a semi-transparent overlay (see below).</Li>
-                        <Li><strong>Opacity slider</strong> (5 %-60 %) — adjusts the overlay opacity.</Li>
+                        <Li><strong>Remove template</strong> (trash icon) - deletes the template from the server and clears all mappings.</Li>
+                        <Li><strong>Template overlay</strong> toggle - shows or hides the template structure in the 3D viewer as a semi-transparent overlay (see below).</Li>
+                        <Li><strong>Opacity slider</strong> (5 %-60 %) - adjusts the overlay opacity.</Li>
                         <Li><strong>Lock camera</strong> toggle prevents the camera from resetting when conformers are generated.</Li>
                     </Ul>
 
@@ -2240,14 +2240,14 @@ const Documentation = () => {
                     </P>
 
                     <P>
-                        <strong>Automatic initialization</strong> — when a template is first loaded, PEP-EDIT
+                        <strong>Automatic initialization</strong> - when a template is first loaded, PEP-EDIT
                         auto-configures all designed chains by sequentially assigning template residues from the
                         first template chain (Chain A gets the first N<sub>1</sub> residues, Chain B gets the
                         next N<sub>2</sub>, and so on). Caps are excluded from the amino-acid count, and an
                         N-terminal cap automatically sets the offset to 1.
                     </P>
                     <P>
-                        <strong>Repacking</strong> — when you edit the mapping for one designed chain, PEP-EDIT
+                        <strong>Repacking</strong> - when you edit the mapping for one designed chain, PEP-EDIT
                         repacks all mappings on the same template chain to prevent overlaps. Chains are kept in
                         design order and each starts after the previous one ends.
                     </P>
@@ -2286,21 +2286,21 @@ const Documentation = () => {
 
                     <P>
                         Masking allows you to exclude individual template residues from the constraint set. Masked
-                        residues are resolved <i>de novo</i> during embedding — their backbone atoms receive no
+                        residues are resolved <i>de novo</i> during embedding: their backbone atoms receive no
                         spatial reference from the template.
                     </P>
 
                     <Sub3Title>When to mask</Sub3Title>
                     <Ul>
                         <Li>The template residue at a given position is chemically incompatible with the designed monomer (e.g. Proline in the template vs. Glycine in the design).</Li>
-                        <Li>Embedding fails because a specific position creates geometric conflicts — masking relaxes the constraint.</Li>
+                        <Li>Embedding fails because a specific position creates geometric conflicts - masking relaxes the constraint.</Li>
                         <Li>You want part of the peptide to deviate from the template fold while keeping the rest constrained.</Li>
                     </Ul>
 
                     <Sub3Title>How to mask</Sub3Title>
                     <Ul>
-                        <Li><strong>Individual masking</strong> — hover over any template residue cell in the chain track. A small eye icon appears above the cell — click it to toggle the mask. Masked residues are shown with a warning-colored (amber) border and a <code>−</code> placeholder.</Li>
-                        <Li><strong>Bulk masking</strong> — click the ⋮ menu on the template row and select <strong>Mask all</strong> or <strong>Unmask all</strong> to toggle all residues at once.</Li>
+                        <Li><strong>Individual masking</strong> - hover over any template residue cell in the chain track. A small eye icon appears above the cell - click it to toggle the mask. Masked residues are shown with a warning-colored (amber) border and a <code>−</code> placeholder.</Li>
+                        <Li><strong>Bulk masking</strong> - click the ⋮ menu on the template row and select <strong>Mask all</strong> or <strong>Unmask all</strong> to toggle all residues at once.</Li>
                     </Ul>
 
                     <Figure
@@ -2326,11 +2326,11 @@ const Documentation = () => {
                         try the following:
                     </P>
                     <Ol>
-                        <Li><strong>Mask problematic residues</strong> — the most common fix. Start by masking residues near the ends of the mapped range or near non-natural amino acids.</Li>
-                        <Li><strong>Reduce the constraint window</strong> — shorten the mapped range by adjusting Start/End to exclude terminal residues.</Li>
-                        <Li><strong>Increase the offset</strong> — if the N-terminal portion doesn't correspond well to the template, increase the offset so those positions are unconstrained.</Li>
-                        <Li><strong>Disable constraints for specific chains</strong> — in multi-chain designs, disable template constraints for chains that are causing failures while keeping them for the chain(s) that need the template fold.</Li>
-                        <Li><strong>Check the template quality</strong> — poor-resolution PDB structures or heavily modeled regions can provide unreliable backbone coordinates. Consider a higher-quality template or a different chain.</Li>
+                        <Li><strong>Mask problematic residues</strong> - the most common fix. Start by masking residues near the ends of the mapped range or near non-natural amino acids.</Li>
+                        <Li><strong>Reduce the constraint window</strong> - shorten the mapped range by adjusting Start/End to exclude terminal residues.</Li>
+                        <Li><strong>Increase the offset</strong> - if the N-terminal portion doesn't correspond well to the template, increase the offset so those positions are unconstrained.</Li>
+                        <Li><strong>Disable constraints for specific chains</strong> - in multi-chain designs, disable template constraints for chains that are causing failures while keeping them for the chain(s) that need the template fold.</Li>
+                        <Li><strong>Check the template quality</strong> - poor-resolution PDB structures or heavily modeled regions can provide unreliable backbone coordinates. Consider a higher-quality template or a different chain.</Li>
                     </Ol>
 
                     {/* ── Multi-chain peptides ── */}
@@ -2341,9 +2341,9 @@ const Documentation = () => {
                         entry. This enables several workflows:
                     </P>
                     <Ul>
-                        <Li><strong>All chains from the same template chain</strong> — useful when the designed peptide is a segmented version of a single reference peptide. PEP-EDIT auto-allocates consecutive residue ranges and repacks automatically to prevent overlaps.</Li>
-                        <Li><strong>Different template chains</strong> — each designed chain can map to a different chain from the template PDB. For example, if the template is a dimeric structure, Chain A of the design can map to template chain A, and Chain B to template chain B.</Li>
-                        <Li><strong>Selective constraining</strong> — not all chains need to be enabled. You can constrain Chain A with a template and leave Chain B unconstrained (embedded <i>de novo</i>).</Li>
+                        <Li><strong>All chains from the same template chain</strong> - useful when the designed peptide is a segmented version of a single reference peptide. PEP-EDIT auto-allocates consecutive residue ranges and repacks automatically to prevent overlaps.</Li>
+                        <Li><strong>Different template chains</strong> - each designed chain can map to a different chain from the template PDB. For example, if the template is a dimeric structure, Chain A of the design can map to template chain A, and Chain B to template chain B.</Li>
+                        <Li><strong>Selective constraining</strong> - not all chains need to be enabled. You can constrain Chain A with a template and leave Chain B unconstrained (embedded <i>de novo</i>).</Li>
                     </Ul>
 
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -2390,7 +2390,7 @@ const Documentation = () => {
                         </Card>
                         <Card title="Import SDF">
                             <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, mb: 1 }}>
-                                Import monomers from a pepedit-compatible SDF file - useful for sharing, restoring, or bulk-loading monomers.
+                                Import monomers from a pepedit-compatible SDF file, useful for sharing, restoring, or bulk-loading monomers.
                             </Typography>
                             <Ol>
                                 <Li>My monomers → <strong>Import SDF</strong></Li>
@@ -2429,7 +2429,7 @@ const Documentation = () => {
                     </P>
                     <P>
                         After bond selection, the molecule is split into fragments displayed in a carousel. Click a card to select
-                        the core fragment - PEP-EDIT automatically pre-fills metadata fields based on the chosen fragment.
+                        the core fragment. PEP-EDIT automatically pre-fills metadata fields based on the chosen fragment.
                     </P>
                     <Figure
                         src="/assets/documentation/create-monomer_step2_attachment-points.png"
@@ -2533,7 +2533,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION: GIF ~10-15s — importing the FASTA sequence via Upload sequence →
+    [MEDIA SUGGESTION: GIF ~10-15s - importing the FASTA sequence via Upload sequence →
     defining the Glu-8-to-N-terminus side-chain-to-backbone cyclization bond in the 2D viewer →
     opening the monomer library and substituting Phe-19 with Phe_3Cl.
     Crop: Manual edition + 2D viewer, full width.]
@@ -2555,7 +2555,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION: GIF ~8-10s — clicking Structural constraints → 3D template → entering PDB ID
+    [MEDIA SUGGESTION: GIF ~8-10s - clicking Structural constraints → 3D template → entering PDB ID
     1Q71 → template loads with mapping pre-filled → clicking Generate 3D → conformer appears with
     lasso topology visible in the 3D viewer, template overlay shown.
     Crop: Chains section + 3D viewer + Template panel, full width.]
@@ -2629,22 +2629,22 @@ const Documentation = () => {
                     </P>
                     <Ol>
                         <Li>
-                            <strong>⋮ menu → Cyclize</strong> — click the ⋮ menu on a chain's Sequence row
+                            <strong>⋮ menu → Cyclize</strong> - click the ⋮ menu on a chain's Sequence row
                             and select <strong>Cyclize</strong>. This is the fastest route for a simple
                             head-to-tail ring.
                         </Li>
                         <Li>
-                            <strong>Link mode</strong> — activate <Ic icon={DeviceHubIcon} label="Link" />,
+                            <strong>Link mode</strong> - activate <Ic icon={DeviceHubIcon} label="Link" />,
                             click R1 on the first monomer, then R2 on the last.
                         </Li>
                         <Li>
-                            <strong>BILN annotation</strong> — add matching bond IDs manually,
+                            <strong>BILN annotation</strong> - add matching bond IDs manually,
                             e.g. <code>G(1,1)-T-V-A-V-Q-F-L(1,2)</code>.
                         </Li>
                     </Ol>
 
                     {/*
-    [MEDIA SUGGESTION — GIF ~8s: start with a linear octapeptide, click ⋮ → Cyclize,
+    [MEDIA SUGGESTION - GIF ~8s: start with a linear octapeptide, click ⋮ → Cyclize,
     show the ring forming in the 2D viewer. Then show the same result via Link mode
     (click R1 on first residue, click R2 on last). Crop: chain track + 2D viewer.]
                     */}
@@ -2666,7 +2666,7 @@ const Documentation = () => {
                     <P>
                         Cyclic peptides can freely mix L- and D-amino acids. Use the <strong>Mirror</strong> action
                         (⋮ menu) to swap L-forms to their D equivalents across an entire chain
-                        (e.g. A ↔ dA). Mirror only affects the 20 standard amino acids — non-natural
+                        (e.g. A ↔ dA). Mirror only affects the 20 standard amino acids; non-natural
                         residues are left unchanged. For those, replace individual residues manually
                         via the monomer library.
                     </P>
@@ -2689,7 +2689,7 @@ const Documentation = () => {
                     </TableContainer>
 
                     {/*
-    [MEDIA SUGGESTION — Screenshot: side-by-side 2D sketches of the all-L and mixed
+    [MEDIA SUGGESTION - Screenshot: side-by-side 2D sketches of the all-L and mixed
     L/D octapeptides, showing the different ring shapes. Reuse existing OctaL.png and
     OctaD4L.png assets if appropriate, or a single composite figure.]
                     */}
@@ -2721,7 +2721,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION — GIF ~8s: start from a linear peptide with two Cys,
+    [MEDIA SUGGESTION - GIF ~8s: start from a linear peptide with two Cys,
     enter Link mode, click R3 on first Cys → R3 on second Cys → disulfide bridge
     appears in 2D viewer as a cross-link. Crop: chain track + 2D viewer.]
                     */}
@@ -2730,7 +2730,7 @@ const Documentation = () => {
                     <SubTitle id="topo-branched">Branched peptides</SubTitle>
 
                     <P>
-                        Branching requires a monomer with three or more R-groups — most commonly
+                        Branching requires a monomer with three or more R-groups, most commonly
                         Lysine (R1 backbone N, R2 backbone C, R3 side-chain Nε). The branch is written
                         as a second chain separated by <code>.</code>, connected via bond annotations:
                     </P>
@@ -2742,13 +2742,13 @@ const Documentation = () => {
                         (see <MUILink href="#example-semaglutide">Semaglutide example</MUILink>).
                     </P>
                     <P>
-                        Any monomer with a free R3 (or higher) can serve as a branching point — not just Lysine.
+                        Any monomer with a free R3 (or higher) can serve as a branching point, not just Lysine.
                         Check the <MUILink href="#monomer-library-ref">Monomer library reference</MUILink> to see
                         available R-groups for each building block.
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION — Screenshot or GIF ~6s: building a Lys-branched peptide.
+    [MEDIA SUGGESTION - Screenshot or GIF ~6s: building a Lys-branched peptide.
     Show the branch appearing in the 2D viewer as a side arm off the main chain.
     Crop: 2D viewer showing the branched topology.]
                     */}
@@ -2773,7 +2773,7 @@ const Documentation = () => {
                     </P>
 
                     {/*
-    [MEDIA SUGGESTION — GIF ~10s: add a second chain via the + button, enter Link mode,
+    [MEDIA SUGGESTION - GIF ~10s: add a second chain via the + button, enter Link mode,
     create an inter-chain disulfide by clicking R3 on a Cys in chain A then R3 on a Cys
     in chain B. Show the cross-link appearing in the 2D viewer. Crop: chain track + 2D viewer.]
                     */}
@@ -2789,7 +2789,7 @@ const Documentation = () => {
                     <Alert severity="info" sx={{ mb: 2 }}>
                         All topologies can be combined freely: a multi-chain design can include cyclic chains,
                         disulfide bridges, and branches simultaneously. The only constraints are R-group
-                        availability - each R-group can participate in at most one extra bond.
+                        availability: each R-group can participate in at most one extra bond.
                     </Alert>
 
                     <Divider sx={{ my: 3 }} />
@@ -2828,7 +2828,7 @@ const Documentation = () => {
                         SMILES exported by PEP-EDIT can be passed to structure-prediction tools such
                         as <MUILink href="https://www.chaidiscovery.com/" target="_blank" rel="noreferrer">Chai-1</MUILink>,{" "}
                         <MUILink href="https://alphafoldserver.com/" target="_blank" rel="noreferrer">AlphaFold 3</MUILink>,{" "}
-                        or <MUILink href="https://boltz.bio/boltz2" target="_blank" rel="noreferrer">Boltz</MUILink> — together with a protein sequence — to predict
+                        or <MUILink href="https://boltz.bio/boltz2" target="_blank" rel="noreferrer">Boltz</MUILink>, together with a protein sequence, to predict
                         protein-peptide complexes involving modified peptides.
                     </P>
                     <P>
@@ -2881,7 +2881,7 @@ const Documentation = () => {
                         information.
                     </P>
                     <P>
-                        As an example, cilengitide — a cyclic RGD pentapeptide — was built in PEP-EDIT
+                        As an example, cilengitide, a cyclic RGD pentapeptide, was built in PEP-EDIT
                         from the following BILN:
                     </P>
                     <CodeBlock>R(1,1)-G-D-dF-meV(1,2)</CodeBlock>
