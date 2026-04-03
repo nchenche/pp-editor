@@ -351,8 +351,6 @@ export function useConformerJob({ dbName = DB_NAME, sessionId = null, ownerId = 
           if (!ok) {
             let msg = `Status request failed (${status})`;
             msg = json?.message || json?.error || msg;
-            setErrorType('network');
-            setError(msg);
 
             if (status === 404) {
               const now = Date.now();
@@ -363,12 +361,20 @@ export function useConformerJob({ dbName = DB_NAME, sessionId = null, ownerId = 
               notFoundRef.current = { jobId: effectiveId, firstTs, count };
 
               // Grace window: retry a few times for a freshly-started job.
+              // Don't surface the error during grace to avoid flashing the error dialog
+              // for stale jobs from expired sessions.
               const elapsed = now - firstTs;
               const withinGrace = elapsed < 3000 && count <= 5;
               if (!withinGrace) {
                 // Persisted/stale job id (or backend never created it): stop polling and clear.
+                // setJobIdAndPersist(null) also calls clearError(), so the net effect is no
+                // user-visible error — the stale job is silently discarded.
                 setJobIdAndPersist(null);
               }
+            } else {
+              // Non-404 errors: surface immediately
+              setErrorType('network');
+              setError(msg);
             }
 
             return null;

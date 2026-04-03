@@ -10,6 +10,8 @@ import {
   createSession,
 } from '../utils/sessionApi';
 
+import { clearConformerJobIdFromStorage } from '../utils/conformerJobStorage';
+
 /**
  * Session loading states.
  */
@@ -86,7 +88,8 @@ export function useSessionLoader() {
           setLoadState(SESSION_LOAD_STATE.READY);
           return;
         } else {
-          // Stored session is stale - clear it and create new
+          // Stored session is stale - clear it and any associated conformer job storage
+          clearConformerJobIdFromStorage({ sessionId: storedSessionId });
           clearSessionIdFromStorage();
         }
       }
