@@ -135,6 +135,12 @@ const NAV_TREE = [
         ],
     },
     {
+        group: "Shared n.eko instance",
+        children: [
+            { id: "shared-neko-instance", label: "Shared n.eko instance" },
+        ],
+    },
+    {
         group: "Examples & use cases",
         children: [
             { id: "example-microcin", label: "Microcin J25 (lasso peptide)" },
@@ -2508,6 +2514,144 @@ const Documentation = () => {
                     <Divider sx={{ my: 4 }} />
 
                     {/* ════════════════════════════════════════════
+                        SHARED N.EKO INSTANCE
+                       ════════════════════════════════════════════ */}
+
+                    <GroupTitle id="shared-neko-instance">Shared n.eko instance</GroupTitle>
+
+                    <P>
+                        PEP-EDIT is also accessible through a shared remote browser instance
+                        hosted on the RPBS platform. This instance runs a single, globally shared
+                        browser tab that displays PEP-EDIT and streams its output to every
+                        connected visitor in real time. It is intended for <strong>live demonstrations,
+                        tutorials and outreach</strong> - situations where one person drives the
+                        application while others watch and occasionally take control to try a step.
+                    </P>
+                    <P>
+                        Since this is <strong>not</strong> a private workspace but a shared environment, it is not suitable for actual peptide 
+                        design work. Do not load sensitive data or rely on any persistent state in the instance. 
+                        For real peptide design projects, use the standard PEP-EDIT application.
+                    </P>
+
+                    <SubTitle>Accessing the instance</SubTitle>
+
+                    <P>
+                        The instance is reachable through the URL below. The link embeds default
+                        credentials as query parameters, so you land directly in the shared browser
+                        without a login prompt. Share the link as-is with your audience.
+                    </P>
+
+                    <Box sx={{ my: 2, textAlign: "center" }}>
+                        <MUILink
+                            href="https://neko.rpbs.univ-paris-diderot.fr/?usr=guest&pwd=rpbs"
+                            target="_blank"
+                            rel="noopener"
+                            sx={{
+                                display: "inline-block",
+                                px: 3,
+                                py: 1.2,
+                                borderRadius: 2,
+                                fontWeight: 700,
+                                fontSize: "0.95rem",
+                                color: "primary.contrastText",
+                                bgcolor: "primary.main",
+                                textDecoration: "none",
+                                "&:hover": { bgcolor: "primary.dark", textDecoration: "none" },
+                            }}
+                        >
+                            Open the shared n.eko instance
+                        </MUILink>
+                    </Box>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Default credentials.</strong> If you reach the instance through the bare
+                        URL <code>https://neko.rpbs.univ-paris-diderot.fr</code> instead of the link
+                        above, a login form will appear. Enter any username you like and
+                        use <code>rpbs</code> as the password. These credentials exist only to satisfy
+                        hosting requirements; no account or registration is involved.
+                    </Alert>
+
+                    <SubTitle>Requesting control</SubTitle>
+
+                    <P>
+                        When you first connect, you will see PEP-EDIT running in the shared browser
+                        but your clicks and keystrokes will have no effect. This is expected: by
+                        default, new visitors join as spectators. To interact with PEP-EDIT, you must
+                        explicitly request control by clicking the <strong>"Ask control"</strong> button in the n.eko toolbar at the bottom of the screen.
+                        Only one participant can hold control at a time. When you are done, release
+                        control from the same toolbar so that another participant can take over.
+                    </P>
+
+                    <Figure
+                        src="/assets/documentation/gifs/pepedit_neko_ask-control.gif"
+                        alt="The neko shared browser showing PEP-EDIT with the 'ask control' button at the bottom"
+                        caption={'The shared n.eko instance showing PEP-EDIT inside the neko shared browser. The "Ask control" button at the bottom must be clicked before you can interact with the application.'}
+                        openLightbox={openLightbox}
+                        maxWidth="lg"
+                    />
+
+                    <SubTitle>What other participants see</SubTitle>
+
+                    <P>
+                        Every visitor to the instance sees the same browser tab at the same time.
+                        When the person in control clicks, types, scrolls or generates a 3D structure,
+                        all other participants see those actions live. The n.eko side panel provides
+                        a chat and a participant list so that the person driving the demo can coordinate
+                        with the audience. Control can be passed from one participant to another at
+                        any time through the same "Ask control" mechanism.
+                    </P>
+
+                    <SubTitle>Important limitations</SubTitle>
+
+                    <P>Before using the shared n.eko instance, keep the following in mind:</P>
+
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        <Ul sx={{ mb: 0 }}>
+                            <Li>
+                                <strong>Single global instance.</strong> There is only one shared browser tab
+                                worldwide. Two unrelated groups that connect at the same time will see and
+                                interfere with each other's work. For a reliable demonstration, coordinate
+                                the timing with your audience out of band (for example, during a scheduled
+                                tutorial or webinar).
+                            </Li>
+                            <Li>
+                                <strong>No privacy.</strong> Anything visible in the browser - BILN sequences,
+                                uploaded files, job results - is visible to every connected visitor. Do not
+                                load sensitive or unpublished data into the shared instance.
+                            </Li>
+                            <Li>
+                                <strong>No persistent state.</strong> The instance is not tied to any user
+                                account. Jobs, monomers added to "My monomers", and editor state are shared
+                                with everyone and may be altered or cleared by other participants at any time.
+                                Save any results you need locally before disconnecting.
+                            </Li>
+                            <Li>
+                                <strong>Single controller.</strong> Only one participant can control the browser
+                                at a time. Others must wait for control to be released or handed over.
+                            </Li>
+                            <Li>
+                                <strong>For real work, use PEP-EDIT directly.</strong> The shared n.eko instance
+                                is a demonstration tool. For actual peptide design work, open the standard
+                                PEP-EDIT application at{" "}
+                                <MUILink href="https://pep-edit.rpbs.univ-paris-diderot.fr" target="_blank" rel="noopener">
+                                    pep-edit.rpbs.univ-paris-diderot.fr
+                                </MUILink>.
+                            </Li>
+                        </Ul>
+                    </Alert>
+
+                    <SubTitle>About neko</SubTitle>
+
+                    <P>
+                        The shared demo instance is powered by{" "}
+                        <MUILink href="https://github.com/m1k1o/neko" target="_blank" rel="noopener">n.eko</MUILink>,
+                        an open-source self-hosted virtual browser that uses WebRTC to stream a browser
+                        session to multiple participants. The PEP-EDIT team operates and maintains only
+                        the instance hosting PEP-EDIT; for questions about n.eko itself, consult the{" "}
+                        <MUILink href="https://neko.m1k1o.net/" target="_blank" rel="noopener">upstream project documentation</MUILink>.
+                    </P>
+
+                    {/* ════════════════════════════════════════════
                         3 · EXAMPLES & USE CASES
                        ════════════════════════════════════════════ */}
 
@@ -2910,14 +3054,14 @@ const Documentation = () => {
                     <SectionTitle id="example-docking" variant="h6">Peptide docking</SectionTitle>
 
                     <P>
-                        PEP-EDIT's PDB output can serve as input for peptide-protein docking. 
-                        Here, we illustrate this with the BH3 domain of the pro-apoptotic BAD protein, 
-                        a 25-residue helical motif that binds anti-apoptotic Bcl-xL. 
+                        PEP-EDIT's PDB output can serve as input for peptide-protein docking.
+                        Here, we illustrate this with the BH3 domain of the pro-apoptotic BAD protein,
+                        a 25-residue helical motif that binds anti-apoptotic Bcl-xL.
                         The peptide was built from its BILN sequence:
                     </P>
                     <CodeBlock>N-L-W-A-A-Q-R-Y-G-R-E-L-R-R-M-S-D-E-F-V-D-S-F-K-K</CodeBlock>
                     <P>
-                        An all alpha-helix secondary-structure constraint was applied to the entire chain, 
+                        An all alpha-helix secondary-structure constraint was applied to the entire chain,
                         consistent with the known helical fold of BH3 domains:
                     </P>
 
