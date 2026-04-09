@@ -455,6 +455,8 @@ const Documentation = () => {
     const [activeId, setActiveId] = useState("");
     const mainRef = useRef(null);
 
+    const isInsideNeko = window.location.hostname === "neko.rpbs.univ-paris-diderot.fr";
+
     const [lightbox, setLightbox] = useState({ open: false, src: "", alt: "", lbMax: undefined });
     const openLightbox = useCallback((src, alt, lbMax) => setLightbox({ open: true, src, alt, lbMax }), []);
     const closeLightbox = useCallback(() => setLightbox((prev) => ({ ...prev, open: false })), []);
@@ -2542,26 +2544,52 @@ const Documentation = () => {
                     </P>
 
                     <Box sx={{ my: 2, textAlign: "center" }}>
-                        <MUILink
-                            href="https://neko.rpbs.univ-paris-diderot.fr/?usr=guest&pwd=rpbs"
-                            target="_blank"
-                            rel="noopener"
-                            sx={{
-                                display: "inline-block",
-                                px: 3,
-                                py: 1.2,
-                                borderRadius: 2,
-                                fontWeight: 700,
-                                fontSize: "0.95rem",
-                                color: "primary.contrastText",
-                                bgcolor: "primary.main",
-                                textDecoration: "none",
-                                "&:hover": { bgcolor: "primary.dark", textDecoration: "none" },
-                            }}
-                        >
-                            Open the shared n.eko instance
-                        </MUILink>
+                        {isInsideNeko ? (
+                            <Box
+                                sx={{
+                                    display: "inline-block",
+                                    px: 3,
+                                    py: 1.2,
+                                    borderRadius: 2,
+                                    fontWeight: 700,
+                                    fontSize: "0.95rem",
+                                    color: "text.disabled",
+                                    bgcolor: (t) => alpha(t.palette.action.disabled, 0.12),
+                                    cursor: "not-allowed",
+                                }}
+                            >
+                                Open the shared n.eko instance
+                            </Box>
+                        ) : (
+                            <MUILink
+                                href="https://neko.rpbs.univ-paris-diderot.fr/?usr=guest&pwd=rpbs"
+                                target="_blank"
+                                rel="noopener"
+                                sx={{
+                                    display: "inline-block",
+                                    px: 3,
+                                    py: 1.2,
+                                    borderRadius: 2,
+                                    fontWeight: 700,
+                                    fontSize: "0.95rem",
+                                    color: "primary.contrastText",
+                                    bgcolor: "primary.main",
+                                    textDecoration: "none",
+                                    "&:hover": { bgcolor: "primary.dark", textDecoration: "none" },
+                                }}
+                            >
+                                Open the shared n.eko instance
+                            </MUILink>
+                        )}
                     </Box>
+
+                    {isInsideNeko && (
+                        <Alert severity="warning" sx={{ mb: 2 }}>
+                            You are already viewing PEP-EDIT inside the shared n.eko instance.
+                            Opening it again from here would nest one instance inside another.
+                            The link above has been disabled.
+                        </Alert>
+                    )}
 
                     <Alert severity="info" sx={{ mb: 2 }}>
                         <strong>Default credentials.</strong> If you reach the instance through the bare
