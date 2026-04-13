@@ -340,7 +340,7 @@ export default function BilnEditorInterface({
                     note: 'Amide (am) cap on the C-terminus.',
                 },
                 {
-                    label: 'Both caps',
+                    label: 'Both N-terminal and C-terminal capping',
                     biln: 'ac-G-A-F-V-D-am',
                     note: 'Acetyl at N-terminus + amide at C-terminus.',
                 },
@@ -893,7 +893,7 @@ export default function BilnEditorInterface({
                 onChange={handleScaffoldFileChange}
             />
 
-            {/* Manual edition — collapsible */}
+            {/* Manual editing — collapsible */}
             {(() => {
                 const manualSection = (
                     <React.Fragment key="manual">

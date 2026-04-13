@@ -38,7 +38,7 @@ function Checkboxes({ filters }) {
                         checked={isCapsOnly}
                         onChange={ (e) => setIsCapsOnly(e.target.checked) }
                     />
-                    <span className="label-text">Caps</span>
+                    <span className="label-text">Capping</span>
                 </label>
             </form>
         </>

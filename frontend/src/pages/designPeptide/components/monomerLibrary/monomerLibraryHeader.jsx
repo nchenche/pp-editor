@@ -81,7 +81,7 @@ function QuickFilterBar({ value, onChange, onShowAdvanced }) {
                 sx={denseToggleSx}
             >
                 <ToggleButton value="all">All</ToggleButton>
-                <ToggleButton value="caps">Caps</ToggleButton>
+                <ToggleButton value="caps">Capping</ToggleButton>
                 <ToggleButton value="natural">Natural</ToggleButton>
                 <ToggleButton value="nonNatural">Non‑Natural</ToggleButton>
             </ToggleButtonGroup>

@@ -48,7 +48,7 @@ const FilterMonomerPanel = ({
             <div className="mt-6">
                 <div className="flex flex-col gap-y-2">
                     <Toggle
-                        label="Caps only"
+                        label="Capping only"
                         checked={isCapsOnly}
                         onChange={(e) => handleFilterChange('isCapsOnly', e.target.checked)}
                     />

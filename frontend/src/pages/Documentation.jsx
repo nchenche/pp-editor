@@ -1765,7 +1765,7 @@ const Documentation = () => {
                         session. Two ways to find what you need:
                     </P>
                     <Ul>
-                        <Li><strong>Quick filters</strong> - click ALL, CAPS, NATURAL, or NON-NATURAL to filter by monomer category.</Li>
+                        <Li><strong>Quick filters</strong> - click ALL, CAPPING, NATURAL, or NON-NATURAL to filter by monomer category.</Li>
                         <Li><strong>Search field</strong> - type any text to filter across multiple attributes simultaneously: name, symbol, PDB code, analog, SMILES, and more. For example, typing "phe" will match Phenylalanine, D-Phenylalanine, chloro-Phenylalanine variants, etc.</Li>
                     </Ul>
                     <P>
