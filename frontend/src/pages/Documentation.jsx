@@ -1108,7 +1108,10 @@ const Documentation = () => {
                     <P>
                         The 3D viewer (zone 3) displays the generated conformer using{" "}
                         <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>.
-                        It loads automatically when a conformer generation job completes.
+                        It loads automatically when a conformer generation job completes. The conformer is a single
+                        low-energy 3D structure intended as a starting point for downstream computational workflows
+                        (molecular dynamics, docking, energy minimization); it does not represent the full conformational
+                        ensemble of the molecule.
                     </P>
 
                     <Figure
@@ -1595,6 +1598,13 @@ const Documentation = () => {
                         <Li><strong>Secondary-structure-guided</strong> per-residue backbone dihedral angles are preset to canonical Ramachandran values before embedding.</Li>
                         <Li><strong>Template-guided</strong> backbone atom positions are extracted from an experimental or modeled PDB structure and used as spatial reference during embedding.</Li>
                     </Ul>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>Purpose of the generated conformer:</strong> the 3D structure produced by PEP-EDIT is a
+                        single low-energy conformer intended as a <strong>starting point for downstream computational
+                        workflows</strong> such as molecular dynamics simulations, docking, or energy minimization. It does
+                        not represent the full conformational ensemble of the molecule and should not be interpreted as a
+                        definitive structural prediction.
+                    </Alert>
                     <P>
                         In the constrained modes, a coordinate mapping step translates the user-specified constraints into
                         atom-level spatial references that are passed to RDKit's embedding engine. The sections below

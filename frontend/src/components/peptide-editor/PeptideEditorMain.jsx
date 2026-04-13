@@ -50,6 +50,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -76,6 +77,7 @@ const MOLSTAR_TEMPLATE_OPACITY_STORAGE_KEY = 'pp-editor:molstar-template-opacity
 const AUTO_SYNC_3D_STORAGE_KEY = 'pp-editor:auto-sync-3d:v1';
 const ACTIVE_3D_PANEL_STORAGE_KEY = 'pp-editor:active-3d-panel:v1';
 const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
+const MOLSTAR_HELPER_TEXT_STORAGE_KEY = 'pp-editor:molstar-helper-text:v1';
 const MOLSTAR_RIGHT_PANEL_WIDTH_STORAGE_KEY = 'pp-editor:molstar-right-panel-width:v1';
 const MOLSTAR_LOCK_CAMERA_STORAGE_KEY = 'pp-editor:molstar-lock-camera:v1';
 const PH_VALUE_STORAGE_KEY = 'pp-editor:ph-value:v1';
@@ -297,6 +299,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         }
     });
 
+    const [show3DHelperText, setShow3DHelperText] = useState(() => {
+        try {
+            const raw = window?.localStorage?.getItem(MOLSTAR_HELPER_TEXT_STORAGE_KEY);
+            return raw === 'false' ? false : true; // visible by default
+        } catch {
+            return true;
+        }
+    });
+
     // null => auto (follow anyScaffoldEnabled). boolean => user override.
     const [templateOverlayEnabledRaw, setTemplateOverlayEnabledRaw] = useState(() => {
         try {
@@ -338,6 +349,14 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             // ignore
         }
     }, [molstarBackground]);
+
+    useEffect(() => {
+        try {
+            window?.localStorage?.setItem(MOLSTAR_HELPER_TEXT_STORAGE_KEY, String(show3DHelperText));
+        } catch {
+            // ignore
+        }
+    }, [show3DHelperText]);
 
     useEffect(() => {
         try {
@@ -1293,10 +1312,10 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         : autoSync3D
             ? '3D view updates automatically while Sync is on.'
             : !canGenerate3D
-                ? 'Add monomers to generate a 3D structure.'
+                ? 'Add monomers to generate a 3D conformer.'
                 : structureLoading
                     ? 'Generation already in progress.'
-                    : 'Generate updated 3D structure.';
+                    : 'Generate a single 3D conformer as a starting point for downstream computational workflows (docking, MD, minimization).';
 
     // Keep UI seq count in sync with committed BILN
     useEffect(() => {
@@ -2529,6 +2548,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             </ListItemIcon>
                                             <ListItemText>Log</ListItemText>
                                         </MenuItem>
+                                        <Divider />
+                                        <MenuItem
+                                            onClick={() => {
+                                                setShow3DHelperText(prev => !prev);
+                                                setViewer3DMenuAnchor(null);
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                <InfoOutlinedIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText>{show3DHelperText ? 'Hide' : 'Show'} helper text</ListItemText>
+                                        </MenuItem>
                                     </Menu>
 
                                     <Tooltip title="Collapse 3D Viewer" arrow placement="top">
@@ -2644,7 +2675,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     fontWeight: 400,
                                                 }}
                                             >
-                                                No data to display
+                                                Click <strong>Generate 3D</strong> to produce a single conformer
+                                                <br />
+                                                <Typography
+                                                    component="span"
+                                                    sx={{
+                                                        fontSize: '0.82rem',
+                                                        color: molstarBackground === 'dark'
+                                                            ? 'rgba(255,255,255,0.35)'
+                                                            : theme.palette.text.disabled,
+                                                    }}
+                                                >
+                                                    Intended as a starting point for further computational modeling
+                                                </Typography>
                                             </Typography>
                                         </Box>
                                     )}
@@ -2675,6 +2718,63 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         error={generate3DError}
                                         isGenerating3D={structureLoading}
                                     />
+                                    {show3DHelperText && (
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                left: 8,
+                                                bottom: 4,
+                                                zIndex: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 0.5,
+                                                px: 1,
+                                                py: 0.375,
+                                                borderRadius: 1,
+                                                bgcolor: molstarBackground === 'dark'
+                                                    ? alpha(theme.palette.common.black, 0.55)
+                                                    : alpha(theme.palette.common.white, 0.75),
+                                                backdropFilter: 'blur(3px)',
+                                                pointerEvents: 'auto',
+                                            }}
+                                        >
+                                            <InfoOutlinedIcon sx={{
+                                                fontSize: 13,
+                                                color: molstarBackground === 'dark'
+                                                    ? 'rgba(255,255,255,0.45)'
+                                                    : 'rgba(0,0,0,0.38)',
+                                            }} />
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    fontSize: 11,
+                                                    lineHeight: 1.3,
+                                                    color: molstarBackground === 'dark'
+                                                        ? 'rgba(255,255,255,0.5)'
+                                                        : 'rgba(0,0,0,0.45)',
+                                                }}
+                                            >
+                                                <strong>Single low-energy conformer</strong> expected to be used as a starting point for further computational modeling.
+                                            </Typography>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => setShow3DHelperText(false)}
+                                                sx={{
+                                                    p: 0.25,
+                                                    color: molstarBackground === 'dark'
+                                                        ? 'rgba(255,255,255,0.35)'
+                                                        : 'rgba(0,0,0,0.3)',
+                                                    '&:hover': {
+                                                        color: molstarBackground === 'dark'
+                                                            ? 'rgba(255,255,255,0.65)'
+                                                            : 'rgba(0,0,0,0.6)',
+                                                    },
+                                                }}
+                                            >
+                                                <CloseIcon sx={{ fontSize: 13 }} />
+                                            </IconButton>
+                                        </Box>
+                                    )}
                                 </Box>
 
                                 {/* Right: in-container panel (no page overlay) */}
