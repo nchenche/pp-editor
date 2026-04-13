@@ -69,7 +69,7 @@ const NAV_TREE = [
                     {
                         id: "editor-interface", label: "Editor interface",
                         children: [
-                            { id: "manual-edition", label: "Manual edition" },
+                            { id: "manual-edition", label: "Manual editing" },
                             { id: "chains", label: "Chains" },
                         ],
                     },
@@ -755,7 +755,7 @@ const Documentation = () => {
                     />
 
                     <Ol>
-                        <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (1 - top-left); where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-edition">Manual edition</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
+                        <Li><strong><MUILink href="#editor-interface">Editor interface</MUILink></strong> (1 - top-left); where you define and edit your peptide. Contains the BILN text input, the editor toolbar, the chain track with monomer pills, and optional constraint tracks. Split into <MUILink href="#manual-editing">Manual editing</MUILink> and <MUILink href="#chains">Chains</MUILink>.</Li>
                         <Li><strong><MUILink href="#viewer-2d">2D Sketch</MUILink></strong> (2 - bottom-left); an interactive SVG depiction of the molecule, rendered by RDKit. Updates live as you type. Supports hover highlighting synced across all panels, as well as bond creation and removal.</Li>
                         <Li><strong><MUILink href="#viewer-3d">3D viewer</MUILink></strong> (3 - bottom-right); conformer visualization powered by <MUILink href="https://molstar.org" target="_blank" rel="noreferrer">Mol*</MUILink>. Includes controls for representation, color scheme, labels, camera, and screenshot export.</Li>
                         <Li><strong><MUILink href="#right-panel">Resource panel</MUILink></strong> (4 - right side); a collapsible, resizable sidebar with three vertical tabs: Monomer Library, Outputs, and Jobs.</Li>
@@ -779,15 +779,15 @@ const Documentation = () => {
                     <P>
                         The editor interface (zone 1) occupies the top-left of the screen.
                         It contains a <strong>shared toolbar</strong> at the top and two collapsible sections below it:{" "}
-                        <strong>Manual edition</strong> (BILN text input) and <strong>Chains</strong> (visual
+                        <strong>Manual editing</strong> (BILN text input) and <strong>Chains</strong> (visual
                         chain track, constraint rows, and chain-level actions).
                     </P>
 
                     {/* [MEDIA: annotated screenshot of the editor interface] */}
                     <Figure
                         src="/assets/documentation/pepedit_editor-interface.png"
-                        alt="Editor interface showing the shared toolbar, Manual edition section, and Chains section"
-                        caption="The editor interface: shared toolbar at top, then Manual edition and Chains sections; both are independently collapsible and their order can be swapped."
+                        alt="Editor interface showing the shared toolbar, Manual editing section, and Chains section"
+                        caption="The editor interface: shared toolbar at top, then Manual editing and Chains sections; both are independently collapsible and their order can be swapped."
                         openLightbox={openLightbox}
                     />
 
@@ -809,7 +809,7 @@ const Documentation = () => {
                             <TableBody>
                                 <TableRow>
                                     <TableCell><Ic icon={SwapVertIcon} /> <strong>Swap sections</strong></TableCell>
-                                    <TableCell>Swaps the vertical position of Manual edition and Chains. Useful on smaller screens: putting Chains on top lets you see the sequence track alongside the 2D Sketch without scrolling. The preference is saved across sessions.</TableCell>
+                                    <TableCell>Swaps the vertical position of Manual editing and Chains. Useful on smaller screens: putting Chains on top lets you see the sequence track alongside the 2D Sketch without scrolling. The preference is saved across sessions.</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={PlayArrowIcon} /> <strong>Examples…</strong></TableCell>
@@ -817,7 +817,7 @@ const Documentation = () => {
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={DeviceHubIcon} /> <strong>Link mode</strong></TableCell>
-                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers - Select a second R-group to create the link." While active, Manual edition auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
+                                    <TableCell>Toggle: activates bond-creation mode. Click two monomers in the chain track (or two R-groups in the 2D Sketch) to create a bond. A banner appears: "Link monomers - Select a second R-group to create the link." While active, Manual editing auto-collapses and Chains auto-detaches to maximize the 2D Sketch area (see <MUILink href="#chains">detach mode</MUILink>).</TableCell>
                                 </TableRow>
                                 <TableRow>
                                     <TableCell><Ic icon={LinkOffIcon} /> <strong>Cut mode</strong></TableCell>
@@ -839,19 +839,19 @@ const Documentation = () => {
                         </Table>
                     </TableContainer>
 
-                    {/* [GIF: swap sections animation - clicking the swap icon to move Chains above Manual edition and back] */}
+                    {/* [GIF: swap sections animation - clicking the swap icon to move Chains above Manual editing and back] */}
                     {/* <Figure
                         src="/assets/documentation/pepedit_swap-sections.gif"
-                        alt="Animated demonstration of the swap sections button toggling Manual edition and Chains order"
-                        caption="Swapping sections: click the ↕ icon to move Chains above Manual edition (or vice versa) for better visibility on compact screens."
+                        alt="Animated demonstration of the swap sections button toggling Manual editing and Chains order"
+                        caption="Swapping sections: click the ↕ icon to move Chains above Manual editing (or vice versa) for better visibility on compact screens."
                         openLightbox={openLightbox}
                     /> */}
 
-                    {/* ── Manual edition ── */}
-                    <Sub2Title id="manual-edition">Manual edition</Sub2Title>
+                    {/* ── Manual editing ── */}
+                    <Sub2Title id="manual-edition">Manual editing</Sub2Title>
 
                     <P>
-                        The Manual edition section contains the BILN text input field.
+                        The Manual editing section contains the BILN text input field.
                         It can be collapsed by clicking its header. A <Ic icon={QuestionMarkSharpIcon} /> help icon next to the header
                         opens the <em>"Manual edit (BILN) help"</em> dialog, a comprehensive quick-reference covering
                         BILN syntax, R-group rules, and common sequence examples.
@@ -883,8 +883,8 @@ const Documentation = () => {
                     {/* [GIF: Interactive edition animation with error message - BILN edition updates 2D sketch and validation feedback is illustrated from incorrect monomer input] */}
                     <Figure
                         src="/assets/documentation/gifs/pepedit_manual-edition_error_cropped.gif"
-                        alt="Animated demonstration of BILN manual edition with validation feedback: typing an invalid monomer triggers an error message"
-                        caption="BILN manual edition with validation feedback: as you type, the 2D Sketch updates when the input is valid; typing an unrecognized monomer triggers an error message below the input field."
+                        alt="Animated demonstration of BILN manual editing with validation feedback: typing an invalid monomer triggers an error message"
+                        caption="BILN manual editing with validation feedback: as you type, the 2D Sketch updates when the input is valid; typing an unrecognized monomer triggers an error message below the input field."
                         openLightbox={openLightbox}
                     />
 
@@ -1022,7 +1022,7 @@ const Documentation = () => {
 
                     <Alert severity="info" sx={{ mb: 2 }}>
                         <strong>Auto-detach during Link / Cut mode:</strong> when you activate Link or Cut mode in the toolbar,
-                        the Manual edition section auto-collapses and Chains auto-detaches to maximize the 2D Sketch area. When
+                        the Manual editing section auto-collapses and Chains auto-detaches to maximize the 2D Sketch area. When
                         you exit the mode, both sections return to their previous state automatically.
                     </Alert>
 
@@ -1722,7 +1722,7 @@ const Documentation = () => {
 
                     <P>
                         If you already know the sequence you want, type or paste it directly into the BILN input field
-                        (Manual edition section). The input is live: the 2D Sketch updates on every valid
+                        (Manual editing section). The input is live: the 2D Sketch updates on every valid
                         keystroke, with no need to press Enter or click Apply.
                     </P>
                     <P>
@@ -2036,7 +2036,7 @@ const Documentation = () => {
                     <Alert severity="info" sx={{ mb: 2 }}>
                         <Ul sx={{ mb: 0 }}>
                             <Li>
-                                When Link or Unlink mode is active, the <em>Manual edition</em> section auto-collapses and
+                                When Link or Unlink mode is active, the <em>Manual editing</em> section auto-collapses and
                                 the <em>Chains</em> panel auto-detaches into a floating overlay to maximize the 2D Sketch area.
                                 Both are restored when you leave the mode.
                             </Li>
@@ -2708,7 +2708,7 @@ const Documentation = () => {
     [MEDIA SUGGESTION: GIF ~10-15s - importing the FASTA sequence via Upload sequence →
     defining the Glu-8-to-N-terminus side-chain-to-backbone cyclization bond in the 2D viewer →
     opening the monomer library and substituting Phe-19 with Phe_3Cl.
-    Crop: Manual edition + 2D viewer, full width.]
+    Crop: Manual editing + 2D viewer, full width.]
 */}
                     <Figure
                         src="/assets/documentation/gifs/mccJ25_biln-setup.gif"

@@ -906,7 +906,7 @@ export default function BilnEditorInterface({
                                     ? <KeyboardArrowDownIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
                                     : <KeyboardArrowRightIcon className="section-chevron" sx={{ fontSize: 18, color: 'text.disabled', transition: 'color 0.15s' }} />
                                 }
-                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual edition</Typography>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.5px', lineHeight: 1 }}>Manual editing</Typography>
                                 <Tooltip title="BILN format help" arrow>
                                     <IconButton onClick={(e) => { e.stopPropagation(); setBilnHelpOpen(true); }} sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}>
                                         <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
