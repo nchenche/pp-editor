@@ -3,7 +3,7 @@ import {
     Box, Typography, IconButton, InputBase, ToggleButtonGroup, ToggleButton,
     Popover, Slider, Divider, useTheme,
     MenuItem, Stack, Tooltip, Menu, ButtonBase, Collapse,
-    Dialog, DialogTitle, DialogContent, DialogActions, Button, Paper,
+    Dialog, DialogTitle, DialogContent, DialogActions, Button, Paper, Chip,
 } from "@mui/material";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
@@ -59,8 +59,94 @@ function AdvancedFilterPopover({ anchorEl, open, onClose, range, onRangeChange }
     );
 }
 
-// Quick filters (kept)
-function QuickFilterBar({ value, onChange, onShowAdvanced }) {
+// The 20 standard amino acids (single-letter code → 3-letter + name)
+const STANDARD_AMINO_ACIDS = [
+    { code: 'A', pdb: 'Ala', name: 'Alanine' },
+    { code: 'C', pdb: 'Cys', name: 'Cysteine' },
+    { code: 'D', pdb: 'Asp', name: 'Aspartic acid' },
+    { code: 'E', pdb: 'Glu', name: 'Glutamic acid' },
+    { code: 'F', pdb: 'Phe', name: 'Phenylalanine' },
+    { code: 'G', pdb: 'Gly', name: 'Glycine' },
+    { code: 'H', pdb: 'His', name: 'Histidine' },
+    { code: 'I', pdb: 'Ile', name: 'Isoleucine' },
+    { code: 'K', pdb: 'Lys', name: 'Lysine' },
+    { code: 'L', pdb: 'Leu', name: 'Leucine' },
+    { code: 'M', pdb: 'Met', name: 'Methionine' },
+    { code: 'N', pdb: 'Asn', name: 'Asparagine' },
+    { code: 'P', pdb: 'Pro', name: 'Proline' },
+    { code: 'Q', pdb: 'Gln', name: 'Glutamine' },
+    { code: 'R', pdb: 'Arg', name: 'Arginine' },
+    { code: 'S', pdb: 'Ser', name: 'Serine' },
+    { code: 'T', pdb: 'Thr', name: 'Threonine' },
+    { code: 'V', pdb: 'Val', name: 'Valine' },
+    { code: 'W', pdb: 'Trp', name: 'Tryptophan' },
+    { code: 'Y', pdb: 'Tyr', name: 'Tyrosine' },
+    { code: 'X', pdb: 'Other', name: 'No natural analog (caps, linkers, exotic)' },
+];
+
+// Analog selector chip row
+function AnalogSelector({ selectedAnalogs, onChangeAnalogs }) {
+    const allCodes = STANDARD_AMINO_ACIDS.map(a => a.code);
+    const allSelected = allCodes.every(c => selectedAnalogs.includes(c));
+    const noneSelected = selectedAnalogs.length === 0;
+
+    const toggle = (code) => {
+        onChangeAnalogs(prev =>
+            prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+        );
+    };
+
+    return (
+        <Box sx={{ mt: 1, mb: 0.5 }}>
+            <Stack direction="row" alignItems="center" gap={0.5} mb={0.75}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>
+                    Filter by natural analog:
+                </Typography>
+                <Button
+                    size="small"
+                    onClick={() => onChangeAnalogs(allCodes)}
+                    disabled={allSelected}
+                    sx={{ fontSize: 10, minWidth: 0, px: 0.75, py: 0, textTransform: 'none' }}
+                >
+                    Select all
+                </Button>
+                <Button
+                    size="small"
+                    onClick={() => onChangeAnalogs([])}
+                    disabled={noneSelected}
+                    sx={{ fontSize: 10, minWidth: 0, px: 0.75, py: 0, textTransform: 'none' }}
+                >
+                    Clear all
+                </Button>
+            </Stack>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {STANDARD_AMINO_ACIDS.map(({ code, pdb, name }) => {
+                    const active = selectedAnalogs.includes(code);
+                    return (
+                        <Tooltip key={code} title={name} arrow placement="top">
+                            <Chip
+                                label={pdb}
+                                size="small"
+                                variant={active ? 'filled' : 'outlined'}
+                                color={active ? 'primary' : 'default'}
+                                onClick={() => toggle(code)}
+                                sx={{
+                                    fontSize: 11,
+                                    height: 24,
+                                    cursor: 'pointer',
+                                    fontWeight: active ? 700 : 400,
+                                }}
+                            />
+                        </Tooltip>
+                    );
+                })}
+            </Box>
+        </Box>
+    );
+}
+
+// Quick filters
+function QuickFilterBar({ value, onChange }) {
     let selected = "all";
     if (value.caps) selected = "caps";
     else if (value.natural) selected = "natural";
@@ -72,23 +158,18 @@ function QuickFilterBar({ value, onChange, onShowAdvanced }) {
     };
 
     return (
-        <Box display="flex" alignItems="center" gap={1}>
-            <ToggleButtonGroup
-                value={selected}
-                exclusive
-                onChange={handleToggle}
-                size="small"
-                sx={denseToggleSx}
-            >
-                <ToggleButton value="all">All</ToggleButton>
-                <ToggleButton value="caps">Capping</ToggleButton>
-                <ToggleButton value="natural">Natural</ToggleButton>
-                <ToggleButton value="nonNatural">Non‑Natural</ToggleButton>
-            </ToggleButtonGroup>
-            {/* <IconButton onClick={onShowAdvanced} size="small">
-                <FilterAltIcon fontSize="small" />
-            </IconButton> */}
-        </Box>
+        <ToggleButtonGroup
+            value={selected}
+            exclusive
+            onChange={handleToggle}
+            size="small"
+            sx={denseToggleSx}
+        >
+            <ToggleButton value="all">All</ToggleButton>
+            <ToggleButton value="caps">Capping</ToggleButton>
+            <ToggleButton value="natural">Natural</ToggleButton>
+            <ToggleButton value="nonNatural">Non‑Natural</ToggleButton>
+        </ToggleButtonGroup>
     );
 }
 
@@ -199,6 +280,9 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
         quickFilter, onQuickFilterChange,
         range, onRangeChange,
 
+        // Analog filter (lifted to container)
+        selectedAnalogs, onSelectedAnalogsChange,
+
         // Controlled UI state (source of truth)
         uiState,
         setUiState,
@@ -213,6 +297,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
 
     const [linkingOpen, setLinkingOpen] = useState(true);
     const [linkingHelpOpen, setLinkingHelpOpen] = useState(false);
+    const [searchHelpOpen, setSearchHelpOpen] = useState(false);
 
     // Keep mode/link as local state
     const [modeState, setModeState] = useState(defaultLinkingSnapshot?.mode ?? LINKING_MODES.append);
@@ -300,18 +385,21 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
         >
 
             <Box>
-                {/* Optional label, only visible from small screens up */}
-                <Typography
-                    variant="overline"
-                    sx={{
-                        color: 'text.secondary',
-                        letterSpacing: 0.6,
-                        mb: 0.25,
-                        display: { xs: 'none', sm: 'block' },
-                    }}
-                >
-                    Search &amp; filters
-                </Typography>
+                {/* Section title with help icon */}
+                <Stack direction="row" alignItems="center" gap={0.25}>
+                    <Typography
+                        variant="overline"
+                        sx={{ color: 'text.secondary', letterSpacing: 0.6, lineHeight: 1 }}
+                    >
+                        Search &amp; filters
+                    </Typography>
+                    <IconButton
+                        onClick={() => setSearchHelpOpen(true)}
+                        sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}
+                    >
+                        <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
+                    </IconButton>
+                </Stack>
 
                 {/* SECTION 1 — Search + Filters */}
                 <Box
@@ -336,14 +424,14 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                             py: 0.25,
                             minHeight: 34,
                             bgcolor: 'transparent',
-                            flex: '1 1 180px',      // grow but keep a reasonable minimum
-                            minWidth: 160,          // never shrink below this
+                            flex: '1 1 180px',
+                            minWidth: 160,
                             maxWidth: '100%',
                         }}
                     >
                         <SearchIcon fontSize="small" sx={{ color: 'grey.600', mr: 0.75 }} />
                         <InputBase
-                            placeholder="Search monomers…"
+                            placeholder="Search by name, symbol, PDB, SMILES…"
                             value={searchValue}
                             onChange={e => onSearchChange(e.target.value)}
                             sx={{ fontSize: 14, width: '100%' }}
@@ -351,27 +439,165 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                         />
                     </Box>
 
-                    {/* Quick filter toggles + advanced */}
+                    {/* Quick filter toggles */}
                     <Box
                         display="flex"
                         justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
                         sx={{
-                            flex: { xs: '1 1 100%', sm: '0 0 auto' }, // wrap below on very small widths
+                            flex: { xs: '1 1 100%', sm: '0 0 auto' },
                         }}
                     >
                         <QuickFilterBar
                             value={quickFilter}
                             onChange={onQuickFilterChange}
-                            onShowAdvanced={e => setPopoverAnchor(e.currentTarget)}
                         />
                     </Box>
                 </Box>
+
+                {/* Analog selector — always visible */}
+                <AnalogSelector
+                    selectedAnalogs={selectedAnalogs}
+                    onChangeAnalogs={onSelectedAnalogsChange}
+                />
             </Box>
 
 
 
 
             <Divider sx={{ my: 1.25 }} />
+
+            {/* Search help dialog */}
+            <Dialog
+                open={searchHelpOpen}
+                onClose={() => setSearchHelpOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Monomer search</DialogTitle>
+                <DialogContent
+                    dividers
+                    sx={{
+                        typography: 'body2',
+                        p: { xs: 2, sm: 3 },
+                        lineHeight: 1.8,
+                        '& strong': { fontWeight: 800 },
+                        '& ul': {
+                            margin: 0,
+                            paddingLeft: 2.75,
+                            listStylePosition: 'outside',
+                            listStyleType: 'disc',
+                        },
+                        '& li': { marginBottom: 1 },
+                        '& li::marker': { color: 'text.secondary', fontWeight: 700 },
+                    }}
+                >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        <Paper
+                            variant="outlined"
+                            sx={(theme) => ({
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                borderColor: 'info.main',
+                                backgroundColor: alpha(
+                                    theme.palette.info.main,
+                                    theme.palette.mode === 'dark' ? 0.14 : 0.08
+                                ),
+                            })}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                What is searched?
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>
+                                The search field filters monomers across <strong>multiple attributes simultaneously</strong>.
+                                Any text you type is matched against:
+                            </Typography>
+                            <ul>
+                                <li><Typography component="span"><strong>Name</strong> — e.g. Alanine, D-Phenylalanine</Typography></li>
+                                <li><Typography component="span"><strong>Symbol</strong> — the monomer symbol used in BILN notation (e.g. A, dF, Aib)</Typography></li>
+                                <li><Typography component="span"><strong>PDB code</strong> — the 3-letter PDB residue name (e.g. ALA, PHE)</Typography></li>
+                                <li><Typography component="span"><strong>Natural analog</strong> — single-letter code of the parent amino acid</Typography></li>
+                                <li><Typography component="span"><strong>SMILES</strong> — the molecular structure string</Typography></li>
+                            </ul>
+                        </Paper>
+
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                bgcolor: 'background.default',
+                            }}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                Examples
+                            </Typography>
+                            <ul>
+                                <li><Typography component="span"><strong>phe</strong> — matches Phenylalanine, D-Phenylalanine, Chloro-Phenylalanine, and all variants</Typography></li>
+                                <li><Typography component="span"><strong>ala</strong> — matches Alanine (ALA), beta-Alanine, D-Alanine, etc.</Typography></li>
+                                <li><Typography component="span"><strong>cys</strong> — finds Cysteine and its analogs (useful for thiol-containing residues)</Typography></li>
+                                <li><Typography component="span"><strong>aib</strong> — finds alpha-aminoisobutyric acid by its symbol</Typography></li>
+                            </ul>
+                        </Paper>
+
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: { xs: 1.75, sm: 2.25 },
+                                borderRadius: 2,
+                                bgcolor: 'background.default',
+                            }}
+                        >
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 800,
+                                    fontSize: '1.15rem',
+                                    lineHeight: 1.25,
+                                    mb: 1.25,
+                                    pb: 0.75,
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    letterSpacing: '0.2px',
+                                }}
+                            >
+                                Tips
+                            </Typography>
+                            <ul>
+                                <li><Typography component="span">The search is <strong>case-insensitive</strong> — "PHE", "Phe", and "phe" all work.</Typography></li>
+                                <li><Typography component="span">Use the <strong>Analogs</strong> quick filter to browse all natural and non-natural analogs of a specific amino acid.</Typography></li>
+                                <li><Typography component="span">Combine quick filters with text search to narrow down results further.</Typography></li>
+                            </ul>
+                        </Paper>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSearchHelpOpen(false)} size="small">Close</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* SECTION TITLE — Linking process mode with help (collapsible) */}
             <Stack
@@ -390,6 +616,7 @@ export const MonomerLibraryHeader = memo(function MonomerLibraryHeader(props) {
                     </Typography>
                     <IconButton
                         onClick={(e) => { e.stopPropagation(); setLinkingHelpOpen(true); }}
+                        size="small"
                         sx={{ color: 'text.disabled', p: 0.25, ml: 0.25, '&:hover': { color: 'text.secondary' } }}
                     >
                         <QuestionMarkSharpIcon sx={{ fontSize: 13 }} />
@@ -622,6 +849,7 @@ function areEqualHeader(prev, next) {
     if (prev.quickFilter?.caps !== next.quickFilter?.caps) return false;
     if (prev.quickFilter?.natural !== next.quickFilter?.natural) return false;
     if (prev.quickFilter?.nonNatural !== next.quickFilter?.nonNatural) return false;
+    if (prev.selectedAnalogs !== next.selectedAnalogs) return false;
 
     // Re-render when the sequence count or active index changes
     if ((prev.uiState?.seqNumber ?? 0) !== (next.uiState?.seqNumber ?? 0)) return false;

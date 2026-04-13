@@ -19,6 +19,8 @@ export const LINK_CHOICES = {
 };
 
 const MONOMER_LIBRARY_ITEM_SIZE_STORAGE_KEY = 'pp.monomerLibrary.itemSize';
+const MONOMER_LIBRARY_QUICK_FILTERS_KEY = 'pp.monomerLibrary.quickFilters';
+const MONOMER_LIBRARY_SELECTED_ANALOGS_KEY = 'pp.monomerLibrary.selectedAnalogs';
 
 // Simple debounce hook
 function useDebouncedValue(value, delay = 200) {
@@ -50,9 +52,44 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
     const { activeSeqIdx, seqNumber } = uiState;
 
     const [searchValue, setSearchValue] = useState("");
-    const [quickFilters, setQuickFilters] = useState({
-        caps: false, natural: false, nonNatural: false
+    const [quickFilters, setQuickFilters] = useState(() => {
+        try {
+            if (typeof window === 'undefined') return { caps: false, natural: false, nonNatural: false };
+            const raw = window.localStorage?.getItem(MONOMER_LIBRARY_QUICK_FILTERS_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') return parsed;
+            }
+        } catch { /* ignore */ }
+        return { caps: false, natural: false, nonNatural: false };
     });
+    const [selectedAnalogs, setSelectedAnalogs] = useState(() => {
+        try {
+            if (typeof window === 'undefined') return [];
+            const raw = window.localStorage?.getItem(MONOMER_LIBRARY_SELECTED_ANALOGS_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch { /* ignore */ }
+        return [];
+    });
+
+    // Persist quick filters
+    useEffect(() => {
+        try {
+            if (typeof window === 'undefined') return;
+            window.localStorage?.setItem(MONOMER_LIBRARY_QUICK_FILTERS_KEY, JSON.stringify(quickFilters));
+        } catch { /* ignore */ }
+    }, [quickFilters]);
+
+    // Persist selected analogs
+    useEffect(() => {
+        try {
+            if (typeof window === 'undefined') return;
+            window.localStorage?.setItem(MONOMER_LIBRARY_SELECTED_ANALOGS_KEY, JSON.stringify(selectedAnalogs));
+        } catch { /* ignore */ }
+    }, [selectedAnalogs]);
 
     const [itemSize, setItemSize] = useState(() => {
         try {
@@ -96,6 +133,18 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         if (quickFilters.natural) out = out.filter(m => m.m_subtype === 'natural');
         if (quickFilters.nonNatural) out = out.filter(m => m.m_subtype === 'non-natural');
 
+        // Analog quick filter: show monomers whose natAnalog matches any selected code
+        if (selectedAnalogs.length > 0) {
+            const codes = new Set(selectedAnalogs.map(c => c.toLowerCase()));
+            const includeNoAnalog = codes.has('x');
+            out = out.filter(m => {
+                const raw = m?.natAnalog ?? m?.natural_analog ?? '';
+                const analog = String(raw).trim().toLowerCase();
+                if (!analog || analog === 'x') return includeNoAnalog;
+                return codes.has(analog);
+            });
+        }
+
         // Replace-selection analog filter:
         // Apply only when we actually have matches; otherwise fall back to showing all.
         let analogFilter = { active: false, hasMatches: false };
@@ -127,7 +176,7 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
         }
 
         return { monomers: out, analogFilter };
-    }, [allMonomers, debouncedSearch, quickFilters, replaceSelection]);
+    }, [allMonomers, debouncedSearch, quickFilters, selectedAnalogs, replaceSelection]);
 
     const filteredMonomers = filteredResult?.monomers ?? [];
     const deferredMonomers = useDeferredValue(filteredMonomers);
@@ -164,12 +213,14 @@ export const MonomerLibraryContainer = forwardRef(function MonomerLibraryContain
             onSearchChange={setSearchValue}
             quickFilter={quickFilters}
             onQuickFilterChange={setQuickFilters}
+            selectedAnalogs={selectedAnalogs}
+            onSelectedAnalogsChange={setSelectedAnalogs}
             uiState={uiState}
             setUiState={setUiState}
             defaultLinkingSnapshot={linkingRef.current}
             onLinkingSnapshotChange={onLinkingSnapshotChange}
         />
-    ), [searchValue, quickFilters, onLinkingSnapshotChange, uiState, setUiState]);
+    ), [searchValue, quickFilters, selectedAnalogs, onLinkingSnapshotChange, uiState, setUiState]);
 
     return (
         <Box display="flex" flexDirection="column" height="100%" minHeight={0} width="100%" sx={{ minWidth: 0, overflowX: 'hidden' }}>
