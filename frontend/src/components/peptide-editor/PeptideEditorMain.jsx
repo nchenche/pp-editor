@@ -51,6 +51,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SyncIcon from '@mui/icons-material/Sync';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -847,6 +848,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 }
             }
 
+            // Restore pH from the job's query params (ph_value is stored in requestParams)
+            const resumedPh = e?.detail?.requestParams?.ph_value;
+            if (resumedPh != null && Number.isFinite(Number(resumedPh))) {
+                setPhValue(Number(resumedPh));
+            }
+
             // Always set BILN first
             setBilnValue(biln);
 
@@ -855,6 +862,20 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             queueMicrotask(() => {
                 if (pdb) {
                     setStructureOutput({ pdb, PDB: pdb, jobId: jobId || null });
+
+                    // Snapshot the resumed inputs so the stale-3D indicator starts clean
+                    // but transitions to "Update 3D" when the user edits.
+                    const resumedSs = hasSsConstraints
+                        ? (ssConstraints || []).flat().map(c => {
+                            const ch = (c || '-').toString().toUpperCase();
+                            return (ch === 'H' || ch === 'E' || ch === '-') ? ch : '-';
+                        }).join('')
+                        : '';
+                    setLastGeneratedInputs({
+                        biln,
+                        ss: resumedSs,
+                        ph: resumedPh != null && Number.isFinite(Number(resumedPh)) ? Number(resumedPh) : phValue,
+                    });
                 } else {
                     setStructureOutput({ pdb: '' });
                 }
@@ -1013,6 +1034,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         ph: null,
     });
 
+    // Reactive mirror of lastGenRef — drives the "3D is stale" UI indicator
+    const [lastGeneratedInputs, setLastGeneratedInputs] = useState({ biln: null, ss: null, ph: null });
+
     const triggerGenerate = useCallback(
         (biln, ss) => {
             const useTemplate = effectiveAnyScaffoldEnabled && !!scaffoldMappingPayload;
@@ -1053,6 +1077,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
 
             lastGenRef.current = { biln, ss, useTemplate, mappingSig, ph: phValue };
+            setLastGeneratedInputs({ biln, ss, ph: phValue });
 
             if (useTemplate) {
                 generate3D(biln, null, {
@@ -1307,6 +1332,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     }, [isActive, committedBiln, autoSync3D, canGenerate3D, triggerGenerate, ssSignatureForGen, normalizeBilnForGen]);
 
     const manualGenerateDisabled = autoSync3D || !canGenerate3D || structureLoading;
+
+    // Detect when the 3D conformer is stale (inputs changed since last generation).
+    // Suppress during resume — the restored conformer matches the restored inputs.
+    const is3DStale = !autoSync3D
+        && !suppressAutoConformerAfterResumeRef.current
+        && !!committedBiln
+        && lastGeneratedInputs.biln != null
+        && (lastGeneratedInputs.biln !== committedBiln
+            || lastGeneratedInputs.ss !== ssSignatureForGen
+            || lastGeneratedInputs.ph !== phValue);
+
     const generateBtnTooltip = effectiveAnyScaffoldEnabled
         ? 'Scaffold mapping is enabled: use "Generate 3D" to update the conformer.'
         : autoSync3D
@@ -1315,7 +1351,9 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 ? 'Add monomers to generate a 3D conformer.'
                 : structureLoading
                     ? 'Generation already in progress.'
-                    : 'Generate a single 3D conformer as a starting point for downstream computational workflows (docking, MD, minimization).';
+                    : is3DStale
+                        ? 'Sequence or constraints changed since last generation \u2014 click to update.'
+                        : 'Generate a single 3D conformer as a starting point for downstream computational workflows (docking, MD, minimization).';
 
     // Keep UI seq count in sync with committed BILN
     useEffect(() => {
@@ -2336,7 +2374,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                     if (isConformerTerminalFailedOrCanceled) return false;
                                                     return manualGenerateDisabled;
                                                 })()}
-                                                startIcon={autoSync3D ? <BoltIcon sx={{ animation: 'pulse 2s infinite' }} /> : <PlayArrowIcon />}
+                                                startIcon={autoSync3D ? <BoltIcon sx={{ animation: 'pulse 2s infinite' }} /> : is3DStale ? <SyncIcon /> : <PlayArrowIcon />}
                                                 className={!autoSync3D ? "!bg-slate-800/90 hover:!bg-slate-800/80 !text-slate-50" : '!bg-slate-800/90 !cursor-default !text-slate-50 !btn-disabled'}
                                                 sx={{
                                                     textTransform: 'none',
@@ -2348,16 +2386,23 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                         '0%': { color: 'inherit' },
                                                         '50%': { color: 'yellow' },
                                                         '100%': { color: 'inherit' },
-                                                    }
+                                                    },
+                                                    ...(is3DStale ? {
+                                                        outline: '2px solid',
+                                                        outlineColor: 'warning.main',
+                                                        outlineOffset: 1,
+                                                    } : {}),
                                                 }}
                                             >
                                                 {isConformerQueuedOrRunning
                                                     ? "Cancel"
                                                     : autoSync3D
                                                         ? "Live Preview"
-                                                        : isConformerTerminalFailedOrCanceled
-                                                            ? "Generate 3D"// "Retry"
-                                                            : "Generate 3D"}
+                                                        : is3DStale
+                                                            ? "Update 3D"
+                                                            : isConformerTerminalFailedOrCanceled
+                                                                ? "Generate 3D"
+                                                                : "Generate 3D"}
                                             </Button>
                                         </span>
                                     </Tooltip>
@@ -2368,7 +2413,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                 ? 'Auto sync is disabled while template mode is active.'
                                                 : autoSync3D
                                                     ? 'Disable automatic updates'
-                                                    : 'Enable automatic updates'
+                                                    : `Enable automatic updates (auto-disabled at ${AUTO_SYNC_MAX_MONOMERS}+ monomers)`
                                         }
                                         arrow
                                         placement="top"

@@ -1124,8 +1124,8 @@ const Documentation = () => {
 
                     <Sub3Title>Main controls (top-left of the 3D viewer)</Sub3Title>
                     <Ul>
-                        <Li><strong>▶ Generate 3D</strong> - submit a conformer generation job manually.</Li>
-                        <Li><strong>Auto sync</strong> - toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active.</Li>
+                        <Li><strong>▶ Generate 3D</strong> - submit a conformer generation job manually. When the sequence, constraints, or pH have changed since the last generation and auto sync is off, the button changes to <strong>Update 3D</strong> with an amber outline to signal that the current 3D conformer is out of date.</Li>
+                        <Li><strong>Auto sync</strong> - toggle live 3D regeneration. ON by default for peptides with fewer than 8 monomers; automatically disabled at 8+ monomers (with a toast notification) or when a 3D template is active. Any change to the sequence, secondary-structure constraints, or pH value triggers a new conformer generation while auto sync is active.</Li>
                     </Ul>
 
                     <Sub3Title>Icon toolbar (top-right)</Sub3Title>
@@ -1242,7 +1242,7 @@ const Documentation = () => {
 
                     <Sub3Title>Actions</Sub3Title>
                     <Ul>
-                        <Li><strong>Resume</strong> - restores <em>everything</em>: the BILN sequence, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job. Disabled for failed jobs.</Li>
+                        <Li><strong>Resume</strong> - restores <em>everything</em>: the BILN sequence, pH value, all constraints (secondary structure or template with scaffold mappings), and loads the 3D conformer into the viewer. Auto-sync is suppressed to prevent re-triggering a new job; the button stays on "Generate 3D" until you make an edit, at which point it switches to "Update 3D". Disabled for failed jobs.</Li>
                         <Li><strong>⋮ menu</strong> per job:</Li>
                     </Ul>
                     <Ol>
@@ -2127,8 +2127,33 @@ const Documentation = () => {
                         <strong>Generating the conformer</strong><br />
                         After setting constraints, click <strong>▶ Generate 3D</strong> (or rely on Auto sync if the
                         peptide has fewer than 8 monomers). The embedding engine will use the assigned angles as spatial
-                        targets.
+                        targets. When auto sync is off, the <strong>Generate 3D</strong> button turns amber and changes
+                        to <strong>Update 3D</strong> whenever the sequence or constraints have changed since the last
+                        generation.
                     </P>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        <strong>When constraints seem to have no visible effect:</strong>
+                        <Ul sx={{ mb: 0, mt: 0.5 }}>
+                            <Li>
+                                <strong>Short peptides</strong> — Very short sequences (3–5 residues) have limited backbone
+                                length, making it harder to distinguish between helical and extended conformations visually.
+                                Try a longer sequence (e.g. 8+ residues of poly-alanine) to see clear differences between
+                                H and E assignments.
+                            </Li>
+                            <Li>
+                                <strong>Proline residues</strong> — Proline's rigid pyrrolidine ring restricts φ to ≈ −60°,
+                                which is already close to the helical (H) preset. Assigning <strong>E</strong> (extended) to
+                                a proline position will therefore show a smaller conformational shift than for other amino acids.
+                            </Li>
+                            <Li>
+                                <strong>Auto sync is off</strong> — If the peptide exceeds the auto-sync threshold
+                                (8 monomers), changes to constraints are <em>not</em> automatically reflected in the
+                                3D viewer. Click <strong>Update 3D</strong> to regenerate the conformer with the current
+                                constraints.
+                            </Li>
+                        </Ul>
+                    </Alert>
 
 
                     <SubTitle id="constraints-3d-howto">3D template constraints</SubTitle>
