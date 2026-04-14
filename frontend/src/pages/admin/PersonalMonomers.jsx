@@ -306,7 +306,7 @@ function safeToString(value) {
 
 function normalizePdbNameInput(value) {
   const upper = String(value || '').toUpperCase().replace(/\s+/g, '');
-  return upper.replace(/[^A-Z]/g, '').slice(0, 3);
+  return upper.replace(/[^A-Z0-9]/g, '').slice(0, 4);
 }
 
 function normalizeNatAnalogInput(value) {
@@ -959,8 +959,8 @@ export default function PersonalMonomers() {
 
     const originalSymbol = String(editDialog.originalSymbol || symbol).trim();
     const pdbName = normalizePdbNameInput(editForm.pdbName);
-    if (pdbName && !/^[A-Z]{1,3}$/.test(pdbName)) {
-      setError('PDB name must be 1–3 uppercase letters (A–Z).');
+    if (pdbName && !/^[A-Z0-9]{3,4}$/.test(pdbName)) {
+      setError('PDB name must be 3–4 uppercase alphanumeric characters (A–Z, 0–9).');
       return;
     }
 
