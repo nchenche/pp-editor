@@ -168,7 +168,7 @@ export const MolPDBForm = ({ sxOptions, control, error, pdbConfig }) => {
             : (raw) =>
                 String(raw || '')
                     .toUpperCase()
-                    .replace(/[^A-Z]/g, '')
+                    .replace(/[^A-Z0-9]/g, '')
                     .slice(0, inputMaxLength);
 
     const requiredMessage = cfg.requiredMessage || 'PDB is required';
@@ -179,7 +179,7 @@ export const MolPDBForm = ({ sxOptions, control, error, pdbConfig }) => {
         <FormControl sx={sxOptions} fullWidth margin="dense" size="small" error={!!error}>
             <FieldLabel
                 text={label}
-                help={`PDB residue code — up to ${inputMaxLength} uppercase letters (e.g. "ALA")`}
+                help={`PDB residue code — up to ${inputMaxLength} uppercase alphanumeric characters (e.g. "ALA")`}
                 error={!!error}
             />
             <Controller
