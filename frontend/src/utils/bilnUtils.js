@@ -67,6 +67,21 @@ export function removeGroup(str, target) {
 }
 
 /**
+ * Remove a specific bond annotation of the form "(connId,rgroup)".
+ *
+ * This is stricter than removeGroup(): it will NOT remove other annotations
+ * that happen to use the same rgroup but belong to a different connectionId.
+ */
+export function removeBondAnnotation(str, connId, rgroup) {
+    if (str == null) return '';
+    const id = Number(connId);
+    const rg = Number(rgroup);
+    if (!Number.isFinite(id) || !Number.isFinite(rg)) return String(str);
+    const regex = new RegExp(`\\(${id}\\s*,\\s*${rg}\\)`, 'g');
+    return String(str).replace(regex, '');
+}
+
+/**
  * Rebuild the BILN string from the reordered monomer lists.
  */
 export function buildBilnFromRowMonomerLists(rowLists, prevBiln) {

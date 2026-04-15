@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { removeGroup, buildBilnFromRowMonomerLists, buildLinkMapFromBiln } from "../utils/bilnUtils";
+import { removeGroup, removeBondAnnotation, buildBilnFromRowMonomerLists, buildLinkMapFromBiln } from "../utils/bilnUtils";
 import { useConfirm } from "../components/common/ConfirmDialogProvider";
 import { availableRgroupsForMonomer } from "../utils/replacementCompatibility";
 
@@ -781,7 +781,7 @@ export function useBilnHandlers({
 
 
     // Break bond
-    const handleBondBreaking = useCallback((residues, rgroups) => {
+    const handleBondBreaking = useCallback((residues, rgroups, opts) => {
         const res_idx1 = parseInt(residues[0]);
         const res_idx2 = parseInt(residues[1]);
         const rgroup1 = parseInt(rgroups[0]);
@@ -795,7 +795,7 @@ export function useBilnHandlers({
             { a: { res: res_idx1, rg: rgroup2 }, b: { res: res_idx2, rg: rgroup1 } },
         ];
 
-        const found = candidates
+        let found = candidates
             .map((c) => {
                 const id = Object.entries(linkMap).find(([_, pairs]) => {
                     const ids = pairs.map(p => `${p.monomerIdx}-${p.rgroup}`);
@@ -805,6 +805,44 @@ export function useBilnHandlers({
             })
             .find(Boolean);
 
+        // Fallback: match by residue pair only when SVG rgroups differ from BILN
+        // (e.g. custom monomers). Only used when exactly one link connects the pair.
+        if (!found) {
+            const residueMatches = Object.entries(linkMap).filter(([_, pairs]) =>
+                pairs.length >= 2 &&
+                ((pairs[0].monomerIdx === res_idx1 && pairs[1].monomerIdx === res_idx2) ||
+                 (pairs[0].monomerIdx === res_idx2 && pairs[1].monomerIdx === res_idx1))
+            );
+            if (residueMatches.length === 1) {
+                const [connId, pairs] = residueMatches[0];
+                const a = pairs.find(p => p.monomerIdx === res_idx1) || pairs[0];
+                const b = pairs.find(p => p.monomerIdx === res_idx2) || pairs[1];
+                found = { connId, mapping: { a: { res: a.monomerIdx, rg: a.rgroup }, b: { res: b.monomerIdx, rg: b.rgroup } } };
+            }
+        }
+
+        // Final fallback: allow cutting a backbone '-' bond for type-other bonds.
+        // This has no linkMap entry (no parentheses), so we split the sequence by
+        // converting the '-' separator between adjacent residues into '.'.
+        if (!found && opts?.allowBackboneCut) {
+            const a = Math.min(res_idx1, res_idx2);
+            const b = Math.max(res_idx1, res_idx2);
+            if (Number.isFinite(a) && Number.isFinite(b) && b === a + 1) {
+                const parts = String(bilnValue || '').split(/([.-])/);
+                const sepIdx = a * 2 + 1;
+                if (parts[sepIdx] === '-') {
+                    parts[sepIdx] = '.';
+                    let newBiln = parts.join('');
+                    newBiln = newBiln
+                        .replace(/^[.\-]+|[.\-]+$/g, '')
+                        .replace(/\.+/g, '.')
+                        .replace(/\-+/g, '-');
+                    setBilnValue(newBiln);
+                    return;
+                }
+            }
+        }
+
         const removedId = parseInt(found?.connId, 10);
         if (isNaN(removedId) || !found?.mapping) {
             console.warn("handleBondBreaking: No connection found for these residues/rgroups.", { residues, rgroups });
@@ -813,8 +851,16 @@ export function useBilnHandlers({
 
         // 2. Remove the bond from the relevant monomers in bilnParts
         const bilnParts = bilnValue.split(/([.-])/);
-        bilnParts[found.mapping.a.res * 2] = removeGroup(bilnParts[found.mapping.a.res * 2], found.mapping.a.rg);
-        bilnParts[found.mapping.b.res * 2] = removeGroup(bilnParts[found.mapping.b.res * 2], found.mapping.b.rg);
+        bilnParts[found.mapping.a.res * 2] = removeBondAnnotation(
+            bilnParts[found.mapping.a.res * 2],
+            removedId,
+            found.mapping.a.rg
+        );
+        bilnParts[found.mapping.b.res * 2] = removeBondAnnotation(
+            bilnParts[found.mapping.b.res * 2],
+            removedId,
+            found.mapping.b.rg
+        );
 
         // 3. Decrement all connection IDs > removedId throughout the BILN string
         let newBiln = bilnParts.join('');

@@ -84,12 +84,15 @@ export function useViewer2DHandlers({
         if (!svgData || !svgContainer?.current) return;
         event.preventDefault();
         event.stopPropagation();
-        const group = event.currentTarget.className.baseVal;
-        const regex_residues = /(?<=residues_[A-Za-z]+-)(\d+)|(?<=_[A-Za-z]+-)(\d+)/g;
-        const regex_rgroups = /(?<=rgroups_)(\d+)|(?<=rgroups_\d+_)(\d+)/g;
-        const residue_indices = Array.from(group.matchAll(regex_residues), m => Number(m[1] || m[2]));
-        const rgroup_indices = Array.from(group.matchAll(regex_rgroups), m => Number(m[1] || m[2]));
-        handleBondBreaking(residue_indices, rgroup_indices);
+        const groupEl = event.currentTarget;
+        const group = groupEl.className.baseVal;
+        const tokens = group.split(/\s+/);
+        const residuesToken = tokens.find(t => t.startsWith('residues_')) || '';
+        const rgroupsToken = tokens.find(t => t.startsWith('rgroups_')) || '';
+        const residue_indices = (residuesToken.match(/-(\d+)/g) || []).map(s => Number(s.slice(1)));
+        const rgroup_indices = (rgroupsToken.match(/\d+/g) || []).map(Number);
+        const allowBackboneCut = groupEl?.classList?.contains('type-other');
+        handleBondBreaking(residue_indices, rgroup_indices, { allowBackboneCut });
     }, [svgData, svgContainer, handleBondBreaking]);
 
     return { onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick, cancelLinking };

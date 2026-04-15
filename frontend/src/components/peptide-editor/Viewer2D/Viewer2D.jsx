@@ -155,8 +155,10 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const [isShowBonds, setIsShowBonds] = useState(false);
     const [monomersToLink, setMonomersToLink] = useState([]);
 
-    const cuttableBondPairs = useMemo(() => {
-        const out = new Set();
+    const { cuttableBondPairs, cuttableResiduePairs, usedRgroups } = useMemo(() => {
+        const bondPairs = new Set();
+        const residuePairs = new Set();
+        const used = new Set();
         const entries = Object.entries(linkMap || {});
         for (const [, pairs] of entries) {
             if (!Array.isArray(pairs) || pairs.length < 2) continue;
@@ -164,12 +166,18 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             const b = pairs[1];
             if (a?.monomerIdx == null || a?.rgroup == null) continue;
             if (b?.monomerIdx == null || b?.rgroup == null) continue;
-            const key1 = `${a.monomerIdx}|${b.monomerIdx}`;
-            const key2 = `${b.monomerIdx}|${a.monomerIdx}`;
-            out.add(key1);
-            out.add(key2);
+            bondPairs.add(`${a.monomerIdx}-${a.rgroup}|${b.monomerIdx}-${b.rgroup}`);
+            bondPairs.add(`${b.monomerIdx}-${b.rgroup}|${a.monomerIdx}-${a.rgroup}`);
+            residuePairs.add(`${a.monomerIdx}|${b.monomerIdx}`);
+            residuePairs.add(`${b.monomerIdx}|${a.monomerIdx}`);
+            used.add(`${a.monomerIdx}-${a.rgroup}`);
+            used.add(`${b.monomerIdx}-${b.rgroup}`);
         }
-        return out;
+        return {
+            cuttableBondPairs: bondPairs,
+            cuttableResiduePairs: residuePairs,
+            usedRgroups: used,
+        };
     }, [linkMap]);
 
     // Enable unlink only when there are explicit BILN connections (i.e. parentheses) to cut.
@@ -209,6 +217,8 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         svgData,
         svgContainer,
         cuttableBondPairs,
+        cuttableResiduePairs,
+        usedRgroups,
         isShowRGroups,
         isShowBonds,
         monomersToLink,

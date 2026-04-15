@@ -64,6 +64,31 @@ function BondBreakHarness({ initialBiln, linkMap, residues, rgroups }) {
     );
 }
 
+function BackboneBondBreakHarness({ initialBiln, residues, rgroups }) {
+    const [bilnValue, setBilnValue] = useState(initialBiln);
+    const [uiState, setUiState] = useState({ activeSeqIdx: 0, seqNumber: 1 });
+
+    const handlers = useBilnHandlers({
+        bilnValue,
+        setBilnValue,
+        monomers: monomersMock(bilnValue),
+        rowMonomerLists: [],
+        setRowMonomerLists: () => { },
+        linkMap: {},
+        uiState,
+        setUiState,
+        setIsDragging: () => { },
+        setHoveredMonomer: () => { },
+    });
+
+    return (
+        <div>
+            <div data-testid="biln">{bilnValue}</div>
+            <button onClick={() => handlers.handleBondBreaking(residues, rgroups, { allowBackboneCut: true })}>break</button>
+        </div>
+    );
+}
+
 describe('useBilnHandlers.addMonomerToBiln', () => {
     it('creates first sequence and focuses it', () => {
         const { getByTestId, getByText } = renderWithConfirm(<Harness />);
@@ -116,5 +141,47 @@ describe('useBilnHandlers.handleBondBreaking', () => {
 
         fireEvent.click(getByText('break'));
         expect(getByTestId('biln').textContent).toBe('A-B');
+    });
+
+    it('can break a type-other backbone bond by splitting "-" into "."', () => {
+        const initialBiln = 'H2S-H2S';
+        const { getByTestId, getByText } = renderWithConfirm(
+            <BackboneBondBreakHarness
+                initialBiln={initialBiln}
+                residues={[0, 1]}
+                rgroups={[1, 1]}
+            />
+        );
+
+        fireEvent.click(getByText('break'));
+        expect(getByTestId('biln').textContent).toBe('H2S.H2S');
+    });
+
+    it('removes only the targeted (connId,rgroup) when multiple bonds share the same rgroup', () => {
+        // Residue 0 has two different connections both using rgroup 2.
+        const initialBiln = 'A(1,2)(3,2).B(1,1).C(3,1)';
+        const linkMap = {
+            1: [
+                { monomerIdx: 0, rgroup: 2 },
+                { monomerIdx: 1, rgroup: 1 },
+            ],
+            3: [
+                { monomerIdx: 0, rgroup: 2 },
+                { monomerIdx: 2, rgroup: 1 },
+            ],
+        };
+
+        const { getByTestId, getByText } = renderWithConfirm(
+            <BondBreakHarness
+                initialBiln={initialBiln}
+                linkMap={linkMap}
+                residues={[0, 2]}
+                rgroups={[2, 1]}
+            />
+        );
+
+        fireEvent.click(getByText('break'));
+        // connId 3 removed; connId 1 remains.
+        expect(getByTestId('biln').textContent).toBe('A(1,2).B(1,1).C');
     });
 });

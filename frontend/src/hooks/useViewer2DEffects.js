@@ -24,7 +24,7 @@ function getBondMetaFromClassList(groupClassList) {
     };
 }
 
-function isCuttableBondGroup(groupClassList, cuttableBondPairs) {
+function isCuttableBondGroup(groupClassList, cuttableBondPairs, cuttableResiduePairs) {
     if (!groupClassList?.contains?.("bond")) return false;
     const isSupportedType = groupClassList.contains("type-other") || groupClassList.contains("type-peptide");
     if (!isSupportedType) return false;
@@ -37,8 +37,25 @@ function isCuttableBondGroup(groupClassList, cuttableBondPairs) {
     if (!meta) return false;
 
     const [r0, r1] = meta.residues;
+    const [g0, g1] = meta.rgroups;
 
-    return cuttableBondPairs.has(`${r0}|${r1}`) || cuttableBondPairs.has(`${r1}|${r0}`);
+    // Exact rgroup match (handles type-peptide correctly, distinguishing
+    // backbone bonds from sidechain bonds between the same residue pair)
+    const candidates = [
+        `${r0}-${g0}|${r1}-${g1}`,
+        `${r0}-${g1}|${r1}-${g0}`,
+        `${r1}-${g0}|${r0}-${g1}`,
+        `${r1}-${g1}|${r0}-${g0}`,
+    ];
+    if (candidates.some((k) => cuttableBondPairs.has(k))) return true;
+
+    // For type-other bonds, fall back to residue-only match.
+    // Custom monomers may have SVG rgroup numbering that differs from BILN.
+    if (groupClassList.contains("type-other") && cuttableResiduePairs) {
+        return cuttableResiduePairs.has(`${r0}|${r1}`) || cuttableResiduePairs.has(`${r1}|${r0}`);
+    }
+
+    return false;
 }
 
 
@@ -46,6 +63,8 @@ export function useViewer2DEffects({
     svgData,
     svgContainer,
     cuttableBondPairs,
+    cuttableResiduePairs,
+    usedRgroups,
     onMouseEnterGroup,
     onMouseLeaveGroup,
     onRGroupClick,
@@ -101,9 +120,28 @@ export function useViewer2DEffects({
         const root = svgContainer.current;
         const groups = root.querySelectorAll('svg g');
 
+        const parseRgroupIndicesMeta = (groupEl) => {
+            const base = groupEl?.className?.baseVal || '';
+            const match = base.match(/(?:^|\s)indices_([^\s]+)/);
+            if (!match) return null;
+
+            const indices = match[1];
+            const sep = indices.lastIndexOf('_');
+            if (sep < 0) return null;
+
+            const residueToken = indices.slice(0, sep);
+            const rgroupToken = indices.slice(sep + 1);
+
+            const m = residueToken.match(/-(\d+)$/);
+            const residueIdx = m ? parseInt(m[1], 10) : NaN;
+            const rgroupIdx = parseInt(rgroupToken, 10);
+            if (!Number.isFinite(residueIdx) || !Number.isFinite(rgroupIdx)) return null;
+            return { residueIdx, rgroupIdx };
+        };
+
         groups.forEach(group => {
             const groupClasses = group.classList;
-            const isCuttableBond = isCuttableBondGroup(groupClasses, cuttableBondPairs);
+            const isCuttableBond = isCuttableBondGroup(groupClasses, cuttableBondPairs, cuttableResiduePairs);
             group.classList.toggle("cuttable-bond", isCuttableBond);
 
             const rect = overlayMapRef.current.get(group)
@@ -112,7 +150,26 @@ export function useViewer2DEffects({
 
             if (groupClasses.contains("r-group")) {
                 rect.classList.add("r-group");
-                group.addEventListener("click", onRGroupClick);
+                const meta = parseRgroupIndicesMeta(group);
+                const residueIdx = meta?.residueIdx;
+                const rgroupIdx = meta?.rgroupIdx;
+
+                // Treat this specific rgroup as saturated when we have an exact match.
+                // (We intentionally avoid residue-level saturation heuristics because
+                // depictions can omit already-used R-groups, which would incorrectly
+                // disable the remaining free R-group.)
+                // Note: SVG `indices_*_*` rgroup index is 0-based, but BILN/linkMap rgroups are 1-based.
+                const saturated = (Number.isFinite(residueIdx) && Number.isFinite(rgroupIdx) && usedRgroups)
+                    ? usedRgroups.has(`${residueIdx}-${rgroupIdx + 1}`)
+                    : false;
+
+                group.classList.toggle('saturated', saturated);
+                rect.classList.toggle('saturated', saturated);
+                if (!saturated) {
+                    group.addEventListener("click", onRGroupClick);
+                } else {
+                    group.removeEventListener("click", onRGroupClick);
+                }
                 group.removeEventListener("dblclick", onBondClick);
                 rect.classList.remove("extra-bond");
             } else if (isCuttableBond) {
@@ -142,7 +199,7 @@ export function useViewer2DEffects({
                 group.removeEventListener("dblclick", onBondClick);
             });
         };
-    }, [svgData, svgContainer, cuttableBondPairs, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
+    }, [svgData, svgContainer, cuttableBondPairs, cuttableResiduePairs, usedRgroups, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
 
     useEffect(() => {
         const container = svgContainer?.current;
