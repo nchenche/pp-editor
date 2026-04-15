@@ -164,8 +164,8 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             const b = pairs[1];
             if (a?.monomerIdx == null || a?.rgroup == null) continue;
             if (b?.monomerIdx == null || b?.rgroup == null) continue;
-            const key1 = `${a.monomerIdx}-${a.rgroup}|${b.monomerIdx}-${b.rgroup}`;
-            const key2 = `${b.monomerIdx}-${b.rgroup}|${a.monomerIdx}-${a.rgroup}`;
+            const key1 = `${a.monomerIdx}|${b.monomerIdx}`;
+            const key2 = `${b.monomerIdx}|${a.monomerIdx}`;
             out.add(key1);
             out.add(key2);
         }

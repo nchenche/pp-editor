@@ -37,16 +37,8 @@ function isCuttableBondGroup(groupClassList, cuttableBondPairs) {
     if (!meta) return false;
 
     const [r0, r1] = meta.residues;
-    const [g0, g1] = meta.rgroups;
 
-    const candidates = [
-        `${r0}-${g0}|${r1}-${g1}`,
-        `${r0}-${g1}|${r1}-${g0}`,
-        `${r1}-${g0}|${r0}-${g1}`,
-        `${r1}-${g1}|${r0}-${g0}`,
-    ];
-
-    return candidates.some((k) => cuttableBondPairs.has(k));
+    return cuttableBondPairs.has(`${r0}|${r1}`) || cuttableBondPairs.has(`${r1}|${r0}`);
 }
 
 
