@@ -16,8 +16,8 @@ export const SESSION_ID_URL_PARAM = 'session_id';
 // Stored as a map: { [sessionId]: { name?: string|null, description?: string|null } }
 export const SESSION_META_STORAGE_KEY = 'pp-editor:session-meta:v1';
 
-// Default session TTL is 15 days on the server; we touch on each load to extend.
-export const SESSION_TTL_DAYS = 15;
+// Default session TTL is 30 days on the server; we touch on each load to extend.
+export const SESSION_TTL_DAYS = 30;
 
 function normalizeSessionId(value) {
   const v = String(value ?? '').trim();

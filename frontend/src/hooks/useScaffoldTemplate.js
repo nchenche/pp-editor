@@ -212,7 +212,12 @@ export function useScaffoldTemplate() {
                 });
             })
             .catch((e) => {
-                console.warn('[scaffold] hydrate get_pdb_template failed', e);
+                console.warn('[scaffold] hydrate get_pdb_template failed — clearing stale template', e);
+                // Template expired or was purged on the backend.
+                // Clear stale state so the user isn't stuck in template mode
+                // with an unresolvable template_id.
+                setScaffoldTemplate(null);
+                try { window?.localStorage?.removeItem(SCAFFOLD_TEMPLATE_STORAGE_KEY); } catch { /* ignore */ }
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

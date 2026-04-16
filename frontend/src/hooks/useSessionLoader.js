@@ -12,6 +12,14 @@ import {
 
 import { clearConformerJobIdFromStorage } from '../utils/conformerJobStorage';
 
+// localStorage keys for scaffold/template state that must be cleared on session expiry.
+// These are defined in useScaffoldTemplate.js and useScaffoldMappings.js respectively,
+// but we reference the raw strings here to avoid circular hook imports.
+const SCAFFOLD_TEMPLATE_STORAGE_KEY = 'pp-editor:scaffold-template:v1';
+const SCAFFOLD_MAPPINGS_STORAGE_KEY = 'pp-editor:scaffold-mappings:v1';
+const CONSTRAINT_MODE_STORAGE_KEY = 'pp-editor:constraints-mode:v1';
+const DESIGN_STORAGE_KEY = 'design-peptide-v1';
+
 /**
  * Session loading states.
  */
@@ -49,6 +57,7 @@ export function useSessionLoader() {
   const [sessionId, setSessionId] = useState(() => getSessionId());
   const [loadState, setLoadState] = useState(SESSION_LOAD_STATE.IDLE);
   const [error, setError] = useState(null);
+  const [wasExpired, setWasExpired] = useState(false);
 
   // Track if we've done initial load
   const initialLoadDone = useRef(false);
@@ -88,9 +97,18 @@ export function useSessionLoader() {
           setLoadState(SESSION_LOAD_STATE.READY);
           return;
         } else {
-          // Stored session is stale - clear it and any associated conformer job storage
+          // Stored session is stale - clear it and all associated client-side state
+          // so the user doesn't get stuck with stale template/scaffold/job references.
           clearConformerJobIdFromStorage({ sessionId: storedSessionId });
+          try {
+            window?.localStorage?.removeItem(SCAFFOLD_TEMPLATE_STORAGE_KEY);
+            window?.localStorage?.removeItem(SCAFFOLD_MAPPINGS_STORAGE_KEY);
+            window?.localStorage?.removeItem(CONSTRAINT_MODE_STORAGE_KEY);
+            window?.localStorage?.removeItem(DESIGN_STORAGE_KEY);
+          } catch { /* ignore */ }
           clearSessionIdFromStorage();
+          // Flag that the previous session expired so the UI can inform the user.
+          setWasExpired(true);
         }
       }
 
@@ -178,10 +196,14 @@ export function useSessionLoader() {
     }
   }, [sessionId]);
 
+  const acknowledgeExpiry = useCallback(() => setWasExpired(false), []);
+
   return {
     sessionId,
     loadState,
     error,
+    wasExpired,
+    acknowledgeExpiry,
     retry,
     createNewSession,
     switchToSession,

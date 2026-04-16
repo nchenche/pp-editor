@@ -1392,6 +1392,15 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
         // Clear scaffold (also makes autoSync3D = true again because effectiveAnyScaffoldEnabled becomes false)
         handleClearScaffold();
+
+        // Reset constraint mode to default so the editor doesn't stay stuck in template mode
+        setConstraintMode('ss');
+
+        // Clear scaffold mappings so stale chain-to-template bindings don't persist
+        replaceRawMappings([]);
+
+        // Clear SS constraints
+        setConstraintsBySeq([]);
     }, [
         setAutoSync3DRaw,
         setTemplateOverlapOpen,
@@ -1401,7 +1410,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         setDepictionData,
         setStructureOutput,
         handleClearScaffold,
+        setConstraintMode,
+        replaceRawMappings,
+        setConstraintsBySeq,
     ]);
+
+    // When the session changes (e.g. expired session detected, "Start new session"),
+    // reset all editor state so stale template/scaffold references don't persist.
+    const prevSessionIdRef = useRef(sessionId);
+    useEffect(() => {
+        const prev = prevSessionIdRef.current;
+        prevSessionIdRef.current = sessionId;
+        // Skip the initial render and only react to actual changes.
+        if (prev == null || prev === sessionId) return;
+        clearData();
+    }, [sessionId, clearData]);
 
     // Persist design state
     usePersistDesign({ biln: bilnValue, constraints: constraintsBySeq });

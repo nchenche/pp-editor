@@ -1292,7 +1292,7 @@ const Documentation = () => {
                     </P>
 
                     <Alert severity="warning" sx={{ mb: 2 }}>
-                        Sessions are automatically deleted after <strong>15 days of inactivity</strong>. Each visit refreshes the expiration timer.
+                        Sessions are automatically deleted after <strong>30 days of inactivity</strong>. Each visit refreshes the expiration timer.
                     </Alert>
 
                     <Sub2Title>Session dialog (Share / Recover / Email)</Sub2Title>

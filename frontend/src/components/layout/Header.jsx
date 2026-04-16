@@ -41,6 +41,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 
 import { useSessionLoader, SESSION_LOAD_STATE } from '../../hooks/useSessionLoader';
+import { useSessionHeartbeat } from '../../hooks/useSessionHeartbeat';
 import { useShellTheme } from '../../theme/ShellThemeProvider';
 import {
   getSession,
@@ -72,10 +73,16 @@ function Header({ children }) {
     sessionId,
     loadState,
     error: loadError,
+    wasExpired,
+    acknowledgeExpiry,
     retry,
     createNewSession,
     switchToSession,
   } = useSessionLoader();
+
+  // Keep session alive while the user is actively interacting.
+  // If the heartbeat discovers the session is gone, trigger a full reload.
+  useSessionHeartbeat(sessionId, { onExpired: retry });
 
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState(0); // 0: Share, 1: Recover, 2: Settings
@@ -1374,6 +1381,29 @@ function Header({ children }) {
             </Button>
             <Button onClick={handleConfirmNewSession} color="primary" variant="contained">
               New session
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Session expired notification dialog */}
+        <Dialog
+          open={wasExpired}
+          onClose={acknowledgeExpiry}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Session expired</DialogTitle>
+          <DialogContent dividers>
+            <Alert severity="warning" sx={{ mb: 1 }}>
+              Your previous session has expired due to inactivity.
+            </Alert>
+            <Typography variant="body2">
+              A new session has been created automatically. Any unsaved work from the previous session is no longer accessible.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={acknowledgeExpiry} color="primary" variant="contained" autoFocus>
+              OK
             </Button>
           </DialogActions>
         </Dialog>
