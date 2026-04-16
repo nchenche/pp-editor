@@ -348,17 +348,6 @@ svg:has(rect:first-of-type.linking-mode) g.bond:hover rect.visible {
     opacity: 1;
 }
 
-/* Saturated R-groups (already used in a bond) should not be selectable */
-#svg-container.rgroups-emphasis svg g.r-group.saturated,
-#svg-container.rgroups-emphasis svg g.r-group.saturated * {
-    opacity: 0.25;
-}
-
-#svg-container.rgroups-emphasis svg g.r-group.saturated rect {
-    pointer-events: none;
-    cursor: not-allowed;
-}
-
 #svg-container svg g.r-group rect {
     fill: slategray;
     fill-opacity: 0;

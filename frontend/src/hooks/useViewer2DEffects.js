@@ -64,7 +64,6 @@ export function useViewer2DEffects({
     svgContainer,
     cuttableBondPairs,
     cuttableResiduePairs,
-    usedRgroups,
     onMouseEnterGroup,
     onMouseLeaveGroup,
     onRGroupClick,
@@ -120,25 +119,6 @@ export function useViewer2DEffects({
         const root = svgContainer.current;
         const groups = root.querySelectorAll('svg g');
 
-        const parseRgroupIndicesMeta = (groupEl) => {
-            const base = groupEl?.className?.baseVal || '';
-            const match = base.match(/(?:^|\s)indices_([^\s]+)/);
-            if (!match) return null;
-
-            const indices = match[1];
-            const sep = indices.lastIndexOf('_');
-            if (sep < 0) return null;
-
-            const residueToken = indices.slice(0, sep);
-            const rgroupToken = indices.slice(sep + 1);
-
-            const m = residueToken.match(/-(\d+)$/);
-            const residueIdx = m ? parseInt(m[1], 10) : NaN;
-            const rgroupIdx = parseInt(rgroupToken, 10);
-            if (!Number.isFinite(residueIdx) || !Number.isFinite(rgroupIdx)) return null;
-            return { residueIdx, rgroupIdx };
-        };
-
         groups.forEach(group => {
             const groupClasses = group.classList;
             const isCuttableBond = isCuttableBondGroup(groupClasses, cuttableBondPairs, cuttableResiduePairs);
@@ -150,26 +130,10 @@ export function useViewer2DEffects({
 
             if (groupClasses.contains("r-group")) {
                 rect.classList.add("r-group");
-                const meta = parseRgroupIndicesMeta(group);
-                const residueIdx = meta?.residueIdx;
-                const rgroupIdx = meta?.rgroupIdx;
-
-                // Treat this specific rgroup as saturated when we have an exact match.
-                // (We intentionally avoid residue-level saturation heuristics because
-                // depictions can omit already-used R-groups, which would incorrectly
-                // disable the remaining free R-group.)
-                // Note: SVG `indices_*_*` rgroup index is 0-based, but BILN/linkMap rgroups are 1-based.
-                const saturated = (Number.isFinite(residueIdx) && Number.isFinite(rgroupIdx) && usedRgroups)
-                    ? usedRgroups.has(`${residueIdx}-${rgroupIdx + 1}`)
-                    : false;
-
-                group.classList.toggle('saturated', saturated);
-                rect.classList.toggle('saturated', saturated);
-                if (!saturated) {
-                    group.addEventListener("click", onRGroupClick);
-                } else {
-                    group.removeEventListener("click", onRGroupClick);
-                }
+                // The backend only includes R-group <g> elements for free
+                // (unconsumed) leaving groups, so every visible R-group is
+                // clickable — no frontend saturation check needed.
+                group.addEventListener("click", onRGroupClick);
                 group.removeEventListener("dblclick", onBondClick);
                 rect.classList.remove("extra-bond");
             } else if (isCuttableBond) {
@@ -199,7 +163,7 @@ export function useViewer2DEffects({
                 group.removeEventListener("dblclick", onBondClick);
             });
         };
-    }, [svgData, svgContainer, cuttableBondPairs, cuttableResiduePairs, usedRgroups, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
+    }, [svgData, svgContainer, cuttableBondPairs, cuttableResiduePairs, onMouseEnterGroup, onMouseLeaveGroup, onRGroupClick, onBondClick]);
 
     useEffect(() => {
         const container = svgContainer?.current;

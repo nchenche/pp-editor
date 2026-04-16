@@ -155,10 +155,9 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
     const [isShowBonds, setIsShowBonds] = useState(false);
     const [monomersToLink, setMonomersToLink] = useState([]);
 
-    const { cuttableBondPairs, cuttableResiduePairs, usedRgroups } = useMemo(() => {
+    const { cuttableBondPairs, cuttableResiduePairs } = useMemo(() => {
         const bondPairs = new Set();
         const residuePairs = new Set();
-        const used = new Set();
         const entries = Object.entries(linkMap || {});
         for (const [, pairs] of entries) {
             if (!Array.isArray(pairs) || pairs.length < 2) continue;
@@ -170,13 +169,10 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
             bondPairs.add(`${b.monomerIdx}-${b.rgroup}|${a.monomerIdx}-${a.rgroup}`);
             residuePairs.add(`${a.monomerIdx}|${b.monomerIdx}`);
             residuePairs.add(`${b.monomerIdx}|${a.monomerIdx}`);
-            used.add(`${a.monomerIdx}-${a.rgroup}`);
-            used.add(`${b.monomerIdx}-${b.rgroup}`);
         }
         return {
             cuttableBondPairs: bondPairs,
             cuttableResiduePairs: residuePairs,
-            usedRgroups: used,
         };
     }, [linkMap]);
 
@@ -218,7 +214,6 @@ export const Viewer2D = forwardRef(function Viewer2D(props, ref) {
         svgContainer,
         cuttableBondPairs,
         cuttableResiduePairs,
-        usedRgroups,
         isShowRGroups,
         isShowBonds,
         monomersToLink,
