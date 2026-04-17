@@ -116,6 +116,7 @@ export default function BilnEditorInterface({
     setExtraEmptyChains: setExtraEmptyChainsProp,
 
     onAdjustEditorHeight,
+    resizeBarRef,
 }) {
     const [bilnHelpOpen, setBilnHelpOpen] = useState(false);
     const [seqHelpOpen, setSeqHelpOpen] = useState(false);
@@ -246,9 +247,19 @@ export default function BilnEditorInterface({
                     const rect = el.getBoundingClientRect();
                     setDetachedSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
                 }
-                setDetachedPos(null);
                 setChainsDetached(true);
             }
+            // Position just above the horizontal resize bar after DOM settles
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                const barEl = resizeBarRef?.current;
+                if (barEl) {
+                    const barRect = barEl.getBoundingClientRect();
+                    setDetachedPos({
+                        x: barRect.left,
+                        bottomOffset: window.innerHeight - barRect.top,
+                    });
+                }
+            }));
         } else if (!active && manualBeforeLinkRef.current !== null) {
             // Exiting link/cut: restore previous state
             const prev = manualBeforeLinkRef.current;
@@ -1059,6 +1070,7 @@ export default function BilnEditorInterface({
                                 zIndex: 3,
                                 bgcolor: 'background.paper',
                                 borderRadius: 1,
+                                p: 0.75,
                             }),
                         }}
                     >
@@ -1085,9 +1097,11 @@ export default function BilnEditorInterface({
                         PaperProps={{
                             sx: {
                                 position: 'fixed',
-                                ...(detachedPos
-                                    ? { top: detachedPos.y, left: detachedPos.x, bottom: 'auto', right: 'auto' }
-                                    : { top: 16, left: 16, bottom: 'auto', right: 'auto' }
+                                ...(detachedPos?.bottomOffset != null
+                                    ? { bottom: detachedPos.bottomOffset, left: detachedPos.x, top: 'auto', right: 'auto' }
+                                    : detachedPos
+                                        ? { top: detachedPos.y, left: detachedPos.x, bottom: 'auto', right: 'auto' }
+                                        : { top: 16, left: 16, bottom: 'auto', right: 'auto' }
                                 ),
                                 m: 0,
                                 width: detachedSize?.width ?? { xs: '95vw', sm: 520, md: 620 },

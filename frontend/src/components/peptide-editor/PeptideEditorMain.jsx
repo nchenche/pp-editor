@@ -50,6 +50,8 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SyncIcon from '@mui/icons-material/Sync';
 import Tooltip from '@mui/material/Tooltip';
@@ -567,8 +569,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const was3DPanelOpenRef = useRef(false);
     const splitRatioBefore3DPanelRef = useRef(null);
 
-    const canLink = !!svgDepiction && !viewer2DModes.bondsMode;
-    const canCut = !!svgDepiction && !viewer2DModes.linkMode && viewer2DModes?.canCut !== false;
+    const canLink = !!svgDepiction;
+    const canCut = !!svgDepiction && viewer2DModes?.canCut !== false;
 
     const [isShowingAtomIndices, setIsShowingAtomIndices] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
@@ -1600,6 +1602,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     // and when constraint mode switches from "none" to "ss" or "template".
     // Uses a grow-only policy: never auto-shrinks; manual drag resize is unaffected.
     const editorWrapperRef = useRef(null);
+    const resizeBarRef = useRef(null);
     const prevAutoFitChainCountRef = useRef(null);        // null ⇒ first render
     const prevAutoFitConstraintModeRef = useRef(constraintMode);
     const MIN_VIEWER_ROW_HEIGHT = 240;                    // matches useSplitLayout default
@@ -1730,6 +1733,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         linkMode={viewer2DModes.linkMode}
                         bondsMode={viewer2DModes.bondsMode}
                         onToggleLinkMode={() => {
+                            const wantLink = !viewer2DModes.linkMode;
                             if (collapsedViewer === '2d') {
                                 // Go directly to '3d' collapsed — skips the intermediate
                                 // "both visible" state and avoids a double Mol* resize.
@@ -1740,13 +1744,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     setConstraintMode('none');
                                 }
                                 requestAnimationFrame(() => {
-                                    viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
+                                    // Deactivate cut mode first if switching
+                                    if (wantLink && viewer2DModes.bondsMode) viewer2DRef.current?.setBondsMode(false);
+                                    viewer2DRef.current?.setLinkMode(wantLink);
                                 });
                             } else {
-                                viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
+                                if (wantLink && viewer2DModes.bondsMode) viewer2DRef.current?.setBondsMode(false);
+                                viewer2DRef.current?.setLinkMode(wantLink);
                             }
                         }}
                         onToggleCutMode={() => {
+                            const wantCut = !viewer2DModes.bondsMode;
                             if (collapsedViewer === '2d') {
                                 setCollapsedViewer('3d');
                                 if (constraintMode !== 'none') {
@@ -1754,15 +1762,19 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                     setConstraintMode('none');
                                 }
                                 requestAnimationFrame(() => {
-                                    viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
+                                    // Deactivate link mode first if switching
+                                    if (wantCut && viewer2DModes.linkMode) viewer2DRef.current?.setLinkMode(false);
+                                    viewer2DRef.current?.setBondsMode(wantCut);
                                 });
                             } else {
-                                viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
+                                if (wantCut && viewer2DModes.linkMode) viewer2DRef.current?.setLinkMode(false);
+                                viewer2DRef.current?.setBondsMode(wantCut);
                             }
                         }}
                         canLink={canLink}
                         canUnlink={canCut}
                         onAdjustEditorHeight={handleAdjustEditorHeight}
+                        resizeBarRef={resizeBarRef}
                         ph={phValue}
                         onChangePh={(next) => setPhValue(next)}
                         // Global scaffold props
@@ -1783,6 +1795,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 </Box>
 
                 <Box
+                    ref={resizeBarRef}
                     role="separator"
                     aria-orientation="horizontal"
                     onMouseDown={startDrag('horizontal')}
@@ -2121,7 +2134,34 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, alignItems: 'center' }}>
+                                        <Tooltip title="Undo" arrow>
+                                            <span>
+                                                <IconButton
+                                                    size="small"
+                                                    disabled={!canUndo}
+                                                    onClick={handleUndoBiln}
+                                                    sx={{ color: 'text.secondary' }}
+                                                    aria-label="undo"
+                                                >
+                                                    <UndoIcon fontSize="small" />
+                                                </IconButton>
+                                            </span>
+                                        </Tooltip>
+                                        <Tooltip title="Redo" arrow>
+                                            <span>
+                                                <IconButton
+                                                    size="small"
+                                                    disabled={!canRedo}
+                                                    onClick={handleRedoBiln}
+                                                    sx={{ color: 'text.secondary' }}
+                                                    aria-label="redo"
+                                                >
+                                                    <RedoIcon fontSize="small" />
+                                                </IconButton>
+                                            </span>
+                                        </Tooltip>
+                                        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
                                         <Button
                                             size="small"
                                             color="inherit"
@@ -2169,9 +2209,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         <Tooltip title="Link" arrow placement='top'>
                                             <span>
                                                 <Button
-                                                    onClick={() => viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode)}
+                                                    onClick={() => {
+                                                        if (!viewer2DModes.linkMode && viewer2DModes.bondsMode) viewer2DRef.current?.setBondsMode(false);
+                                                        viewer2DRef.current?.setLinkMode(!viewer2DModes.linkMode);
+                                                    }}
                                                     color="inherit"
-                                                    disabled={!svgDepiction || viewer2DModes.bondsMode}
+                                                    disabled={!svgDepiction}
                                                     aria-label="link-monomers"
                                                 >
                                                     <DeviceHubIcon fontSize="inherit" />
@@ -2182,9 +2225,12 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                         <Tooltip title="Unlink" arrow placement='top'>
                                             <span>
                                                 <Button
-                                                    onClick={() => viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode)}
+                                                    onClick={() => {
+                                                        if (!viewer2DModes.bondsMode && viewer2DModes.linkMode) viewer2DRef.current?.setLinkMode(false);
+                                                        viewer2DRef.current?.setBondsMode(!viewer2DModes.bondsMode);
+                                                    }}
                                                     color="inherit"
-                                                    disabled={!svgDepiction || viewer2DModes.linkMode || viewer2DModes?.canCut === false}
+                                                    disabled={!svgDepiction || viewer2DModes?.canCut === false}
                                                     aria-label="toggle-bonds"
                                                 >
                                                     <LinkOffIcon fontSize="inherit" />
