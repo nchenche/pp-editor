@@ -141,12 +141,10 @@ export default function ChainContainer({
                     // border: 1,
                     borderColor: 'divider',
                     borderRadius: 1,
-                    p: 1,
                     bgcolor: 'background.paper',
                     position: 'relative',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.5,
+                    flexDirection: 'row',
                 }}
             >
                 {dimReplaceOverlay ? (
@@ -163,6 +161,41 @@ export default function ChainContainer({
                         }}
                     />
                 ) : null}
+
+                {/* Chain identity gutter */}
+                <Box
+                    sx={{
+                        width: 28,
+                        minWidth: 28,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: (t) => alpha(t.palette.text.primary, t.palette.mode === 'dark' ? 0.06 : 0.04),
+                        borderRadius: 'inherit',
+                        borderTopRightRadius: 0,
+                        borderBottomRightRadius: 0,
+                    }}
+                >
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            writingMode: 'vertical-rl',
+                            transform: 'rotate(180deg)',
+                            whiteSpace: 'nowrap',
+                            color: 'text.secondary',
+                            fontWeight: 600,
+                            fontSize: '0.65rem',
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                            userSelect: 'none',
+                        }}
+                    >
+                        {`Chain ${chainIdLabel ?? ''}`}
+                    </Typography>
+                </Box>
+
+                {/* Content area */}
+                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5, p: 1 }}>
 
                 {/* Row 1: Sequence */}
                 <Box sx={rowGridSx}>
@@ -422,6 +455,7 @@ export default function ChainContainer({
                     </Menu>
                 )}
 
+                </Box>{/* end content area */}
             </Box>
         </Box>
     );
