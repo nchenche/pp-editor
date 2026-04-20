@@ -471,7 +471,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const [constraintsBySeq, setConstraintsBySeq] = useState(() => initialConstraints);
 
     const EMPTY_ARRAY = Object.freeze([]);
-    const { svg: svgDepiction = '', smiles = '', helm = '', sdf = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
+    const { svg: svgDepiction = '', smiles = '', helm = '', sdf = '', inchi = '', inchikey = '', monomers = EMPTY_ARRAY } = depictionData ?? {};
     const structurePDB = structureOutput?.pdb || structureOutput?.PDB || '';
 
     const hasEverHadStructureRef = useRef(false);
@@ -1008,11 +1008,11 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 sdf3d: structureOutput?.SDF3D || structureOutput?.sdf || '',
                 mol2_tripos: structureOutput?.MOL2_TRIPOS || structureOutput?.mol2_tripos || '',
                 pdbqt: structureOutput?.PDBQT || structureOutput?.pdbqt || '',
-                inchi: structureOutput?.InChI || structureOutput?.inchi || '',
-                inchiKey: structureOutput?.InChIKey || structureOutput?.inchiKey || '',
+                inchi: inchi || structureOutput?.InChI || structureOutput?.inchi || '',
+                inchiKey: inchikey || structureOutput?.InChIKey || structureOutput?.inchiKey || '',
             });
         }
-    }, [bilnValue, helm, sdf, smiles, structurePDB, structureOutput, onOutputChange]);
+    }, [bilnValue, helm, sdf, smiles, inchi, inchikey, structurePDB, structureOutput, onOutputChange]);
 
     const ssSignatureForGen = useMemo(() => {
         return constraintMode === 'ss' ? secstructString : '';
@@ -1283,8 +1283,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         if (!isActive) return; // skip when not active
         if (!committedBiln) {
             setMonomerSequences('', []); // clear sequences
-            setDepictionData({ svg: '', monomers: [], smiles: '', helm: '', sdf2d: '' });
-            setStructureOutput({ pdb: '' });
+            setDepictionData({ svg: '', monomers: [], smiles: '', helm: '', sdf2d: '', inchi: '', inchikey: '' });
+            setStructureOutput({ pdb: '', mmcif: '', xyz: '', sdf3d: '', mol2_tripos: '', pdbqt: '' });
             // Also clear any stale 3D error/job state from a previous generation.
             // This prevents showing template-failure messages when the input is empty.
             try {
@@ -1386,8 +1386,8 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         suppressAutoConformerAfterResumeRef.current = false;
 
         // Clear outputs
-        setDepictionData({ svg: '', monomers: [], smiles: '', helm: '' });
-        setStructureOutput({ pdb: '' });
+        setDepictionData({ svg: '', monomers: [], smiles: '', helm: '', sdf2d: '', inchi: '', inchikey: '' });
+        setStructureOutput({ pdb: '', mmcif: '', xyz: '', sdf3d: '', mol2_tripos: '', pdbqt: '' });
 
         // Reset “last generated” guard so next paste triggers generation normally
         lastGenRef.current = { biln: null, ss: null, useTemplate: null, mappingSig: null, ph: null };
