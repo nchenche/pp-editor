@@ -172,11 +172,11 @@ const NAV_TREE = [
     {
         group: "Troubleshooting & policies",
         children: [
-            { id: "faq", label: "FAQ & common errors" },
+            // { id: "faq", label: "FAQ & common errors" },
             { id: "limitations", label: "Limitations & tips" },
             { id: "browser-compat", label: "Browser compatibility" },
             { id: "how-to-cite", label: "How to cite" },
-            { id: "changelog", label: "Changelog" },
+            // { id: "changelog", label: "Changelog" },
             { id: "policies", label: "Accessibility, cookies & contact" },
         ],
     },
@@ -640,14 +640,11 @@ const Documentation = () => {
                     <InfoBox color="info">
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>How to cite</Typography>
                         <P>
-                            Chevrollier N, Dougha A, Ye C, Stratmann D, Moroy G, Rey J, Murail S & Tufféry P.
-                            PEP-EDIT: an interactive web interface for the rapid generation and editing of complex peptides.
-                            <em> (manuscript in preparation).</em>
-                        </P>
-                        <P>
-                            URL:{" "}
-                            <MUILink href="https://pep-edit.rpbs.univ-paris-diderot.fr" target="_blank" rel="noreferrer">
-                                https://pep-edit.rpbs.univ-paris-diderot.fr
+                            Chevrollier N, Dougha A, Ye C, Stratmann D, Moroy G, Rey J, Murail S, Tuffery P.
+                            PEP-EDIT: a web server for the 3D generation and interactive editing of complex peptides.
+                            <em> Nucleic Acids Research</em>, 2026.{" "}
+                            <MUILink href="https://doi.org/10.1093/nar/gkag455" target="_blank" rel="noreferrer">
+                                https://doi.org/10.1093/nar/gkag455
                             </MUILink>
                         </P>
                         <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
@@ -1235,7 +1232,7 @@ const Documentation = () => {
                     <P>Name and Action are always visible; others can be toggled via <strong>Columns & view</strong>:</P>
                     <Ul>
                         <Li><strong>Name</strong> - defaults to "Untitled job". Click to edit inline, or use ⋮ → Edit details for a full dialog (name up to 200 characters, description up to 2 000 characters, plus read-only Job ID and timestamps).</Li>
-                        <Li><strong>BILN</strong> - the BILN string used for the job. Shows "—" for failed jobs.</Li>
+                        <Li><strong>BILN</strong> - the BILN string used for the job. Shows "-" for failed jobs.</Li>
                         <Li><strong>Date</strong> - creation timestamp.</Li>
                         <Li><strong>State</strong> - green "success" chip or red "failed" chip.</Li>
                     </Ul>
@@ -2136,18 +2133,18 @@ const Documentation = () => {
                         <strong>When constraints seem to have no visible effect:</strong>
                         <Ul sx={{ mb: 0, mt: 0.5 }}>
                             <Li>
-                                <strong>Short peptides</strong> — Very short sequences (3–5 residues) have limited backbone
+                                <strong>Short peptides</strong> - Very short sequences (3–5 residues) have limited backbone
                                 length, making it harder to distinguish between helical and extended conformations visually.
                                 Try a longer sequence (e.g. 8+ residues of poly-alanine) to see clear differences between
                                 H and E assignments.
                             </Li>
                             <Li>
-                                <strong>Proline residues</strong> — Proline's rigid pyrrolidine ring restricts φ to ≈ −60°,
+                                <strong>Proline residues</strong> - Proline's rigid pyrrolidine ring restricts φ to ≈ -60°,
                                 which is already close to the helical (H) preset. Assigning <strong>E</strong> (extended) to
                                 a proline position will therefore show a smaller conformational shift than for other amino acids.
                             </Li>
                             <Li>
-                                <strong>Auto sync is off</strong> — If the peptide exceeds the auto-sync threshold
+                                <strong>Auto sync is off</strong> - If the peptide exceeds the auto-sync threshold
                                 (8 monomers), changes to constraints are <em>not</em> automatically reflected in the
                                 3D viewer. Click <strong>Update 3D</strong> to regenerate the conformer with the current
                                 constraints.
@@ -3309,12 +3306,106 @@ const Documentation = () => {
 
                     <Divider sx={{ my: 4 }} />
 
-                    <SectionTitle id="policies">Accessibility & cookies</SectionTitle>
+                    <SectionTitle id="browser-compat">Browser compatibility</SectionTitle>
 
+                    <P>
+                        PEP-EDIT runs entirely in the browser. No installation is required, but two browser capabilities are
+                        needed for full functionality:
+                    </P>
                     <Ul>
-                        <Li>This website is free and open to all - no login is required.</Li>
-                        <Li>This website does not use tracking cookies. Cookie usage is restricted to strictly necessary cookies.</Li>
+                        <Li><strong>WebGL 2</strong>: required by the 3D viewer (Mol*). Without it, the 3D panel will not render structures.</Li>
+                        <Li><strong>WebAssembly</strong>: required by RDKit.js for 2D depiction, SMILES generation, and InChI computation.</Li>
                     </Ul>
+                    <P>
+                        Both are supported by all major modern browsers. The table below summarises the tested configurations:
+                    </P>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, borderRadius: 1.5 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: (t) => alpha(t.palette.text.primary, 0.03) }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>Browser</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Chrome / Chromium 120+</TableCell>
+                                    <TableCell sx={{ color: "success.main", fontWeight: 600 }}>Recommended</TableCell>
+                                    <TableCell>Full functionality. Best performance for 3D rendering.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Firefox 120+</TableCell>
+                                    <TableCell sx={{ color: "success.main", fontWeight: 600 }}>Supported</TableCell>
+                                    <TableCell>Full functionality.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Edge 120+</TableCell>
+                                    <TableCell sx={{ color: "success.main", fontWeight: 600 }}>Supported</TableCell>
+                                    <TableCell>Full functionality (Chromium-based).</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Safari 17+</TableCell>
+                                    <TableCell sx={{ color: "warning.main", fontWeight: 600 }}>Mostly supported</TableCell>
+                                    <TableCell>WebGL 2 and WebAssembly are available; minor rendering differences may occur.</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Mobile / tablet</TableCell>
+                                    <TableCell sx={{ color: "warning.main", fontWeight: 600 }}>Functional</TableCell>
+                                    <TableCell>The interface is functional but optimised for desktop widths ≥ 1280 px. Touch interactions in the 2D and 3D viewers may be limited.</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        If the 3D viewer fails to initialise, check that hardware acceleration is enabled in your browser
+                        settings and that your GPU supports WebGL 2 (verify at{" "}
+                        <MUILink href="https://get.webgl.org/webgl2/" target="_blank" rel="noopener">get.webgl.org/webgl2</MUILink>).
+                    </Alert>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    <SectionTitle id="how-to-cite">How to cite</SectionTitle>
+
+                    <P>
+                        If you use PEP-EDIT in your research, please cite the following publication:
+                    </P>
+
+                    <CodeBlock>{`Chevrollier N, Dougha A, Ye C, Stratmann D, Moroy G, Rey J, Murail S, Tuffery P.
+PEP-EDIT: a web server for the 3D generation and interactive editing of complex peptides.
+Nucleic Acids Research, 2026. https://doi.org/10.1093/nar/gkag455`}</CodeBlock>
+
+                    <P>
+                        DOI:{" "}
+                        <MUILink href="https://doi.org/10.1093/nar/gkag455" target="_blank" rel="noopener">
+                            10.1093/nar/gkag455
+                        </MUILink>
+                        {" "}(accepted 4 May 2026, Nucleic Acids Research, Oxford University Press).
+                    </P>
+
+                    <Divider sx={{ my: 4 }} />
+
+                    <SectionTitle id="policies">Accessibility, cookies & contact</SectionTitle>
+
+                    <SubTitle>Accessibility</SubTitle>
+                    <Ul>
+                        <Li>PEP-EDIT is free and open to all, no account or login is required.</Li>
+                        <Li>The interface supports keyboard navigation for most controls. Screen-reader support is partial: the 2D and 3D viewers render to canvas/WebGL and do not expose structural content to assistive technologies.</Li>
+                    </Ul>
+
+                    <SubTitle>Cookies</SubTitle>
+                    <Ul>
+                        <Li>PEP-EDIT does not use tracking or analytics cookies.</Li>
+                        <Li>Cookie usage is restricted to strictly necessary cookies (session persistence for the peptide editor state).</Li>
+                    </Ul>
+
+                    <SubTitle>Contact</SubTitle>
+                    <P>
+                        For questions, bug reports, or monomer requests, contact the RPBS team at{" "}
+                        <MUILink href="mailto:rpbs@rpbs.univ-paris-diderot.fr">rpbs@rpbs.univ-paris-diderot.fr</MUILink>.
+                    </P>
 
                     {/* bottom padding */}
                     <Box sx={{ height: 80 }} />
