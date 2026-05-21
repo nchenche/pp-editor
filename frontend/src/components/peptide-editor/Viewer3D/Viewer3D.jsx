@@ -44,6 +44,15 @@ const Viewer3DInner = ({
     const [representationAlphaByRep, setRepresentationAlphaByRep] = useState({});
     const [hoverLabel, setHoverLabel] = useState('');
     const [uiHoverLabel, setUiHoverLabel] = useState('');
+    const hasWebGL2 = useMemo(() => {
+        if (typeof document === 'undefined') return true;
+        try {
+            const testCanvas = document.createElement('canvas');
+            return !!testCanvas.getContext('webgl2');
+        } catch {
+            return false;
+        }
+    }, []);
 
     const { pluginRef, canvasRef, containerRef, pluginInitialized, error: pluginError } = useMolstarPlugin({
         backgroundColor: background,
@@ -664,6 +673,9 @@ const Viewer3DInner = ({
     }, [pluginInitialized, pluginRef, templateStructure, templateVisible, templateMappings, templateMappedSig, templateOpacity]);
 
 
+    const isDarkBackground = String(background).trim().toLowerCase() === 'dark';
+    const showWebGLUnavailableMessage = !!pluginError && !hasWebGL2;
+
     return (
         <div className="molstar-viewer absolute inset-0">
             <div className="relative w-full h-full">
@@ -681,6 +693,36 @@ const Viewer3DInner = ({
 
                 {/* Overlay frame: always stays visible above Mol* content */}
                 <div className="pointer-events-none absolute inset-0 z-20 border border-dashed rounded-md" />
+
+                {showWebGLUnavailableMessage && (
+                    <div
+                        className="absolute inset-0 z-30 flex items-center justify-center rounded-md px-6 text-center"
+                        role="alert"
+                        style={{
+                            background: isDarkBackground ? '#000000' : '#ffffff',
+                            color: isDarkBackground ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.68)',
+                        }}
+                    >
+                        <div style={{ maxWidth: 520 }}>
+                            <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35, marginBottom: 8 }}>
+                                3D viewer unavailable
+                            </div>
+                            <div style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 8 }}>
+                                WebGL could not be initialized, so the molecular 3D view cannot be displayed right now.
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    lineHeight: 1.5,
+                                    color: isDarkBackground ? 'rgba(255,255,255,0.48)' : 'rgba(0,0,0,0.48)',
+                                }}
+                            >
+                                This is usually related to browser or graphics acceleration settings rather than the peptide design itself.
+                                Try refreshing the page, restarting the browser, updating your system or graphics drivers, or using another browser.
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {(hoverLabel || uiHoverLabel) && (
                     <div
