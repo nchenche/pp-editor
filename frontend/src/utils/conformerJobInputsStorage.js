@@ -1,8 +1,8 @@
 /**
  * Client-side persistence of conformer job "inputs".
  *
- * Backend job serialization does not include `inputs.payload`, so to reliably restore
- * SS/template constraints for historical jobs we persist the submit payload locally,
+ * The backend returns `inputs` on job list/detail responses, but older jobs may have
+ * `inputs: null`, so we also persist the submit payload locally as a fallback,
  * keyed by job_id and scoped to (db, session, backend).
  */
 

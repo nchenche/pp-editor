@@ -566,7 +566,7 @@ export function useConformerJob({ dbName = DB_NAME, sessionId = null, ownerId = 
 
         // Canonicalized representation of backend-stored inputs.
         // Backend stores `inputs={ payload: <task_payload>, query_params: <query_params> }`,
-        // but does not return it on job GET; keep it client-side for resuming.
+        // and returns it on job GET/list; keep a client-side copy as a fallback for older jobs.
         const inputsPayload = (() => {
           if (!isTemplate && String(payload.endpoint || '').includes('generate_conformer')) {
             return {

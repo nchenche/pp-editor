@@ -43,6 +43,7 @@ import { getLocalSessionMeta, formatSessionIdShort, SESSION_META_CHANGED_EVENT }
 import { setConformerJobIdInStorage } from '../../utils/conformerJobStorage';
 import { formatConformerJobProgressMessage } from '../../utils/conformerJobProgress';
 import { getConformerJobInputsFromStorage } from '../../utils/conformerJobInputsStorage';
+import { getConformerJobBiln } from '../../utils/conformerJobBiln';
 import { getConformerJob, patchConformerJob, deleteConformerJob, bulkDeleteConformerJobs } from '../../utils/conformerJobsApi';
 import { InlineJobNameEditor } from './InlineJobNameEditor';
 import { JobDetailsDialog } from './JobDetailsDialog';
@@ -137,7 +138,11 @@ function extractResumeInputsFromStored(stored) {
     const doc = stored && typeof stored === 'object' ? stored : null;
     const inputs = doc?.inputs && typeof doc.inputs === 'object' ? doc.inputs : null;
     const payload = inputs?.payload && typeof inputs.payload === 'object' ? inputs.payload : null;
-    const queryParams = inputs?.query_params && typeof inputs.query_params === 'object' ? inputs.query_params : null;
+    const rawQueryParams = inputs?.query_params && typeof inputs.query_params === 'object' ? inputs.query_params : null;
+    // query_params.ph_value only exists when sent in the URL; payload.ph_value is always set by the backend.
+    const queryParams = (rawQueryParams?.ph_value == null && payload?.ph_value != null)
+        ? { ...(rawQueryParams || {}), ph_value: payload.ph_value }
+        : rawQueryParams;
 
     const ssConstraints = payload?.ss_constraints ?? null;
     const templateId = payload?.template_id ?? null;
@@ -366,7 +371,8 @@ export function ConformerJobsPanel({ dbName = DB_NAME }) {
     }, [rowMenuJob, handleCloseRowMenu]);
 
     const handleCopyBiln = useCallback(async () => {
-        const biln = rowMenuJob?.result_ref?.properties?.BILN || rowMenuJob?.biln || rowMenuJob?.properties?.BILN || '';
+        const menuJobId = rowMenuJob?.job_id || rowMenuJob?.id || '';
+        const biln = getConformerJobBiln(rowMenuJob, menuJobId ? jobDetailsRef.current?.[menuJobId] : null);
         if (biln) {
             try {
                 await navigator.clipboard.writeText(biln);
@@ -658,9 +664,6 @@ export function ConformerJobsPanel({ dbName = DB_NAME }) {
                             {(items || []).map((job) => {
                                 const jobId = job?.job_id || job?.id || '';
                                 const state = formatState(job?.state);
-                                const biln = job?.result_ref?.properties?.BILN || job?.biln || job?.properties?.BILN || '';
-                                const bilnPreview = formatBilnPreview(biln);
-                                const pdb = job?.result_ref?.properties?.PDB || job?.result_ref?.properties?.pdb || '';
 
                                 // Job name/description
                                 const jobName = job?.name ?? null;
@@ -677,10 +680,17 @@ export function ConformerJobsPanel({ dbName = DB_NAME }) {
                                         baseUrlOverride: API_BASE_URL,
                                     })
                                     : null;
-                                const inputsSource = serverDetails || (job?.inputs ? job : null) || storedInputs;
+                                // Pick the first source that actually carries `inputs` (older jobs may have inputs: null).
+                                const inputsSource = [serverDetails, job, storedInputs].find((s) => s?.inputs) || null;
                                 const extracted = inputsSource
                                     ? extractResumeInputsFromStored(inputsSource)
                                     : { ssConstraints: null, templateId: null, scaffoldMappings: null, queryParams: null };
+
+                                const biln = getConformerJobBiln(job, serverDetails, storedInputs);
+                                const bilnPreview = formatBilnPreview(biln);
+                                const jobProps = job?.result_ref?.properties || {};
+                                const detailProps = serverDetails?.result_ref?.properties || {};
+                                const pdb = jobProps.PDB || jobProps.pdb || detailProps.PDB || detailProps.pdb || '';
 
                                 const updatedAt = job?.updated_at || job?.meta?.timestamp || '';
                                 const createdAt = job?.created_at || '';
