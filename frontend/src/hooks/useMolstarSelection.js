@@ -6,6 +6,15 @@ import { EmptyLoci } from 'molstar/lib/mol-model/loci';
 import { Bond } from 'molstar/lib/mol-model/structure';
 import { hoveredTemplateResidueStore } from '../state/hoveredTemplateResidueStore';
 
+// Template residues are identified with PDB author numbering (matches backend slots).
+function templateResidueAt(loc) {
+    return {
+        chainId: StructureProperties.chain.auth_asym_id(loc),
+        resid: StructureProperties.residue.auth_seq_id(loc),
+        icode: String(StructureProperties.residue.pdbx_PDB_ins_code(loc) ?? '').trim(),
+    };
+}
+
 export function useMolstarSelection({
     pluginRef,
     pluginInitialized,
@@ -60,8 +69,9 @@ export function useMolstarSelection({
                     const chainId = StructureProperties.chain.label_asym_id(loc);
 
                     if (target === 'template') {
-                        // Publish to template-hover store; clear sequence hover.
-                        hoveredTemplateResidueStore.set({ chainId, resid: residueId });
+                        // Publish to template-hover store (PDB author numbering, as in the
+                        // backend template residue model); clear sequence hover.
+                        hoveredTemplateResidueStore.set(templateResidueAt(loc));
                         hoverHandlerRef.current && hoverHandlerRef.current('');
                         return;
                     }
@@ -94,9 +104,7 @@ export function useMolstarSelection({
                             unit: aUnit,
                             element: aElement != null ? aElement : aIndex,
                         };
-                        const residueId = StructureProperties.residue.label_seq_id(bLoc);
-                        const chainId = StructureProperties.chain.label_asym_id(bLoc);
-                        hoveredTemplateResidueStore.set({ chainId, resid: residueId });
+                        hoveredTemplateResidueStore.set(templateResidueAt(bLoc));
                         hoverHandlerRef.current && hoverHandlerRef.current('');
                         return;
                     }

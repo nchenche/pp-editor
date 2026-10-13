@@ -10,6 +10,7 @@ import { StateSelection } from 'molstar/lib/mol-state/state/selection';
 import { Script } from 'molstar/lib/mol-script/script';
 import { StructureSelection } from 'molstar/lib/mol-model/structure';
 import { StructureElement, StructureProperties, Bond } from 'molstar/lib/mol-model/structure';
+import { getMappedTemplateResidues, groupResidueRuns } from '../../../utils/templateResidues';
 
 
 const Viewer3DInner = ({
@@ -218,7 +219,7 @@ const Viewer3DInner = ({
                 // ignore
             }
         },
-        focusResidue: ({ target = 'main', chainId, seqId, debug } = {}) => {
+        focusResidue: ({ target = 'main', chainId, seqId, icode, debug } = {}) => {
             const plugin = pluginRef.current;
             if (!plugin) return;
 
@@ -232,21 +233,22 @@ const Viewer3DInner = ({
             if (!data) return;
 
             try {
-                const residueTest = chain
-                    ? (Q) => Q.core.logic.and([
-                        Q.core.rel.eq([
-                            Q.struct.atomProperty.macromolecular.label_asym_id(),
-                            chain,
-                        ]),
-                        Q.core.rel.eq([
-                            Q.struct.atomProperty.macromolecular.label_seq_id(),
-                            seq,
-                        ]),
-                    ])
-                    : (Q) => Q.core.rel.eq([
-                        Q.struct.atomProperty.macromolecular.label_seq_id(),
-                        seq,
-                    ]);
+                // Template residues are addressed with PDB author numbering (resid/icode from
+                // the backend residue model); the designed peptide keeps label numbering.
+                const isTemplate = target === 'template';
+                const ins = String(icode ?? '').trim();
+                const residueTest = (Q) => {
+                    const P = Q.struct.atomProperty.macromolecular;
+                    const tests = [];
+                    if (chain && !(isTemplate && chain === '_')) {
+                        tests.push(Q.core.rel.eq([isTemplate ? P.auth_asym_id() : P.label_asym_id(), chain]));
+                    }
+                    tests.push(Q.core.rel.eq([isTemplate ? P.auth_seq_id() : P.label_seq_id(), seq]));
+                    if (isTemplate && ins) {
+                        tests.push(Q.core.rel.eq([P.pdbx_PDB_ins_code(), ins]));
+                    }
+                    return tests.length === 1 ? tests[0] : Q.core.logic.and(tests);
+                };
 
                 const sel = Script.getStructureSelection((Q) => Q.struct.generator.atomGroups({
                     'residue-test': residueTest(Q),
@@ -478,8 +480,9 @@ const Viewer3DInner = ({
             if (!activeChainIds.length) return;
 
             // Build a chain-test that matches any of the active chains.
+            // Template chain ids are PDB author chain ids (auth_asym_id).
             const chainTests = activeChainIds.map((id) =>
-                MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_asym_id(), id]),
+                MS.core.rel.eq([MS.struct.atomProperty.macromolecular.auth_asym_id(), id]),
             );
             const chainTest = chainTests.length === 1 ? chainTests[0] : MS.core.logic.or(chainTests);
 
@@ -566,63 +569,38 @@ const Viewer3DInner = ({
 
             // Build ONE atomGroups selection across ALL enabled mappings.
             // This avoids MolScript union edge cases where only the first mapping applies.
+            // Residues are matched by PDB author numbering of each mapped slot (not start + index),
+            // so numbering gaps, unresolved residues and insertion codes are handled.
+            const P = MS.struct.atomProperty.macromolecular;
             const clauses = enabled.flatMap((m) => {
                 const chainId = String(m?.chainId ?? m?.chain_id ?? '').trim();
                 const start = Number(m.start);
                 const end = Number(m.end);
                 if (!Number.isFinite(start) || !Number.isFinite(end) || start < 1 || end < 1) return [];
 
-                // manualMasks are indices in the AA-length template slice (0-based)
-                const manualMasks = Array.isArray(m?.manualMasks)
-                    ? m.manualMasks
-                    : Array.isArray(m?.manual_masks)
-                        ? m.manual_masks
-                        : [];
-                const masked = new Set(
-                    manualMasks
-                        .map((x) => Number(x))
-                        .filter((x) => Number.isFinite(x) && x >= 0)
-                        .map((x) => Math.trunc(x)),
-                );
-
                 const templateResidues = Array.isArray(m?.templateResidues) ? m.templateResidues : [];
-                const baseStart = Math.min(start, end);
-                const intervals = [];
-
+                let residueTests;
                 if (templateResidues.length) {
-                    let runStartIdx = null;
-                    let prevIdx = null;
-                    for (let i = 0; i < templateResidues.length; i++) {
-                        if (masked.has(i)) {
-                            if (runStartIdx != null && prevIdx != null) {
-                                intervals.push([baseStart + runStartIdx, baseStart + prevIdx]);
-                            }
-                            runStartIdx = null;
-                            prevIdx = null;
-                            continue;
-                        }
-                        if (runStartIdx == null) runStartIdx = i;
-                        prevIdx = i;
-                    }
-                    if (runStartIdx != null && prevIdx != null) {
-                        intervals.push([baseStart + runStartIdx, baseStart + prevIdx]);
-                    }
-                    if (intervals.length === 0) return [];
+                    const { runs, withIcode } = groupResidueRuns(getMappedTemplateResidues(m));
+                    residueTests = [
+                        ...runs.map(([s, e]) => (s === e
+                            ? MS.core.rel.eq([P.auth_seq_id(), s])
+                            : MS.core.rel.inRange([P.auth_seq_id(), s, e]))),
+                        ...withIcode.map((r) => MS.core.logic.and([
+                            MS.core.rel.eq([P.auth_seq_id(), r.resid]),
+                            MS.core.rel.eq([P.pdbx_PDB_ins_code(), r.icode]),
+                        ])),
+                    ];
+                    if (!residueTests.length) return [];
                 } else {
-                    const s = Math.min(start, end);
-                    const e = Math.max(start, end);
-                    intervals.push([s, e]);
+                    residueTests = [MS.core.rel.inRange([P.auth_seq_id(), Math.min(start, end), Math.max(start, end)])];
                 }
 
-                const rangeTests = intervals.map(([s, e]) =>
-                    MS.core.rel.inRange([MS.struct.atomProperty.macromolecular.label_seq_id(), s, e]),
-                );
-                if (!rangeTests.length) return [];
-
-                const rangeExpr = rangeTests.length === 1 ? rangeTests[0] : MS.core.logic.or(rangeTests);
-                const clause = chainId
+                const rangeExpr = residueTests.length === 1 ? residueTests[0] : MS.core.logic.or(residueTests);
+                // '_' is the backend placeholder for a blank chain id.
+                const clause = chainId && chainId !== '_'
                     ? MS.core.logic.and([
-                        MS.core.rel.eq([MS.struct.atomProperty.macromolecular.label_asym_id(), chainId]),
+                        MS.core.rel.eq([P.auth_asym_id(), chainId]),
                         rangeExpr,
                     ])
                     : rangeExpr;

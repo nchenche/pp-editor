@@ -118,6 +118,8 @@ function toRawScaffoldMapping(value) {
     const chainId = value.chainId ?? value.chain_id ?? null;
     const start = value.start ?? null;
     const end = value.end ?? null;
+    const startIcode = value.startIcode ?? value.start_icode ?? null;
+    const endIcode = value.endIcode ?? value.end_icode ?? null;
     const offset = Number.isFinite(Number(value.offset)) ? Number(value.offset) : 0;
     const manualMasks = Array.isArray(value.manualMasks)
         ? value.manualMasks
@@ -128,6 +130,8 @@ function toRawScaffoldMapping(value) {
         chainId,
         start,
         end,
+        startIcode,
+        endIcode,
         offset,
         manualMasks,
         disabledByUser: !!value.disabledByUser,

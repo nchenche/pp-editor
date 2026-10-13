@@ -1694,6 +1694,14 @@ const Documentation = () => {
                         set. Multi-chain peptides are fully supported: each designed chain can be mapped independently
                         to a different template chain or residue range.
                     </P>
+                    <P>
+                        Non-standard template residues (e.g. MSE, AIB, D-amino acids stored as HETATM) are kept in the
+                        template sequence and contribute their backbone N/CA/C/O coordinates, located by atom name and
+                        checked against ideal bond lengths. Unresolved residues (PDB <code>REMARK 465</code>, or a numbering
+                        jump at a backbone break) appear as dashed slots: the designed residues placed there are not
+                        constrained and are sampled freely, bridging the gap. Caps, waters, ions and ligands are not
+                        listed.
+                    </P>
 
                     <P>
                         For step-by-step instructions on how to apply either constraint type in the editor, see{" "}

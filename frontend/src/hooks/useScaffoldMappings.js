@@ -20,6 +20,10 @@ const emptyMapping = {
     chainId: null,
     start: null,
     end: null,
+    // Insertion codes of the boundary slots (null = unspecified: start resolves to the
+    // first slot with that number, end to the last one).
+    startIcode: null,
+    endIcode: null,
     offset: 0,
     // Internal flag: true if `offset` was auto-set to account for an N-ter cap.
     // Allows us to revert the offset when the cap is removed without clobbering
@@ -104,9 +108,10 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 const manualSet = buildMaskSet(mapping.manualMasks, effectiveLen);
 
                 // masked residues still use '-' in the sequence string, but we keep
-                // the full residue objects in templateResidues for the UI
+                // the full residue objects in templateResidues for the UI.
+                // Unresolved template residues (no coordinates) are never constrained.
                 const maskedResidues = effectiveResidues.map((res, i) =>
-                    manualSet.has(i) ? { ...res, resn: '-', code: res.code } : res,
+                    manualSet.has(i) || res.observed === false ? { ...res, resn: '-', code: res.code } : res,
                 );
 
                 const trailingCapCount = hasCTerCap ? 1 : 0;
@@ -168,8 +173,12 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 chain_id: m.chainId,
                 start: m.start,
                 end: m.end,
+                start_icode: m.startIcode ?? null,
+                end_icode: m.endIcode ?? null,
                 offset: m.offset,
                 manual_masks: m.manualMasks ?? [],
+                // Designed chain (BILN chain index) this mapping applies to.
+                seq_idx: m.seqIdx,
             })),
         };
     }, [anyScaffoldEnabled, scaffoldMappings, scaffoldTemplate]);
@@ -182,21 +191,8 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
         const residues = normalizeResidues(firstChain);
         if (!residues.length) return rowMonomerLists.map(() => null);
 
-        let nextResid = residues[0]?.resid ?? 1;
-        const maxResid = residues[residues.length - 1]?.resid ?? nextResid;
         const chainId = normalizeChainId(firstChain) ?? null;
-
-        return rowMonomerLists.map((_, idx) => {
-            const len = designAaLengths[idx] ?? 0; // AA count only
-            if (len <= 0 || nextResid > maxResid) return null;
-
-            const start = nextResid;
-            let end = start + len - 1;
-            if (end > maxResid) end = maxResid;
-
-            nextResid = end + 1;
-            return { start, end, chainId };
-        });
+        return computeAutoRanges(residues, designAaLengths, chainId);
     }, [scaffoldTemplate, rowMonomerLists, designAaLengths]);
 
     // Prefill start/end/chainId/enabled for uninitialized mappings
@@ -240,6 +236,8 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                     chainId: auto.chainId,
                     start: auto.start,
                     end: auto.end,
+                    startIcode: auto.startIcode,
+                    endIcode: auto.endIcode,
                 };
             });
 
@@ -341,6 +339,8 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                             chainId: auto?.chainId ?? defaultChainId,
                             start: auto?.start ?? current.start ?? null,
                             end: auto?.end ?? current.end ?? null,
+                            startIcode: auto ? auto.startIcode : null,
+                            endIcode: auto ? auto.endIcode : null,
                         };
                     } else if (
                         (patchWithDisableFlag?.chainId ?? current.chainId) == null &&
@@ -357,23 +357,16 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                 // Determine which chain we are editing (patch overrides current)
                 const effectiveChainId = patchWithDisableFlag?.chainId ?? current.chainId ?? null;
 
-                // Compute resid bounds for that chain, if possible
-                let minResid = null;
-                let maxResid = null;
+                // Template slots of that chain (bounds + slot-based span arithmetic), if known
+                let chainResidues = [];
                 if (scaffoldTemplate && effectiveChainId != null) {
-                    const chain = resolveChain(scaffoldTemplate, effectiveChainId);
-                    const residues = normalizeResidues(chain);
-                    if (residues.length) {
-                        minResid = residues[0].resid;
-                        maxResid = residues[residues.length - 1].resid;
-                    }
+                    chainResidues = normalizeResidues(resolveChain(scaffoldTemplate, effectiveChainId));
                 }
 
                 const normalizedPatch = normalizePatch(
                     patchWithDisableFlag,
                     current,
-                    minResid,
-                    maxResid,
+                    chainResidues,
                 );
                 next[seqIdx] = { ...current, ...normalizedPatch };
 
@@ -402,6 +395,8 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
                             chainId: src.chainId ?? null,
                             start: src.start ?? null,
                             end: src.end ?? null,
+                            startIcode: src.startIcode ?? null,
+                            endIcode: src.endIcode ?? null,
                             offset: Number.isFinite(Number(src.offset)) ? Number(src.offset) : 0,
                             manualMasks: Array.isArray(src.manualMasks) ? src.manualMasks : [],
                             disabledByUser: !!src.disabledByUser,
@@ -416,38 +411,18 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     );
 
     const hasTemplateOverlap = useCallback(() => {
-        // console.log('Checking template overlap for mappings:', scaffoldMappings);
         if (!Array.isArray(scaffoldMappings) || !scaffoldMappings.length) return false;
 
-        const byChain = new Map();
-
-        scaffoldMappings.forEach((m, seqIdx) => {
-            if (!m?.enabled) return;
-            if (m.chainId == null) return;
-            if (m.start == null || m.end == null) return;
-
-            const startNum = Number(m.start);
-            const endNum = Number(m.end);
-            if (!Number.isFinite(startNum) || !Number.isFinite(endNum)) return;
-
-            const s = Math.min(startNum, endNum);
-            const e = Math.max(startNum, endNum);
-
-            const arr = byChain.get(m.chainId) || [];
-            arr.push({ seqIdx, start: s, end: e });
-            byChain.set(m.chainId, arr);
-        });
-
-        for (const [, ranges] of byChain.entries()) {
-            if (ranges.length < 2) continue;
-            ranges.sort((a, b) => a.start - b.start);
-            let prev = ranges[0];
-            for (let i = 1; i < ranges.length; i++) {
-                const cur = ranges[i];
-                if (cur.start <= prev.end) {
-                    return true; // overlap detected on this chain
-                }
-                prev = cur;
+        // Compare the template slots actually used by each enabled mapping (chain + author
+        // number + insertion code), so adjacent ranges such as ...12 / 12A... do not collide.
+        const used = new Set();
+        for (const m of scaffoldMappings) {
+            if (!m?.enabled || m.chainId == null) continue;
+            const residues = Array.isArray(m.templateResidues) ? m.templateResidues : [];
+            for (const r of residues) {
+                const key = `${m.chainId}|${r.resid}|${r.icode ?? ''}`;
+                if (used.has(key)) return true;
+                used.add(key);
             }
         }
         return false;
@@ -456,15 +431,14 @@ export function useScaffoldMappings(rowMonomerLists, scaffoldTemplate) {
     return { scaffoldMappings, anyScaffoldEnabled, scaffoldMappingPayload, handleEditScaffoldMapping, replaceRawMappings, hasTemplateOverlap };
 }
 
-function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
+export function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
     const next = rawMappings.map((m) => ({ ...emptyMapping, ...m }));
 
     const chain = resolveChain(scaffoldTemplate, chainId);
     const residues = normalizeResidues(chain);
     if (!residues.length) return rawMappings;
 
-    const minResid = residues[0].resid;
-    const maxResid = residues[residues.length - 1].resid;
+    const lastIdx = residues.length - 1;
 
     // Collect enabled mappings on this template chain, keep original seqIdx order
     const group = next
@@ -476,36 +450,66 @@ function repackChainMappings(rawMappings, chainId, scaffoldTemplate) {
     // Sort by seqIdx (design chain order)
     group.sort((a, b) => a.idx - b.idx);
 
-    let prevEnd = null;
+    // Spans are counted in template slots (not residue numbers) so that numbering
+    // gaps, unresolved residues and insertion codes are handled consistently.
+    let prevEndIdx = null;
 
     for (const { m, idx } of group) {
-        let start = Number(m.start);
-        let end = Number(m.end);
+        const start = Number(m.start);
+        const end = Number(m.end);
         if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
 
-        let spanLen = Math.max(1, end - start + 1);
+        let startIdx = resolveIndex(residues, start, { icode: m.startIcode });
+        let endIdx = resolveIndex(residues, end, { preferLast: true, icode: m.endIcode });
+        if (startIdx == null || endIdx == null) continue;
 
-        if (prevEnd == null) {
-            // First mapping: clamp requested start into [minResid, maxResid]
-            if (start < minResid) start = minResid;
-        } else {
+        const spanLen = Math.max(1, endIdx - startIdx + 1);
+
+        if (prevEndIdx != null) {
             // Subsequent mappings start at least after previous end
-            start = Math.max(start, prevEnd + 1, minResid);
+            startIdx = Math.max(startIdx, prevEndIdx + 1);
         }
-        if (start > maxResid) start = maxResid;
+        if (startIdx > lastIdx) startIdx = lastIdx;
 
-        end = start + spanLen - 1;
-        if (end > maxResid) end = maxResid;
-        if (end < start) end = start;
+        endIdx = Math.min(startIdx + spanLen - 1, lastIdx);
 
         next[idx] = {
             ...next[idx],
-            start,
-            end,
+            ...slotBounds(residues, startIdx, endIdx),
         };
-        prevEnd = end;
+        prevEndIdx = endIdx;
     }
     return next;
+}
+
+/**
+ * Allocate consecutive template slot ranges to designed chains (AA-only lengths).
+ */
+export function computeAutoRanges(residues, designAaLengths, chainId) {
+    let cursor = 0;
+    return designAaLengths.map((rawLen) => {
+        const len = rawLen ?? 0;
+        if (len <= 0 || cursor >= residues.length) return null;
+        const startIdx = cursor;
+        const endIdx = Math.min(cursor + len - 1, residues.length - 1);
+        cursor = endIdx + 1;
+        return { ...slotBounds(residues, startIdx, endIdx), chainId };
+    });
+}
+
+/**
+ * Range bounds of a slot interval: author numbers plus boundary insertion codes,
+ * so ranges stay unambiguous when a boundary falls on an insertion-code residue.
+ */
+function slotBounds(residues, startIdx, endIdx) {
+    const s = residues[startIdx];
+    const e = residues[endIdx];
+    return {
+        start: s.resid,
+        end: e.resid,
+        startIcode: s.icode ?? '',
+        endIcode: e.icode ?? '',
+    };
 }
 
 function countAaMonomers(monList) {
@@ -533,14 +537,16 @@ function formatSequence(offset, residues, trailingCapCount = 0) {
     return [...prefix, ...cleanedResidues, ...suffix].join('-');
 }
 
-function normalizePatch(
+export function normalizePatch(
     patch,
     current,
-    minResid = null,
-    maxResid = null,
+    residues = [],
 ) {
     if (!patch) return {};
     const merged = { ...patch };
+    const chainResidues = Array.isArray(residues) ? residues : [];
+    const minResid = chainResidues.length ? chainResidues[0].resid : null;
+    const maxResid = chainResidues.length ? chainResidues[chainResidues.length - 1].resid : null;
 
     const startChanged =
         Object.prototype.hasOwnProperty.call(patch, 'start') && patch.start !== current.start;
@@ -554,6 +560,10 @@ function normalizePatch(
     if (startChanged || endChanged || disablingNow) {
         merged.manualMasks = [];
     }
+
+    // A typed residue number carries no insertion code: let it resolve by number.
+    if (startChanged && !Object.prototype.hasOwnProperty.call(patch, 'startIcode')) merged.startIcode = null;
+    if (endChanged && !Object.prototype.hasOwnProperty.call(patch, 'endIcode')) merged.endIcode = null;
 
     // ...existing code...
     let start =
@@ -581,13 +591,21 @@ function normalizePatch(
         if (end != null && end > maxResid) end = maxResid;
     }
 
-    // NEW: if only start changed, preserve the previous span length (prevents end "growing")
+    // If only start changed, preserve the previous span (in template slots) so the end does not "grow"
     if (startChanged && !endChanged) {
         const cs = Number(current.start);
         const ce = Number(current.end);
-        if (Number.isFinite(cs) && Number.isFinite(ce)) {
-            const span = Math.max(1, ce - cs + 1);
-            if (start != null) {
+        if (Number.isFinite(cs) && Number.isFinite(ce) && start != null) {
+            if (chainResidues.length) {
+                const csIdx = resolveIndex(chainResidues, cs, { icode: current.startIcode });
+                const ceIdx = resolveIndex(chainResidues, ce, { preferLast: true, icode: current.endIcode });
+                const sIdx = resolveIndex(chainResidues, start, { icode: merged.startIcode });
+                const span = Math.max(1, ceIdx - csIdx + 1);
+                const endSlot = chainResidues[Math.min(sIdx + span - 1, chainResidues.length - 1)];
+                end = endSlot.resid;
+                merged.endIcode = endSlot.icode ?? '';
+            } else {
+                const span = Math.max(1, ce - cs + 1);
                 end = start + span - 1;
                 if (maxResid != null && end > maxResid) end = maxResid;
             }
@@ -621,7 +639,7 @@ function buildMaskSet(list, maxLen) {
 }
 
 
-function resolveTemplateSlice({ template, mapping, designedLength }) {
+export function resolveTemplateSlice({ template, mapping, designedLength }) {
     const chain = resolveChain(template, mapping.chainId);
     const residues = normalizeResidues(chain);  // [{ code: 'THR', resid: 16, resn: 'T' }, ...]
     if (!residues.length) {
@@ -655,8 +673,9 @@ function resolveTemplateSlice({ template, mapping, designedLength }) {
     if (targetEnd < startNumber) targetEnd = startNumber;
     if (targetEnd > lastResid) targetEnd = lastResid;
 
-    const startIdx = resolveIndex(residues, startNumber) ?? 0;
-    const endIdx = resolveIndex(residues, targetEnd) ?? startIdx;
+    const startIdx = resolveIndex(residues, startNumber, { icode: mapping.startIcode }) ?? 0;
+    // Without an explicit insertion code, the end resolves to the last slot carrying that number.
+    const endIdx = resolveIndex(residues, targetEnd, { preferLast: true, icode: mapping.endIcode }) ?? startIdx;
 
     if (endIdx < startIdx) {
         return {
@@ -701,7 +720,7 @@ function normalizeChainId(chain) {
     ).toString();
 }
 
-function normalizeResidues(chain) {
+export function normalizeResidues(chain) {
     if (!chain) return [];
     if (Array.isArray(chain.residues) && chain.residues.length) {
         return chain.residues
@@ -716,6 +735,11 @@ function normalizeResidues(chain) {
                     res?.idx ??
                     idx + 1,
                 resn: res?.resn,
+                icode: String(res?.icode ?? '').trim(),
+                // Unresolved template residue (no coordinates): kept as an unmapped slot.
+                observed: res?.observed !== false,
+                isModified: !!(res?.is_modified ?? res?.isModified),
+                breakBefore: !!(res?.break_before ?? res?.breakBefore),
             }))
             .filter((res) => !!res.code);
     }
@@ -744,12 +768,24 @@ function normalizeResidueCode(raw) {
     return code.length === 1 ? code : code.slice(0, 3);
 }
 
-function resolveIndex(residues, targetResid) {
+export function resolveIndex(residues, targetResid, { preferLast = false, icode = null } = {}) {
     if (targetResid == null) return null;
 
-    // Exact match first
-    let idx = residues.findIndex((res) => res.resid === targetResid);
-    if (idx >= 0) return idx;
+    if (icode != null) {
+        const ic = String(icode).trim();
+        const exactIdx = residues.findIndex((res) => res.resid === targetResid && (res.icode ?? '') === ic);
+        if (exactIdx >= 0) return exactIdx;
+    }
+
+    // Exact match first (last occurrence for range ends: insertion codes share a number)
+    if (preferLast) {
+        for (let i = residues.length - 1; i >= 0; i--) {
+            if (residues[i].resid === targetResid) return i;
+        }
+    } else {
+        const idx = residues.findIndex((res) => res.resid === targetResid);
+        if (idx >= 0) return idx;
+    }
 
     // If numbering has gaps, pick the closest lower-or-equal residue
     for (let i = residues.length - 1; i >= 0; i--) {

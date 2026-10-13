@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../utils/api';
 
-// Cache template PDB payloads in-memory to avoid re-fetching when the peptide changes.
+// Cache template payloads ({ text, chains }) in-memory to avoid re-fetching when the peptide changes.
 // Keyed by template_id returned by /api/structures/parse_pdb.
-const TEMPLATE_PDB_TEXT_CACHE = new Map();
+const TEMPLATE_PAYLOAD_CACHE = new Map();
+
+const WATER_RESNAMES = new Set(['HOH', 'WAT', 'DOD', 'H2O', 'SOL']);
 
 const SCAFFOLD_TEMPLATE_STORAGE_KEY = 'pp-editor:scaffold-template:v1';
 
@@ -41,6 +43,7 @@ function parsePdbChains(pdbText) {
         if (rec !== 'ATOM' && rec !== 'HETATM') continue;
 
         const resname = line.slice(17, 20).trim();
+        if (WATER_RESNAMES.has(resname.toUpperCase())) continue;
         const chainIdRaw = line.slice(21, 22);
         const chainId = (chainIdRaw != null ? String(chainIdRaw) : '').trim() || '_';
         const residStr = line.slice(22, 26).trim();
@@ -125,10 +128,13 @@ export function useScaffoldTemplate() {
 
     const hydratedRef = useRef(false);
 
-    const fetchTemplatePdbText = useCallback(async (templateId) => {
+    // Returns { text, chains }. `chains` is the backend residue-slot model (single source
+    // of truth for mapping: includes non-standard and unresolved residues); it is null
+    // with older backends, in which case callers fall back to parsing the PDB text.
+    const fetchTemplatePayload = useCallback(async (templateId) => {
         const id = templateId ? String(templateId).trim() : '';
         if (!id) return null;
-        if (TEMPLATE_PDB_TEXT_CACHE.has(id)) return TEMPLATE_PDB_TEXT_CACHE.get(id);
+        if (TEMPLATE_PAYLOAD_CACHE.has(id)) return TEMPLATE_PAYLOAD_CACHE.get(id);
 
         const url = `${API_BASE_URL}/api/structures/get_pdb_template?template_id=${encodeURIComponent(id)}`;
         const res = await apiFetch(url, { method: 'GET' });
@@ -138,9 +144,18 @@ export function useScaffoldTemplate() {
         }
         const pdbText = payload?.data?.pdb_text ?? payload?.data?.pdbText ?? null;
         const text = pdbText != null ? String(pdbText) : null;
-        TEMPLATE_PDB_TEXT_CACHE.set(id, text);
-        return text;
+        const chains = Array.isArray(payload?.data?.chains) && payload.data.chains.length
+            ? payload.data.chains
+            : null;
+        const result = { text, chains };
+        TEMPLATE_PAYLOAD_CACHE.set(id, result);
+        return result;
     }, []);
+
+    const fetchTemplatePdbText = useCallback(
+        async (templateId) => (await fetchTemplatePayload(templateId))?.text ?? null,
+        [fetchTemplatePayload],
+    );
 
     const restoreTemplateById = useCallback(async (templateId) => {
         const id = templateId != null ? String(templateId).trim() : '';
@@ -153,14 +168,16 @@ export function useScaffoldTemplate() {
         setStandardization(null);
 
         try {
-            const pdbText = await fetchTemplatePdbText(id);
+            const templatePayload = await fetchTemplatePayload(id);
+            const pdbText = templatePayload?.text ?? null;
             if (!pdbText) {
                 setError('Template fetch returned empty content.');
                 return { ok: false, reason: 'empty' };
             }
 
-            // Populate chain metadata from the PDB text so mapping UI can resolve residues.
-            const parsedChainData = parsePdbChains(pdbText);
+            // Chain metadata: prefer the backend residue-slot model (same residues as the
+            // upload response and the threading backend); parse the PDB text only as a fallback.
+            const parsedChainData = templatePayload?.chains ?? parsePdbChains(pdbText);
             const parsedChains = parsedChainData.length ? parsedChainData.map((c) => c.id) : null;
 
             setScaffoldTemplate((prev) => {
@@ -193,7 +210,7 @@ export function useScaffoldTemplate() {
         } finally {
             setLoading(false);
         }
-    }, [fetchTemplatePdbText]);
+    }, [fetchTemplatePayload]);
 
     // Hydrate PDB text for persisted templates (metadata-only in localStorage).
     useEffect(() => {
@@ -204,11 +221,17 @@ export function useScaffoldTemplate() {
         if (!templateId) return;
         if (scaffoldTemplate?.text) return;
 
-        fetchTemplatePdbText(templateId)
-            .then((pdbText) => {
+        fetchTemplatePayload(templateId)
+            .then((templatePayload) => {
                 setScaffoldTemplate((prev) => {
                     if (!prev || prev.id !== templateId) return prev;
-                    return { ...prev, text: pdbText };
+                    const chains = templatePayload?.chains;
+                    return {
+                        ...prev,
+                        text: templatePayload?.text ?? null,
+                        // Refresh persisted chain metadata with the backend residue model.
+                        ...(chains ? { chains: chains.map((c) => c.id), chainData: chains } : {}),
+                    };
                 });
             })
             .catch((e) => {

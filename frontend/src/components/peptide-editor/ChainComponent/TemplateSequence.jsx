@@ -7,8 +7,96 @@ import { useHoveredTemplateResidue } from '../../../state/hoveredTemplateResidue
 
 const GRID_GAP = 0.5;
 
-const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onToggle, onContextMenu, isHovered }) => {
+const templateResidueStatus = ({ missing, modified, breakBefore, code }) => {
+    const lines = [];
+    if (missing) {
+        lines.push('Unresolved in the template (no coordinates): the designed residue placed here is not constrained and is sampled freely.');
+    } else if (modified) {
+        lines.push(`Non-standard template residue (${code}): only its backbone N/CA/C/O coordinates are used.`);
+    }
+    if (breakBefore) {
+        lines.push('Backbone break before this residue in the template (no peptide bond): avoid mapping bonded designed residues across it.');
+    }
+    return lines.join(' ');
+};
+
+const TemplateResidue = ({ code, resid, icode, missing, modified, breakBefore, kind, showControls, masked, onToggle, onContextMenu, isHovered }) => {
     const isOffsetOrMasked = kind === 'offset' || masked;
+    const status = kind === 'template' ? templateResidueStatus({ missing, modified, breakBefore, code }) : '';
+
+    const cell = (
+        <Box
+            sx={{
+                width: '100%',
+                height: `var(--pp-cell-h, ${CELL_HEIGHT}px)`,
+                borderRadius: 1.5,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.1,
+                textTransform: 'uppercase',
+                border: '1px solid',
+                borderStyle: missing ? 'dashed' : 'solid',
+                borderColor: (theme) =>
+                    isHovered
+                        ? theme.palette.info.main
+                        : missing
+                            ? theme.palette.text.disabled
+                            : isOffsetOrMasked
+                                ? theme.palette.warning.light
+                                : theme.palette.primary.light,
+                ...(breakBefore ? {
+                    borderLeftWidth: 3,
+                    borderLeftStyle: 'solid',
+                    borderLeftColor: (theme) => theme.palette.error.main,
+                } : {}),
+                bgcolor: (theme) =>
+                    isHovered
+                        ? theme.palette.info.main + '38'
+                        : missing
+                            ? 'transparent'
+                            : isOffsetOrMasked
+                                ? theme.palette.warning.light + '22'
+                                : theme.palette.primary.light + '18',
+                color: (theme) =>
+                    missing
+                        ? theme.palette.text.disabled
+                        : isOffsetOrMasked
+                            ? theme.palette.warning.dark
+                            : theme.palette.primary.dark,
+                boxShadow: isHovered
+                    ? (theme) => `0 0 0 2px ${theme.palette.info.main}50`
+                    : 'none',
+                transition: 'border-color 100ms, background-color 100ms, box-shadow 100ms',
+            }}
+            onContextMenu={onContextMenu}
+        >
+            <Box
+                sx={{
+                    userSelect: 'none',
+                    fontSize: 10,
+                    fontWeight: 500,
+                    lineHeight: 1.1,
+                    fontStyle: modified && !missing ? 'italic' : 'normal',
+                }}
+            >
+                {code}
+            </Box>
+            {resid != null && (
+                <Box
+                    sx={{
+                        userSelect: 'none',
+                        fontSize: 9,
+                        lineHeight: 1.05,
+                        color: 'text.secondary',
+                    }}
+                >
+                    {resid}{icode || ''}
+                </Box>
+            )}
+        </Box>
+    );
 
     return (
         <Box
@@ -53,64 +141,11 @@ const TemplateResidue = ({ code, resid, isGap, kind, showControls, masked, onTog
                     </Box>
                 </Tooltip>
             )}
-            <Box
-                sx={{
-                    width: '100%',
-                    height: `var(--pp-cell-h, ${CELL_HEIGHT}px)`,
-                    borderRadius: 1.5,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 0.1,
-                    textTransform: 'uppercase',
-                    border: '1px solid',
-                    borderColor: (theme) =>
-                        isHovered
-                            ? theme.palette.info.main
-                            : isOffsetOrMasked
-                                ? theme.palette.warning.light
-                                : theme.palette.primary.light,
-                    bgcolor: (theme) =>
-                        isHovered
-                            ? theme.palette.info.main + '38'
-                            : isOffsetOrMasked
-                                ? theme.palette.warning.light + '22'
-                                : theme.palette.primary.light + '18',
-                    color: (theme) =>
-                        isOffsetOrMasked
-                            ? theme.palette.warning.dark
-                            : theme.palette.primary.dark,
-                    boxShadow: isHovered
-                        ? (theme) => `0 0 0 2px ${theme.palette.info.main}50`
-                        : 'none',
-                    transition: 'border-color 100ms, background-color 100ms, box-shadow 100ms',
-                }}
-                onContextMenu={onContextMenu}
-            >
-                <Box
-                    sx={{
-                        userSelect: 'none',
-                        fontSize: 10,
-                        fontWeight: 500,
-                        lineHeight: 1.1,
-                    }}
-                >
-                    {code}
-                </Box>
-                {resid != null && (
-                    <Box
-                        sx={{
-                            userSelect: 'none',
-                            fontSize: 9,
-                            lineHeight: 1.05,
-                            color: 'text.secondary',
-                        }}
-                    >
-                        {resid}
-                    </Box>
-                )}
-            </Box>
+            {status ? (
+                <Tooltip title={status} placement="bottom" enterDelay={400}>
+                    {cell}
+                </Tooltip>
+            ) : cell}
         </Box>
     );
 };
@@ -236,13 +271,18 @@ export default function TemplateSequence({
                     const residue = templateResidues[aaIdx];
                     const masked = manualMaskSet.has(aaIdx);
                     const baseCode = residue.code || 'X';
+                    const missing = residue.observed === false;
 
                     return {
-                        code: masked ? '-' : baseCode,
+                        code: masked && !missing ? '-' : baseCode,
                         resid: residue.resid,
+                        icode: residue.icode || '',
                         kind: 'template',
                         templateIdx: aaIdx,
                         masked,
+                        missing,
+                        modified: !!residue.isModified,
+                        breakBefore: !!residue.breakBefore,
                     };
                 }
 
@@ -318,18 +358,22 @@ export default function TemplateSequence({
             }}
         >
             {cells.map((cell, idx) => {
+                // Unresolved residues are never constrained: nothing to mask or focus.
                 const showControls =
                     isEnabled &&
                     canEdit &&
                     cell.kind === 'template' &&
                     cell.templateIdx != null &&
+                    !cell.missing &&
                     !cell.locked;
 
                 const canFocus =
                     mappingBaseStart != null &&
                     isEnabled &&
                     cell.kind === 'template' &&
-                    cell.templateIdx != null;
+                    cell.templateIdx != null &&
+                    !cell.missing &&
+                    cell.resid != null;
 
                 const onContextMenu = canFocus
                     ? (e) => {
@@ -339,7 +383,8 @@ export default function TemplateSequence({
                             detail: {
                                 target: 'template',
                                 chainId: mapping.chainId,
-                                seqId: Number(mappingBaseStart) + Number(cell.templateIdx),
+                                seqId: Number(cell.resid),
+                                icode: cell.icode,
                             }
                         }));
                     }
@@ -350,7 +395,10 @@ export default function TemplateSequence({
                         key={`template-residue-${idx}`}
                         code={cell.code}
                         resid={cell.resid}
-                        isGap={cell.code === 'X'}
+                        icode={cell.icode}
+                        missing={!!cell.missing}
+                        modified={!!cell.modified}
+                        breakBefore={!!cell.breakBefore}
                         kind={cell.kind}
                         showControls={showControls}
                         onContextMenu={onContextMenu}
@@ -363,7 +411,10 @@ export default function TemplateSequence({
                         isHovered={
                             hoveredTemplateResidue != null &&
                             cell.resid != null &&
-                            hoveredTemplateResidue.resid === cell.resid
+                            !cell.missing &&
+                            hoveredTemplateResidue.resid === cell.resid &&
+                            (hoveredTemplateResidue.icode ?? '') === (cell.icode ?? '') &&
+                            (!mapping.chainId || hoveredTemplateResidue.chainId === mapping.chainId)
                         }
                     />
                 );
