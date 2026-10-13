@@ -4,10 +4,11 @@ import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { CELL_WIDTH, CELL_HEIGHT, CELL_GAP } from './cellSizeTokens';
 import { useHoveredTemplateResidue } from '../../../state/hoveredTemplateResidueStore';
+import TemplateMappingSummary from './TemplateMappingSummary';
 
 const GRID_GAP = 0.5;
 
-const templateResidueStatus = ({ missing, modified, breakBefore, code }) => {
+const templateResidueStatus = ({ missing, modified, breakBefore, code, issues = [] }) => {
     const lines = [];
     if (missing) {
         lines.push('Unresolved in the template (no coordinates): the designed residue placed here is not constrained and is sampled freely.');
@@ -17,12 +18,17 @@ const templateResidueStatus = ({ missing, modified, breakBefore, code }) => {
     if (breakBefore) {
         lines.push('Backbone break before this residue in the template (no peptide bond): avoid mapping bonded designed residues across it.');
     }
+    // Pre-flight mapping issues (rejected atoms, chirality mismatch, break between mapped residues).
+    for (const issue of issues) lines.push(issue.message);
     return lines.join(' ');
 };
 
-const TemplateResidue = ({ code, resid, icode, missing, modified, breakBefore, kind, showControls, masked, onToggle, onContextMenu, isHovered }) => {
+const TemplateResidue = ({ code, resid, icode, missing, modified, breakBefore, issues = [], kind, showControls, masked, onToggle, onContextMenu, isHovered }) => {
     const isOffsetOrMasked = kind === 'offset' || masked;
-    const status = kind === 'template' ? templateResidueStatus({ missing, modified, breakBefore, code }) : '';
+    const status = kind === 'template' ? templateResidueStatus({ missing, modified, breakBefore, code, issues }) : '';
+    const issueSeverity = issues.some((i) => i.severity === 'error')
+        ? 'error'
+        : (issues.length ? 'warning' : null);
 
     const cell = (
         <Box
@@ -146,6 +152,23 @@ const TemplateResidue = ({ code, resid, icode, missing, modified, breakBefore, k
                     {cell}
                 </Tooltip>
             ) : cell}
+            {issueSeverity ? (
+                <Box
+                    aria-hidden
+                    sx={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -1,
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        bgcolor: `${issueSeverity}.main`,
+                        border: '1px solid',
+                        borderColor: 'background.paper',
+                        pointerEvents: 'none',
+                    }}
+                />
+            ) : null}
         </Box>
     );
 };
@@ -252,6 +275,13 @@ export default function TemplateSequence({
 
 
     const cells = useMemo(() => {
+        // Pre-flight report issues by template slot index (only while the backend check is fresh).
+        const reportIssuesByIndex = new Map();
+        for (const pos of (Array.isArray(mapping?.report?.positions) ? mapping.report.positions : [])) {
+            const issues = (pos?.issues || []).filter((i) => i.severity !== 'info');
+            if (issues.length) reportIssuesByIndex.set(Number(pos.index), issues);
+        }
+
         const aaStart = offsetCount;
         // const aaEnd = offsetCount + aaSlots; // exclusive
         const aaEnd = aaSlots - trailingCapCount; // exclusive
@@ -283,6 +313,7 @@ export default function TemplateSequence({
                         missing,
                         modified: !!residue.isModified,
                         breakBefore: !!residue.breakBefore,
+                        issues: masked ? [] : (reportIssuesByIndex.get(aaIdx) || []),
                     };
                 }
 
@@ -314,7 +345,7 @@ export default function TemplateSequence({
             // Fallback (should not normally hit)
             return { code: '-', resid: null, kind: 'pad', masked: false };
         });
-    }, [totalSlots, offsetCount, aaSlots, templateResidues, manualMaskSet, trailingCapCount]);
+    }, [totalSlots, offsetCount, aaSlots, templateResidues, manualMaskSet, trailingCapCount, mapping?.report]);
 
     const canEdit = typeof sequenceIndex === 'number' && !!onEditMapping;
 
@@ -399,6 +430,7 @@ export default function TemplateSequence({
                         missing={!!cell.missing}
                         modified={!!cell.modified}
                         breakBefore={!!cell.breakBefore}
+                        issues={cell.issues || []}
                         kind={cell.kind}
                         showControls={showControls}
                         onContextMenu={onContextMenu}
@@ -419,6 +451,14 @@ export default function TemplateSequence({
                     />
                 );
             })}
+            {isEnabled ? (
+                <TemplateMappingSummary
+                    report={mapping.report}
+                    loading={!!mapping.reportLoading}
+                    error={mapping.reportError}
+                    onMaskPosition={canEdit ? (idx) => updateMasks((set) => set.add(idx)) : undefined}
+                />
+            ) : null}
         </Box>
     );
 }

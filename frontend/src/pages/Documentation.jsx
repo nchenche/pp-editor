@@ -1702,6 +1702,14 @@ const Documentation = () => {
                         constrained and are sampled freely, bridging the gap. Caps, waters, ions and ligands are not
                         listed.
                     </P>
+                    <P>
+                        The mapping is checked as you edit it, using the same rules as the conformer job: a marker at
+                        the end of each template row lists issues such as rejected backbone atoms, an L/D mismatch
+                        between template and designed residues, or a template backbone break between two bonded
+                        designed residues (which must be masked or explicitly accepted before generating), with a
+                        one-click <i>Mask</i> fix. The generated conformer is superimposed on the template; masking every
+                        residue gives an unconstrained conformer. Templates may be uploaded as PDB or mmCIF.
+                    </P>
 
                     <P>
                         For step-by-step instructions on how to apply either constraint type in the editor, see{" "}

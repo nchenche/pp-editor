@@ -14,6 +14,9 @@ import { useBilnHandlers } from '../../../src/hooks/useBilnHandlers';
 import { useUIHandlers } from '../../../src/hooks/useUIHandlers';
 import { useScaffoldTemplate } from '../../../src/hooks/useScaffoldTemplate';
 import { useScaffoldMappings } from '../../../src/hooks/useScaffoldMappings';
+import { useTemplateMappingReport, chainReport, blockingIssues } from '../../../src/hooks/useTemplateMappingReport';
+import TemplateNotesDialog from './TemplateNotesDialog';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { usePersistDesign, useInitialDesignState } from '../../../src/hooks/usePersistDesign';
 import { useSplitLayout } from '../../../src/hooks/useSplitLayout';
 import { useBilnHistory } from '../../../src/hooks/useBilnHistory';
@@ -117,6 +120,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         errorType: conformerErrorType,
         cancelJob: cancelConformerJob,
         isCanceling: isCancelingConformerJob,
+        templateWarnings: conformerTemplateWarnings,
     } = useGenerate3D(API_BASE_URL);
 
     const sessionId = useSessionId();
@@ -784,6 +788,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             open: true,
             severity: warningsCount > 0 ? 'warning' : 'success',
             message: withStd,
+            details: warningsCount > 0 || infoCount > 0,
         });
     }, [scaffoldLoading, scaffoldError, scaffoldTemplateId, scaffoldWarnings, scaffoldMessages, scaffoldStandardization]);
 
@@ -912,6 +917,44 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
     const isTemplateMode = constraintMode === 'template';
     const effectiveAnyScaffoldEnabled = isTemplateMode && anyScaffoldEnabled;
     const [templateOverlapOpen, setTemplateOverlapOpen] = useState(false);
+
+    // Pre-flight template mapping check (same report the conformer job applies).
+    const {
+        report: templateReport,
+        loading: templateReportLoading,
+        error: templateReportError,
+    } = useTemplateMappingReport({
+        biln: normalizeBilnForGen(committedBiln),
+        payload: scaffoldMappingPayload,
+        enabled: effectiveAnyScaffoldEnabled,
+    });
+    const scaffoldMappingsWithReport = useMemo(
+        () => (scaffoldMappings || []).map((m, idx) => (m?.enabled
+            ? {
+                ...m,
+                report: chainReport(templateReport, idx),
+                reportLoading: templateReportLoading,
+                reportError: templateReportError,
+            }
+            : m)),
+        [scaffoldMappings, templateReport, templateReportLoading, templateReportError],
+    );
+    const [templateBlockingDialog, setTemplateBlockingDialog] = useState({ open: false, issues: [] });
+    const bypassTemplateBlockingRef = useRef(false);
+    const generateAfterMaskRef = useRef(false);
+    const [templateNotesDialog, setTemplateNotesDialog] = useState(null); // 'upload' | 'result' | null
+
+    // Upload report: live hook state after an upload, persisted template metadata after a restore.
+    const templateUploadNotes = useMemo(() => {
+        const warnings = scaffoldWarnings?.length ? scaffoldWarnings : (scaffoldTemplate?.warnings || []);
+        const messages = scaffoldMessages?.length ? scaffoldMessages : (scaffoldTemplate?.messages || []);
+        // Backend `messages` repeat the warnings; keep only the extra informational ones.
+        const warningSet = new Set(warnings);
+        return [
+            ...warnings.map((m) => ({ severity: 'warning', message: m })),
+            ...messages.filter((m) => !warningSet.has(m)).map((m) => ({ severity: 'info', message: m })),
+        ];
+    }, [scaffoldWarnings, scaffoldMessages, scaffoldTemplate]);
     const [autoSync3DRaw, setAutoSync3DRaw] = useState(() => {
         try {
             const raw = window?.localStorage?.getItem(AUTO_SYNC_3D_STORAGE_KEY);
@@ -1078,6 +1121,17 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                 return;
             }
 
+            // Blocking pre-flight issues (e.g. backbone break between bonded designed residues):
+            // ask before generating. Only a report matching the current inputs is considered.
+            if (useTemplate && !bypassTemplateBlockingRef.current) {
+                const blocking = blockingIssues(templateReport);
+                if (blocking.length) {
+                    setTemplateBlockingDialog({ open: true, issues: blocking });
+                    return;
+                }
+            }
+            bypassTemplateBlockingRef.current = false;
+
             lastGenRef.current = { biln, ss, useTemplate, mappingSig, ph: phValue };
             setLastGeneratedInputs({ biln, ss, ph: phValue });
 
@@ -1097,7 +1151,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
             }
         },
         // FIX deps: structureOutput wasn’t used; constraintsBySeq + structurePDB are the relevant ones
-        [generate3D, effectiveAnyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, constraintsBySeq, phValue, normalizeBilnForGen, constraintMode],
+        [generate3D, effectiveAnyScaffoldEnabled, scaffoldMappingPayload, hasTemplateOverlap, templateReport, constraintsBySeq, phValue, normalizeBilnForGen, constraintMode],
     );
 
     const handleAutoSyncChange = useCallback(
@@ -1137,6 +1191,37 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
         },
         [handleEditScaffoldMapping, isTemplateMode],
     );
+
+    // Blocking template issues dialog: mask the offending positions, then generate.
+    const handleTemplateBlockingMaskAndGenerate = useCallback(() => {
+        const bySeq = new Map();
+        for (const issue of templateBlockingDialog.issues || []) {
+            const list = bySeq.get(issue.seq_idx) || [];
+            list.push(Number(issue.index));
+            bySeq.set(issue.seq_idx, list);
+        }
+        for (const [seqIdx, indices] of bySeq.entries()) {
+            const current = scaffoldMappings?.[seqIdx]?.manualMasks || [];
+            handleEditScaffoldMappingNoAutoGen(seqIdx, {
+                manualMasks: Array.from(new Set([...current, ...indices])),
+            });
+        }
+        setTemplateBlockingDialog({ open: false, issues: [] });
+        // Generate once the new masks are reflected in the payload (see effect below).
+        generateAfterMaskRef.current = true;
+    }, [templateBlockingDialog, scaffoldMappings, handleEditScaffoldMappingNoAutoGen]);
+
+    const handleTemplateBlockingGenerateAnyway = useCallback(() => {
+        setTemplateBlockingDialog({ open: false, issues: [] });
+        bypassTemplateBlockingRef.current = true;
+        handleManualGenerate3D();
+    }, [handleManualGenerate3D]);
+
+    useEffect(() => {
+        if (!generateAfterMaskRef.current) return;
+        generateAfterMaskRef.current = false;
+        handleManualGenerate3D();
+    }, [scaffoldMappingPayload, handleManualGenerate3D]);
 
 
     // keep constraints arrays shaped to sequences
@@ -1782,7 +1867,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         onUploadScaffoldFile={uploadScaffoldFile}
                         onFetchScaffoldById={fetchScaffoldById}
                         onClearScaffold={handleClearScaffold}
-                        scaffoldMappings={scaffoldMappings}
+                        scaffoldMappings={scaffoldMappingsWithReport}
                         onEditScaffoldMapping={handleEditScaffoldMappingNoAutoGen}
                         onOpenTemplatePanel={() => setActive3DPanel('template')}
                         onBulkSetConstraints={setConstraintsBySeq}
@@ -1808,6 +1893,45 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                     }}
                 />
 
+
+                {/* Blocking template mapping issues (pre-flight report) */}
+                <TemplateNotesDialog
+                    open={templateBlockingDialog.open}
+                    onClose={() => setTemplateBlockingDialog({ open: false, issues: [] })}
+                    title="Template mapping inconsistency"
+                    intro="These template constraints cannot all be satisfied. Masking the listed positions leaves those designed residues unconstrained."
+                    items={templateBlockingDialog.issues}
+                    defaultSeverity="error"
+                    actions={(
+                        <>
+                            <Button size="small" onClick={() => setTemplateBlockingDialog({ open: false, issues: [] })}>
+                                Cancel
+                            </Button>
+                            <Button size="small" onClick={handleTemplateBlockingGenerateAnyway}>
+                                Generate anyway
+                            </Button>
+                            <Button size="small" variant="contained" onClick={handleTemplateBlockingMaskAndGenerate}>
+                                Mask and generate
+                            </Button>
+                        </>
+                    )}
+                />
+
+                <TemplateNotesDialog
+                    open={templateNotesDialog === 'upload'}
+                    onClose={() => setTemplateNotesDialog(null)}
+                    title="Template report"
+                    intro="Findings from parsing the uploaded template."
+                    items={templateUploadNotes}
+                />
+
+                <TemplateNotesDialog
+                    open={templateNotesDialog === 'result'}
+                    onClose={() => setTemplateNotesDialog(null)}
+                    title="Template threading notes"
+                    intro="Reported by the conformer job for the current 3D structure."
+                    items={conformerTemplateWarnings}
+                />
 
                 {/* Overlapping scaffold mappings warning */}
                 <Dialog
@@ -1852,7 +1976,7 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
 
                 <Snackbar
                     open={!!scaffoldToast.open}
-                    autoHideDuration={1750}
+                    autoHideDuration={scaffoldToast.details ? 6000 : 1750}
                     onClose={(_, reason) => {
                         if (reason === 'clickaway') return;
                         setScaffoldToast((prev) => ({ ...prev, open: false }));
@@ -1863,6 +1987,29 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                         severity={scaffoldToast.severity}
                         variant="filled"
                         onClose={() => setScaffoldToast((prev) => ({ ...prev, open: false }))}
+                        action={scaffoldToast.details ? (
+                            <>
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    onClick={() => {
+                                        setScaffoldToast((prev) => ({ ...prev, open: false }));
+                                        setTemplateNotesDialog('upload');
+                                    }}
+                                    sx={{ fontSize: 11, py: 0, textTransform: 'none' }}
+                                >
+                                    Details
+                                </Button>
+                                <IconButton
+                                    size="small"
+                                    color="inherit"
+                                    aria-label="close"
+                                    onClick={() => setScaffoldToast((prev) => ({ ...prev, open: false }))}
+                                >
+                                    <CloseIcon sx={{ fontSize: 16 }} />
+                                </IconButton>
+                            </>
+                        ) : undefined}
                         sx={{ fontSize: 12, py: 0.5, alignItems: 'center' }}
                     >
                         {scaffoldToast.message}
@@ -2512,6 +2659,21 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                             }}
                                         />
                                     </Tooltip>
+
+                                    {/* Template threading notes of the displayed conformer */}
+                                    {conformerTemplateWarnings?.length ? (
+                                        <Tooltip title="Template threading notes for this conformer" arrow placement="top">
+                                            <Button
+                                                size="small"
+                                                color="warning"
+                                                startIcon={<WarningAmberOutlinedIcon sx={{ fontSize: 16 }} />}
+                                                onClick={() => setTemplateNotesDialog('result')}
+                                                sx={{ textTransform: 'none', fontSize: 12, py: 0, minWidth: 0, whiteSpace: 'nowrap' }}
+                                            >
+                                                Template: {conformerTemplateWarnings.length} note{conformerTemplateWarnings.length === 1 ? '' : 's'}
+                                            </Button>
+                                        </Tooltip>
+                                    ) : null}
                                 </Box>
 
                                 {/* <Divider orientation="vertical" flexItem sx={{ height: 24, alignSelf: 'center', mx: 0.5 }} /> */}
@@ -3118,6 +3280,18 @@ const PeptideEditorMainInner = ({ isActive, onOutputChange, uiState, setUiState,
                                                             </span>
                                                         </Tooltip>
                                                     </Box>
+
+                                                    {templateUploadNotes.length ? (
+                                                        <Button
+                                                            size="small"
+                                                            color="warning"
+                                                            startIcon={<WarningAmberOutlinedIcon sx={{ fontSize: 15 }} />}
+                                                            onClick={() => setTemplateNotesDialog('upload')}
+                                                            sx={{ alignSelf: 'flex-start', textTransform: 'none', fontSize: 12, py: 0, px: 0.5, minWidth: 0 }}
+                                                        >
+                                                            Template report ({templateUploadNotes.length})
+                                                        </Button>
+                                                    ) : null}
 
                                                     <Box>
                                                         {/* Keep overlay controls on top */}

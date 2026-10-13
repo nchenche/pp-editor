@@ -69,6 +69,13 @@ export function useGenerate3D(baseUrlOverride) {
         };
     }, [jobId, jobState, resultRef]);
 
+    // Template threading notes of the current successful job (result_ref.template_warnings).
+    const templateWarnings = useMemo(() => {
+        if (jobState !== 'success') return [];
+        const list = resultRef?.template_warnings;
+        return Array.isArray(list) ? list.filter(Boolean).map(String) : [];
+    }, [jobState, resultRef]);
+
     useLayoutEffect(() => {
         if (!jobDerivedResult) return;
         setResult((prev) => {
@@ -287,6 +294,7 @@ export function useGenerate3D(baseUrlOverride) {
 
         // Async job extras (safe to ignore by old call sites)
         jobId,
+        templateWarnings,
         jobState,
         progress,
         progressMessage,
